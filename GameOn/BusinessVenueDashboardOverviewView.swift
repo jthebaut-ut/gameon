@@ -167,13 +167,19 @@ struct BusinessVenueDashboardOverviewView: View {
     let onTonightGames: () -> Void
     let onPredictions: () -> Void
     let onAnalytics: () -> Void
+    let onUsage: () -> Void
     let onCommentsReports: () -> Void
     let onViewAllGames: () -> Void
     let onRefreshVenues: () -> Void
     let showsManagedVenuesSection: Bool
+    let isStatisticsProActive: Bool
 
     private var hasManagedVenues: Bool {
         data.managedVenueCount > 0
+    }
+
+    private var proGold: Color {
+        Color(red: 0.86, green: 0.63, blue: 0.22)
     }
 
     var body: some View {
@@ -202,10 +208,20 @@ struct BusinessVenueDashboardOverviewView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     BusinessVenueDashboardActionCard(title: L10n.t("add_venue", languageCode: appLanguageRaw), systemImage: "plus.circle.fill", tint: FGColor.accentBlue, action: handleAddVenueTapped)
+                    BusinessVenueDashboardActionCard(title: "Usage", systemImage: "chart.line.uptrend.xyaxis", tint: FGColor.accentBlue, action: onUsage)
                     if hasManagedVenues {
                         BusinessVenueDashboardActionCard(title: L10n.t("venue_details", languageCode: appLanguageRaw), systemImage: "photo.on.rectangle.angled", tint: FGColor.accentBlue, action: onAddGame)
                         BusinessVenueDashboardActionCard(title: L10n.t("manage_games", languageCode: appLanguageRaw), systemImage: "sportscourt", tint: FGColor.accentGreen, action: onTonightGames)
-                        BusinessVenueDashboardActionCard(title: L10n.t("statistics", languageCode: appLanguageRaw), systemImage: "chart.bar.xaxis", tint: Color.orange, action: onAnalytics)
+                        BusinessVenueDashboardActionCard(
+                            title: L10n.t("statistics", languageCode: appLanguageRaw),
+                            subtitle: isStatisticsProActive ? nil : "Business Pro",
+                            systemImage: isStatisticsProActive ? "chart.bar.xaxis" : "lock.fill",
+                            tint: proGold,
+                            badgeText: "PRO",
+                            isPremium: true,
+                            isLimited: !isStatisticsProActive,
+                            action: onAnalytics
+                        )
                         BusinessVenueDashboardActionCard(title: "Flagged Comments", systemImage: "exclamationmark.bubble", tint: Color.gray, action: onCommentsReports)
                     }
                 }
@@ -444,36 +460,117 @@ private struct BusinessVenueDashboardActionCard: View {
     @Environment(\.colorScheme) private var colorScheme
 
     let title: String
+    var subtitle: String? = nil
     let systemImage: String
     let tint: Color
+    var badgeText: String? = nil
+    var isPremium: Bool = false
+    var isLimited: Bool = false
     let action: () -> Void
+
+    private var proGoldDeep: Color {
+        Color(red: 0.52, green: 0.35, blue: 0.11)
+    }
+
+    private var proGlyphInk: Color {
+        Color(red: 0.08, green: 0.06, blue: 0.025)
+    }
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 10) {
-                Image(systemName: systemImage)
-                    .font(.title3.weight(.bold))
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(tint)
-                    .frame(height: 24)
+            ZStack(alignment: .topTrailing) {
+                VStack(spacing: subtitle == nil ? 10 : 7) {
+                    Image(systemName: systemImage)
+                        .font(.title3.weight(.bold))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(isLimited ? tint.opacity(0.78) : tint)
+                        .frame(height: 24)
 
-                Text(title)
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(FGColor.primaryText(colorScheme))
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.78)
+                    VStack(spacing: 2) {
+                        Text(title)
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.78)
+
+                        if let subtitle {
+                            Text(subtitle)
+                                .font(.system(size: 9, weight: .heavy, design: .rounded))
+                                .foregroundStyle(tint.opacity(colorScheme == .dark ? 0.96 : 0.90))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.82)
+                        }
+                    }
+                }
+                .padding(.top, badgeText == nil ? 0 : 4)
+
+                if let badgeText {
+                    Text(badgeText)
+                        .font(.system(size: 8, weight: .heavy, design: .rounded))
+                        .foregroundStyle(proGlyphInk.opacity(0.94))
+                        .lineLimit(1)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            Color(red: 1.0, green: 0.84, blue: 0.42),
+                                            tint
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                        )
+                        .overlay {
+                            Capsule(style: .continuous)
+                                .strokeBorder(proGoldDeep.opacity(0.34), lineWidth: 0.7)
+                        }
+                        .offset(x: 7, y: -7)
+                }
             }
-            .frame(width: 82, height: 92)
-            .background(FGColor.cardBackground(colorScheme))
+            .frame(width: isPremium ? 88 : 82, height: isPremium ? 98 : 92)
+            .background(actionCardBackground)
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+                    .strokeBorder(actionCardStroke, lineWidth: isPremium ? 1.1 : 1)
             }
-            .shadow(color: .black.opacity(colorScheme == .dark ? 0.16 : 0.05), radius: 10, x: 0, y: 6)
+            .shadow(
+                color: isPremium
+                    ? tint.opacity(colorScheme == .dark ? 0.18 : 0.12)
+                    : .black.opacity(colorScheme == .dark ? 0.16 : 0.05),
+                radius: isPremium ? 11 : 10,
+                x: 0,
+                y: 6
+            )
+            .opacity(isLimited ? 0.86 : 1)
         }
         .buttonStyle(.plain)
+        .accessibilityHint(isLimited ? "Business Pro analytics" : "")
+    }
+
+    private var actionCardBackground: some ShapeStyle {
+        if isPremium {
+            return AnyShapeStyle(
+                LinearGradient(
+                    colors: [
+                        tint.opacity(colorScheme == .dark ? 0.20 : 0.12),
+                        FGColor.cardBackground(colorScheme)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+        }
+        return AnyShapeStyle(FGColor.cardBackground(colorScheme))
+    }
+
+    private var actionCardStroke: Color {
+        isPremium ? tint.opacity(colorScheme == .dark ? 0.42 : 0.30) : FGColor.divider(colorScheme)
     }
 }
 

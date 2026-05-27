@@ -105,6 +105,7 @@ struct ProfileIdentityCard: View {
     @State private var trophyAnimationTask: Task<Void, Never>?
     @State private var sponsoredVenueDetail: BarVenue?
     @State private var sponsoredProfileRecommendation: SponsoredProfileVenueRecommendation?
+    @State private var showSponsoredPromotionSupportSheet = false
 
     private static let bioCharacterLimit = 160
     private static let incomingPokesHighlightsLimit = 50
@@ -338,16 +339,10 @@ struct ProfileIdentityCard: View {
                     }
                 }
 
-                if let recommendation = sponsoredProfileRecommendation {
+                if let slot = sponsoredProfileSlotContent {
                     profileSectionContainer(.secondary) {
-                        SponsoredProfileRecommendationCard(
-                            recommendation: recommendation,
-                            colorScheme: colorScheme,
-                            onTap: {
-                                openSponsoredProfileVenue(recommendation)
-                            }
-                        )
-                        .id(recommendation.stableIdentity)
+                        sponsoredProfileSlotView(slot)
+                            .id(slot.stableIdentity)
                     }
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
@@ -405,6 +400,17 @@ struct ProfileIdentityCard: View {
             }
             .task(id: sponsoredPlacementLoadToken) {
                 await loadSponsoredProfileRecommendation()
+            }
+            .sheet(isPresented: $showSponsoredPromotionSupportSheet) {
+                ContactGameOnSupportSheet(
+                    viewModel: viewModel,
+                    onRequestSignIn: {
+                        showSponsoredPromotionSupportSheet = false
+                        routeSponsoredFallbackToVenueOwnerTools()
+                    }
+                )
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
             }
             .sheet(isPresented: $showFavoriteTeamsPicker) {
                 FavoriteTeamsPickerSheet(
@@ -1309,6 +1315,39 @@ struct ProfileIdentityCard: View {
         sponsoredProfileLocationParts.country
     }
 
+    private var sponsoredProfileSlotContent: SponsoredProfileSlotContent? {
+        guard isAccountTabActive, viewModel.isLoggedIn else { return nil }
+        if let recommendation = sponsoredProfileRecommendation {
+            return .venue(recommendation)
+        }
+        if let fallback = sponsoredProfileFallbackPromotion() {
+            return .fallback(fallback)
+        }
+        return organicProfileRecommendation().map { .venue($0) }
+    }
+
+    @ViewBuilder
+    private func sponsoredProfileSlotView(_ slot: SponsoredProfileSlotContent) -> some View {
+        switch slot {
+        case .venue(let recommendation):
+            SponsoredProfileRecommendationCard(
+                recommendation: recommendation,
+                colorScheme: colorScheme,
+                onTap: {
+                    openSponsoredProfileVenue(recommendation)
+                }
+            )
+        case .fallback(let promotion):
+            SponsoredProfileFallbackPromotionCard(
+                promotion: promotion,
+                colorScheme: colorScheme,
+                onTap: {
+                    handleSponsoredProfileFallbackTap(promotion)
+                }
+            )
+        }
+    }
+
     private func loadSponsoredProfileRecommendation() async {
         guard isAccountTabActive, viewModel.isLoggedIn else {
             sponsoredProfileRecommendation = nil
@@ -1324,21 +1363,17 @@ struct ProfileIdentityCard: View {
                 userLocation: viewModel.currentUserLocation
             )
             await MainActor.run {
-                let recommendation = visibleSponsoredProfileRecommendation(from: placement)
+                let recommendation = activeSponsoredProfileRecommendation(from: placement)
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.86)) {
                     sponsoredProfileRecommendation = recommendation
                 }
 #if DEBUG
                 if let recommendation {
                     print("[SponsoredProfileDebug] source=\(recommendation.sourceDebugLabel)")
-                    if recommendation.isSponsored {
-                        print("[SponsoredProfileDebug] sponsoredVenue=\(recommendation.venue.name)")
-                    } else {
-                        print("[SponsoredProfileDebug] organicVenue=\(recommendation.venue.name)")
-                    }
+                    print("[SponsoredProfileDebug] sponsoredVenue=\(recommendation.venue.name)")
                 } else {
-                    print("[SponsoredProfileDebug] source=none")
-                    print("[SponsoredProfileDebug] cardShown=false")
+                    print("[SponsoredProfileDebug] source=fallback")
+                    print("[SponsoredProfileDebug] fallbackBusinessPromotion=true")
                 }
 #endif
             }
@@ -1346,18 +1381,53 @@ struct ProfileIdentityCard: View {
             await MainActor.run {
                 sponsoredProfileRecommendation = nil
 #if DEBUG
-                print("[SponsoredProfileDebug] source=none")
-                print("[SponsoredProfileDebug] cardShown=false")
+                print("[SponsoredProfileDebug] source=fallback")
+                print("[SponsoredProfileDebug] fallbackBusinessPromotion=true")
                 print("[SponsoredProfileDebug] loadFailed=\(error.localizedDescription)")
 #endif
             }
         }
     }
 
-    private func visibleSponsoredProfileRecommendation(
+    private func activeSponsoredProfileRecommendation(
         from paidPlacement: SponsoredProfileVenueRecommendation?
     ) -> SponsoredProfileVenueRecommendation? {
-        paidPlacement ?? organicProfileRecommendation()
+        guard let paidPlacement else { return nil }
+        let isEligible = paidPlacement.isEligibleActiveRegionalSponsor(
+            for: viewModel.currentUserLocation,
+            now: Date()
+        )
+#if DEBUG
+        print("[SponsoredProfileDebug] activeSponsorExists=\(isEligible)")
+        print("[SponsoredProfileDebug] userLocationValid=\(SponsoredProfileVenueRecommendation.hasValidLocation(viewModel.currentUserLocation))")
+        print("[SponsoredProfileDebug] campaignRadiusMiles=\(paidPlacement.targetRadiusMiles.map { "\($0)" } ?? "nil")")
+#endif
+        return isEligible ? paidPlacement : nil
+    }
+
+    private func sponsoredProfileFallbackPromotion() -> SponsoredProfileFallbackPromotion? {
+        let isBusinessAccount = viewModel.currentUserIsBusinessAccount
+            || viewModel.isVenueOwnerLoggedIn
+            || viewModel.hasAuthenticatedVenueOwnerSession
+            || viewModel.venueOwnerMode
+        return SponsoredProfileFallbackPromotion.businessGrowthCard(isBusinessAccount: isBusinessAccount)
+    }
+
+    private func handleSponsoredProfileFallbackTap(_ promotion: SponsoredProfileFallbackPromotion) {
+#if DEBUG
+        print("[SponsoredProfileDebug] fallbackCardTapped=true")
+        print("[SponsoredProfileDebug] fallbackBusinessAccount=\(promotion.isBusinessAccount)")
+#endif
+        if promotion.isBusinessAccount {
+            showSponsoredPromotionSupportSheet = true
+        } else {
+            routeSponsoredFallbackToVenueOwnerTools()
+        }
+    }
+
+    private func routeSponsoredFallbackToVenueOwnerTools() {
+        viewModel.switchToAccountForVenueClaim = true
+        viewModel.openVenueOwnerAuthSheetFromClaimFlow = true
     }
 
     private func refreshSponsoredPlacementDistanceIfNeeded() {
@@ -1383,7 +1453,12 @@ struct ProfileIdentityCard: View {
             fansGoingText: organicFansGoingText(for: venue),
             ctaLabel: "View Venue",
             imageURLString: nil,
-            isSponsored: false
+            isSponsored: false,
+            startsAtRaw: nil,
+            endsAtRaw: nil,
+            targetLatitude: nil,
+            targetLongitude: nil,
+            targetRadiusMiles: nil
         )
     }
 
@@ -2259,7 +2334,7 @@ struct ProfileIdentityCard: View {
             }
 
             if let identity = viewModel.currentUserNationalTeam {
-                NationalTeamIdentityCard(identity: identity, showsEditAffordance: true) {
+                NationalTeamIdentityCard(identity: identity, showsEditAffordance: true, compact: true) {
                     openNationalTeamPicker()
                 }
             } else {
@@ -2872,6 +2947,19 @@ private final class SponsoredPlacementService {
         return "\(Int(miles.rounded())) mi"
     }
 
+    static func parseSupabaseTimestamp(_ raw: String?) -> Date? {
+        let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !trimmed.isEmpty else { return nil }
+
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = fractional.date(from: trimmed) { return date }
+
+        let plain = ISO8601DateFormatter()
+        plain.formatOptions = [.withInternetDateTime]
+        return plain.date(from: trimmed)
+    }
+
     private func normalizedTarget(_ value: String?) -> String? {
         let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return trimmed.isEmpty ? nil : trimmed
@@ -2894,6 +2982,11 @@ private struct SponsoredPlacementRPCRow: Decodable {
     let subtitle: String?
     let image_url: String?
     let cta_label: String?
+    let starts_at: String?
+    let ends_at: String?
+    let target_lat: Double?
+    let target_lng: Double?
+    let target_radius_miles: Double?
     let venue_name: String?
     let address: String?
     let city: String?
@@ -2953,7 +3046,12 @@ private struct SponsoredPlacementRPCRow: Decodable {
             fansGoingText: fansText,
             ctaLabel: trimmed(cta_label).isEmpty ? "View Venue" : trimmed(cta_label),
             imageURLString: placementImage.isEmpty ? nil : placementImage,
-            isSponsored: true
+            isSponsored: true,
+            startsAtRaw: starts_at,
+            endsAtRaw: ends_at,
+            targetLatitude: target_lat,
+            targetLongitude: target_lng,
+            targetRadiusMiles: target_radius_miles
         )
     }
 
@@ -2971,6 +3069,22 @@ private struct SponsoredPlacementRPCRow: Decodable {
     }
 }
 
+private enum SponsoredProfileSlotContent: Identifiable {
+    case venue(SponsoredProfileVenueRecommendation)
+    case fallback(SponsoredProfileFallbackPromotion)
+
+    var id: String { stableIdentity }
+
+    var stableIdentity: String {
+        switch self {
+        case .venue(let recommendation):
+            return recommendation.stableIdentity
+        case .fallback(let promotion):
+            return promotion.stableIdentity
+        }
+    }
+}
+
 private struct SponsoredProfileVenueRecommendation: Identifiable {
     let placementID: UUID
     let title: String
@@ -2981,6 +3095,11 @@ private struct SponsoredProfileVenueRecommendation: Identifiable {
     let ctaLabel: String
     let imageURLString: String?
     let isSponsored: Bool
+    let startsAtRaw: String?
+    let endsAtRaw: String?
+    let targetLatitude: Double?
+    let targetLongitude: Double?
+    let targetRadiusMiles: Double?
 
     var id: UUID { placementID }
     var sourceDebugLabel: String { isSponsored ? "sponsored" : "organic" }
@@ -3014,6 +3133,43 @@ private struct SponsoredProfileVenueRecommendation: Identifiable {
         return URL(string: raw)
     }
 
+    static func hasValidLocation(_ location: CLLocationCoordinate2D?) -> Bool {
+        guard let location,
+              CLLocationCoordinate2DIsValid(location),
+              abs(location.latitude) > 0.0001 || abs(location.longitude) > 0.0001 else {
+            return false
+        }
+        return true
+    }
+
+    func isEligibleActiveRegionalSponsor(
+        for userLocation: CLLocationCoordinate2D?,
+        now: Date
+    ) -> Bool {
+        guard isSponsored,
+              let userLocation,
+              Self.hasValidLocation(userLocation),
+              let targetLatitude,
+              let targetLongitude,
+              let targetRadiusMiles,
+              targetRadiusMiles > 0 else {
+            return false
+        }
+        guard let startsAt = SponsoredPlacementService.parseSupabaseTimestamp(startsAtRaw),
+              let endsAt = SponsoredPlacementService.parseSupabaseTimestamp(endsAtRaw),
+              startsAt <= now,
+              endsAt > now else {
+            return false
+        }
+
+        let campaignCenter = CLLocationCoordinate2D(latitude: targetLatitude, longitude: targetLongitude)
+        guard CLLocationCoordinate2DIsValid(campaignCenter) else { return false }
+        let origin = CLLocation(latitude: userLocation.latitude, longitude: userLocation.longitude)
+        let center = CLLocation(latitude: campaignCenter.latitude, longitude: campaignCenter.longitude)
+        let miles = origin.distance(from: center) / 1609.344
+        return miles <= targetRadiusMiles
+    }
+
     func withDistanceLine(_ distanceLine: String) -> SponsoredProfileVenueRecommendation {
         SponsoredProfileVenueRecommendation(
             placementID: placementID,
@@ -3024,7 +3180,38 @@ private struct SponsoredProfileVenueRecommendation: Identifiable {
             fansGoingText: fansGoingText,
             ctaLabel: ctaLabel,
             imageURLString: imageURLString,
-            isSponsored: isSponsored
+            isSponsored: isSponsored,
+            startsAtRaw: startsAtRaw,
+            endsAtRaw: endsAtRaw,
+            targetLatitude: targetLatitude,
+            targetLongitude: targetLongitude,
+            targetRadiusMiles: targetRadiusMiles
+        )
+    }
+}
+
+private struct SponsoredProfileFallbackPromotion: Identifiable {
+    let id: String
+    let eyebrow: String
+    let title: String
+    let subtitle: String
+    let ctaLabel: String
+    let systemImage: String
+    let isBusinessAccount: Bool
+
+    var stableIdentity: String { "fallback.\(id)" }
+
+    static func businessGrowthCard(isBusinessAccount: Bool) -> SponsoredProfileFallbackPromotion {
+        SponsoredProfileFallbackPromotion(
+            id: isBusinessAccount ? "business-promotion" : "fan-claim-venue",
+            eyebrow: "FanGeo for Venues",
+            title: isBusinessAccount ? "Promote your venue to local fans nearby." : "Own a sports venue?",
+            subtitle: isBusinessAccount
+                ? "Get featured in FanGeo recommendations and reach fans looking for game-day spots."
+                : "Claim and promote your business on FanGeo so local sports fans can find you.",
+            ctaLabel: isBusinessAccount ? "Create Sponsored Placement" : "Claim Your Venue",
+            systemImage: isBusinessAccount ? "megaphone.fill" : "building.2.fill",
+            isBusinessAccount: isBusinessAccount
         )
     }
 }
@@ -3382,6 +3569,161 @@ private struct SponsoredProfileRecommendationCard: View {
 
     private var sponsorPurple: Color {
         Color(red: 0.47, green: 0.25, blue: 0.95)
+    }
+}
+
+private struct SponsoredProfileFallbackPromotionCard: View {
+    let promotion: SponsoredProfileFallbackPromotion
+    let colorScheme: ColorScheme
+    let onTap: () -> Void
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var hasRevealed = false
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 16) {
+            iconTile
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(promotion.eyebrow)
+                    .font(.system(size: 10.5, weight: .heavy, design: .rounded))
+                    .foregroundStyle(FGColor.accentGreen.opacity(0.92))
+                    .textCase(.uppercase)
+                    .tracking(0.7)
+
+                Text(promotion.title)
+                    .font(.system(size: 18, weight: .heavy, design: .rounded))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .lineLimit(2)
+
+                Text(promotion.subtitle)
+                    .font(.system(size: 12.5, weight: .semibold, design: .rounded))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .lineLimit(3)
+
+                Button(action: onTap) {
+                    HStack(spacing: 8) {
+                        Text(promotion.ctaLabel)
+                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 11, weight: .heavy))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
+                    .background(
+                        LinearGradient(
+                            colors: [
+                                FGColor.accentGreen.opacity(0.98),
+                                FGColor.accentBlue.opacity(0.86)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        ),
+                        in: Capsule(style: .continuous)
+                    )
+                    .overlay {
+                        Capsule(style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.75)
+                    }
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(promotion.ctaLabel)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(cardBackground)
+        .overlay(alignment: .leading) {
+            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                .fill(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.92 : 0.78))
+                .frame(width: 5)
+                .padding(.vertical, 20)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(colorScheme == .dark ? 0.16 : 0.76),
+                            FGColor.accentGreen.opacity(colorScheme == .dark ? 0.34 : 0.24),
+                            Color.black.opacity(colorScheme == .dark ? 0.04 : 0.045)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.18 : 0.055), radius: 16, y: 9)
+        .offset(y: hasRevealed || reduceMotion ? 0 : 24)
+        .opacity(hasRevealed || reduceMotion ? 1 : 0)
+        .onAppear {
+            guard !hasRevealed else { return }
+            if reduceMotion {
+                hasRevealed = true
+            } else {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.86)) {
+                    hasRevealed = true
+                }
+            }
+#if DEBUG
+            print("[SponsoredProfileDebug] cardShown=true")
+            print("[SponsoredProfileDebug] source=fallback")
+            print("[SponsoredProfileDebug] fallbackBusinessPromotion=true")
+#endif
+        }
+    }
+
+    private var iconTile: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            FGColor.accentGreen.opacity(colorScheme == .dark ? 0.34 : 0.26),
+                            FGColor.accentBlue.opacity(colorScheme == .dark ? 0.22 : 0.16)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+            Image(systemName: promotion.systemImage)
+                .font(.system(size: 30, weight: .bold))
+                .foregroundStyle(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.95 : 0.88))
+        }
+        .frame(width: 82, height: 82)
+        .overlay {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.12 : 0.48), lineWidth: 0.8)
+        }
+    }
+
+    private var cardBackground: some View {
+        RoundedRectangle(cornerRadius: 26, style: .continuous)
+            .fill(.ultraThinMaterial)
+            .overlay {
+                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    .fill((colorScheme == .dark ? Color(red: 0.07, green: 0.10, blue: 0.09) : Color.white).opacity(colorScheme == .dark ? 0.24 : 0.72))
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                FGColor.accentGreen.opacity(colorScheme == .dark ? 0.13 : 0.08),
+                                Color.clear,
+                                FGColor.accentBlue.opacity(colorScheme == .dark ? 0.08 : 0.05)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
     }
 }
 

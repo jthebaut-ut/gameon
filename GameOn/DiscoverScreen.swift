@@ -571,6 +571,7 @@ struct DiscoverScreen: View {
         let cameraCenterBucket: String
         let venueSnapshotKey: String
         let barsCount: Int
+        let barsFingerprint: String
         let pickupGamesFingerprint: String
         let pickupPlacesFingerprint: String
     }
@@ -1123,6 +1124,7 @@ struct DiscoverScreen: View {
             }
         }
         .onChange(of: viewModel.discoverMapContentMode) { oldMode, newMode in
+            invalidateDiscoverVenueAnnotationCaches(trigger: "modeSwitch")
             if newMode != .venues {
                 mapDisplayModeHintTask?.cancel()
                 mapDisplayModeHintText = nil
@@ -1139,28 +1141,23 @@ struct DiscoverScreen: View {
             }
             let anchorMonth = showDatePicker ? discoverCalendarDisplayedMonth : viewModel.selectedDate
             Task { @MainActor in
-                if newMode == .pickupGames, viewModel.discoverPickupSubMode == .games {
-                    await viewModel.refreshPickupGamesForDiscoverMap(force: false, preservePickupCalendarDotDatesCache: true)
-                } else if newMode == .pickupGames, viewModel.discoverPickupSubMode == .places {
-                    await viewModel.refreshPickupPlacesForDiscoverMap(force: viewModel.pickupPlacesForDiscoverMap.isEmpty)
-                    lastMapVenueReloadRegion = viewModel.cameraPosition.region
-                }
+                await ensureDiscoverDatasetConsistency(trigger: "modeSwitch")
                 viewModel.loadDiscoverCalendarDots(around: anchorMonth, reason: "mode_change")
             }
         }
         .onChange(of: viewModel.discoverPickupSubMode) { _, subMode in
             guard viewModel.discoverMapContentMode == .pickupGames else { return }
+            invalidateDiscoverVenueAnnotationCaches(trigger: "pickupSubModeSwitch")
             if subMode == .places {
                 viewModel.clearPickupMapSelection()
                 Task { @MainActor in
-                    await viewModel.refreshPickupPlacesForDiscoverMap(force: viewModel.pickupPlacesForDiscoverMap.isEmpty)
-                    lastMapVenueReloadRegion = viewModel.cameraPosition.region
+                    await ensureDiscoverDatasetConsistency(trigger: "pickupSubModeSwitch")
                 }
             } else {
                 viewModel.selectedBar = nil
                 viewModel.selectedPickupPlaceForMap = nil
                 Task { @MainActor in
-                    await viewModel.refreshPickupGamesForDiscoverMap(force: false, preservePickupCalendarDotDatesCache: true)
+                    await ensureDiscoverDatasetConsistency(trigger: "pickupSubModeSwitch")
                 }
             }
         }
@@ -1170,6 +1167,9 @@ struct DiscoverScreen: View {
         .onChange(of: isDiscoverTabSelected) { _, visible in
             guard visible else { return }
             rebuildDiscoverAnnotationCache(reason: "discoverTabVisible")
+            Task { @MainActor in
+                await ensureDiscoverDatasetConsistency(trigger: "tabVisible")
+            }
         }
         .onChange(of: viewModel.pendingFollowingMapVenueID) { _, id in
             guard id != nil else { return }
@@ -1264,6 +1264,7 @@ struct DiscoverScreen: View {
         Task {
             await viewModel.ensureBusinessOwnerSessionFlagsIfPossible(context: "discover_on_appear")
             viewModel.logBusinessOwnerSessionFlags(context: "discover_on_appear")
+            await ensureDiscoverDatasetConsistency(trigger: "tabVisible")
         }
     }
 
@@ -1672,6 +1673,222 @@ struct DiscoverScreen: View {
 #endif
     }
 
+    private func discoverReloadConsistencyModeLabel() -> String {
+        if viewModel.discoverMapContentMode == .pickupGames {
+            return "\(viewModel.discoverMapContentMode.rawValue).\(viewModel.discoverPickupSubMode.rawValue)"
+        }
+        return viewModel.discoverMapContentMode.rawValue
+    }
+
+    private func discoverReloadConsistencyBoundsDescription() -> String {
+        guard let b = viewModel.currentMapRegionBounds() else { return "nil" }
+        return String(
+            format: "%.5f...%.5f,%.5f...%.5f",
+            b.minLat,
+            b.maxLat,
+            b.minLon,
+            b.maxLon
+        )
+    }
+
+    private func invalidateDiscoverVenueAnnotationCaches(trigger: String) {
+        viewModel.discoverClusteredBarsCacheKey = nil
+        viewModel.discoverClusteredBarsCache = nil
+        discoverAnnotationCache = .empty
+#if DEBUG
+        print("[VenueReloadConsistencyDebug] trigger=\(trigger)")
+        print("[VenueReloadConsistencyDebug] cacheInvalidated=true")
+#endif
+    }
+
+    private func logVenueReloadConsistency(
+        trigger: String,
+        barsBefore: Int,
+        rowsFetched: Int?,
+        barsAfter: Int?,
+        annotationsBefore: Int,
+        annotationsAfter: Int?,
+        reloadStarted: Bool,
+        skippedReason: String?
+    ) {
+#if DEBUG
+        print("[VenueReloadConsistencyDebug] trigger=\(trigger)")
+        print("[VenueReloadConsistencyDebug] mode=\(discoverReloadConsistencyModeLabel())")
+        print("[VenueReloadConsistencyDebug] bounds=\(discoverReloadConsistencyBoundsDescription())")
+        print("[VenueReloadConsistencyDebug] barsBefore=\(barsBefore)")
+        print("[VenueReloadConsistencyDebug] rowsFetched=\(rowsFetched.map { "\($0)" } ?? "nil")")
+        print("[VenueReloadConsistencyDebug] barsAfter=\(barsAfter.map { "\($0)" } ?? "nil")")
+        print("[VenueReloadConsistencyDebug] annotationsBefore=\(annotationsBefore)")
+        print("[VenueReloadConsistencyDebug] annotationsAfter=\(annotationsAfter.map { "\($0)" } ?? "nil")")
+        print("[VenueReloadConsistencyDebug] reloadStarted=\(reloadStarted)")
+        print("[VenueReloadConsistencyDebug] reloadSkippedReason=\(skippedReason ?? "none")")
+#endif
+    }
+
+    @MainActor
+    private func ensureDiscoverDatasetConsistency(
+        trigger: String,
+        forceCurrentModeReload: Bool = false,
+        fastRegionJump: Bool = false,
+        regionOverride: MKCoordinateRegion? = nil
+    ) async {
+        let barsBefore = viewModel.bars.count
+        let annotationsBefore = discoverAnnotationCache.counts.renderedCount(mode: viewModel.discoverMapContentMode)
+        let region = regionOverride ?? viewModel.cameraPosition.region
+
+        invalidateDiscoverVenueAnnotationCaches(trigger: trigger)
+        rebuildDiscoverAnnotationCache(reason: "venueReloadConsistency_\(trigger)")
+        let annotationsAfterRebuild = discoverAnnotationCache.counts.renderedCount(mode: viewModel.discoverMapContentMode)
+
+        switch viewModel.discoverMapContentMode {
+        case .venues:
+            let visibleBars = viewModel.visibleBarCountInCurrentMapRegion()
+            let regionDelta = lastMapVenueReloadRegion.flatMap { previous -> (isMeaningful: Bool, distanceMovedMiles: Double, boundsChangedSignificantly: Bool)? in
+                guard let region else { return nil }
+                return mapVenueReloadDelta(from: previous, to: region)
+            }
+            let hasLoadedCurrentBounds = regionDelta?.isMeaningful == false
+            let shouldReload = forceCurrentModeReload
+                || (!hasLoadedCurrentBounds && (regionDelta?.isMeaningful == true))
+                || (!hasLoadedCurrentBounds && viewModel.bars.isEmpty)
+                || (!hasLoadedCurrentBounds && annotationsAfterRebuild == 0 && visibleBars == 0)
+
+            guard shouldReload else {
+                if lastMapVenueReloadRegion == nil, annotationsAfterRebuild > 0, let region {
+                    lastMapVenueReloadRegion = region
+                }
+                logVenueReloadConsistency(
+                    trigger: trigger,
+                    barsBefore: barsBefore,
+                    rowsFetched: nil,
+                    barsAfter: viewModel.bars.count,
+                    annotationsBefore: annotationsBefore,
+                    annotationsAfter: annotationsAfterRebuild,
+                    reloadStarted: false,
+                    skippedReason: hasLoadedCurrentBounds ? "currentBoundsFresh" : "cachedAnnotationsValid"
+                )
+                return
+            }
+
+            logVenueReloadConsistency(
+                trigger: trigger,
+                barsBefore: barsBefore,
+                rowsFetched: nil,
+                barsAfter: nil,
+                annotationsBefore: annotationsBefore,
+                annotationsAfter: annotationsAfterRebuild,
+                reloadStarted: true,
+                skippedReason: nil
+            )
+            await viewModel.loadVenuesFromSupabase(
+                forceRefresh: forceCurrentModeReload,
+                fastRegionJump: fastRegionJump
+            )
+            if let region {
+                lastMapVenueReloadRegion = region
+            }
+            invalidateDiscoverVenueAnnotationCaches(trigger: "\(trigger).postReload")
+            rebuildDiscoverAnnotationCache(reason: "venueReloadConsistency_\(trigger)_postReload")
+            logVenueReloadConsistency(
+                trigger: trigger,
+                barsBefore: barsBefore,
+                rowsFetched: viewModel.discoverCurrentVisibleVenueRows.count,
+                barsAfter: viewModel.bars.count,
+                annotationsBefore: annotationsBefore,
+                annotationsAfter: discoverAnnotationCache.counts.venue,
+                reloadStarted: true,
+                skippedReason: nil
+            )
+
+        case .pickupGames:
+            defer {
+                if trigger == "citySearch" {
+                    viewModel.pendingCitySearchVenueDebugContext = nil
+                }
+            }
+            if viewModel.discoverPickupSubMode == .places {
+                let visiblePlaces = viewModel.pickupPlacesVisibleAsMapPins(for: viewModel.currentMapRegionBounds()).count
+                let shouldReload = forceCurrentModeReload || (visiblePlaces == 0 && !viewModel.isLoadingPickupPlacesForMap)
+                guard shouldReload else {
+                    logVenueReloadConsistency(
+                        trigger: trigger,
+                        barsBefore: barsBefore,
+                        rowsFetched: nil,
+                        barsAfter: viewModel.bars.count,
+                        annotationsBefore: annotationsBefore,
+                        annotationsAfter: annotationsAfterRebuild,
+                        reloadStarted: false,
+                        skippedReason: "pickupPlacesCacheValid"
+                    )
+                    return
+                }
+                logVenueReloadConsistency(
+                    trigger: trigger,
+                    barsBefore: barsBefore,
+                    rowsFetched: nil,
+                    barsAfter: nil,
+                    annotationsBefore: annotationsBefore,
+                    annotationsAfter: annotationsAfterRebuild,
+                    reloadStarted: true,
+                    skippedReason: nil
+                )
+                await viewModel.refreshPickupPlacesForDiscoverMap(force: forceCurrentModeReload || viewModel.pickupPlacesForDiscoverMap.isEmpty)
+                rebuildDiscoverAnnotationCache(reason: "venueReloadConsistency_\(trigger)_pickupPlaces")
+                logVenueReloadConsistency(
+                    trigger: trigger,
+                    barsBefore: barsBefore,
+                    rowsFetched: viewModel.pickupPlacesForDiscoverMap.count,
+                    barsAfter: viewModel.bars.count,
+                    annotationsBefore: annotationsBefore,
+                    annotationsAfter: discoverAnnotationCache.counts.pickupPlaces,
+                    reloadStarted: true,
+                    skippedReason: nil
+                )
+            } else {
+                let visibleGames = viewModel.pickupGamesVisibleAsMapPins(for: viewModel.currentMapRegionBounds()).count
+                let shouldReload = forceCurrentModeReload || (visibleGames == 0 && !viewModel.isLoadingPickupGamesForMap)
+                guard shouldReload else {
+                    logVenueReloadConsistency(
+                        trigger: trigger,
+                        barsBefore: barsBefore,
+                        rowsFetched: nil,
+                        barsAfter: viewModel.bars.count,
+                        annotationsBefore: annotationsBefore,
+                        annotationsAfter: annotationsAfterRebuild,
+                        reloadStarted: false,
+                        skippedReason: "pickupGamesCacheValid"
+                    )
+                    return
+                }
+                logVenueReloadConsistency(
+                    trigger: trigger,
+                    barsBefore: barsBefore,
+                    rowsFetched: nil,
+                    barsAfter: nil,
+                    annotationsBefore: annotationsBefore,
+                    annotationsAfter: annotationsAfterRebuild,
+                    reloadStarted: true,
+                    skippedReason: nil
+                )
+                await viewModel.refreshPickupGamesForDiscoverMap(
+                    force: forceCurrentModeReload || viewModel.pickupGamesForDiscoverMap.isEmpty,
+                    preservePickupCalendarDotDatesCache: true
+                )
+                rebuildDiscoverAnnotationCache(reason: "venueReloadConsistency_\(trigger)_pickupGames")
+                logVenueReloadConsistency(
+                    trigger: trigger,
+                    barsBefore: barsBefore,
+                    rowsFetched: viewModel.pickupGamesForDiscoverMap.count,
+                    barsAfter: viewModel.bars.count,
+                    annotationsBefore: annotationsBefore,
+                    annotationsAfter: discoverAnnotationCache.counts.pickupGames,
+                    reloadStarted: true,
+                    skippedReason: nil
+                )
+            }
+        }
+    }
+
     private enum VenuePinDisplayState {
         case gameScheduled
         case noGameScheduled
@@ -1832,19 +2049,31 @@ struct DiscoverScreen: View {
 
     private func venuePinTint(for displayClass: VenuePinDisplayClass, hasLiveNow: Bool, energy: Int) -> Color {
         if displayClass == .proVenue {
-            return Color(red: 0.95, green: 0.73, blue: 0.22)
+            return proVenueGold
         }
         return hasLiveNow || energy >= livePulseThreshold ? FGColor.accentGreen : FGColor.accentBlue
     }
 
     private func venueClusterTint(for displayClass: VenuePinDisplayClass, energy: Int) -> Color {
         if displayClass == .proVenue {
-            return Color(red: 0.95, green: 0.73, blue: 0.22)
+            return proVenueGold
         }
         if displayClass == .businessVenue || displayClass == .claimedCommunity {
             return energy > 0 ? FGColor.accentGreen : FGColor.accentBlue
         }
         return energy > 0 ? FGColor.accentGreen : Color.gray
+    }
+
+    private var proVenueGold: Color {
+        Color(red: 0.86, green: 0.63, blue: 0.22)
+    }
+
+    private var proVenueGoldDeep: Color {
+        Color(red: 0.52, green: 0.35, blue: 0.11)
+    }
+
+    private var proVenueGlyphInk: Color {
+        Color(red: 0.08, green: 0.06, blue: 0.025)
     }
 
     private func venuePinClaimStatusLabel(for displayClass: VenuePinDisplayClass) -> String {
@@ -1871,6 +2100,10 @@ struct DiscoverScreen: View {
         DebugLogGate.noisy("[VenuePinDisplayDebug] claimStatus=\(venuePinClaimStatusLabel(for: displayClass))")
         DebugLogGate.noisy("[VenuePinDisplayDebug] displayClass=\(displayClass.rawValue)")
         DebugLogGate.noisy("[VenuePinDisplayDebug] isPro=\(displayClass == .proVenue)")
+        DebugLogGate.noisy("[VenueProDebug] venue id=\(bar.id.uuidString.lowercased())")
+        DebugLogGate.noisy("[VenueProDebug] venue name=\(bar.name)")
+        DebugLogGate.noisy("[VenueProDebug] isPro=\(displayClass == .proVenue)")
+        DebugLogGate.noisy("[VenueProDebug] clusterContainsPro=false")
 #endif
     }
 
@@ -1886,6 +2119,12 @@ struct DiscoverScreen: View {
         DebugLogGate.noisy("[VenuePinDisplayDebug] clusterDisplayClass=\(displayClass.rawValue)")
         DebugLogGate.noisy("[VenuePinDisplayDebug] clusterContainsPro=\(containsPro)")
         DebugLogGate.noisy("[VenuePinDisplayDebug] clusterContainsClaimed=\(containsClaimed)")
+        DebugLogGate.noisy("[VenueProDebug] clusterContainsPro=\(containsPro)")
+        for venue in cluster.bars {
+            DebugLogGate.noisy("[VenueProDebug] venue id=\(venue.id.uuidString.lowercased())")
+            DebugLogGate.noisy("[VenueProDebug] venue name=\(venue.name)")
+            DebugLogGate.noisy("[VenueProDebug] isPro=\(venuePinDisplayClass(for: venue) == .proVenue)")
+        }
 #endif
     }
 
@@ -1916,7 +2155,7 @@ struct DiscoverScreen: View {
         case .claimedCommunity, .businessVenue:
             return colorScheme == .dark ? Color.white.opacity(0.88) : Color.black.opacity(0.84)
         case .proVenue:
-            return Color(red: 0.95, green: 0.73, blue: 0.22)
+            return proVenueGold
         }
     }
 
@@ -1955,41 +2194,51 @@ struct DiscoverScreen: View {
         displayClass: VenuePinDisplayClass,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        ZStack(alignment: .topTrailing) {
+        let isPro = displayClass == .proVenue
+        return ZStack(alignment: .topTrailing) {
             content()
                 .overlay {
-                    if displayClass == .proVenue {
+                    if isPro {
                         Circle()
                             .strokeBorder(
                                 LinearGradient(
                                     colors: [
-                                        Color(red: 1.0, green: 0.82, blue: 0.30).opacity(0.96),
-                                        FGColor.accentGreen.opacity(0.72)
+                                        Color(red: 1.0, green: 0.82, blue: 0.38).opacity(0.90),
+                                        proVenueGoldDeep.opacity(0.72)
                                     ],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 ),
-                                lineWidth: 1.6
+                                lineWidth: 1.7
                             )
                             .padding(-3)
                     }
                 }
                 .shadow(
-                    color: displayClass == .proVenue ? Color(red: 1.0, green: 0.78, blue: 0.26).opacity(0.22) : .clear,
-                    radius: 9,
-                    y: 2
+                    color: isPro ? proVenueGold.opacity(colorScheme == .dark ? 0.34 : 0.24) : .clear,
+                    radius: isPro ? 11 : 0,
+                    y: isPro ? 3 : 0
                 )
 
-            if displayClass == .proVenue {
+            if isPro {
                 Text("Pro")
                     .font(.system(size: 8, weight: .heavy, design: .rounded))
-                    .foregroundStyle(Color.black.opacity(0.90))
+                    .foregroundStyle(proVenueGlyphInk.opacity(0.94))
                     .lineLimit(1)
                     .padding(.horizontal, 5)
                     .padding(.vertical, 2)
                     .background(
                         Capsule(style: .continuous)
-                            .fill(Color(red: 1.0, green: 0.82, blue: 0.30))
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color(red: 1.0, green: 0.84, blue: 0.42),
+                                        proVenueGold
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
                     )
                     .overlay {
                         Capsule(style: .continuous)
@@ -2119,7 +2368,11 @@ struct DiscoverScreen: View {
                     case .gameScheduled:
                         switch display.effectiveMode {
                         case .simple:
-                            simpleMapPin(bar: bar, gamesToday: display.gamesToday)
+                            simpleMapPin(
+                                bar: bar,
+                                gamesToday: display.gamesToday,
+                                displayClass: display.displayClass
+                            )
 
                         case .compact:
                             compactMapPin(
@@ -2127,7 +2380,8 @@ struct DiscoverScreen: View {
                                 gamesToday: display.gamesToday,
                                 goingTotal: display.goingTotal,
                                 liveScore: display.energy,
-                                hasLiveNow: display.hasLiveNow
+                                hasLiveNow: display.hasLiveNow,
+                                displayClass: display.displayClass
                             )
 
                         case .detailed:
@@ -2136,7 +2390,8 @@ struct DiscoverScreen: View {
                                 gamesToday: display.gamesToday,
                                 goingTotal: display.goingTotal,
                                 liveScore: display.energy,
-                                hasLiveNow: display.hasLiveNow
+                                hasLiveNow: display.hasLiveNow,
+                                displayClass: display.displayClass
                             )
                         }
                     case .noGameScheduled:
@@ -2319,6 +2574,7 @@ struct DiscoverScreen: View {
             cameraCenterBucket: centerBucket,
             venueSnapshotKey: venueSnapshotAnnotationFingerprint(),
             barsCount: viewModel.bars.count,
+            barsFingerprint: barsAnnotationFingerprint(),
             pickupGamesFingerprint: pickupGamesAnnotationFingerprint(),
             pickupPlacesFingerprint: pickupPlacesAnnotationFingerprint()
         )
@@ -2340,6 +2596,7 @@ struct DiscoverScreen: View {
             key.cameraCenterBucket,
             key.venueSnapshotKey,
             "\(key.barsCount)",
+            key.barsFingerprint,
             key.pickupGamesFingerprint,
             key.pickupPlacesFingerprint
         ].joined(separator: "|")
@@ -2356,6 +2613,19 @@ struct DiscoverScreen: View {
             "\(snapshotKey.venueCount)",
             "\(snapshotKey.eventRowCount)"
         ].joined(separator: ":")
+    }
+
+    private func barsAnnotationFingerprint() -> String {
+        let rows = Array(viewModel.bars.prefix(96))
+        return (["count:\(viewModel.bars.count)"] + rows.map { bar in
+            [
+                bar.id.uuidString.lowercased(),
+                String(format: "%.4f", bar.coordinate.latitude),
+                String(format: "%.4f", bar.coordinate.longitude),
+                "\(bar.games.count)"
+            ].joined(separator: ":")
+        })
+        .joined(separator: "|")
     }
 
     private func pickupGamesAnnotationFingerprint() -> String {
@@ -2579,15 +2849,6 @@ struct DiscoverScreen: View {
                     }
                 }
                 guard !Task.isCancelled else { return }
-                let shouldReloadMapRows = viewModel.discoverMapContentMode == .venues
-                    || (viewModel.discoverMapContentMode == .pickupGames && viewModel.discoverPickupSubMode == .places)
-                guard shouldReloadMapRows else {
-#if DEBUG
-                    print("[ManualMapReloadDebug] reloadScheduled=false")
-                    print("[ManualMapReloadDebug] reloadSkippedReason=notVenueBackedMode")
-#endif
-                    return
-                }
                 guard viewModel.pendingCitySearchVenueDebugContext == nil else {
 #if DEBUG
                     print("[ManualMapReloadDebug] reloadScheduled=false")
@@ -2614,15 +2875,12 @@ struct DiscoverScreen: View {
 #if DEBUG
                 print("[ManualMapReloadDebug] reloadScheduled=true")
 #endif
-                if viewModel.discoverMapContentMode == .pickupGames, viewModel.discoverPickupSubMode == .places {
-                    await viewModel.refreshPickupPlacesForDiscoverMap(force: true)
-                } else {
-                    await viewModel.loadVenuesFromSupabase(
-                        logManualMapReload: true,
-                        fastRegionJump: isMajorRegionJump
-                    )
-                }
-                lastMapVenueReloadRegion = region
+                await ensureDiscoverDatasetConsistency(
+                    trigger: "mapRegionChanged",
+                    forceCurrentModeReload: viewModel.discoverMapContentMode == .pickupGames,
+                    fastRegionJump: isMajorRegionJump,
+                    regionOverride: region
+                )
             }
         }
         .ignoresSafeArea()
@@ -3563,15 +3821,11 @@ struct DiscoverScreen: View {
                     triggeredFastBoundsFetch: true
                 )
             }
-            if viewModel.discoverMapContentMode == .pickupGames, viewModel.discoverPickupSubMode == .games {
-                await viewModel.refreshPickupGamesForDiscoverMap(force: true, preservePickupCalendarDotDatesCache: true)
-            } else if viewModel.discoverMapContentMode == .pickupGames, viewModel.discoverPickupSubMode == .places {
-                await viewModel.refreshPickupPlacesForDiscoverMap(force: true)
-                lastMapVenueReloadRegion = viewModel.cameraPosition.region
-            } else {
-                await viewModel.loadVenuesFromSupabase(fastRegionJump: true)
-                lastMapVenueReloadRegion = viewModel.cameraPosition.region
-            }
+            await ensureDiscoverDatasetConsistency(
+                trigger: "citySearch",
+                forceCurrentModeReload: true,
+                fastRegionJump: true
+            )
             scheduleDiscoverWeatherRefresh(force: true)
 #if DEBUG
             print("[DiscoverSearchDebug] mapReloadAfterAddressSearch=true")
@@ -8645,10 +8899,15 @@ struct DiscoverScreen: View {
     }
     
     
-    private func simpleMapPin(bar: BarVenue, gamesToday: [SportsEvent]) -> some View {
+    private func simpleMapPin(
+        bar: BarVenue,
+        gamesToday: [SportsEvent],
+        displayClass: VenuePinDisplayClass
+    ) -> some View {
         let sport = gamesToday.first?.sport ?? bar.primarySport
         let tint = mapSportIconTint(for: sport)
         let reusedSportChipIcon = mapSportIconReusesSportChipIcon(sport)
+        let isPro = displayClass == .proVenue
 
         return MapSportChipIconGlyph(
             sport: sport,
@@ -8659,15 +8918,31 @@ struct DiscoverScreen: View {
             .frame(width: 40, height: 40)
             .background {
                 ZStack {
-                    Circle().fill(Color.black).shadow(radius: 5)
                     Circle()
-                        .fill(reusedSportChipIcon ? tint.opacity(0.22) : Color.white.opacity(0.08))
+                        .fill(
+                            isPro
+                                ? LinearGradient(
+                                    colors: [
+                                        Color(red: 0.98, green: 0.78, blue: 0.34),
+                                        proVenueGold
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                                : LinearGradient(colors: [Color.black, Color.black], startPoint: .top, endPoint: .bottom)
+                        )
+                        .shadow(color: isPro ? proVenueGold.opacity(0.28) : .black.opacity(0.30), radius: isPro ? 8 : 5, y: isPro ? 2 : 0)
+                    Circle()
+                        .fill(isPro ? proVenueGlyphInk.opacity(0.14) : (reusedSportChipIcon ? tint.opacity(0.22) : Color.white.opacity(0.08)))
                         .frame(width: 31, height: 31)
                 }
             }
             .overlay {
                 Circle()
-                    .strokeBorder((reusedSportChipIcon ? tint : Color.white).opacity(0.34), lineWidth: 1)
+                    .strokeBorder(
+                        (isPro ? proVenueGoldDeep : (reusedSportChipIcon ? tint : Color.white)).opacity(isPro ? 0.48 : 0.34),
+                        lineWidth: isPro ? 1.25 : 1
+                    )
                     .padding(4)
             }
             .onAppear {
@@ -8679,33 +8954,36 @@ struct DiscoverScreen: View {
         let isUnclaimedCommunity = displayClass == .unclaimedCommunity
         let isPro = displayClass == .proVenue
         let fill: Color = {
+            if isPro {
+                return proVenueGold
+            }
             if isUnclaimedCommunity {
                 return Color.gray.opacity(0.62)
             }
             return colorScheme == .dark ? Color(red: 0.03, green: 0.06, blue: 0.09) : Color(red: 0.02, green: 0.05, blue: 0.08)
         }()
         let stroke: Color = isPro
-            ? Color(red: 1.0, green: 0.82, blue: 0.30).opacity(0.76)
+            ? Color(red: 1.0, green: 0.86, blue: 0.46).opacity(0.72)
             : Color.white.opacity(isUnclaimedCommunity ? 0.18 : 0.28)
 
         return Image(systemName: "building.2.fill")
             .font(.system(size: 15, weight: .semibold))
-            .foregroundStyle(Color.white.opacity(0.92))
+            .foregroundStyle(isPro ? proVenueGlyphInk.opacity(0.88) : Color.white.opacity(0.92))
             .frame(width: 38, height: 38)
             .background(
                 Circle()
                     .fill(fill)
                     .shadow(
-                        color: isPro ? Color(red: 1.0, green: 0.78, blue: 0.26).opacity(0.20) : .black.opacity(0.18),
-                        radius: isPro ? 8 : 4,
-                        y: isPro ? 2 : 0
+                        color: isPro ? proVenueGold.opacity(colorScheme == .dark ? 0.34 : 0.24) : .black.opacity(0.18),
+                        radius: isPro ? 10 : 4,
+                        y: isPro ? 3 : 0
                     )
             )
             .overlay {
                 Circle()
                     .strokeBorder(stroke, lineWidth: isPro ? 1.2 : 0.8)
             }
-            .opacity(isUnclaimedCommunity ? 0.6 : 0.92)
+            .opacity(isUnclaimedCommunity ? 0.6 : 0.95)
     }
 
     private func compactMapPin(
@@ -8713,10 +8991,12 @@ struct DiscoverScreen: View {
         gamesToday: [SportsEvent],
         goingTotal: Int,
         liveScore: Int? = nil,
-        hasLiveNow: Bool? = nil
+        hasLiveNow: Bool? = nil,
+        displayClass: VenuePinDisplayClass
     ) -> some View {
         let liveScore = liveScore ?? liveActivityScore(for: bar, gamesToday: gamesToday)
         let hasLiveNow = hasLiveNow ?? viewModel.hasLiveVenueEventNow(for: bar, events: gamesToday)
+        let isPro = displayClass == .proVenue
 
         let sport = gamesToday.first?.sport ?? bar.primarySport
         let sportTint = mapSportIconTint(for: sport)
@@ -8729,17 +9009,17 @@ struct DiscoverScreen: View {
                 symbolSize: 15,
                 frameSize: 22
             )
-            .background(Circle().fill((reusedSportChipIcon ? sportTint : Color.white).opacity(0.16)))
+            .background(Circle().fill(isPro ? proVenueGlyphInk.opacity(0.13) : (reusedSportChipIcon ? sportTint : Color.white).opacity(0.16)))
 
             if hasLiveNow {
                 Text("LIVE")
                     .font(.caption2.weight(.heavy))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(isPro ? proVenueGlyphInk.opacity(0.92) : .white)
             } else if liveScore > 0 {
                 Text("\(liveScoreEmoji(for: liveScore)) \(liveScore)")
                     .font(.caption2)
                     .fontWeight(.bold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(isPro ? proVenueGlyphInk.opacity(0.92) : .white)
             }
         }
         .padding(.horizontal, 10)
@@ -8753,8 +9033,19 @@ struct DiscoverScreen: View {
                 }
 
                 Capsule()
-                    .fill(Color.black)
-                    .shadow(radius: 5)
+                    .fill(
+                        isPro
+                            ? LinearGradient(
+                                colors: [
+                                    Color(red: 0.98, green: 0.78, blue: 0.34),
+                                    proVenueGold
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                            : LinearGradient(colors: [Color.black, Color.black], startPoint: .top, endPoint: .bottom)
+                    )
+                    .shadow(color: isPro ? proVenueGold.opacity(0.26) : .black.opacity(0.26), radius: isPro ? 8 : 5, y: isPro ? 2 : 0)
             }
         }
         .onAppear {
@@ -8797,12 +9088,14 @@ struct DiscoverScreen: View {
         gamesToday: [SportsEvent],
         goingTotal: Int,
         liveScore: Int? = nil,
-        hasLiveNow: Bool? = nil
+        hasLiveNow: Bool? = nil,
+        displayClass: VenuePinDisplayClass
     ) -> some View {
         
         VStack(spacing: 4) {
             let hasLiveNow = hasLiveNow ?? viewModel.hasLiveVenueEventNow(for: bar, events: gamesToday)
             let liveScore = liveScore ?? liveActivityScore(for: bar, gamesToday: gamesToday)
+            let isPro = displayClass == .proVenue
             HStack(spacing: -6) {
                 ForEach(gamesToday.prefix(3), id: \.id) { game in
                     let sportTint = mapSportIconTint(for: game.sport)
@@ -8823,16 +9116,19 @@ struct DiscoverScreen: View {
                                 }
 
                                 Circle()
-                                    .fill(Color.black)
-                                    .shadow(radius: 5)
+                                    .fill(isPro ? proVenueGold : Color.black)
+                                    .shadow(color: isPro ? proVenueGold.opacity(0.26) : .black.opacity(0.26), radius: isPro ? 8 : 5, y: isPro ? 2 : 0)
                                 Circle()
-                                    .fill((reusedSportChipIcon ? sportTint : Color.white).opacity(0.16))
+                                    .fill(isPro ? proVenueGlyphInk.opacity(0.13) : (reusedSportChipIcon ? sportTint : Color.white).opacity(0.16))
                                     .padding(6)
                             }
                         }
                         .overlay {
                             Circle()
-                                .strokeBorder((reusedSportChipIcon ? sportTint : Color.white).opacity(0.30), lineWidth: 1)
+                                .strokeBorder(
+                                    (isPro ? proVenueGoldDeep : (reusedSportChipIcon ? sportTint : Color.white)).opacity(isPro ? 0.46 : 0.30),
+                                    lineWidth: isPro ? 1.15 : 1
+                                )
                                 .padding(3)
                         }
                         .onAppear {
@@ -8843,10 +9139,10 @@ struct DiscoverScreen: View {
             Text(gamesToday.count == 1 ? gamesToday.first?.sport ?? bar.primarySport : "\(gamesToday.count) games")
                 .font(.caption2)
                 .fontWeight(.bold)
-                .foregroundStyle(.white)
+                .foregroundStyle(isPro ? proVenueGlyphInk.opacity(0.92) : .white)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
-                .background(Color.black.opacity(0.75))
+                .background(isPro ? proVenueGold.opacity(0.92) : Color.black.opacity(0.75))
                 .clipShape(Capsule())
 
             if hasLiveNow || liveScore > 0 {
@@ -8894,7 +9190,7 @@ struct DiscoverScreen: View {
         let isPro = displayClass == .proVenue
         let useDarkFill = !isUnclaimedCommunity || displayState == .gameScheduled
         let fill = useDarkFill ? Color.black : Color.gray.opacity(0.72)
-        let iconBackground = useDarkFill ? Color.white.opacity(0.13) : Color.gray.opacity(0.8)
+        let iconBackground = isPro ? proVenueGold.opacity(0.22) : (useDarkFill ? Color.white.opacity(0.13) : Color.gray.opacity(0.8))
 
         return ZStack(alignment: .topTrailing) {
             VStack(spacing: 3) {
@@ -8910,7 +9206,7 @@ struct DiscoverScreen: View {
                         frameSize: 26
                     )
                         .padding(5)
-                        .background(Circle().fill((reusedSportChipIcon ? sportTint : Color.white).opacity(0.16)))
+                        .background(Circle().fill(isPro ? proVenueGold.opacity(0.22) : (reusedSportChipIcon ? sportTint : Color.white).opacity(0.16)))
                         .onAppear {
                             logMapSportIconDebug(sport: sport, markerType: "venueCluster")
                         }
@@ -8951,12 +9247,12 @@ struct DiscoverScreen: View {
             .background(
                 Circle()
                     .fill(fill)
-                    .shadow(color: isPro ? Color(red: 1.0, green: 0.78, blue: 0.26).opacity(0.22) : .black.opacity(0.18), radius: isPro ? 9 : 7, y: 2)
+                    .shadow(color: isPro ? proVenueGold.opacity(colorScheme == .dark ? 0.32 : 0.22) : .black.opacity(0.18), radius: isPro ? 9 : 7, y: 2)
             )
             .overlay {
                 Circle()
                     .strokeBorder(
-                        isPro ? Color(red: 1.0, green: 0.82, blue: 0.30).opacity(0.76) : Color.white.opacity(useDarkFill ? 0.22 : 0.10),
+                        isPro ? proVenueGold.opacity(0.78) : Color.white.opacity(useDarkFill ? 0.22 : 0.10),
                         lineWidth: isPro ? 1.4 : 0.8
                     )
             }
@@ -8965,13 +9261,13 @@ struct DiscoverScreen: View {
             if isPro {
                 Text("Pro")
                     .font(.system(size: 8, weight: .heavy, design: .rounded))
-                    .foregroundStyle(Color.black.opacity(0.90))
+                    .foregroundStyle(proVenueGlyphInk.opacity(0.94))
                     .lineLimit(1)
                     .padding(.horizontal, 5)
                     .padding(.vertical, 2)
                     .background(
                         Capsule(style: .continuous)
-                            .fill(Color(red: 1.0, green: 0.82, blue: 0.30))
+                            .fill(proVenueGold)
                     )
                     .offset(x: 8, y: -7)
             }

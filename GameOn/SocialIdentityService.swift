@@ -5,7 +5,7 @@ import Supabase
 struct SocialIdentityService {
     private let client: SupabaseClient
     private static let userProfileSelectColumns =
-        "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,is_deleted,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids"
+        "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,is_deleted,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids,last_seen_at"
 
     init(client: SupabaseClient = supabase) {
         self.client = client
@@ -290,7 +290,8 @@ struct SocialIdentityService {
                 isDeleted: true,
                 liveVisibilityEnabled: false,
                 liveVisibilityMode: .allFriends,
-                selectedLiveVisibilityFriendIDs: []
+                selectedLiveVisibilityFriendIDs: [],
+                lastSeenAtRaw: nil
             )
         }
 
@@ -309,7 +310,8 @@ struct SocialIdentityService {
                 isDeleted: false,
                 liveVisibilityEnabled: true,
                 liveVisibilityMode: .allFriends,
-                selectedLiveVisibilityFriendIDs: []
+                selectedLiveVisibilityFriendIDs: [],
+                lastSeenAtRaw: profile?.last_seen_at
             )
         }
 
@@ -342,7 +344,8 @@ struct SocialIdentityService {
             isDeleted: false,
             liveVisibilityEnabled: profile?.isVisibleForLiveFriendPresence ?? true,
             liveVisibilityMode: profile?.liveVisibilityMode ?? .allFriends,
-            selectedLiveVisibilityFriendIDs: Array(profile?.selectedLiveVisibilityFriendIDs ?? [])
+            selectedLiveVisibilityFriendIDs: Array(profile?.selectedLiveVisibilityFriendIDs ?? []),
+            lastSeenAtRaw: profile?.last_seen_at
         )
     }
 
@@ -362,6 +365,7 @@ struct SocialIdentityService {
         let liveVisibilityEnabled: Bool
         let liveVisibilityMode: LiveVisibilityMode
         let selectedLiveVisibilityFriendIDs: [UUID]
+        let lastSeenAtRaw: String?
 
         var preview: UserPreview {
             UserPreview(
@@ -372,7 +376,8 @@ struct SocialIdentityService {
                 avatarURL: avatarURL,
                 avatarThumbnailURL: avatarThumbnailURL,
                 isBusinessAccount: isBusinessAccount,
-                isDeleted: isDeleted
+                isDeleted: isDeleted,
+                lastSeenAtRaw: lastSeenAtRaw
             )
         }
 
@@ -390,7 +395,8 @@ struct SocialIdentityService {
                 live_visibility_enabled: liveVisibilityEnabled,
                 live_visibility_mode: liveVisibilityMode.rawValue,
                 selected_live_visibility_friend_ids: selectedLiveVisibilityFriendIDs,
-                is_deleted: isDeleted
+                is_deleted: isDeleted,
+                last_seen_at: lastSeenAtRaw
             )
         }
     }

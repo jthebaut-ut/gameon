@@ -134,6 +134,7 @@ private enum ProfileSettingsRoute: Hashable {
 struct SettingsScreen: View {
     @ObservedObject var viewModel: MapViewModel
     @ObservedObject private var notificationSettingsStore: NotificationSettingsStore
+    @ObservedObject private var businessProEntitlement = BusinessProEntitlementManager.shared
     @EnvironmentObject private var chatViewModel: ChatViewModel
     @Environment(\.colorScheme) private var colorScheme
     /// False while Account tab is preserved off-screen (avoids Pokes / Suggested Fans network on launch).
@@ -153,6 +154,8 @@ struct SettingsScreen: View {
     @State private var showVenueRegisterMode = false
     @State private var showProfileSettingsSheet = false
     @State private var showBusinessProSubscriptionSheet = false
+    @State private var showBusinessUsageSheet = false
+    @State private var settingsBusinessMembershipStatus: BusinessVenueGamePostingStatus?
     @State private var profileSettingsPath = NavigationPath()
     @State private var showUserAuthSheet = false
     @State private var showVenueAuthSheet = false
@@ -722,6 +725,15 @@ struct SettingsScreen: View {
                 .presentationDragIndicator(.visible)
                 .presentationBackground(FGAdaptiveSurface.sheetRoot)
         }
+        .sheet(isPresented: $showBusinessUsageSheet) {
+            BusinessUsageCenterView(status: settingsBusinessMembershipStatus)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(FGAdaptiveSurface.sheetRoot)
+                .task {
+                    await refreshSettingsBusinessProStatus()
+                }
+        }
         .sheet(isPresented: Binding(
             get: { showLiveSharingModeDialog && canShowLiveActivitySharing },
             set: { if !$0 { showLiveSharingModeDialog = false } }
@@ -1052,8 +1064,8 @@ struct SettingsScreen: View {
             }
         } label: {
             settingsRow(
-                title: "Business Pro",
-                subtitle: "Unlimited hosting through Aug 31, 2026",
+                title: settingsBusinessMembershipStatus?.businessProActive == true ? "Business Pro active" : "Business Pro",
+                subtitle: settingsBusinessProRowSubtitle,
                 systemImage: "sparkles.rectangle.stack.fill"
             )
         }
@@ -1735,6 +1747,12 @@ struct SettingsScreen: View {
             onAnalytics: {
                 openBusinessVenueToolRoute(.statistics)
             },
+            onUsage: {
+                Task {
+                    await refreshSettingsBusinessProStatus()
+                    showBusinessUsageSheet = true
+                }
+            },
             onCommentsReports: {
                 showReportedCommentsSheet = true
             },
@@ -1744,13 +1762,15 @@ struct SettingsScreen: View {
             onRefreshVenues: {
                 Task { await refreshSettingsManagedVenuesSection() }
             },
-            showsManagedVenuesSection: true
+            showsManagedVenuesSection: true,
+            isStatisticsProActive: settingsBusinessStatisticsAccessGranted
         )
         .onAppear {
             logSettingsInlineBusinessDashboardDebug()
         }
         .task(id: settingsInlineBusinessDashboardLoadToken) {
             await refreshSettingsInlineBusinessDashboard()
+            await refreshSettingsBusinessProStatus()
         }
     }
 
@@ -1760,6 +1780,53 @@ struct SettingsScreen: View {
         }
         return OwnerBusinessEmail.normalized(viewModel.venueOwnerEmail)
     }
+
+    private var settingsBusinessStatisticsAccessGranted: Bool {
+        settingsBusinessMembershipStatus?.statisticsEnabled == true
+    }
+
+    private var settingsBusinessProRowSubtitle: String {
+        guard let status = settingsBusinessMembershipStatus else {
+            return "Checking server-controlled access..."
+        }
+        guard status.businessProActive else {
+            return "Upgrade for venues, hosted games, statistics, and sponsored visibility."
+        }
+        if let days = status.daysRemaining, days <= 14 {
+            return days == 1 ? "Expires in 1 day" : "Expires in \(days) days"
+        }
+        if let formattedDate = formattedSettingsBusinessProExpiry(status.proExpiresAt) {
+            return "Included through \(formattedDate)"
+        }
+        return "Active server-controlled access"
+    }
+
+    private func formattedSettingsBusinessProExpiry(_ raw: String?) -> String? {
+        guard let raw else { return nil }
+        let date = Self.settingsBusinessProExpiryParserWithFractions.date(from: raw)
+            ?? Self.settingsBusinessProExpiryParser.date(from: raw)
+        guard let date else { return nil }
+        return Self.settingsBusinessProExpiryDisplayFormatter.string(from: date)
+    }
+
+    private static let settingsBusinessProExpiryParserWithFractions: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    private static let settingsBusinessProExpiryParser: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+
+    private static let settingsBusinessProExpiryDisplayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "MMM d, yyyy"
+        return formatter
+    }()
 
     private var settingsBusinessDashboardData: BusinessVenueDashboardData {
         BusinessVenueDashboardData(
@@ -2006,10 +2073,22 @@ struct SettingsScreen: View {
         }
     }
 
+    private func refreshSettingsBusinessProStatus() async {
+        guard shouldShowInlineBusinessDashboard else { return }
+        await businessProEntitlement.prepare()
+        let status = await viewModel.businessVenueGamePostingStatus(
+            storeKitBusinessProActive: businessProEntitlement.businessProActive
+        )
+        await MainActor.run {
+            settingsBusinessMembershipStatus = status
+        }
+    }
+
     private func refreshSettingsManagedVenuesSection() async {
         await viewModel.refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
         await viewModel.refreshPendingVenueClaimsForSettings()
         await refreshSettingsInlineBusinessDashboard()
+        await refreshSettingsBusinessProStatus()
     }
 
     private func logSettingsInlineBusinessDashboardDebug() {

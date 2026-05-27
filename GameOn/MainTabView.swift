@@ -31,12 +31,18 @@ struct MainTabView: View {
     @State private var tabSwitchFromTab: AppTab?
     @State private var tabPreloadTasks: [AppTab: Task<Void, Never>] = [:]
     @State private var lastTabPreloadAt: [AppTab: Date] = [:]
+    @State private var postAuthBadgeRefreshTask: Task<Void, Never>?
+    @State private var postAuthBadgeRefreshUserId: UUID?
+    @State private var lastPostAuthBadgeRefreshAt: Date?
+    @State private var lastPostAuthBadgeRefreshUserId: UUID?
 
     private static let pokesBadgePollIntervalUnseenSeconds = 22
     private static let pokesBadgePollIntervalIdleSeconds = 105
     private static let chatSocialRealtimeGracePeriodSeconds: TimeInterval = 9
     private static let foregroundDeferredBatchDelayNs: UInt64 = 1_750_000_000
     private static let tabPreloadFreshnessInterval: TimeInterval = 30
+    private static let postAuthBadgeRefreshThrottleInterval: TimeInterval = 4
+    private static let postAuthBadgeRefreshCoalesceDelayNs: UInt64 = 140_000_000
 
     private var selectedTab: AppTab {
         AppTab(rawValue: selectedTabStorage) ?? .discover
@@ -203,12 +209,18 @@ struct MainTabView: View {
             if selectedTab == .chat, viewModel.isAuthenticatedForSocialFeatures {
                 Task { await startChatSocialRealtimeIfNeeded(reason: "launchVisibleChatTab") }
             }
+            PresenceService.shared.startIfNeeded(
+                userID: viewModel.currentUserAuthId,
+                isAuthenticated: viewModel.isAuthenticatedForSocialFeatures,
+                reason: "mainTabOnAppear"
+            )
 
             LaunchWarmPreloadCoordinator.shared.beginIfNeeded(
                 viewModel: viewModel,
                 chatViewModel: chatViewModel,
                 accountTabVisible: selectedTab == .account
             )
+            schedulePostAuthBadgeRefresh(reason: "mainTabOnAppear")
         }
         .animation(.spring(response: 0.38, dampingFraction: 0.88), value: chatViewModel.hidesFloatingTabBarForDirectChat)
         .onChange(of: viewModel.switchToAccountForVenueClaim) { _, shouldSwitch in
@@ -232,16 +244,20 @@ struct MainTabView: View {
                 chatViewModel: chatViewModel,
                 accountTabVisible: selectedTab == .account
             )
+            schedulePostAuthBadgeRefresh(reason: "criticalBootstrapCompleted")
             scheduleDeferredChatSocialRealtimeStartupIfNeeded()
         }
         .onChange(of: viewModel.isAuthenticatedForSocialFeatures) { _, authenticated in
             updateDirectChatReadStateVisibility()
             if !authenticated {
+                cancelPostAuthBadgeRefresh(reason: "authUnavailable")
                 didStartChatSocialRealtime = false
                 chatSocialRealtimeDeferTask?.cancel()
                 chatSocialRealtimeDeferTask = nil
                 cancelTabPreloadTasks()
                 LaunchWarmPreloadCoordinator.shared.cancel()
+                PresenceService.shared.stop(reason: "authUnavailable")
+                chatViewModel.clearForSignOut()
             } else {
                 scheduleDeferredChatSocialRealtimeStartupIfNeeded()
                 LaunchWarmPreloadCoordinator.shared.beginIfNeeded(
@@ -251,19 +267,35 @@ struct MainTabView: View {
                     forceRefresh: true
                 )
                 Task { await viewModel.ensurePickupInviteRealtimeIfNeeded() }
+                PresenceService.shared.startIfNeeded(
+                    userID: viewModel.currentUserAuthId,
+                    isAuthenticated: true,
+                    reason: "authBecameAvailable"
+                )
+                schedulePostAuthBadgeRefresh(reason: "authBecameAvailable", force: true)
             }
-            Task { await syncChatAuthState() }
         }
         .onChange(of: viewModel.currentUserAuthId) { _, newValue in
             if newValue == nil || newValue != lastAutoPresentedFanIdentitySetupUserId {
                 lastAutoPresentedFanIdentitySetupUserId = nil
             }
-            Task { await syncChatAuthState() }
+            PresenceService.shared.startIfNeeded(
+                userID: newValue,
+                isAuthenticated: viewModel.isAuthenticatedForSocialFeatures,
+                reason: "currentUserChanged"
+            )
+            if newValue == nil {
+                cancelPostAuthBadgeRefresh(reason: "currentUserCleared")
+            } else {
+                schedulePostAuthBadgeRefresh(reason: "currentUserChanged", force: true)
+            }
         }
         .onChange(of: viewModel.privateSessionClearNonce) { _, _ in
+            cancelPostAuthBadgeRefresh(reason: "privateSessionCleared")
             chatViewModel.clearForSignOut()
             cancelTabPreloadTasks()
             LaunchWarmPreloadCoordinator.shared.cancel()
+            PresenceService.shared.stop(reason: "privateSessionCleared")
         }
         .onChange(of: chatViewModel.unreadDirectMessageCount) { _, newValue in
 #if DEBUG
@@ -614,6 +646,7 @@ struct MainTabView: View {
 
     private func handleScenePhaseChange(_ phase: ScenePhase) {
         guard phase == .active else {
+            PresenceService.shared.stop(reason: "scenePhase.\(String(describing: phase))")
             if requireDeviceAuthForPrivateChat {
                 privateChatUnlockedForCurrentSelection = false
                 updateDirectChatReadStateVisibility()
@@ -716,14 +749,104 @@ struct MainTabView: View {
         )
     }
 
-    private func syncChatAuthState() async {
-        if viewModel.isAuthenticatedForSocialFeatures {
-            await chatViewModel.refresh()
-        } else {
-            await MainActor.run {
-                chatViewModel.clearForSignOut()
+    private func schedulePostAuthBadgeRefresh(reason: String, force: Bool = false) {
+        guard viewModel.isAuthenticatedForSocialFeatures,
+              let userId = viewModel.currentUserAuthId else {
+#if DEBUG
+            print("[BadgeLoginRefreshDebug] skipped because no authenticated user reason=\(reason)")
+#endif
+            return
+        }
+
+#if DEBUG
+        print("[BadgeLoginRefreshDebug] auth event/session restored reason=\(reason) userId=\(userId.uuidString.lowercased())")
+#endif
+
+        if postAuthBadgeRefreshTask != nil, postAuthBadgeRefreshUserId == userId {
+#if DEBUG
+            print("[BadgeLoginRefreshDebug] coalesced reason=\(reason) userId=\(userId.uuidString.lowercased())")
+#endif
+            return
+        }
+
+        if !force,
+           lastPostAuthBadgeRefreshUserId == userId,
+           let lastPostAuthBadgeRefreshAt,
+           Date().timeIntervalSince(lastPostAuthBadgeRefreshAt) < Self.postAuthBadgeRefreshThrottleInterval {
+#if DEBUG
+            print("[BadgeLoginRefreshDebug] throttled reason=\(reason) userId=\(userId.uuidString.lowercased())")
+#endif
+            return
+        }
+
+        postAuthBadgeRefreshTask?.cancel()
+        postAuthBadgeRefreshUserId = userId
+        postAuthBadgeRefreshTask = Task { @MainActor in
+            do {
+                try await Task.sleep(nanoseconds: Self.postAuthBadgeRefreshCoalesceDelayNs)
+            } catch {
+                return
+            }
+            guard !Task.isCancelled else { return }
+            await runPostAuthBadgeRefresh(userId: userId, reason: reason)
+            if postAuthBadgeRefreshUserId == userId {
+                postAuthBadgeRefreshTask = nil
+                postAuthBadgeRefreshUserId = nil
             }
         }
+    }
+
+    private func cancelPostAuthBadgeRefresh(reason: String) {
+        postAuthBadgeRefreshTask?.cancel()
+        postAuthBadgeRefreshTask = nil
+        postAuthBadgeRefreshUserId = nil
+#if DEBUG
+        print("[BadgeLoginRefreshDebug] cancelled reason=\(reason)")
+#endif
+    }
+
+    private func runPostAuthBadgeRefresh(userId: UUID, reason: String) async {
+        guard viewModel.isAuthenticatedForSocialFeatures,
+              viewModel.currentUserAuthId == userId else {
+#if DEBUG
+            print("[BadgeLoginRefreshDebug] skipped because no authenticated user reason=\(reason)")
+#endif
+            return
+        }
+
+        lastPostAuthBadgeRefreshAt = Date()
+        lastPostAuthBadgeRefreshUserId = userId
+
+        await chatViewModel.refreshFriendRequestListsOnly()
+#if DEBUG
+        print("[BadgeLoginRefreshDebug] pending friend requests count=\(chatViewModel.pendingBadgeCount)")
+#endif
+
+        await chatViewModel.refreshUnreadDirectMessageCount()
+        await chatViewModel.ensureSignedInSocialRealtimeIfNeeded()
+
+        if viewModel.canFanUsePickupGamesUI {
+            await viewModel.loadIncomingPickupGameInvites(forceRefresh: true)
+            await viewModel.loadMyPickupGameJoinRequestsForFollowing(
+                forceRefresh: true,
+                reason: "postAuthBadgeRefresh_\(reason)"
+            )
+            await viewModel.loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: true)
+            await viewModel.ensurePickupInviteRealtimeIfNeeded()
+#if DEBUG
+            print("[BadgeLoginRefreshDebug] pending pickup invites count=\(viewModel.incomingPickupGameInvites.count)")
+#endif
+        } else {
+#if DEBUG
+            print("[BadgeLoginRefreshDebug] pending pickup invites count=0")
+#endif
+        }
+
+#if DEBUG
+        print(
+            "[BadgeLoginRefreshDebug] tab badge updated friendRequests=\(chatViewModel.pendingBadgeCount) dmUnread=\(chatViewModel.unreadDirectMessageCount) pickupInvites=\(viewModel.incomingPickupGameInvites.count) hostedPickupRequests=\(viewModel.pendingPickupGameJoinRequestCount) playingPickupCards=\(viewModel.myPickupGameJoinRequestCards.count)"
+        )
+#endif
     }
 
     private func logBottomTabStructure() {
@@ -1284,6 +1407,12 @@ struct MainTabView: View {
         }
 
         guard viewModel.isAuthenticatedForSocialFeatures else { return }
+        PresenceService.shared.startIfNeeded(
+            userID: viewModel.currentUserAuthId,
+            isAuthenticated: true,
+            reason: "appBecameActive"
+        )
+        schedulePostAuthBadgeRefresh(reason: "foreground")
         await viewModel.checkCurrentUserAdminStatus()
 
         let currentTab = AppTab(rawValue: selectedTabStorage) ?? .discover

@@ -1,16 +1,8 @@
 import Foundation
 import Supabase
 
-private struct BusinessMembershipVenueEventCountRow: Decodable {
-    let id: UUID?
-}
-
-private struct BusinessMembershipHistoryCountRow: Decodable {
-    let original_venue_event_id: UUID?
-}
-
-private struct BusinessMembershipProEntitlementRow: Decodable {
-    let business_pro_active: Bool?
+private struct BusinessEntitlementRpcParams: Encodable {
+    let p_business_id: String
 }
 
 extension MapViewModel {
@@ -19,206 +11,112 @@ extension MapViewModel {
         now: Date = Date(),
         calendar: Calendar = .current
     ) async -> BusinessVenueGamePostingStatus {
-        let promoActive = BusinessMembershipPolicy.summerPromotionIsActive(now: now, calendar: calendar)
-            && hasBusinessAccountForOwner()
-        let supabaseBusinessProActive = storeKitBusinessProActive
-            ? true
-            : await loadSupabaseBusinessProEntitlementIfAvailable()
-        let businessProActive = storeKitBusinessProActive || supabaseBusinessProActive
-        let businessVenueCount = await loadBusinessVenueListingCountForBusinessAccount()
-        let monthlyHostedGameCount = await loadBusinessVenueGamePostCountForCurrentMonth(now: now, calendar: calendar)
-        let limitsOverriddenBySummerPromo = promoActive
-        let freeVenueListingLimitReached = !limitsOverriddenBySummerPromo
-            && !businessProActive
-            && businessVenueCount >= BusinessMembershipPolicy.freeVenueListingLimit
-        let freeMonthlyVenueGameLimitReached = !limitsOverriddenBySummerPromo
-            && !businessProActive
-            && monthlyHostedGameCount >= BusinessMembershipPolicy.freeMonthlyVenueGameLimit
+        _ = storeKitBusinessProActive
+        _ = now
+        _ = calendar
 
-        logBusinessMembershipDebug(
-            businessVenueCount: businessVenueCount,
-            monthlyHostedGameCount: monthlyHostedGameCount,
-            limitsOverriddenBySummerPromo: limitsOverriddenBySummerPromo,
-            businessProActive: businessProActive
+        guard let businessId = currentBusinessIdForAddLocation() else {
+            logBusinessEntitlementDebug(
+                businessId: nil,
+                source: "missingBusinessId",
+                status: .freeFallback(businessId: nil)
+            )
+            return .freeFallback(businessId: nil)
+        }
+
+        guard let entitlement = await loadBusinessEntitlements(businessId: businessId) else {
+            let fallback = BusinessVenueGamePostingStatus.freeFallback(
+                businessId: businessId,
+                venuesUsed: managedVenuesForOwner().filter { $0.business_id == businessId }.count
+            )
+            logBusinessEntitlementDebug(
+                businessId: businessId,
+                source: "rpcFallbackFree",
+                status: fallback
+            )
+            return fallback
+        }
+
+        let status = BusinessVenueGamePostingStatus.fromServer(entitlement)
+        logBusinessEntitlementDebug(
+            businessId: businessId,
+            source: "get_business_entitlements",
+            status: status
         )
-
-        return BusinessVenueGamePostingStatus(
-            promoActive: promoActive,
-            businessVenueCount: businessVenueCount,
-            monthlyHostedGameCount: monthlyHostedGameCount,
-            freeVenueListingLimitReached: freeVenueListingLimitReached,
-            freeMonthlyVenueGameLimitReached: freeMonthlyVenueGameLimitReached,
-            limitsOverriddenBySummerPromo: limitsOverriddenBySummerPromo,
-            businessProActive: businessProActive
-        )
+        return status
     }
 
-    private func loadBusinessVenueListingCountForBusinessAccount() async -> Int {
-        let ownerEmail = OwnerBusinessEmail.normalized(venueOwnerEmail)
-        let businessId = currentBusinessIdForAddLocation()
-        var venueIds = Set<UUID>()
-
-        if let businessId {
-            do {
-                let businessRows: [VenueProfileRow] = try await supabase
-                    .from("venues")
-                    .select("id")
-                    .eq("business_id", value: businessId.uuidString.lowercased())
-                    .eq("admin_status", value: "active")
-                    .execute()
-                    .value
-                venueIds.formUnion(businessRows.compactMap(\.id))
-            } catch {
-                print("[BusinessMembershipDebug] businessVenueCountBusinessQueryFailed=\(error.localizedDescription)")
-            }
-        }
-
-        if OwnerBusinessEmail.isValidStrict(ownerEmail) {
-            do {
-                let ownerRows: [VenueProfileRow] = try await supabase
-                    .from("venues")
-                    .select("id")
-                    .eq("owner_email", value: ownerEmail)
-                    .eq("admin_status", value: "active")
-                    .execute()
-                    .value
-                venueIds.formUnion(ownerRows.compactMap(\.id))
-            } catch {
-                print("[BusinessMembershipDebug] businessVenueCountOwnerQueryFailed=\(error.localizedDescription)")
-            }
-        }
-
-        if venueIds.isEmpty {
-            venueIds.formUnion(managedVenuesForOwner().compactMap(\.id))
-        }
-
-        return venueIds.count
-    }
-
-    private func loadBusinessVenueGamePostCountForCurrentMonth(now: Date, calendar: Calendar) async -> Int {
-        let window = BusinessMembershipPolicy.currentMonthWindow(now: now, calendar: calendar)
-        let startISO = Self.businessMembershipISOFormatter.string(from: window.start)
-        let endISO = Self.businessMembershipISOFormatter.string(from: window.end)
-        let ownerEmail = OwnerBusinessEmail.normalized(venueOwnerEmail)
-        let businessId = currentBusinessIdForAddLocation()
-        let managedVenueIds = managedVenuesForOwner()
-            .filter { row in
-                guard let businessId else { return true }
-                return row.business_id == nil || row.business_id == businessId
-            }
-            .compactMap(\.id)
-
-        var eventIds = Set<UUID>()
-
-        if OwnerBusinessEmail.isValidStrict(ownerEmail) {
-            do {
-                let ownerRows: [BusinessMembershipVenueEventCountRow] = try await supabase
-                    .from("venue_events")
-                    .select("id")
-                    .eq("owner_email", value: ownerEmail)
-                    .gte("created_at", value: startISO)
-                    .lt("created_at", value: endISO)
-                    .execute()
-                    .value
-                eventIds.formUnion(ownerRows.compactMap(\.id))
-            } catch {
-                print("[BusinessMembershipDebug] monthlyHostedGameCountOwnerQueryFailed=\(error.localizedDescription)")
-            }
-        }
-
-        if !managedVenueIds.isEmpty {
-            do {
-                let venueRows: [BusinessMembershipVenueEventCountRow] = try await supabase
-                    .from("venue_events")
-                    .select("id")
-                    .in("venue_id", values: managedVenueIds.map { $0.uuidString.lowercased() })
-                    .gte("created_at", value: startISO)
-                    .lt("created_at", value: endISO)
-                    .execute()
-                    .value
-                eventIds.formUnion(venueRows.compactMap(\.id))
-            } catch {
-                print("[BusinessMembershipDebug] monthlyHostedGameCountVenueQueryFailed=\(error.localizedDescription)")
-            }
-        }
-
-        if let businessId {
-            do {
-                let historyRows: [BusinessMembershipHistoryCountRow] = try await supabase
-                    .from("business_game_history")
-                    .select("original_venue_event_id")
-                    .eq("business_id", value: businessId.uuidString.lowercased())
-                    .gte("created_at", value: startISO)
-                    .lt("created_at", value: endISO)
-                    .execute()
-                    .value
-                eventIds.formUnion(historyRows.compactMap(\.original_venue_event_id))
-            } catch {
-                print("[BusinessMembershipDebug] monthlyHostedGameCountHistoryQueryFailed=\(error.localizedDescription)")
-            }
-        }
-
-        return eventIds.count
-    }
-
-    private func loadSupabaseBusinessProEntitlementIfAvailable() async -> Bool {
-        if let businessId = currentBusinessIdForAddLocation(),
-           await loadBusinessProEntitlementFromBusinessesTable(businessId: businessId) == true {
-            return true
-        }
-
-        guard let authId = currentUserAuthId else { return false }
-        return await loadBusinessProEntitlementFromUserProfile(userId: authId)
-    }
-
-    private func loadBusinessProEntitlementFromBusinessesTable(businessId: UUID) async -> Bool? {
+    func loadBusinessEntitlements(businessId: UUID) async -> BusinessEntitlementSnapshot? {
         do {
-            let rows: [BusinessMembershipProEntitlementRow] = try await supabase
-                .from("businesses")
-                .select("business_pro_active")
-                .eq("id", value: businessId.uuidString.lowercased())
-                .limit(1)
+            let rows: [BusinessEntitlementSnapshot] = try await supabase
+                .rpc(
+                    "get_business_entitlements",
+                    params: BusinessEntitlementRpcParams(p_business_id: businessId.uuidString.lowercased())
+                )
                 .execute()
                 .value
-            return rows.first?.business_pro_active == true
+            return rows.first
         } catch {
-            print("[BusinessMembershipDebug] businessProActiveColumnMissingOrUnreadable=businesses.business_pro_active")
+#if DEBUG
+            print("[BusinessEntitlementDebug] rpc=get_business_entitlements businessId=\(businessId.uuidString.lowercased()) error=\(error.localizedDescription)")
+#endif
             return nil
         }
     }
 
-    private func loadBusinessProEntitlementFromUserProfile(userId: UUID) async -> Bool {
+    func canBusinessCreateVenueServerSide(businessId: UUID) async -> Bool {
+        await loadBusinessLimitHelper(
+            rpcName: "can_business_create_venue",
+            businessId: businessId
+        )
+    }
+
+    func canBusinessHostGameServerSide(businessId: UUID) async -> Bool {
+        await loadBusinessLimitHelper(
+            rpcName: "can_business_host_game",
+            businessId: businessId
+        )
+    }
+
+    func canBusinessAccessStatisticsServerSide(businessId: UUID) async -> Bool {
+        await loadBusinessLimitHelper(
+            rpcName: "can_business_access_statistics",
+            businessId: businessId
+        )
+    }
+
+    private func loadBusinessLimitHelper(rpcName: String, businessId: UUID) async -> Bool {
         do {
-            let rows: [BusinessMembershipProEntitlementRow] = try await supabase
-                .from("user_profiles")
-                .select("business_pro_active")
-                .eq("id", value: userId.uuidString.lowercased())
-                .limit(1)
+            let allowed: Bool = try await supabase
+                .rpc(
+                    rpcName,
+                    params: BusinessEntitlementRpcParams(p_business_id: businessId.uuidString.lowercased())
+                )
                 .execute()
                 .value
-            return rows.first?.business_pro_active == true
+#if DEBUG
+            print("[BusinessEntitlementDebug] rpc=\(rpcName) businessId=\(businessId.uuidString.lowercased()) allowed=\(allowed)")
+#endif
+            return allowed
         } catch {
-            print("[BusinessMembershipDebug] businessProActiveColumnMissingOrUnreadable=user_profiles.business_pro_active")
+#if DEBUG
+            print("[BusinessEntitlementDebug] rpc=\(rpcName) businessId=\(businessId.uuidString.lowercased()) error=\(error.localizedDescription)")
+#endif
             return false
         }
     }
 
-    private func logBusinessMembershipDebug(
-        businessVenueCount: Int,
-        monthlyHostedGameCount: Int,
-        limitsOverriddenBySummerPromo: Bool,
-        businessProActive: Bool
+    private func logBusinessEntitlementDebug(
+        businessId: UUID?,
+        source: String,
+        status: BusinessVenueGamePostingStatus
     ) {
-        print("[BusinessEntitlementDebug] businessVenueCount=\(businessVenueCount)")
-        print("[BusinessEntitlementDebug] monthlyHostedGameCount=\(monthlyHostedGameCount)")
-        print("[BusinessEntitlementDebug] limitsOverriddenBySummerPromo=\(limitsOverriddenBySummerPromo)")
-        print("[BusinessEntitlementDebug] businessProActive=\(businessProActive)")
+#if DEBUG
+        print("[BusinessEntitlementDebug] source=\(source) businessId=\(businessId?.uuidString.lowercased() ?? "nil")")
+        print("[BusinessEntitlementDebug] planType=\(status.planType) planStatus=\(status.planStatus) proExpiresAt=\(status.proExpiresAt ?? "nil") isProActive=\(status.businessProActive)")
+        print("[BusinessEntitlementDebug] venuesUsed=\(status.businessVenueCount) venueLimit=\(status.venueLimit) unlimitedVenues=\(status.unlimitedVenues)")
+        print("[BusinessEntitlementDebug] hostedGamesThisMonth=\(status.monthlyHostedGameCount) monthlyHostLimit=\(status.monthlyHostLimit) unlimitedHosting=\(status.unlimitedHosting)")
+        print("[BusinessEntitlementDebug] statisticsAccess=\(status.statisticsEnabled) sponsoredAccess=\(status.sponsoredEnabled)")
+#endif
     }
-
-    private static let businessMembershipISOFormatter: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        formatter.timeZone = TimeZone(secondsFromGMT: 0)
-        return formatter
-    }()
 }

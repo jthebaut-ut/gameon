@@ -835,7 +835,7 @@ struct PickupGameInviteFriendsSheet: View {
     @State private var selectedFriendIds: Set<UUID> = []
     @State private var searchText = ""
     @State private var searchResults: [PickupInvitableFanSearchResult] = []
-    @State private var alreadyInvitedUserIds: Set<UUID> = []
+    @State private var inviteStatusByUserId: [UUID: String] = [:]
     @State private var searchTask: Task<Void, Never>?
     @State private var isSearching = false
     @State private var isSending = false
@@ -944,7 +944,7 @@ struct PickupGameInviteFriendsSheet: View {
                 if chatViewModel.friends.isEmpty {
                     await chatViewModel.refresh()
                 }
-                alreadyInvitedUserIds = await viewModel.loadPickupAlreadyInvitedUserIds(gameId: game.id)
+                inviteStatusByUserId = await viewModel.loadPickupInviteStatusesByInviteeUserId(gameId: game.id)
             }
             .onChange(of: searchText) { _, newValue in
                 scheduleFanSearch(newValue)
@@ -986,7 +986,8 @@ struct PickupGameInviteFriendsSheet: View {
     }
 
     private func pickupInviteFriendRow(_ friend: ChatViewModel.FriendDisplay) -> some View {
-        let disabled = alreadyInvitedUserIds.contains(friend.id)
+        let inviteStatus = inviteStatusByUserId[friend.id]
+        let disabled = inviteStatus != nil
         return Button {
             toggleFriend(friend.id)
         } label: {
@@ -1001,10 +1002,8 @@ struct PickupGameInviteFriendsSheet: View {
                             .font(FGTypography.caption)
                             .foregroundStyle(FGColor.secondaryText(colorScheme))
                     }
-                    if disabled {
-                        Text("Already invited")
-                            .font(FGTypography.caption.weight(.semibold))
-                            .foregroundStyle(Color.orange)
+                    if let inviteStatus {
+                        pickupInviteStatusBadge(status: inviteStatus)
                     }
                 }
                 Spacer(minLength: 0)
@@ -1020,7 +1019,8 @@ struct PickupGameInviteFriendsSheet: View {
     }
 
     private func pickupInviteSearchResultRow(_ result: PickupInvitableFanSearchResult) -> some View {
-        let disabled = alreadyInvitedUserIds.contains(result.user_id)
+        let inviteStatus = inviteStatusByUserId[result.user_id]
+        let disabled = inviteStatus != nil
         return Button {
             toggleSearchResult(result)
         } label: {
@@ -1045,10 +1045,8 @@ struct PickupGameInviteFriendsSheet: View {
                             .font(FGTypography.caption)
                             .foregroundStyle(FGColor.secondaryText(colorScheme))
                     }
-                    if disabled {
-                        Text("Already invited")
-                            .font(FGTypography.caption.weight(.semibold))
-                            .foregroundStyle(Color.orange)
+                    if let inviteStatus {
+                        pickupInviteStatusBadge(status: inviteStatus)
                     }
                 }
                 Spacer(minLength: 0)
@@ -1064,7 +1062,7 @@ struct PickupGameInviteFriendsSheet: View {
     }
 
     private func toggleFriend(_ id: UUID) {
-        guard !alreadyInvitedUserIds.contains(id) else { return }
+        guard inviteStatusByUserId[id] == nil else { return }
         if selectedFriendIds.contains(id) {
             selectedFriendIds.remove(id)
         } else if selectedFriendIds.count < 20 {
@@ -1075,7 +1073,7 @@ struct PickupGameInviteFriendsSheet: View {
     }
 
     private func toggleSearchResult(_ result: PickupInvitableFanSearchResult) {
-        guard !alreadyInvitedUserIds.contains(result.user_id) else { return }
+        guard inviteStatusByUserId[result.user_id] == nil else { return }
         let wasSelected = selectedFriendIds.contains(result.user_id)
         toggleFriend(result.user_id)
 #if DEBUG
@@ -1083,6 +1081,35 @@ struct PickupGameInviteFriendsSheet: View {
             print("[PickupInviteDebug] nonFriendInviteSelected=\(result.user_id.uuidString.lowercased())")
         }
 #endif
+    }
+
+    private func pickupInviteStatusBadge(status: String) -> some View {
+        let display = pickupInviteStatusDisplay(status)
+        return Text(display.title)
+            .font(FGTypography.caption.weight(.semibold))
+            .foregroundStyle(display.tint)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(display.tint.opacity(colorScheme == .dark ? 0.18 : 0.11), in: Capsule())
+            .overlay {
+                Capsule()
+                    .strokeBorder(display.tint.opacity(colorScheme == .dark ? 0.26 : 0.18), lineWidth: 0.8)
+            }
+    }
+
+    private func pickupInviteStatusDisplay(_ status: String) -> (title: String, tint: Color) {
+        switch status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "pending":
+            return ("Pending invite", FGColor.secondaryText(colorScheme))
+        case "accepted":
+            return ("Accepted", FGColor.accentGreen)
+        case "maybe":
+            return ("Maybe", Color.orange)
+        case "declined":
+            return ("Declined", colorScheme == .dark ? Color.red.opacity(0.74) : Color.red.opacity(0.68))
+        default:
+            return ("Already invited", Color.orange)
+        }
     }
 
     private func scheduleFanSearch(_ raw: String) {

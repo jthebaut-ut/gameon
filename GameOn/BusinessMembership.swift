@@ -6,23 +6,6 @@ enum BusinessMembershipPolicy {
     static let freeVenueListingLimit = 5
     static let freeMonthlyVenueGameLimit = 5
 
-    static func summerPromotionEnd(calendar: Calendar = .current) -> Date {
-        var components = DateComponents()
-        components.calendar = calendar
-        components.timeZone = calendar.timeZone
-        components.year = 2026
-        components.month = 8
-        components.day = 31
-        components.hour = 23
-        components.minute = 59
-        components.second = 59
-        return components.date ?? .distantPast
-    }
-
-    static func summerPromotionIsActive(now: Date = Date(), calendar: Calendar = .current) -> Bool {
-        now <= summerPromotionEnd(calendar: calendar)
-    }
-
     static func currentMonthWindow(now: Date = Date(), calendar: Calendar = .current) -> (start: Date, end: Date) {
         let start = calendar.date(from: calendar.dateComponents([.year, .month], from: now))
             ?? calendar.startOfDay(for: now)
@@ -30,6 +13,23 @@ enum BusinessMembershipPolicy {
             ?? now.addingTimeInterval(31 * 24 * 60 * 60)
         return (start, end)
     }
+}
+
+struct BusinessEntitlementSnapshot: Decodable, Equatable {
+    let business_id: UUID
+    let plan_type: String
+    let plan_status: String
+    let pro_expires_at: String?
+    let is_pro_active: Bool
+    let days_remaining: Int?
+    let statistics_enabled: Bool
+    let sponsored_enabled: Bool
+    let unlimited_venues: Bool
+    let unlimited_hosting: Bool
+    let venue_limit: Int
+    let monthly_host_limit: Int
+    let venues_used: Int
+    let hosted_games_this_month: Int
 }
 
 struct BusinessVenueGamePostingStatus: Equatable {
@@ -40,19 +40,70 @@ struct BusinessVenueGamePostingStatus: Equatable {
     let freeMonthlyVenueGameLimitReached: Bool
     let limitsOverriddenBySummerPromo: Bool
     let businessProActive: Bool
+    let businessId: UUID?
+    let planType: String
+    let planStatus: String
+    let proExpiresAt: String?
+    let daysRemaining: Int?
+    let statisticsEnabled: Bool
+    let sponsoredEnabled: Bool
+    let unlimitedVenues: Bool
+    let unlimitedHosting: Bool
+    let venueLimit: Int
+    let monthlyHostLimit: Int
 
     var monthlyPostCount: Int { monthlyHostedGameCount }
     var freeLimitReached: Bool { freeMonthlyVenueGameLimitReached }
 
-    static var summerPromo: BusinessVenueGamePostingStatus {
+    static func freeFallback(
+        businessId: UUID?,
+        venuesUsed: Int = 0,
+        hostedGamesThisMonth: Int = 0,
+        planStatus: String = "active"
+    ) -> BusinessVenueGamePostingStatus {
         BusinessVenueGamePostingStatus(
-            promoActive: true,
-            businessVenueCount: 0,
-            monthlyHostedGameCount: 0,
-            freeVenueListingLimitReached: false,
-            freeMonthlyVenueGameLimitReached: false,
-            limitsOverriddenBySummerPromo: true,
-            businessProActive: false
+            promoActive: false,
+            businessVenueCount: venuesUsed,
+            monthlyHostedGameCount: hostedGamesThisMonth,
+            freeVenueListingLimitReached: venuesUsed >= BusinessMembershipPolicy.freeVenueListingLimit,
+            freeMonthlyVenueGameLimitReached: hostedGamesThisMonth >= BusinessMembershipPolicy.freeMonthlyVenueGameLimit,
+            limitsOverriddenBySummerPromo: false,
+            businessProActive: false,
+            businessId: businessId,
+            planType: "free",
+            planStatus: planStatus,
+            proExpiresAt: nil,
+            daysRemaining: nil,
+            statisticsEnabled: false,
+            sponsoredEnabled: false,
+            unlimitedVenues: false,
+            unlimitedHosting: false,
+            venueLimit: BusinessMembershipPolicy.freeVenueListingLimit,
+            monthlyHostLimit: BusinessMembershipPolicy.freeMonthlyVenueGameLimit
+        )
+    }
+
+    static func fromServer(_ entitlement: BusinessEntitlementSnapshot) -> BusinessVenueGamePostingStatus {
+        let isPromo = entitlement.is_pro_active && entitlement.plan_type == "pro_promo"
+        return BusinessVenueGamePostingStatus(
+            promoActive: isPromo,
+            businessVenueCount: entitlement.venues_used,
+            monthlyHostedGameCount: entitlement.hosted_games_this_month,
+            freeVenueListingLimitReached: !entitlement.unlimited_venues && entitlement.venues_used >= entitlement.venue_limit,
+            freeMonthlyVenueGameLimitReached: !entitlement.unlimited_hosting && entitlement.hosted_games_this_month >= entitlement.monthly_host_limit,
+            limitsOverriddenBySummerPromo: isPromo,
+            businessProActive: entitlement.is_pro_active,
+            businessId: entitlement.business_id,
+            planType: entitlement.plan_type,
+            planStatus: entitlement.plan_status,
+            proExpiresAt: entitlement.pro_expires_at,
+            daysRemaining: entitlement.days_remaining,
+            statisticsEnabled: entitlement.statistics_enabled,
+            sponsoredEnabled: entitlement.sponsored_enabled,
+            unlimitedVenues: entitlement.unlimited_venues,
+            unlimitedHosting: entitlement.unlimited_hosting,
+            venueLimit: entitlement.venue_limit,
+            monthlyHostLimit: entitlement.monthly_host_limit
         )
     }
 }

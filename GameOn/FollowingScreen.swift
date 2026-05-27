@@ -724,7 +724,7 @@ struct FollowingScreen: View {
     private var pickupPlayingTabBadge: String? {
         let count = viewModel.pickupActivityCount
         guard count > 0 else { return nil }
-        return count > 9 ? "9+ new" : "\(count) new"
+        return count > 9 ? "9+" : "\(count)"
     }
 
     private var playingGameCards: [PickupGameJoinRequestCardDisplay] {

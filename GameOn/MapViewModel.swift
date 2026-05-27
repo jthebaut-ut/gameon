@@ -182,6 +182,7 @@ final class MapViewModel: ObservableObject {
     @Published var isAdminLoggedIn: Bool = false
     @Published var adminEmail: String = ""
     @Published var venueClaims: [VenueClaim] = []
+    @Published var liveOperationsPresenceMetrics: LiveOperationsPresenceMetrics = .empty
     @Published var venueIsApproved: Bool = false
     @Published var authErrorMessage = ""
     @Published var venueAuthErrorMessage = ""

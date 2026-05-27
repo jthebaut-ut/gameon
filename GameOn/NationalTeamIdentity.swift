@@ -168,24 +168,28 @@ enum NationalTeamCountryCatalog {
 struct NationalTeamIdentityCard: View {
     let identity: NationalTeamIdentity
     var showsEditAffordance = false
+    var compact = false
     var onTap: (() -> Void)?
 
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
 
     var body: some View {
+        let flagFrame: CGFloat = compact ? 40 : 46
+        let flagFont: CGFloat = compact ? 30 : 34
+        let cardCorner: CGFloat = compact ? 18 : 20
         Button {
             onTap?()
         } label: {
-            HStack(spacing: 12) {
+            HStack(spacing: compact ? 10 : 12) {
                 Text(identity.flag)
-                    .font(.system(size: 34))
-                    .frame(width: 46, height: 46)
+                    .font(.system(size: flagFont))
+                    .frame(width: flagFrame, height: flagFrame)
                     .background(Circle().fill(Color.white.opacity(colorScheme == .dark ? 0.10 : 0.78)))
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: compact ? 3 : 4) {
                     Text(identity.resolvedSupporterLabel(languageCode: appLanguageRaw))
-                        .font(.system(size: 17, weight: .heavy, design: .rounded))
+                        .font(.system(size: compact ? 16 : 17, weight: .heavy, design: .rounded))
                         .foregroundStyle(FGColor.primaryText(colorScheme))
                         .lineLimit(1)
                         .minimumScaleFactor(0.75)
@@ -206,9 +210,9 @@ struct NationalTeamIdentityCard: View {
                         .foregroundStyle(FGColor.secondaryText(colorScheme))
                 }
             }
-            .padding(13)
+            .padding(compact ? 10 : 13)
             .background {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                RoundedRectangle(cornerRadius: cardCorner, style: .continuous)
                     .fill(
                         LinearGradient(
                             colors: [
@@ -222,7 +226,7 @@ struct NationalTeamIdentityCard: View {
                     )
             }
             .overlay {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                RoundedRectangle(cornerRadius: cardCorner, style: .continuous)
                     .strokeBorder(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.30 : 0.20), lineWidth: 1)
             }
         }

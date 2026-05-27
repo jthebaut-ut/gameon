@@ -24,12 +24,17 @@ struct AdminScreen: View {
                     if !viewModel.isAdminLoggedIn {
                         adminLoginCard
                     } else {
+                        liveOperationsMetricsCard
                         claimsList
                     }
                 }
                 .padding(.horizontal)
                 .padding(.bottom, 110)
             }
+        }
+        .task(id: viewModel.isAdminLoggedIn) {
+            guard viewModel.isAdminLoggedIn else { return }
+            await viewModel.refreshLiveOperationsPresenceMetrics()
         }
     }
     
@@ -100,6 +105,58 @@ struct AdminScreen: View {
                 }
             }
         }
+    }
+
+    private var liveOperationsMetricsCard: some View {
+        let metrics = viewModel.liveOperationsPresenceMetrics
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Label("Live Operations", systemImage: "dot.radiowaves.left.and.right")
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(.white)
+                Spacer()
+                Button {
+                    Task { await viewModel.refreshLiveOperationsPresenceMetrics() }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.white.opacity(0.78))
+                }
+                .buttonStyle(.plain)
+            }
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 138), spacing: 10)], spacing: 10) {
+                liveMetricTile("Users online now", value: metrics.users_online_now, tint: .green)
+                liveMetricTile("Businesses online now", value: metrics.businesses_online_now, tint: .mint)
+                liveMetricTile("Active today", value: metrics.active_users_today, tint: .blue)
+                liveMetricTile("Active this week", value: metrics.active_users_this_week, tint: .purple)
+                liveMetricTile("Active this month", value: metrics.active_users_this_month, tint: .orange)
+            }
+        }
+        .padding()
+        .background(Color.white.opacity(0.10))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+
+    private func liveMetricTile(_ title: String, value: Int, tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("\(value)")
+                .font(.title2.weight(.heavy))
+                .foregroundStyle(.white)
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.72))
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(tint.opacity(0.18))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(tint.opacity(0.28), lineWidth: 1)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
     
     private func claimCard(_ claim: VenueClaim) -> some View {

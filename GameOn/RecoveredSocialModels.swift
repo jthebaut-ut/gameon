@@ -5,9 +5,119 @@ import UIKit
 import UserNotifications
 #endif
 
+enum PresenceOnlineStatus {
+    static let onlineWindowSeconds: TimeInterval = 120
+
+    static func parse(_ raw: String?) -> Date? {
+        let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !trimmed.isEmpty else { return nil }
+
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = fractional.date(from: trimmed) { return date }
+
+        let plain = ISO8601DateFormatter()
+        plain.formatOptions = [.withInternetDateTime]
+        return plain.date(from: trimmed)
+    }
+}
+
+@MainActor
+final class PresenceService {
+    static let shared = PresenceService()
+
+    private static let heartbeatIntervalSeconds: TimeInterval = 60
+    private static let minimumWriteSpacingSeconds: TimeInterval = 55
+    private static let heartbeatIntervalNs: UInt64 = 60_000_000_000
+
+    private var activeUserID: UUID?
+    private var lastSentAt: Date?
+    private var heartbeatTask: Task<Void, Never>?
+
+    private init() {}
+
+    func startIfNeeded(userID: UUID?, isAuthenticated: Bool, reason: String) {
+        guard isAuthenticated, let userID else {
+            stop(reason: "\(reason).notAuthenticated")
+            return
+        }
+
+        if activeUserID != userID {
+            stop(reason: "\(reason).userChanged")
+            activeUserID = userID
+        }
+
+        sendHeartbeat(reason: reason, force: true)
+
+        guard heartbeatTask == nil else { return }
+        heartbeatTask = Task { [weak self] in
+            while !Task.isCancelled {
+                do {
+                    try await Task.sleep(nanoseconds: Self.heartbeatIntervalNs)
+                } catch {
+                    return
+                }
+                self?.sendHeartbeat(reason: "timer", force: false)
+            }
+        }
+    }
+
+    func stop(reason: String) {
+        heartbeatTask?.cancel()
+        heartbeatTask = nil
+        activeUserID = nil
+        lastSentAt = nil
+#if DEBUG
+        print("[PresenceDebug] heartbeatStopped reason=\(reason)")
+#endif
+    }
+
+    func sendHeartbeat(reason: String, force: Bool = false) {
+        guard let userID = activeUserID else { return }
+        let now = Date()
+        if !force,
+           let lastSentAt,
+           now.timeIntervalSince(lastSentAt) < Self.minimumWriteSpacingSeconds {
+#if DEBUG
+            print("[PresenceDebug] heartbeatSkipped reason=throttled userId=\(userID.uuidString.lowercased())")
+#endif
+            return
+        }
+        lastSentAt = now
+
+        let timestamp = Self.isoTimestamp(now)
+#if DEBUG
+        print("[PresenceDebug] heartbeatSent userId=\(userID.uuidString.lowercased()) timestamp=\(timestamp) reason=\(reason)")
+#endif
+        Task.detached(priority: .utility) {
+            do {
+                let _: String = try await supabase
+                    .rpc("touch_user_presence")
+                    .execute()
+                    .value
+#if DEBUG
+                print("[PresenceDebug] updateSuccess userId=\(userID.uuidString.lowercased()) timestamp=\(timestamp)")
+#endif
+            } catch {
+#if DEBUG
+                print("[PresenceDebug] updateFailure userId=\(userID.uuidString.lowercased()) error=\(error.localizedDescription)")
+#endif
+            }
+        }
+    }
+
+    private static func isoTimestamp(_ date: Date) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter.string(from: date)
+    }
+}
+
 // MARK: - Lightweight user surface (DM header, friend rows, navigation)
 
 struct UserPreview: Identifiable, Hashable, Codable {
+    private static let onlineWindowSeconds: TimeInterval = 120
+
     let id: UUID
     let displayName: String
     /// Stored without `@`, lowercase — nil when unset.
@@ -18,6 +128,8 @@ struct UserPreview: Identifiable, Hashable, Codable {
     let avatarThumbnailURL: String?
     let isBusinessAccount: Bool
     let isDeleted: Bool
+    /// ISO timestamp from user_profiles.last_seen_at; online state is computed, not stored.
+    let lastSeenAtRaw: String?
 
     init(
         id: UUID,
@@ -27,7 +139,8 @@ struct UserPreview: Identifiable, Hashable, Codable {
         avatarURL: String?,
         avatarThumbnailURL: String? = nil,
         isBusinessAccount: Bool = false,
-        isDeleted: Bool = false
+        isDeleted: Bool = false,
+        lastSeenAtRaw: String? = nil
     ) {
         self.id = id
         self.displayName = isDeleted ? "Deleted User" : displayName
@@ -37,6 +150,7 @@ struct UserPreview: Identifiable, Hashable, Codable {
         self.avatarThumbnailURL = isDeleted ? nil : avatarThumbnailURL
         self.isBusinessAccount = isBusinessAccount
         self.isDeleted = isDeleted
+        self.lastSeenAtRaw = isDeleted ? nil : lastSeenAtRaw
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -48,6 +162,7 @@ struct UserPreview: Identifiable, Hashable, Codable {
         case avatarThumbnailURL
         case isBusinessAccount
         case isDeleted
+        case lastSeenAtRaw
     }
 
     init(from decoder: Decoder) throws {
@@ -61,6 +176,7 @@ struct UserPreview: Identifiable, Hashable, Codable {
         avatarThumbnailURL = decodedDeleted ? nil : try container.decodeIfPresent(String.self, forKey: .avatarThumbnailURL)
         isBusinessAccount = try container.decodeIfPresent(Bool.self, forKey: .isBusinessAccount) ?? false
         isDeleted = decodedDeleted
+        lastSeenAtRaw = decodedDeleted ? nil : try container.decodeIfPresent(String.self, forKey: .lastSeenAtRaw)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -73,6 +189,7 @@ struct UserPreview: Identifiable, Hashable, Codable {
         try container.encodeIfPresent(avatarThumbnailURL, forKey: .avatarThumbnailURL)
         try container.encode(isBusinessAccount, forKey: .isBusinessAccount)
         try container.encode(isDeleted, forKey: .isDeleted)
+        try container.encodeIfPresent(lastSeenAtRaw, forKey: .lastSeenAtRaw)
     }
 
     var isBusinessIdentity: Bool {
@@ -81,6 +198,14 @@ struct UserPreview: Identifiable, Hashable, Codable {
 
     var canOpenPublicProfile: Bool {
         !isDeleted
+    }
+
+    var isOnlineNow: Bool {
+        guard !isDeleted,
+              let lastSeen = PresenceOnlineStatus.parse(lastSeenAtRaw) else {
+            return false
+        }
+        return Date().timeIntervalSince(lastSeen) <= Self.onlineWindowSeconds
     }
 
     /// Public @handle line — uses stored username or temporary email-prefix fallback (never persisted).

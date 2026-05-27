@@ -281,6 +281,22 @@ enum VenueClaimStatus: String {
     case rejected = "Rejected"
 }
 
+struct LiveOperationsPresenceMetrics: Decodable, Equatable {
+    let users_online_now: Int
+    let businesses_online_now: Int
+    let active_users_today: Int
+    let active_users_this_week: Int
+    let active_users_this_month: Int
+
+    static let empty = LiveOperationsPresenceMetrics(
+        users_online_now: 0,
+        businesses_online_now: 0,
+        active_users_today: 0,
+        active_users_this_week: 0,
+        active_users_this_month: 0
+    )
+}
+
 enum VenueAudioType: String, CaseIterable, Identifiable, Codable {
     case full = "Game audio everywhere"
     case partial = "Some TVs with audio"

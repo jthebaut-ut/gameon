@@ -105,6 +105,289 @@ private struct BusinessInsightsSparkline: View {
     }
 }
 
+struct BusinessUsageCenterView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let status: BusinessVenueGamePostingStatus?
+
+    private var isProActive: Bool {
+        status?.businessProActive == true
+    }
+
+    private var accent: Color {
+        isProActive ? FGColor.accentGreen : FGColor.accentBlue
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                header
+                currentPlanSection
+                if isProActive {
+                    proFeaturesSection
+                } else {
+                    usageMetricsSection
+                    proFeaturesPreviewSection
+                }
+            }
+            .padding(20)
+        }
+        .background(FGAdaptiveSurface.sheetRoot.ignoresSafeArea())
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Usage")
+                .font(.largeTitle.weight(.black))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+            Text("Operational limits and Business Pro access for this business.")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var currentPlanSection: some View {
+        usageSection(title: "Current Plan", systemImage: "building.2.crop.circle") {
+            HStack(alignment: .top, spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(accent.opacity(colorScheme == .dark ? 0.24 : 0.14))
+                    Image(systemName: isProActive ? "sparkles.rectangle.stack.fill" : "briefcase.fill")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(accent)
+                }
+                .frame(width: 44, height: 44)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(isProActive ? "Business Pro" : "Free Business")
+                        .font(.headline.weight(.black))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                    Text(planStateText)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(planStateColor)
+                    if let detail = planDetailText {
+                        Text(detail)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    private var usageMetricsSection: some View {
+        usageSection(title: "Usage Metrics", systemImage: "chart.bar.xaxis") {
+            VStack(alignment: .leading, spacing: 14) {
+                usageMetricRow(
+                    title: "Venue listings used",
+                    value: status?.businessVenueCount ?? 0,
+                    total: max(1, status?.venueLimit ?? BusinessMembershipPolicy.freeVenueListingLimit)
+                )
+                usageMetricRow(
+                    title: "Hosted games this month",
+                    value: status?.monthlyHostedGameCount ?? 0,
+                    total: max(1, status?.monthlyHostLimit ?? BusinessMembershipPolicy.freeMonthlyVenueGameLimit)
+                )
+                if anyFreeLimitReached {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(monthlyHostLimitReached ? "Monthly limit reached." : "Limit reached.")
+                            .font(.caption.weight(.black))
+                            .foregroundStyle(FGColor.dangerRed)
+                        Text(limitReachedMessage)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(12)
+                    .background(FGColor.dangerRed.opacity(colorScheme == .dark ? 0.16 : 0.10), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                }
+            }
+        }
+    }
+
+    private var proFeaturesSection: some View {
+        usageSection(title: "Pro Features", systemImage: "sparkles") {
+            VStack(spacing: 10) {
+                proFeatureRow(title: "Unlimited venue listings", value: "∞ Unlimited", enabled: status?.unlimitedVenues == true)
+                proFeatureRow(title: "Unlimited hosted games", value: "∞ Unlimited", enabled: status?.unlimitedHosting == true)
+                proFeatureRow(title: "Statistics enabled", value: "Enabled", enabled: status?.statisticsEnabled == true)
+                proFeatureRow(title: "Sponsored visibility enabled", value: "Enabled", enabled: status?.sponsoredEnabled == true)
+            }
+        }
+    }
+
+    private var proFeaturesPreviewSection: some View {
+        usageSection(title: "Pro Features", systemImage: "sparkles") {
+            VStack(spacing: 10) {
+                proFeatureRow(title: "Unlimited venue listings", value: "Business Pro", enabled: false)
+                proFeatureRow(title: "Unlimited hosted games", value: "Business Pro", enabled: false)
+                proFeatureRow(title: "Statistics", value: "Business Pro", enabled: false)
+                proFeatureRow(title: "Sponsored visibility", value: "Business Pro", enabled: false)
+            }
+        }
+    }
+
+    private func usageSection<Content: View>(
+        title: String,
+        systemImage: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label(title, systemImage: systemImage)
+                .font(.subheadline.weight(.black))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+            content()
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(FGAdaptiveSurface.controlFill)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(accent.opacity(colorScheme == .dark ? 0.22 : 0.14), lineWidth: 1)
+        }
+    }
+
+    private func usageMetricRow(title: String, value: Int, total: Int) -> some View {
+        let clampedTotal = max(1, total)
+        let ratio = min(1, Double(value) / Double(clampedTotal))
+        let tint = usageTint(value: value, total: clampedTotal)
+
+        return VStack(alignment: .leading, spacing: 7) {
+            HStack {
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                Spacer(minLength: 8)
+                Text("\(value) / \(clampedTotal)")
+                    .font(.caption.weight(.black))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+            }
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(FGAdaptiveSurface.capsuleUnselected)
+                    Capsule()
+                        .fill(tint)
+                        .frame(width: max(8, proxy.size.width * ratio))
+                }
+            }
+            .frame(height: 8)
+        }
+    }
+
+    private func proFeatureRow(title: String, value: String, enabled: Bool) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: enabled ? "checkmark.seal.fill" : "lock.fill")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(enabled ? FGColor.accentGreen : FGColor.secondaryText(colorScheme))
+                .frame(width: 24, height: 24)
+            Text(title)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+            Spacer(minLength: 8)
+            Text(value)
+                .font(.caption.weight(.black))
+                .foregroundStyle(enabled ? FGColor.accentGreen : FGColor.secondaryText(colorScheme))
+        }
+        .padding(10)
+        .background(FGAdaptiveSurface.sheetRoot.opacity(colorScheme == .dark ? 0.75 : 0.65), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private func usageTint(value: Int, total: Int) -> Color {
+        guard total > 0 else { return FGColor.accentGreen }
+        let ratio = Double(value) / Double(total)
+        if ratio >= 1 { return FGColor.dangerRed }
+        if ratio >= 0.8 { return Color.orange }
+        return FGColor.accentGreen
+    }
+
+    private var planStateText: String {
+        guard let status else { return "Checking access" }
+        if status.businessProActive { return normalizedPlanStatus(status.planStatus) }
+        if status.planType != "free" { return "expired" }
+        return normalizedPlanStatus(status.planStatus)
+    }
+
+    private var planStateColor: Color {
+        switch planStateText.lowercased() {
+        case "active":
+            return FGColor.accentGreen
+        case "paused":
+            return Color.orange
+        case "expired", "cancelled":
+            return FGColor.dangerRed
+        default:
+            return FGColor.secondaryText(colorScheme)
+        }
+    }
+
+    private var planDetailText: String? {
+        guard let status else { return nil }
+        if status.businessProActive {
+            if status.planType == "pro_promo" {
+                return "Included through Nov 30, 2026"
+            }
+            if let formatted = formattedBusinessProExpiry(status.proExpiresAt) {
+                return "Expires \(formatted)"
+            }
+            return "No scheduled expiration."
+        }
+        if status.planType != "free", let formatted = formattedBusinessProExpiry(status.proExpiresAt) {
+            return "Business Pro expired \(formatted). Free limits now apply."
+        }
+        return "Free limits are enforced by server entitlements."
+    }
+
+    private var anyFreeLimitReached: Bool {
+        status?.freeVenueListingLimitReached == true || status?.freeMonthlyVenueGameLimitReached == true
+    }
+
+    private var monthlyHostLimitReached: Bool {
+        status?.freeMonthlyVenueGameLimitReached == true
+    }
+
+    private var limitReachedMessage: String {
+        if monthlyHostLimitReached {
+            return "Hosted games are temporarily locked until the next monthly reset."
+        }
+        return "Add Venue is locked until more capacity is available or Business Pro is active."
+    }
+
+    private func normalizedPlanStatus(_ raw: String) -> String {
+        let value = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return value.isEmpty ? "active" : value
+    }
+
+    private func formattedBusinessProExpiry(_ raw: String?) -> String? {
+        guard let raw else { return nil }
+        let date = Self.expiryParserWithFractions.date(from: raw) ?? Self.expiryParser.date(from: raw)
+        guard let date else { return nil }
+        return Self.expiryDisplayFormatter.string(from: date)
+    }
+
+    private static let expiryParserWithFractions: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    private static let expiryParser: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+
+    private static let expiryDisplayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "MMM d, yyyy"
+        return formatter
+    }()
+}
+
 /// Which slice of the venue owner dashboard Settings (or other callers) presents.
 enum VenueOwnerDashboardEntryPoint: Equatable {
     /// Profile, games, and analytics tabs (legacy / rare).
@@ -245,6 +528,7 @@ struct VenueOwnerDashboardView: View {
     @State private var isSavingNewGame = false
     @State private var businessMembershipStatus: BusinessVenueGamePostingStatus?
     @State private var showBusinessProSubscriptionSheet = false
+    @State private var showBusinessUsageSheet = false
     @State private var titleEditTarget: VenueOwnerGameTitleEditTarget?
     @State private var titleEditDraft = ""
     @State private var businessGameChatTarget: VenueOwnerGameChatTarget?
@@ -386,6 +670,8 @@ struct VenueOwnerDashboardView: View {
                         case .analytics:
                             if venueOwnerGamesAndAnalyticsLocked {
                                 venueOwnerPendingApprovalCard
+                            } else if !businessStatisticsAccessGranted {
+                                businessStatisticsProLockedSection
                             } else {
                                 venueAnalyticsSection
                             }
@@ -467,12 +753,30 @@ struct VenueOwnerDashboardView: View {
             if effectiveSection == .overview {
                 await refreshBusinessDashboardOverview()
             } else if effectiveSection == .analytics {
+                await refreshBusinessStatisticsProStatus(reason: entryPoint == .analyticsViewer ? "analyticsViewer" : "analyticsSection")
+                guard businessStatisticsAccessGranted else {
+                    logBusinessStatisticsProGate(isPro: false, accessGranted: false, source: "analyticsSection")
+                    if entryPoint == .analyticsViewer {
+                        showBusinessProSubscriptionSheet = true
+                    }
+                    return
+                }
                 await loadVenueAnalytics()
             }
         }
         .onChange(of: viewModel.ownerVenueDatabaseId) { _, _ in
             guard effectiveSection == .analytics else { return }
-            Task { await loadVenueAnalytics() }
+            Task {
+                await refreshBusinessStatisticsProStatus(reason: entryPoint == .analyticsViewer ? "analyticsViewerVenueChanged" : "analyticsVenueChanged")
+                guard businessStatisticsAccessGranted else {
+                    logBusinessStatisticsProGate(isPro: false, accessGranted: false, source: "analyticsVenueChanged")
+                    if entryPoint == .analyticsViewer {
+                        showBusinessProSubscriptionSheet = true
+                    }
+                    return
+                }
+                await loadVenueAnalytics()
+            }
         }
         .task(id: viewModel.ownerVenueDatabaseId) {
             let managed = await MainActor.run { viewModel.managedVenuesForOwner() }
@@ -658,6 +962,18 @@ struct VenueOwnerDashboardView: View {
                 logBusinessProVisibilityDebug(dashboardVisible: true)
             }
         }
+        .sheet(isPresented: $showBusinessUsageSheet) {
+            BusinessUsageCenterView(status: businessMembershipStatus)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(FGAdaptiveSurface.sheetRoot)
+                .task {
+                    await businessProEntitlement.prepare()
+                    businessMembershipStatus = await viewModel.businessVenueGamePostingStatus(
+                        storeKitBusinessProActive: businessProEntitlement.businessProActive
+                    )
+                }
+        }
         .sheet(item: $businessGameChatTarget) { target in
             VenueEventCommentsSheet(
                 viewModel: viewModel,
@@ -763,23 +1079,27 @@ struct VenueOwnerDashboardView: View {
     }
 
     private var businessProAccessSection: some View {
-        Button {
+        let status = businessMembershipStatus
+        let isProActive = status?.businessProActive == true
+        let accent = isProActive ? FGColor.accentGreen : Color.orange
+
+        return Button {
             logBusinessProVisibilityDebug(dashboardVisible: true, rowRendered: true)
             showBusinessProSubscriptionSheet = true
         } label: {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .top, spacing: 12) {
-                    Image(systemName: "sparkles.rectangle.stack.fill")
+                    Image(systemName: isProActive ? "sparkles.rectangle.stack.fill" : "lock.open.fill")
                         .font(.system(size: 17, weight: .bold))
-                        .foregroundStyle(FGColor.accentGreen)
+                        .foregroundStyle(accent)
                         .frame(width: 38, height: 38)
-                        .background(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.22 : 0.13), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .background(accent.opacity(colorScheme == .dark ? 0.22 : 0.13), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("FanGeo Business Pro")
+                        Text(businessProStatusTitle(for: status))
                             .font(.headline.weight(.black))
                             .foregroundStyle(FGColor.primaryText(colorScheme))
-                        Text("Premium tools for growing sports crowds.")
+                        Text(businessProStatusSubtitle(for: status))
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(FGColor.secondaryText(colorScheme))
                     }
@@ -792,10 +1112,15 @@ struct VenueOwnerDashboardView: View {
                         .padding(.top, 4)
                 }
 
-                HStack(spacing: 7) {
-                    businessProBenefitPill("Unlimited watch parties")
-                    businessProBenefitPill("Fan engagement tools")
-                    businessProBenefitPill("Priority visibility")
+                VStack(alignment: .leading, spacing: 7) {
+                    HStack(spacing: 7) {
+                        businessProBenefitPill("Unlimited venue listings")
+                        businessProBenefitPill("Unlimited hosted games")
+                    }
+                    HStack(spacing: 7) {
+                        businessProBenefitPill("Statistics")
+                        businessProBenefitPill("Sponsored visibility")
+                    }
                 }
             }
             .padding(14)
@@ -803,7 +1128,7 @@ struct VenueOwnerDashboardView: View {
             .background(
                 LinearGradient(
                     colors: [
-                        FGColor.accentGreen.opacity(colorScheme == .dark ? 0.18 : 0.10),
+                        accent.opacity(colorScheme == .dark ? 0.18 : 0.10),
                         FGColor.accentBlue.opacity(colorScheme == .dark ? 0.12 : 0.07),
                         FGAdaptiveSurface.controlFill.opacity(0.96)
                     ],
@@ -823,6 +1148,51 @@ struct VenueOwnerDashboardView: View {
         }
     }
 
+    private func businessProStatusTitle(for status: BusinessVenueGamePostingStatus?) -> String {
+        status?.businessProActive == true ? "Business Pro active" : "Upgrade to Business Pro"
+    }
+
+    private func businessProStatusSubtitle(for status: BusinessVenueGamePostingStatus?) -> String {
+        guard let status else { return "Checking server-controlled Business Pro access..." }
+        guard status.businessProActive else {
+            return "Unlock unlimited venue listings, hosted games, statistics, and sponsored visibility."
+        }
+        if let days = status.daysRemaining, days <= 14 {
+            return days == 1 ? "Business Pro expires in 1 day" : "Business Pro expires in \(days) days"
+        }
+        if let formattedDate = formattedBusinessProExpiry(status.proExpiresAt) {
+            return "Included through \(formattedDate)"
+        }
+        return "Included with your active Business Pro entitlement."
+    }
+
+    private func formattedBusinessProExpiry(_ raw: String?) -> String? {
+        guard let raw else { return nil }
+        let date = Self.businessProExpiryParserWithFractions.date(from: raw)
+            ?? Self.businessProExpiryParser.date(from: raw)
+        guard let date else { return nil }
+        return Self.businessProExpiryDisplayFormatter.string(from: date)
+    }
+
+    private static let businessProExpiryParserWithFractions: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    private static let businessProExpiryParser: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+
+    private static let businessProExpiryDisplayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "MMM d, yyyy"
+        return formatter
+    }()
+
     private func businessProBenefitPill(_ title: String) -> some View {
         Text("✓ \(title)")
             .font(.caption2.weight(.heavy))
@@ -836,6 +1206,72 @@ struct VenueOwnerDashboardView: View {
                 Capsule(style: .continuous)
                     .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.12 : 0.28), lineWidth: 1)
             }
+    }
+
+    private var businessStatisticsProLockedSection: some View {
+        Button {
+            logBusinessStatisticsProGate(
+                isPro: businessStatisticsAccessGranted,
+                accessGranted: false,
+                source: "analyticsLockedSection"
+            )
+            showBusinessProSubscriptionSheet = true
+        } label: {
+            HStack(alignment: .top, spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color(red: 1.0, green: 0.84, blue: 0.42).opacity(colorScheme == .dark ? 0.28 : 0.18),
+                                    Color(red: 0.86, green: 0.63, blue: 0.22).opacity(colorScheme == .dark ? 0.18 : 0.12)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    Image(systemName: "chart.bar.xaxis")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(Color(red: 0.86, green: 0.63, blue: 0.22))
+                }
+                .frame(width: 42, height: 42)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(spacing: 7) {
+                        Text("Statistics")
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                        Text("PRO")
+                            .font(.system(size: 9, weight: .heavy, design: .rounded))
+                            .foregroundStyle(Color(red: 0.08, green: 0.06, blue: 0.025).opacity(0.94))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Color(red: 0.86, green: 0.63, blue: 0.22), in: Capsule(style: .continuous))
+                    }
+
+                    Text("Upgrade for insights into fan interest, engagement, and venue performance.")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .padding(.top, 6)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(FGColor.cardBackground(colorScheme))
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(Color(red: 0.86, green: 0.63, blue: 0.22).opacity(colorScheme == .dark ? 0.38 : 0.24), lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     private var businessDashboardOverviewSection: some View {
@@ -859,22 +1295,32 @@ struct VenueOwnerDashboardView: View {
                 openBusinessDashboardGames(tab: .scheduled)
             },
             onPredictions: {
-                openBusinessDashboardAnalytics()
+                handleBusinessStatisticsEntryTapped(source: "predictionsQuickAction")
             },
             onAnalytics: {
-                openBusinessDashboardAnalytics()
+                handleBusinessStatisticsEntryTapped(source: "statisticsQuickAction")
+            },
+            onUsage: {
+                Task {
+                    await refreshBusinessStatisticsProStatus(reason: "usageQuickAction")
+                    showBusinessUsageSheet = true
+                }
             },
             onCommentsReports: {
-                openBusinessDashboardAnalytics()
+                handleBusinessStatisticsEntryTapped(source: "commentsReportsQuickAction")
             },
             onViewAllGames: {
                 openBusinessDashboardGames(tab: .scheduled)
             },
             onRefreshVenues: {},
-            showsManagedVenuesSection: false
+            showsManagedVenuesSection: false,
+            isStatisticsProActive: businessStatisticsAccessGranted
         )
         .onAppear {
             logBusinessDashboardDebug()
+        }
+        .task(id: businessStatisticsProRefreshToken) {
+            await refreshBusinessStatisticsProStatus(reason: "overview")
         }
     }
 
@@ -895,6 +1341,16 @@ struct VenueOwnerDashboardView: View {
             approvedVenues: [],
             pendingVenues: []
         )
+    }
+
+    private var businessStatisticsAccessGranted: Bool {
+        businessMembershipStatus?.statisticsEnabled == true
+    }
+
+    private var businessStatisticsProRefreshToken: String {
+        let businessId = viewModel.currentBusinessIdForAddLocation()?.uuidString.lowercased() ?? "nil"
+        let venueId = viewModel.ownerVenueDatabaseId?.uuidString.lowercased() ?? "nil"
+        return "\(businessId)|\(venueId)|\(businessProEntitlement.businessProActive)"
     }
 
     private var businessDashboardVenueName: String {
@@ -1075,12 +1531,52 @@ struct VenueOwnerDashboardView: View {
         }
     }
 
+    private func handleBusinessStatisticsEntryTapped(source: String) {
+        Task {
+            await refreshBusinessStatisticsProStatus(reason: source)
+            guard businessStatisticsAccessGranted else {
+                logBusinessStatisticsProGate(isPro: false, accessGranted: false, source: source)
+                showBusinessProSubscriptionSheet = true
+                return
+            }
+
+            logBusinessStatisticsProGate(isPro: true, accessGranted: true, source: source)
+            openBusinessDashboardAnalytics()
+        }
+    }
+
     private func openBusinessDashboardAnalytics() {
         guard !venueOwnerGamesAndAnalyticsLocked else { return }
         businessVenueAnalyticsTab = .venueAnalytics
         withAnimation(.spring()) {
             selectedSection = .analytics
         }
+    }
+
+    private func refreshBusinessStatisticsProStatus(reason: String) async {
+        await businessProEntitlement.prepare()
+        let status = await viewModel.businessVenueGamePostingStatus(
+            storeKitBusinessProActive: businessProEntitlement.businessProActive
+        )
+        businessMembershipStatus = status
+        logBusinessStatisticsProGate(
+            isPro: status.businessProActive,
+            accessGranted: status.statisticsEnabled,
+            source: reason
+        )
+    }
+
+    private func logBusinessStatisticsProGate(isPro: Bool, accessGranted: Bool, source: String) {
+#if DEBUG
+        let businessId = viewModel.currentBusinessIdForAddLocation()?.uuidString.lowercased() ?? "nil"
+        print("[BusinessProGate] business id=\(businessId)")
+        print("[BusinessProGate] isPro=\(isPro)")
+        print("[BusinessProGate] statisticsAccessGranted=\(accessGranted)")
+        print("[BusinessProGate] source=\(source)")
+        if let status = businessMembershipStatus {
+            print("[BusinessEntitlementDebug] statisticsGate planType=\(status.planType) planStatus=\(status.planStatus) proExpiresAt=\(status.proExpiresAt ?? "nil")")
+        }
+#endif
     }
 
     private func refreshBusinessDashboardOverview() async {
@@ -1112,6 +1608,11 @@ struct VenueOwnerDashboardView: View {
         print("[AddLocationForm] initialized fresh")
         print("[AddLocationForm] opened from businessDashboard")
 #endif
+        if businessMembershipStatus?.freeVenueListingLimitReached == true {
+            addLocationSubmitBanner = "Venue listing limit reached. Add Venue is locked until Business Pro is active."
+            showBusinessUsageSheet = true
+            return
+        }
         addLocationSubmitBanner = nil
         addLocationSheetFormState.reset(reason: "businessDashboard")
         showAddLocationSheet = true
@@ -3606,8 +4107,6 @@ struct VenueOwnerDashboardView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            businessHostingUsageStatusCard
-
             gameCreationModePicker
 
             if gameCreationMode == .importLive {
@@ -3639,159 +4138,6 @@ struct VenueOwnerDashboardView: View {
         }
     }
 
-    private var businessHostingUsageStatusCard: some View {
-        let status = businessHostingUsageStatusForDisplay
-
-        return VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top, spacing: 10) {
-                ZStack {
-                    Circle()
-                        .fill(businessHostingUsageAccent(for: status).opacity(colorScheme == .dark ? 0.22 : 0.14))
-                    Image(systemName: businessHostingUsageIconName(for: status))
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(businessHostingUsageAccent(for: status))
-                }
-                .frame(width: 34, height: 34)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(businessHostingUsageTitle(for: status))
-                        .font(.subheadline.weight(.heavy))
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
-                    Text(businessHostingUsagePrimaryLine(for: status))
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
-                        .fixedSize(horizontal: false, vertical: true)
-                    if let detailLine = businessHostingUsageDetailLine(for: status) {
-                        Text(detailLine)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(FGColor.primaryText(colorScheme))
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    if let secondaryLine = businessHostingUsageSecondaryLine(for: status) {
-                        Text(secondaryLine)
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(FGColor.secondaryText(colorScheme))
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                Spacer(minLength: 0)
-            }
-
-            if shouldShowBusinessHostingUsageProgress(for: status) {
-                VStack(alignment: .leading, spacing: 8) {
-                    businessHostingUsageProgressLine(
-                        title: "Venue listings",
-                        value: status?.businessVenueCount ?? 0,
-                        total: BusinessMembershipPolicy.freeVenueListingLimit,
-                        status: status
-                    )
-                    businessHostingUsageProgressLine(
-                        title: "Hosted games this month",
-                        value: status?.monthlyHostedGameCount ?? 0,
-                        total: BusinessMembershipPolicy.freeMonthlyVenueGameLimit,
-                        status: status
-                    )
-                }
-            }
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FGAdaptiveSurface.controlFill)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(businessHostingUsageAccent(for: status).opacity(colorScheme == .dark ? 0.24 : 0.16), lineWidth: 1)
-        }
-    }
-
-    private var businessHostingUsageStatusForDisplay: BusinessVenueGamePostingStatus? {
-        if let businessMembershipStatus { return businessMembershipStatus }
-        return nil
-    }
-
-    private func businessHostingUsageTitle(for status: BusinessVenueGamePostingStatus?) -> String {
-        if status?.businessProActive == true { return "Business Pro Active" }
-        if status?.limitsOverriddenBySummerPromo == true || (status == nil && BusinessMembershipPolicy.summerPromotionIsActive()) {
-            return "Unlimited Summer Hosting & Venue Listings"
-        }
-        return "Free Business Limits"
-    }
-
-    private func businessHostingUsagePrimaryLine(for status: BusinessVenueGamePostingStatus?) -> String {
-        guard let status else { return "Checking business usage..." }
-        if status.businessProActive || status.limitsOverriddenBySummerPromo {
-            return businessHostingUsageVenueListingsLine(count: status.businessVenueCount)
-        }
-        return "venue listings: \(status.businessVenueCount) / \(BusinessMembershipPolicy.freeVenueListingLimit)"
-    }
-
-    private func businessHostingUsageDetailLine(for status: BusinessVenueGamePostingStatus?) -> String? {
-        guard let status else { return nil }
-        if status.businessProActive || status.limitsOverriddenBySummerPromo {
-            return businessHostingUsageHostedGamesLine(count: status.monthlyHostedGameCount)
-        }
-        return "hosted games this month: \(status.monthlyHostedGameCount) / \(BusinessMembershipPolicy.freeMonthlyVenueGameLimit)"
-    }
-
-    private func businessHostingUsageSecondaryLine(for status: BusinessVenueGamePostingStatus?) -> String? {
-        if status?.businessProActive == true { return nil }
-        if status?.limitsOverriddenBySummerPromo == true || (status == nil && BusinessMembershipPolicy.summerPromotionIsActive()) {
-            return "Approved businesses get unlimited venue listings and hosted games through Aug 31, 2026."
-        }
-        return "Business Pro unlocks unlimited venue listings and hosted games."
-    }
-
-    private func businessHostingUsageVenueListingsLine(count: Int) -> String {
-        "\(count) \(count == 1 ? "venue listing" : "venue listings")"
-    }
-
-    private func businessHostingUsageHostedGamesLine(count: Int) -> String {
-        "\(count) \(count == 1 ? "game" : "games") hosted this month"
-    }
-
-    private func businessHostingUsageIconName(for status: BusinessVenueGamePostingStatus?) -> String {
-        if status?.businessProActive == true { return "sparkles.rectangle.stack.fill" }
-        if status?.limitsOverriddenBySummerPromo == true || (status == nil && BusinessMembershipPolicy.summerPromotionIsActive()) {
-            return "sun.max.fill"
-        }
-        return "chart.bar.fill"
-    }
-
-    private func businessHostingUsageAccent(for status: BusinessVenueGamePostingStatus?) -> Color {
-        if status?.businessProActive == true { return FGColor.accentGreen }
-        if status?.limitsOverriddenBySummerPromo == true || (status == nil && BusinessMembershipPolicy.summerPromotionIsActive()) {
-            return Color.orange
-        }
-        return FGColor.accentBlue
-    }
-
-    private func shouldShowBusinessHostingUsageProgress(for status: BusinessVenueGamePostingStatus?) -> Bool {
-        guard let status else { return false }
-        return !status.limitsOverriddenBySummerPromo && !status.businessProActive
-    }
-
-    private func businessHostingUsageProgressLine(
-        title: String,
-        value: Int,
-        total: Int,
-        status: BusinessVenueGamePostingStatus?
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(title)
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(FGColor.secondaryText(colorScheme))
-                Spacer(minLength: 8)
-                Text("\(value) / \(total)")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(FGColor.primaryText(colorScheme))
-            }
-            ProgressView(value: Double(min(value, total)), total: Double(total))
-                .tint(businessHostingUsageAccent(for: status))
-                .controlSize(.small)
-        }
-    }
-
     private var manualGameRequiresStructuredTeams: Bool {
         gameCreationMode == .manual && Self.predictionSupportedManualGameSport(viewModel.ownerVenuePrimarySport)
     }
@@ -3819,7 +4165,9 @@ struct VenueOwnerDashboardView: View {
     }
 
     private var saveGameListingDisabled: Bool {
-        isSavingNewGame || (manualGameRequiresStructuredTeams && !manualStructuredTeamsAreValid)
+        isSavingNewGame
+            || businessMembershipStatus?.freeMonthlyVenueGameLimitReached == true
+            || (manualGameRequiresStructuredTeams && !manualStructuredTeamsAreValid)
     }
 
     private var gameTitleBinding: Binding<String> {
@@ -5050,8 +5398,7 @@ struct VenueOwnerDashboardView: View {
             await MainActor.run {
                 isSavingNewGame = false
                 manageGamesFeedback = ""
-                manageGamesError = ""
-                showBusinessProSubscriptionSheet = true
+                manageGamesError = "Monthly limit reached. Add Game is temporarily locked until the next monthly reset."
             }
             return
         }

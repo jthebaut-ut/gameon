@@ -792,18 +792,40 @@ extension MapViewModel {
         isAdminLoggedIn = true
         Task {
             await persistAccountModeForActiveAuthSession(.admin)
+            await refreshLiveOperationsPresenceMetrics()
         }
     }
 
     func adminDashboardLogoutTapped() {
         isAdminLoggedIn = false
+        liveOperationsPresenceMetrics = .empty
         Task {
             await persistAccountModeForActiveAuthSession(.fanUser)
         }
     }
 
+    func refreshLiveOperationsPresenceMetrics() async {
+        guard isAdminLoggedIn else { return }
+        do {
+            let rows: [LiveOperationsPresenceMetrics] = try await supabase
+                .rpc("get_live_operations_presence_metrics")
+                .execute()
+                .value
+            await MainActor.run {
+                liveOperationsPresenceMetrics = rows.first ?? .empty
+            }
+#if DEBUG
+            print("[PresenceDebug] liveOpsMetricsLoaded=true")
+#endif
+        } catch {
+#if DEBUG
+            print("[PresenceDebug] liveOpsMetricsFailed=\(error.localizedDescription)")
+#endif
+        }
+    }
+
     private static let userProfileSelectColumns =
-        "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,is_business_account,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids,discoverable_by_fans,is_deleted,national_team_country_code,national_team_country_name,national_team_flag,national_team_supporter_label,national_team_updated_at"
+        "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,is_business_account,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids,discoverable_by_fans,is_deleted,last_seen_at,national_team_country_code,national_team_country_name,national_team_flag,national_team_supporter_label,national_team_updated_at"
 
     private static let userProfileIdentitySelectColumns =
         "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,is_deleted,national_team_country_code,national_team_country_name,national_team_flag,national_team_supporter_label,national_team_updated_at"

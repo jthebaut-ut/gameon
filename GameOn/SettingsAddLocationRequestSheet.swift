@@ -155,7 +155,7 @@ struct AddBusinessLocationRequestSheet: View {
             m.append("Could not resolve business for this request")
         }
         if businessMembershipStatus?.freeVenueListingLimitReached == true {
-            m.append("Free business accounts can list up to \(BusinessMembershipPolicy.freeVenueListingLimit) venues after the Summer Launch Promotion")
+            m.append("Free businesses can list 5 venues. Upgrade to Business Pro for unlimited venue listings.")
         }
         if form.locationName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             m.append("Missing location name")
@@ -504,7 +504,7 @@ struct AddBusinessLocationRequestSheet: View {
         if membershipStatus.freeVenueListingLimitReached {
             await MainActor.run {
                 form.isSubmitting = false
-                form.errorMessage = "Free business accounts can list up to \(BusinessMembershipPolicy.freeVenueListingLimit) venues after the Summer Launch Promotion. Business Pro unlocks unlimited venue listings."
+                form.errorMessage = "Free businesses can list 5 venues. Upgrade to Business Pro for unlimited venue listings."
             }
             return
         }

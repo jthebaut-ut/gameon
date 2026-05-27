@@ -254,7 +254,8 @@ extension MapViewModel {
         let coordFingerprint = source.prefix(64).reduce(into: 0.0) { partial, bar in
             partial += bar.coordinate.latitude + bar.coordinate.longitude + Double(bar.games.count)
         }
-        let cacheKey = "\(source.count)|\(dayBucket)|\(selectedSport)|\(mapDisplayMode.rawValue)|\(debouncedDiscoverSearchText.hashValue)|\(String(format: "%.5f", visibleLatitudeDelta))|\(String(format: "%.4f", coordFingerprint))"
+        let idFingerprint = source.prefix(96).map { $0.id.uuidString.lowercased() }.joined(separator: ",")
+        let cacheKey = "\(source.count)|\(idFingerprint)|\(dayBucket)|\(selectedSport)|\(mapDisplayMode.rawValue)|\(debouncedDiscoverSearchText.hashValue)|\(String(format: "%.5f", visibleLatitudeDelta))|\(String(format: "%.4f", coordFingerprint))"
         if cacheKey == discoverClusteredBarsCacheKey, let cached = discoverClusteredBarsCache {
             return cached
         }

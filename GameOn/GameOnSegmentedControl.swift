@@ -40,7 +40,7 @@ struct GameOnSegmentedControl<Selection: Hashable>: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             ForEach(tabs) { tab in
                 tabButton(tab)
             }
@@ -67,8 +67,8 @@ struct GameOnSegmentedControl<Selection: Hashable>: View {
                 selection = tab.id
             }
         } label: {
-            VStack(spacing: 6) {
-                HStack(spacing: 7) {
+            VStack(spacing: 5) {
+                HStack(spacing: tab.badge == nil ? 6 : 5) {
                     HStack(spacing: tab.systemImage == nil ? 0 : 4) {
                         if let systemImage = tab.systemImage {
                             Image(systemName: systemImage)
@@ -77,23 +77,31 @@ struct GameOnSegmentedControl<Selection: Hashable>: View {
                         }
 
                         Text(tab.title)
-                            .font(.system(size: 13, weight: isSelected ? .semibold : .medium, design: .rounded))
+                            .font(.system(size: 12.5, weight: isSelected ? .semibold : .medium, design: .rounded))
                             .lineLimit(1)
-                            .minimumScaleFactor(0.82)
+                            .minimumScaleFactor(0.74)
+                            .allowsTightening(true)
                     }
+                    .layoutPriority(0)
 
                     if let badge = tab.badge, !badge.isEmpty {
                         Text(badge)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(isSelected ? tint : Color.orange.opacity(0.95))
+                            .font(.system(size: 10.5, weight: .heavy, design: .rounded))
+                            .foregroundStyle(Color.orange.opacity(colorScheme == .dark ? 0.98 : 0.95))
                             .lineLimit(1)
-                            .minimumScaleFactor(0.85)
+                            .minimumScaleFactor(0.80)
+                            .allowsTightening(true)
                             .multilineTextAlignment(.center)
-                            .frame(minWidth: 72, minHeight: 18, alignment: .center)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
+                            .frame(minWidth: badgeMinWidth(for: badge), minHeight: 17, alignment: .center)
+                            .padding(.horizontal, badgeHorizontalPadding(for: badge))
+                            .padding(.vertical, 2.5)
                             .background(Color.orange.opacity(colorScheme == .dark ? 0.18 : 0.12), in: Capsule())
+                            .overlay {
+                                Capsule(style: .continuous)
+                                    .strokeBorder(Color.orange.opacity(colorScheme == .dark ? 0.24 : 0.18), lineWidth: 0.65)
+                            }
                             .accessibilityLabel(badge)
+                            .layoutPriority(2)
                     }
 
                     if tab.showsActivityDot {
@@ -111,7 +119,8 @@ struct GameOnSegmentedControl<Selection: Hashable>: View {
                     .opacity(isSelected ? 1 : 0)
             }
             .frame(maxWidth: fillsWidth ? .infinity : nil)
-            .padding(.horizontal, 11)
+            .frame(minHeight: 42)
+            .padding(.horizontal, 8)
             .padding(.vertical, 7)
             .background {
                 Capsule(style: .continuous)
@@ -124,5 +133,17 @@ struct GameOnSegmentedControl<Selection: Hashable>: View {
         .accessibilityLabel(tab.accessibilityLabel ?? tab.title)
         .accessibilityValue(isSelected ? "Selected" : "Not selected")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private func badgeMinWidth(for badge: String) -> CGFloat {
+        let length = badge.trimmingCharacters(in: .whitespacesAndNewlines).count
+        if length <= 2 { return 22 }
+        if length <= 3 { return 28 }
+        if length <= 5 { return 42 }
+        return 58
+    }
+
+    private func badgeHorizontalPadding(for badge: String) -> CGFloat {
+        badge.trimmingCharacters(in: .whitespacesAndNewlines).count <= 3 ? 5 : 6
     }
 }

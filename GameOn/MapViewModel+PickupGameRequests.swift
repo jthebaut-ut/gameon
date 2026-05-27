@@ -47,6 +47,7 @@ private struct SearchPickupInvitableFansParams: Encodable {
 
 private struct PickupAlreadyInvitedUserRow: Decodable {
     let invitee_user_id: UUID
+    let status: String?
 }
 
 extension MapViewModel {
@@ -160,19 +161,21 @@ extension MapViewModel {
         }
     }
 
-    func loadPickupAlreadyInvitedUserIds(gameId: UUID) async -> Set<UUID> {
-        guard canFanUsePickupGamesUI else { return [] }
+    func loadPickupInviteStatusesByInviteeUserId(gameId: UUID) async -> [UUID: String] {
+        guard canFanUsePickupGamesUI else { return [:] }
         do {
             let rows: [PickupAlreadyInvitedUserRow] = try await supabase
                 .from("pickup_game_invites")
-                .select("invitee_user_id")
+                .select("invitee_user_id,status")
                 .eq("pickup_game_id", value: gameId.uuidString.lowercased())
                 .limit(200)
                 .execute()
                 .value
-            return Set(rows.map(\.invitee_user_id))
+            return rows.reduce(into: [UUID: String]()) { result, row in
+                result[row.invitee_user_id] = row.status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+            }
         } catch {
-            return []
+            return [:]
         }
     }
 

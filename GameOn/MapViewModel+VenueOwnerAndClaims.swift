@@ -484,18 +484,26 @@ extension MapViewModel {
 #endif
 
         do {
-            let inserted: VenueClaimInsertedRow = try await supabase
-                .from("venue_claims")
-                .insert(claim)
-                .select("id,created_at,approval_status")
-                .single()
+            let insertedRows: [VenueClaimInsertedRow] = try await supabase
+                .rpc(
+                    "create_business_venue_claim",
+                    params: CreateBusinessVenueClaimRPCParams(claim: claim, businessId: businessId)
+                )
                 .execute()
                 .value
+            guard let inserted = insertedRows.first else {
+                throw NSError(
+                    domain: "BusinessVenueClaim",
+                    code: 1,
+                    userInfo: [NSLocalizedDescriptionKey: "Location request submitted, but the app couldn’t read it back. Pull to refresh in a moment."]
+                )
+            }
 
 #if DEBUG
             print(
-                "[BusinessSignup] venue_claim insert success claim_id=\(inserted.id.uuidString) approval_status=\(inserted.approval_status ?? "nil") created_at=\(inserted.created_at ?? "nil")"
+                "[BusinessSignup] venue_claim rpc insert success claim_id=\(inserted.id.uuidString) approval_status=\(inserted.approval_status ?? "nil") created_at=\(inserted.created_at ?? "nil")"
             )
+            print("[BusinessEntitlementGate] businessId=\(businessId.uuidString.lowercased()) operation=createVenue allowed=true reason=signupRpcInserted")
 #endif
 
             await MainActor.run {
@@ -717,13 +725,24 @@ extension MapViewModel {
         )
 
         do {
-            let inserted: VenueClaimInsertedRow = try await supabase
-                .from("venue_claims")
-                .insert(claim)
-                .select("id,created_at,approval_status")
-                .single()
+            let insertedRows: [VenueClaimInsertedRow] = try await supabase
+                .rpc(
+                    "create_business_venue_claim",
+                    params: CreateBusinessVenueClaimRPCParams(claim: claim, businessId: businessId)
+                )
                 .execute()
                 .value
+            guard let inserted = insertedRows.first else {
+                throw NSError(
+                    domain: "BusinessVenueClaim",
+                    code: 1,
+                    userInfo: [NSLocalizedDescriptionKey: "Location request submitted, but the app couldn’t read it back. Pull to refresh in a moment."]
+                )
+            }
+
+#if DEBUG
+            print("[BusinessEntitlementGate] businessId=\(businessId.uuidString.lowercased()) operation=createVenue allowed=true reason=emailConfirmationSignupRpcInserted")
+#endif
 
             await MainActor.run {
                 isVenueOwnerLoggedIn = true
@@ -1792,6 +1811,120 @@ extension MapViewModel {
         let approval_status: String?
     }
 
+    private struct CreateBusinessVenueClaimRPCParams: Encodable {
+        let p_business_id: UUID
+        let p_owner_email: String
+        let p_venue_id: UUID?
+        let p_venue_name: String
+        let p_venue_address: String
+        let p_venue_address_line2: String?
+        let p_venue_city: String
+        let p_venue_state: String
+        let p_venue_country: String
+        let p_venue_zip_code: String
+        let p_venue_formatted_address: String?
+        let p_venue_latitude: Double?
+        let p_venue_longitude: Double?
+        let p_venue_phone: String
+        let p_venue_website: String
+        let p_venue_description: String
+        let p_venue_features: String
+        let p_screen_count: Int
+        let p_serves_food: Bool
+        let p_has_wifi: Bool
+        let p_has_garden: Bool
+        let p_has_projector: Bool
+        let p_pet_friendly: Bool
+        let p_cover_photo_url: String
+        let p_menu_photo_url: String
+        let p_proof_note: String
+
+        init(claim: VenueClaimInsert, businessId: UUID) {
+            p_business_id = businessId
+            p_owner_email = claim.owner_email
+            p_venue_id = claim.venue_id
+            p_venue_name = claim.venue_name
+            p_venue_address = claim.venue_address
+            p_venue_address_line2 = claim.venue_address_line2
+            p_venue_city = claim.venue_city
+            p_venue_state = claim.venue_state
+            p_venue_country = claim.venue_country
+            p_venue_zip_code = claim.venue_zip_code
+            p_venue_formatted_address = claim.venue_formatted_address
+            p_venue_latitude = claim.venue_latitude
+            p_venue_longitude = claim.venue_longitude
+            p_venue_phone = claim.venue_phone
+            p_venue_website = claim.venue_website
+            p_venue_description = claim.venue_description
+            p_venue_features = claim.venue_features
+            p_screen_count = claim.screen_count
+            p_serves_food = claim.serves_food
+            p_has_wifi = claim.has_wifi
+            p_has_garden = claim.has_garden
+            p_has_projector = claim.has_projector
+            p_pet_friendly = claim.pet_friendly
+            p_cover_photo_url = claim.cover_photo_url
+            p_menu_photo_url = claim.menu_photo_url
+            p_proof_note = claim.proof_note
+        }
+    }
+
+    private struct CreateBusinessHostedGameRPCParams: Encodable {
+        let p_business_id: UUID
+        let p_venue_id: UUID?
+        let p_owner_email: String
+        let p_venue_name: String
+        let p_event_title: String
+        let p_sport: String
+        let p_home_team: String?
+        let p_away_team: String?
+        let p_external_league: String?
+        let p_event_date: String
+        let p_event_time: String
+        let p_external_game_id: String?
+        let p_external_source: String?
+        let p_imported_from_api: Bool
+        let p_sound_on: Bool
+        let p_audio_type: String
+        let p_drink_special: String
+        let p_cover_charge: String
+        let p_expected_crowd: String
+        let p_available_seating: String
+        let p_reservations_available: Bool
+        let p_waitlist_available: Bool
+        let p_admin_status: String
+        let p_scheduled_start_at: String
+        let p_cleanup_delay_hours: Int
+
+        init(game: VenueEventInsert, businessId: UUID) {
+            p_business_id = businessId
+            p_venue_id = game.venue_id
+            p_owner_email = game.owner_email
+            p_venue_name = game.venue_name
+            p_event_title = game.event_title
+            p_sport = game.sport
+            p_home_team = game.home_team
+            p_away_team = game.away_team
+            p_external_league = game.external_league
+            p_event_date = game.event_date
+            p_event_time = game.event_time
+            p_external_game_id = game.external_game_id
+            p_external_source = game.external_source
+            p_imported_from_api = game.imported_from_api
+            p_sound_on = game.sound_on
+            p_audio_type = game.audio_type
+            p_drink_special = game.drink_special
+            p_cover_charge = game.cover_charge
+            p_expected_crowd = game.expected_crowd
+            p_available_seating = game.available_seating
+            p_reservations_available = game.reservations_available
+            p_waitlist_available = game.waitlist_available
+            p_admin_status = game.admin_status
+            p_scheduled_start_at = game.scheduled_start_at
+            p_cleanup_delay_hours = game.cleanup_delay_hours
+        }
+    }
+
     /// Builds the Edge Function payload from the inserted row shape + amenity flags not stored as separate DB columns.
     private func venueClaimAdminNotifyPayloadFromInsert(
         claim: VenueClaimInsert,
@@ -2051,6 +2184,14 @@ extension MapViewModel {
             return "Could not find a business account for this request."
         }
 
+        let serverAllowsVenueClaim = await canBusinessCreateVenueServerSide(businessId: businessId)
+#if DEBUG
+        print("[BusinessEntitlementGate] businessId=\(businessId.uuidString.lowercased()) operation=createVenue allowed=\(serverAllowsVenueClaim) reason=\(serverAllowsVenueClaim ? "serverAllowed" : "venueLimitReached")")
+#endif
+        guard serverAllowsVenueClaim else {
+            return "Free businesses can list 5 venues. Upgrade to Business Pro for unlimited venue listings."
+        }
+
         if let err = validationErrorForAddLocationClaimForm(form) {
             return err
         }
@@ -2071,16 +2212,24 @@ extension MapViewModel {
         let claim = await venueClaimInsertForBusinessAddLocation(ownerEmail: email, businessId: businessId, form: form)
 
         do {
-            let inserted: VenueClaimInsertedRow = try await supabase
-                .from("venue_claims")
-                .insert(claim)
-                .select("id,created_at,approval_status")
-                .single()
+            let insertedRows: [VenueClaimInsertedRow] = try await supabase
+                .rpc(
+                    "create_business_venue_claim",
+                    params: CreateBusinessVenueClaimRPCParams(claim: claim, businessId: businessId)
+                )
                 .execute()
                 .value
+            guard let inserted = insertedRows.first else {
+                throw NSError(
+                    domain: "BusinessVenueClaim",
+                    code: 1,
+                    userInfo: [NSLocalizedDescriptionKey: "Location request submitted, but the app couldn’t read it back. Pull to refresh in a moment."]
+                )
+            }
 #if DEBUG
             let vn = claim.venue_name
-            print("[AddLocation] submitting full location request business_id=\(businessId.uuidString) venue_name=\(vn) screen_count=\(claim.screen_count) features_len=\(claim.venue_features.count)")
+            print("[AddLocation] submitting full location request via RPC business_id=\(businessId.uuidString) venue_name=\(vn) screen_count=\(claim.screen_count) features_len=\(claim.venue_features.count)")
+            print("[BusinessEntitlementGate] businessId=\(businessId.uuidString.lowercased()) operation=createVenue allowed=true reason=rpcInserted")
 #endif
             let notifyPayload = venueClaimAdminNotifyPayloadFromInsert(
                 claim: claim,
@@ -2097,7 +2246,9 @@ extension MapViewModel {
             return nil
         } catch {
             print("ERROR SUBMITTING ADD LOCATION CLAIM:", error)
-            return VenueClaimDuplicateCheck.userMessageIfKnownInsertError(error) ?? error.localizedDescription
+            return VenueClaimDuplicateCheck.userMessageIfKnownInsertError(error)
+                ?? Self.businessEntitlementGateUserMessage(error)
+                ?? error.localizedDescription
         }
     }
 
@@ -3985,6 +4136,34 @@ extension MapViewModel {
             )
         }
 
+        let businessId = currentBusinessIdForAddLocation()
+        guard let businessId else {
+#if DEBUG
+            print("[BusinessEntitlementGate] operation=hostGame allowed=false reason=missingBusinessId")
+#endif
+            return .failure(
+                NSError(
+                    domain: "VenueGameListing",
+                    code: 403,
+                    userInfo: [NSLocalizedDescriptionKey: "Could not verify your business account. Please refresh your business profile and try again."]
+                )
+            )
+        }
+
+        let serverAllowsHostedGame = await canBusinessHostGameServerSide(businessId: businessId)
+#if DEBUG
+        print("[BusinessEntitlementGate] businessId=\(businessId.uuidString.lowercased()) operation=hostGame allowed=\(serverAllowsHostedGame) reason=\(serverAllowsHostedGame ? "serverAllowed" : "monthlyHostLimitReached")")
+#endif
+        guard serverAllowsHostedGame else {
+            return .failure(
+                NSError(
+                    domain: "VenueGameListing",
+                    code: 403,
+                    userInfo: [NSLocalizedDescriptionKey: "Free businesses can host 5 games per month. Upgrade to Business Pro for unlimited hosting."]
+                )
+            )
+        }
+
         if VenueOwnerGameScheduleValidation.isPastSchedule(gameDate: gameDate, gameStartTime: gameStartTime) {
             return .failure(
                 NSError(
@@ -4044,11 +4223,15 @@ extension MapViewModel {
             )
 
             let inserted: [VenueEventRow] = try await supabase
-                .from("venue_events")
-                .insert(newGame)
-                .select()
+                .rpc(
+                    "create_business_hosted_game",
+                    params: CreateBusinessHostedGameRPCParams(game: newGame, businessId: businessId)
+                )
                 .execute()
                 .value
+#if DEBUG
+            print("[BusinessEntitlementGate] businessId=\(businessId.uuidString.lowercased()) operation=hostGame allowed=true reason=rpcInserted")
+#endif
 
             guard let row = inserted.first else {
                 return .failure(
@@ -4098,6 +4281,9 @@ extension MapViewModel {
     private static func userFacingVenueGameScheduleOrSaveError(_ error: Error) -> String {
         let raw = error.localizedDescription
         let s = raw.lowercased()
+        if let entitlementMessage = businessEntitlementGateUserMessage(error) {
+            return entitlementMessage
+        }
         if s.contains("idx_venue_events_unique_external_game_per_venue_day")
             || (s.contains("duplicate") && s.contains("external_game")) {
             return "This game already exists for this venue."
@@ -4112,6 +4298,27 @@ extension MapViewModel {
             return VenueOwnerGameScheduleValidation.futureDateTimeMessage
         }
         return raw.isEmpty ? "Unable to save the game right now. Please try again." : raw
+    }
+
+    private static func businessEntitlementGateUserMessage(_ error: Error) -> String? {
+        let s = error.localizedDescription.lowercased()
+        if s.contains("free businesses can list 1 venue")
+            || s.contains("free businesses can list 5 venues")
+            || s.contains("venue listings") {
+            return "Free businesses can list 5 venues. Upgrade to Business Pro for unlimited venue listings."
+        }
+        if s.contains("free businesses can host 5 games")
+            || s.contains("unlimited hosting")
+            || s.contains("monthly host") {
+            return "Free businesses can host 5 games per month. Upgrade to Business Pro for unlimited hosting."
+        }
+        if s.contains("create_business_venue_claim") {
+            return "Please update FanGeo to add business locations."
+        }
+        if s.contains("create_business_hosted_game") {
+            return "Please update FanGeo to host business games."
+        }
+        return nil
     }
 
     func venueGameImportDuplicateExists(

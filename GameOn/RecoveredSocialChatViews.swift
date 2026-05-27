@@ -22,6 +22,12 @@ struct ProfileAvatarView: View {
                 Circle()
                     .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
             }
+            .overlay(alignment: .bottomTrailing) {
+                if preview.isOnlineNow {
+                    PresenceOnlineBadge(size: max(9, size * 0.22))
+                        .offset(x: size * 0.03, y: size * 0.03)
+                }
+            }
             .shadow(color: .black.opacity(colorScheme == .dark ? 0.18 : 0.08), radius: 8, y: 4)
 
         if preview.isBusinessIdentity || !preview.canOpenPublicProfile {
@@ -31,6 +37,22 @@ struct ProfileAvatarView: View {
                 avatar
             }
         }
+    }
+}
+
+private struct PresenceOnlineBadge: View {
+    let size: CGFloat
+
+    var body: some View {
+        Circle()
+            .fill(FGColor.accentGreen)
+            .frame(width: size, height: size)
+            .overlay {
+                Circle()
+                    .strokeBorder(Color.white.opacity(0.92), lineWidth: max(1.5, size * 0.18))
+            }
+            .shadow(color: FGColor.accentGreen.opacity(0.32), radius: 4, y: 1)
+            .accessibilityLabel("Online now")
     }
 }
 

@@ -56,12 +56,12 @@ struct BusinessProSubscriptionView: View {
         VStack(alignment: .leading, spacing: 14) {
             planHeader(
                 title: "Business Pro",
-                subtitle: "Summer Launch Promotion",
+                subtitle: "Launch Promotion",
                 badge: "PROMO",
                 badgeColor: FGColor.accentYellow
             )
 
-            Text("Unlimited venue listings and hosted games FREE until Aug 31, 2026")
+            Text("Unlimited venue listings and hosted games FREE until November 30, 2026")
                 .font(.title3.weight(.bold))
                 .foregroundStyle(FGColor.primaryText(colorScheme))
                 .fixedSize(horizontal: false, vertical: true)
@@ -164,7 +164,7 @@ struct BusinessProSubscriptionView: View {
     }
 
     private var promoExplanation: some View {
-        Text("All business accounts start free during the Summer Launch Promotion.")
+        Text("All business accounts start free during the Launch Promotion.")
             .font(.caption.weight(.semibold))
             .foregroundStyle(FGColor.secondaryText(colorScheme))
             .fixedSize(horizontal: false, vertical: true)
@@ -177,7 +177,7 @@ struct BusinessProSubscriptionView: View {
             Button {
                 dismiss()
             } label: {
-                Text("Continue Free Summer Access")
+                Text("Continue Free Promo Access")
                     .font(.headline.weight(.bold))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 15)
