@@ -120,6 +120,9 @@ struct FollowingScreen: View {
         .onChange(of: viewModel.myPickupGameJoinRequestCards) { _, _ in
             rebuildFollowingDisplayCaches(reason: "pickupJoinCardsChanged")
         }
+        .onChange(of: viewModel.incomingPickupGameInvites.count) { _, _ in
+            prefetchVisibleGoingAvatars(reason: "incomingPickupInvitesChanged")
+        }
         .onChange(of: isFollowingTabSelected) { _, visible in
 #if DEBUG
             let started = CFAbsoluteTimeGetCurrent()
@@ -518,11 +521,64 @@ struct FollowingScreen: View {
             }
         }
         logGoingTabSortDebug(sorted)
+        prefetchVisibleGoingAvatars(reason: reason)
 #if DEBUG
         let ms = (CFAbsoluteTimeGetCurrent() - started) * 1000
         print("[RenderPerf] view=FollowingScreen renderMs=\(String(format: "%.2f", ms)) rebuildReason=\(reason)")
         print("[PickupPlayingDebug] visiblePlayingCount=\(cachedPlayingGameCards.count)")
 #endif
+    }
+
+    private func prefetchVisibleGoingAvatars(reason: String) {
+        var seen = Set<URL>()
+        var urls: [URL] = []
+
+        func appendURL(thumbnail: String?, full: String?, refreshToken: UUID) {
+            guard let raw = ImageDisplayURL.forListDisplay(
+                thumbnail: thumbnail,
+                full: full ?? "",
+                refreshToken: refreshToken
+            ),
+                  let url = URL(string: raw),
+                  seen.insert(url).inserted else { return }
+            urls.append(url)
+        }
+
+        for card in cachedPlayingGameCards.prefix(10) {
+            appendURL(
+                thumbnail: viewModel.pickupOrganizerAvatarThumbnailForDetail(userId: card.organizerUserId),
+                full: viewModel.pickupOrganizerAvatarFullForDetail(userId: card.organizerUserId),
+                refreshToken: viewModel.pickupOrganizerAvatarRefreshTokenForDetail(userId: card.organizerUserId)
+            )
+        }
+
+        for item in viewModel.incomingPickupGameInvites.prefix(6) {
+            appendURL(
+                thumbnail: ImageDisplayURL.canonicalStorageURLString(item.inviterProfile?.avatar_thumbnail_url),
+                full: ImageDisplayURL.canonicalStorageURLString(item.inviterProfile?.avatar_url),
+                refreshToken: UserAvatarView.stableRefreshToken(
+                    userId: item.invite.inviter_user_id,
+                    thumbnailURL: item.inviterProfile?.avatar_thumbnail_url,
+                    avatarURL: item.inviterProfile?.avatar_url
+                )
+            )
+        }
+
+        guard !urls.isEmpty else {
+#if DEBUG
+            print("[SmoothPerf] operation=goingAvatarPrefetch skipped=noURLs durationMs=0 coalesced=false avatarCount=0 reason=\(reason)")
+#endif
+            return
+        }
+
+        Task {
+            let startedAt = Date()
+            await DiscoverMapImageCache.shared.prefetch(urls: urls, bucket: .avatar)
+#if DEBUG
+            let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
+            print("[SmoothPerf] operation=goingAvatarPrefetch skipped=none durationMs=\(ms) coalesced=false avatarCount=\(urls.count) reason=\(reason)")
+#endif
+        }
     }
 
     private func logGoingTabSortDebug(_ items: [FollowingGoingDisplayItem]) {
