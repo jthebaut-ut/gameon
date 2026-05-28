@@ -150,7 +150,7 @@ struct SettingsPickupGamesListSheet: View {
             NavigationStack {
                 SettingsPickupGameFormView(viewModel: viewModel, mode: mode) {
                     formMode = nil
-                    Task { await viewModel.loadMyPickupGamesForSettings() }
+                    Task { await viewModel.loadMyPickupGamesForSettings(forceRefresh: true, reason: "settingsFormDismiss") }
                 }
             }
         }
@@ -197,7 +197,7 @@ struct SettingsPickupGamesListSheet: View {
         didScheduleExpiryListRefresh = true
         Task {
             try? await Task.sleep(nanoseconds: 3_000_000_000)
-            await viewModel.loadMyPickupGamesForSettings()
+            await viewModel.loadMyPickupGamesForSettings(forceRefresh: true, reason: "settingsPostCleanupDeadline")
         }
     }
 
@@ -205,7 +205,7 @@ struct SettingsPickupGamesListSheet: View {
         do {
             try await viewModel.deletePickupGame(id: row.id)
             banner = nil
-            await viewModel.loadMyPickupGamesForSettings()
+            await viewModel.loadMyPickupGamesForSettings(forceRefresh: true, reason: "settingsDeleteSuccess")
             await viewModel.refreshPickupGamesForDiscoverMap(force: true)
         } catch {
             banner = error.localizedDescription
@@ -473,6 +473,7 @@ struct SettingsPickupMyGameListCard: View {
     var displayStyle: SettingsPickupMyGameListCardDisplayStyle = .settingsFull
     var onOpenDetails: (() -> Void)? = nil
     var onInvite: (() -> Void)? = nil
+    var onOpenMap: (() -> Void)? = nil
 
     @State private var rosterActionUserId: UUID?
     @State private var showRosterPlayerActions: Bool = false
@@ -605,6 +606,8 @@ struct SettingsPickupMyGameListCard: View {
                             .lineLimit(isFollowingCompact ? 2 : 3)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .opacity(cardTextOpacity)
+                            .contentShape(Rectangle())
+                            .onTapGesture { handleCardMapTap() }
 
                         Text(status.pillTitle)
                             .font(.caption.weight(.semibold))
@@ -682,6 +685,8 @@ struct SettingsPickupMyGameListCard: View {
                 }
                 SettingsPickupCardMetaRow(systemImage: "person.3", title: "Players", value: playersSummaryLine)
                     .opacity(cardTextOpacity)
+                SettingsPickupCardMetaRow(systemImage: "person.2.fill", title: "Welcome", value: row.participantAudienceDisplayTitle)
+                    .opacity(cardTextOpacity)
                 if !usesExpiredArchivedStyle {
                     PickupOrganizerApprovedRosterStripView(
                         viewModel: viewModel,
@@ -711,6 +716,8 @@ struct SettingsPickupMyGameListCard: View {
                 }
             }
             .padding(.top, 6)
+            .contentShape(Rectangle())
+            .onTapGesture { handleCardMapTap() }
 
             if !row.is_visible {
                 Text("Hidden from map")
@@ -718,7 +725,6 @@ struct SettingsPickupMyGameListCard: View {
                     .foregroundStyle(FGColor.secondaryText(colorScheme))
                     .padding(.top, 8)
             }
-
             VStack(alignment: .leading, spacing: isFollowingCompact ? 8 : 10) {
                 if pendingJoinCount > 0, !isFollowingCompact {
                     Button(action: onManageRequests) {
@@ -841,6 +847,11 @@ struct SettingsPickupMyGameListCard: View {
                 Text(Self.rosterActionMessage(userId: u, viewModel: viewModel))
             }
         }
+    }
+
+    private func handleCardMapTap() {
+        guard isFollowingCompact, !usesExpiredArchivedStyle else { return }
+        onOpenMap?()
     }
 
     @ViewBuilder
@@ -1413,6 +1424,10 @@ struct SettingsPickupGameFormView: View {
     @State private var playEnvironment: PickupPlayEnvironment = .either
     @State private var skillLevel: PickupGameSkillLevel = .casual
     @State private var participantPreference: PickupParticipantPreference = .everyone
+    @State private var specifyAgeRange = false
+    @State private var minimumAge = 18
+    @State private var maximumAge = 35
+    @State private var noMaximumAge = true
     @State private var costKind: PickupCostKind = .free
     @State private var entryFeeText: String = ""
     @State private var playersNeeded: Int = 1
@@ -1425,6 +1440,9 @@ struct SettingsPickupGameFormView: View {
     @State private var suppressGameDatePickerChangeLog = false
     @State private var coordinatesLockedFromMap = false
     @State private var mapPinnedCoordinate: CLLocationCoordinate2D?
+    @State private var addressPreviewCoordinate: CLLocationCoordinate2D?
+    @State private var addressPreviewAddressLine = ""
+    @State private var addressPreviewGeocodeTask: Task<Void, Never>?
     @State private var appliedPickupPlacePrefill: PickupPlaceRow?
     @State private var pickupSafetyAcknowledged = false
     @State private var didInitializeForm = false
@@ -1478,13 +1496,39 @@ struct SettingsPickupGameFormView: View {
         !trimmedAddress.isEmpty && !trimmedCity.isEmpty && !trimmedState.isEmpty && !trimmedZipCode.isEmpty
     }
 
-    private var hasPrefilledPickupPlaceLocation: Bool {
-        appliedPickupPlacePrefill != nil && coordinatesLockedFromMap && mapPinnedCoordinate != nil && !trimmedAddress.isEmpty
+    private var typedAddressLine: String {
+        [trimmedAddress, trimmedCity, trimmedState, trimmedZipCode]
+            .filter { !$0.isEmpty }
+            .joined(separator: ", ")
     }
 
-    /// Post/Save stays tappable once the major address fields are present so ZIP validation can show a clear error.
+    private var hasPrefilledPickupPlaceLocation: Bool {
+        appliedPickupPlacePrefill != nil && hasValidMapPinLocation
+    }
+
+    private var hasValidMapPinLocation: Bool {
+        guard coordinatesLockedFromMap, let coordinate = mapPinnedCoordinate else { return false }
+        return Self.isValidPickupCoordinate(coordinate)
+    }
+
+    private var hasValidAddressPreviewLocation: Bool {
+        guard let coordinate = addressPreviewCoordinate else { return false }
+        return addressPreviewAddressLine == typedAddressLine && Self.isValidPickupCoordinate(coordinate)
+    }
+
+    private var pickupLocationPreview: (coordinate: CLLocationCoordinate2D, helperText: String)? {
+        if hasValidMapPinLocation, let coordinate = mapPinnedCoordinate {
+            return (coordinate, "Using exact map pin location.")
+        }
+        if hasValidAddressPreviewLocation, let coordinate = addressPreviewCoordinate {
+            return (coordinate, "Preview based on address.")
+        }
+        return nil
+    }
+
+    /// Post/Save stays tappable once a map pin or the major address fields are present so validation can show a clear error.
     private var hasPlacedLocationForPostButton: Bool {
-        hasPrefilledPickupPlaceLocation || (!trimmedAddress.isEmpty && !trimmedCity.isEmpty && !trimmedState.isEmpty)
+        hasValidMapPinLocation || (!trimmedAddress.isEmpty && !trimmedCity.isEmpty && !trimmedState.isEmpty)
     }
 
     private var requiresPickupSafetyAcknowledgment: Bool {
@@ -1512,9 +1556,8 @@ struct SettingsPickupGameFormView: View {
             get: { address },
             set: { newValue in
                 address = newValue
-                appliedPickupPlacePrefill = nil
-                coordinatesLockedFromMap = false
-                mapPinnedCoordinate = nil
+                detachPickupPlacePrefillForLocationTextEdit()
+                scheduleAddressLocationPreviewGeocode()
             }
         )
     }
@@ -1524,9 +1567,8 @@ struct SettingsPickupGameFormView: View {
             get: { city },
             set: { newValue in
                 city = newValue
-                appliedPickupPlacePrefill = nil
-                coordinatesLockedFromMap = false
-                mapPinnedCoordinate = nil
+                detachPickupPlacePrefillForLocationTextEdit()
+                scheduleAddressLocationPreviewGeocode()
             }
         )
     }
@@ -1536,9 +1578,8 @@ struct SettingsPickupGameFormView: View {
             get: { state },
             set: { newValue in
                 state = newValue
-                appliedPickupPlacePrefill = nil
-                coordinatesLockedFromMap = false
-                mapPinnedCoordinate = nil
+                detachPickupPlacePrefillForLocationTextEdit()
+                scheduleAddressLocationPreviewGeocode()
             }
         )
     }
@@ -1548,11 +1589,51 @@ struct SettingsPickupGameFormView: View {
             get: { zipCode },
             set: { newValue in
                 zipCode = newValue
-                appliedPickupPlacePrefill = nil
-                coordinatesLockedFromMap = false
-                mapPinnedCoordinate = nil
+                detachPickupPlacePrefillForLocationTextEdit()
+                scheduleAddressLocationPreviewGeocode()
             }
         )
+    }
+
+    private func detachPickupPlacePrefillForLocationTextEdit() {
+        appliedPickupPlacePrefill = nil
+        guard !hasValidMapPinLocation else { return }
+        coordinatesLockedFromMap = false
+        mapPinnedCoordinate = nil
+    }
+
+    private func scheduleAddressLocationPreviewGeocode() {
+        addressPreviewGeocodeTask?.cancel()
+        guard !hasValidMapPinLocation, hasCompleteTypedAddress else {
+            addressPreviewCoordinate = nil
+            addressPreviewAddressLine = ""
+            return
+        }
+
+        let addressLine = typedAddressLine
+        if addressPreviewAddressLine != addressLine {
+            addressPreviewCoordinate = nil
+            addressPreviewAddressLine = ""
+        }
+
+        addressPreviewGeocodeTask = Task { @MainActor in
+            defer {
+                if typedAddressLine == addressLine {
+                    addressPreviewGeocodeTask = nil
+                }
+            }
+            try? await Task.sleep(for: .milliseconds(450))
+            guard !Task.isCancelled, !hasValidMapPinLocation, typedAddressLine == addressLine else { return }
+            let coordinate = await viewModel.geocodeAddress(addressLine)
+            guard !Task.isCancelled, !hasValidMapPinLocation, typedAddressLine == addressLine else { return }
+            if let coordinate, Self.isValidPickupCoordinate(coordinate) {
+                addressPreviewCoordinate = coordinate
+                addressPreviewAddressLine = addressLine
+            } else {
+                addressPreviewCoordinate = nil
+                addressPreviewAddressLine = ""
+            }
+        }
     }
 
     private var startTimeBinding: Binding<Date> {
@@ -1578,15 +1659,22 @@ struct SettingsPickupGameFormView: View {
     }
 
     private var locationGuidanceFootnote: String? {
-        if hasPrefilledPickupPlaceLocation { return nil }
-        if hasCompleteTypedAddress { return nil }
-        if trimmedAddress.isEmpty && trimmedCity.isEmpty && trimmedState.isEmpty && trimmedZipCode.isEmpty {
-            return "Location missing"
+        if hasValidMapPinLocation {
+            if !hasCompleteTypedAddress {
+                return "Map pin will be used as the game location."
+            }
+            return nil
         }
-        if trimmedZipCode.isEmpty {
-            return "Enter the ZIP code for this pickup game."
+        if hasCompleteTypedAddress {
+            if !hasValidAddressPreviewLocation, addressPreviewGeocodeTask == nil {
+                return "Address may be incomplete. Pick a location from the map to confirm."
+            }
+            return nil
         }
-        return "Enter a complete street address, city, state, and ZIP code."
+        if !typedAddressLine.isEmpty {
+            return "Address may be incomplete. Pick a location from the map to confirm."
+        }
+        return "Enter an address or pick a location from the map."
     }
 
     private var shouldShowCreationTabs: Bool {
@@ -1602,6 +1690,85 @@ struct SettingsPickupGameFormView: View {
                 }
             }
             .pickerStyle(.menu)
+        }
+    }
+
+    private var ageRangeSummary: String {
+        PickupGameAgeRangeFormatter.ageRangeText(
+            min: specifyAgeRange ? minimumAge : nil,
+            max: specifyAgeRange && !noMaximumAge ? maximumAge : nil
+        ) ?? "No age restriction"
+    }
+
+    private func applySuggestedAgeRange(for preference: PickupParticipantPreference) {
+        guard specifyAgeRange else { return }
+        switch preference {
+        case .kids_only:
+            minimumAge = 8
+            maximumAge = 12
+            noMaximumAge = false
+        case .teens_welcome:
+            minimumAge = 13
+            maximumAge = 17
+            noMaximumAge = false
+        case .adults_only:
+            minimumAge = 18
+            noMaximumAge = true
+        case .seniors_welcome:
+            minimumAge = 55
+            noMaximumAge = true
+        case .everyone, .women_only, .men_only:
+            minimumAge = 18
+            noMaximumAge = true
+        }
+    }
+
+    private func normalizedAgeRangePayload() -> (min: Int?, max: Int?) {
+        guard specifyAgeRange else { return (nil, nil) }
+        return PickupGameAgeRangeFormatter.normalized(
+            min: minimumAge,
+            max: noMaximumAge ? nil : maximumAge
+        )
+    }
+
+    private var ageRangeControls: some View {
+        Group {
+            Toggle("Specify age range", isOn: $specifyAgeRange)
+                .onChange(of: specifyAgeRange) { _, isEnabled in
+                    if isEnabled {
+                        applySuggestedAgeRange(for: participantPreference)
+                    }
+                }
+
+            if specifyAgeRange {
+                Stepper(value: $minimumAge, in: PickupGameAgeRangeFormatter.minimumAllowedAge...PickupGameAgeRangeFormatter.maximumAllowedAge) {
+                    LabeledContent("Minimum age", value: "\(minimumAge)")
+                }
+                Toggle("No maximum age", isOn: $noMaximumAge)
+                    .onChange(of: noMaximumAge) { _, isOpenEnded in
+                        if !isOpenEnded, maximumAge < minimumAge {
+                            maximumAge = minimumAge
+                        }
+                    }
+                if !noMaximumAge {
+                    Stepper(value: $maximumAge, in: PickupGameAgeRangeFormatter.minimumAllowedAge...PickupGameAgeRangeFormatter.maximumAllowedAge) {
+                        LabeledContent("Maximum age", value: "\(maximumAge)")
+                    }
+                    .onChange(of: minimumAge) { _, newValue in
+                        if maximumAge < newValue {
+                            maximumAge = newValue
+                        }
+                    }
+                    .onChange(of: maximumAge) { _, newValue in
+                        if newValue < minimumAge {
+                            maximumAge = minimumAge
+                        }
+                    }
+                }
+                Text(ageRangeSummary)
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+            }
         }
     }
 
@@ -1705,6 +1872,10 @@ struct SettingsPickupGameFormView: View {
                             Text(pref.displayTitle).tag(pref)
                         }
                     }
+                    .onChange(of: participantPreference) { _, newValue in
+                        applySuggestedAgeRange(for: newValue)
+                    }
+                    ageRangeControls
                 }
 
                 Section("Safety") {
@@ -1749,16 +1920,18 @@ struct SettingsPickupGameFormView: View {
                             .textInputAutocapitalization(.characters)
                             .keyboardType(.numbersAndPunctuation)
 
-                        if coordinatesLockedFromMap {
-                            Text("Using exact coordinates from your map pin.")
-                                .font(FGTypography.caption)
-                                .foregroundStyle(FGColor.accentBlue)
-                        }
-
                         if let foot = locationGuidanceFootnote {
                             Text(foot)
                                 .font(FGTypography.caption)
-                                .foregroundStyle(FGColor.accentYellow)
+                                .foregroundStyle(hasValidMapPinLocation ? FGColor.accentBlue : FGColor.accentYellow)
+                        }
+
+                        if let preview = pickupLocationPreview {
+                            pickupLocationMapPreview(
+                                coordinate: preview.coordinate,
+                                helperText: preview.helperText,
+                                canOpenPicker: true
+                            )
                         }
                     }
                 }
@@ -1780,6 +1953,18 @@ struct SettingsPickupGameFormView: View {
                     LabeledContent("ZIP") {
                         Text(trimmedZipCode.isEmpty ? "—" : trimmedZipCode)
                             .foregroundStyle(FGColor.primaryText(colorScheme))
+                    }
+                    if let foot = locationGuidanceFootnote {
+                        Text(foot)
+                            .font(FGTypography.caption)
+                            .foregroundStyle(hasValidMapPinLocation ? FGColor.accentBlue : FGColor.accentYellow)
+                    }
+                    if let preview = pickupLocationPreview {
+                        pickupLocationMapPreview(
+                            coordinate: preview.coordinate,
+                            helperText: preview.helperText,
+                            canOpenPicker: false
+                        )
                     }
                 }
             }
@@ -1837,7 +2022,7 @@ struct SettingsPickupGameFormView: View {
                     viewModel: viewModel,
                     showsNavigationChrome: false,
                     onImported: {
-                        Task { await viewModel.loadMyPickupGamesForSettings() }
+                        Task { await viewModel.loadMyPickupGamesForSettings(forceRefresh: true, reason: "pickupImportInserted") }
                     },
                     onDoneAfterSuccess: {
                         onFinished()
@@ -1874,6 +2059,7 @@ struct SettingsPickupGameFormView: View {
             if !didInitializeForm {
                 applyModeToFields()
                 didInitializeForm = true
+                scheduleAddressLocationPreviewGeocode()
             }
             if case .edit(let row) = mode {
                 let now = Date()
@@ -1892,6 +2078,9 @@ struct SettingsPickupGameFormView: View {
             if !shouldShowCreationTabs {
                 creationTab = .manual
             }
+        }
+        .onDisappear {
+            addressPreviewGeocodeTask?.cancel()
         }
         .fullScreenCover(isPresented: $showPickupMapLocationPicker) {
             PickupGameMapLocationPickerSheet(
@@ -1914,6 +2103,8 @@ struct SettingsPickupGameFormView: View {
                     }
                     mapPinnedCoordinate = coord
                     coordinatesLockedFromMap = true
+                    addressPreviewCoordinate = nil
+                    addressPreviewAddressLine = ""
                     showPickupMapLocationPicker = false
                 }
             )
@@ -1957,7 +2148,11 @@ struct SettingsPickupGameFormView: View {
                 .font(FGTypography.caption.weight(.semibold))
                 .foregroundStyle(FGColor.accentBlue)
 
-            pickupPlaceMiniMapPreview(place)
+            pickupLocationMapPreview(
+                coordinate: place.coordinate,
+                helperText: "Using exact map pin location.",
+                canOpenPicker: false
+            )
 
             Button {
                 clearPickupPlacePrefill()
@@ -1975,31 +2170,61 @@ struct SettingsPickupGameFormView: View {
         )
     }
 
-    private func pickupPlaceMiniMapPreview(_ place: PickupPlaceRow) -> some View {
+    private func pickupLocationMapPreview(
+        coordinate: CLLocationCoordinate2D,
+        helperText: String,
+        canOpenPicker: Bool
+    ) -> some View {
         let region = MKCoordinateRegion(
-            center: place.coordinate,
-            span: MKCoordinateSpan(latitudeDelta: 0.012, longitudeDelta: 0.012)
+            center: coordinate,
+            span: MKCoordinateSpan(latitudeDelta: 0.014, longitudeDelta: 0.014)
         )
-        return Map(initialPosition: .region(region)) {
-            Annotation(place.name, coordinate: place.coordinate) {
-                Image(systemName: "mappin.circle.fill")
-                    .font(.system(size: 28, weight: .semibold))
-                    .symbolRenderingMode(.palette)
-                    .foregroundStyle(FGColor.accentBlue, Color.white)
-                    .shadow(color: .black.opacity(0.24), radius: 4, y: 2)
+        let preview = VStack(alignment: .leading, spacing: 8) {
+            Map(initialPosition: .region(region)) {
+                Annotation("Pickup game location", coordinate: coordinate) {
+                    Image(systemName: "mappin.circle.fill")
+                        .font(.system(size: 30, weight: .semibold))
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(FGColor.accentBlue, Color.white)
+                        .shadow(color: .black.opacity(0.24), radius: 4, y: 2)
+                }
+                .annotationTitles(.hidden)
             }
-            .annotationTitles(.hidden)
+            .allowsHitTesting(false)
+            .frame(height: 152)
+            .clipShape(RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
+                    .strokeBorder(FGColor.divider(colorScheme).opacity(colorScheme == .dark ? 0.55 : 0.4), lineWidth: 1)
+            )
+
+            Label(helperText, systemImage: "location.fill")
+                .font(FGTypography.caption.weight(.semibold))
+                .foregroundStyle(FGColor.accentBlue)
         }
-        .allowsHitTesting(false)
-        .frame(height: 118)
-        .clipShape(RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous))
+        .padding(10)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
                 .strokeBorder(FGColor.divider(colorScheme).opacity(colorScheme == .dark ? 0.55 : 0.4), lineWidth: 1)
         )
+
+        return Group {
+            if canOpenPicker {
+                Button {
+                    showPickupMapLocationPicker = true
+                } label: {
+                    preview
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("Opens the map picker")
+            } else {
+                preview
+            }
+        }
         .onAppear {
 #if DEBUG
-            print("[PickupLocationDebug] miniMapShown=true latitude=\(place.latitude) longitude=\(place.longitude)")
+            print("[PickupLocationDebug] miniMapShown=true latitude=\(coordinate.latitude) longitude=\(coordinate.longitude) source=\(helperText)")
 #endif
         }
     }
@@ -2023,6 +2248,10 @@ struct SettingsPickupGameFormView: View {
             playEnvironment = .either
             skillLevel = .casual
             participantPreference = .everyone
+            specifyAgeRange = false
+            minimumAge = 18
+            maximumAge = 35
+            noMaximumAge = true
             costKind = .free
             entryFeeText = ""
             playersNeeded = 1
@@ -2030,6 +2259,8 @@ struct SettingsPickupGameFormView: View {
             maxPlayers = 10
             coordinatesLockedFromMap = false
             mapPinnedCoordinate = nil
+            addressPreviewCoordinate = nil
+            addressPreviewAddressLine = ""
             pickupSafetyAcknowledged = false
             if let pickupPlacePrefill {
                 applyPickupPlacePrefill(pickupPlacePrefill)
@@ -2053,6 +2284,18 @@ struct SettingsPickupGameFormView: View {
             playEnvironment = row.playEnvironmentEnum
             skillLevel = row.skillLevelEnum
             participantPreference = row.participantPreferenceEnum
+            if let ageMin = row.age_min {
+                let normalized = PickupGameAgeRangeFormatter.normalized(min: ageMin, max: row.age_max)
+                specifyAgeRange = true
+                minimumAge = normalized.min ?? 18
+                maximumAge = normalized.max ?? max(minimumAge, 35)
+                noMaximumAge = normalized.max == nil
+            } else {
+                specifyAgeRange = false
+                minimumAge = 18
+                maximumAge = 35
+                noMaximumAge = true
+            }
             if row.is_free {
                 costKind = .free
                 entryFeeText = ""
@@ -2072,8 +2315,22 @@ struct SettingsPickupGameFormView: View {
                 useMaxPlayers = false
                 maxPlayers = Swift.max(row.playersNeededClamped, 2)
             }
-            coordinatesLockedFromMap = false
-            mapPinnedCoordinate = nil
+            if let latitude = row.latitude,
+               let longitude = row.longitude {
+                let savedCoordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+                if Self.isValidPickupCoordinate(savedCoordinate) {
+                    coordinatesLockedFromMap = true
+                    mapPinnedCoordinate = savedCoordinate
+                } else {
+                    coordinatesLockedFromMap = false
+                    mapPinnedCoordinate = nil
+                }
+            } else {
+                coordinatesLockedFromMap = false
+                mapPinnedCoordinate = nil
+            }
+            addressPreviewCoordinate = nil
+            addressPreviewAddressLine = ""
             pickupSafetyAcknowledged = true
         }
     }
@@ -2100,6 +2357,8 @@ struct SettingsPickupGameFormView: View {
         zipCode = placeZip
         mapPinnedCoordinate = place.coordinate
         coordinatesLockedFromMap = true
+        addressPreviewCoordinate = nil
+        addressPreviewAddressLine = ""
         appliedPickupPlacePrefill = place
 #if DEBUG
         print("[PickupHostPrefillDebug] zipPrefillApplied=\(!placeZip.isEmpty)")
@@ -2116,6 +2375,8 @@ struct SettingsPickupGameFormView: View {
         city = ""
         state = ""
         zipCode = ""
+        addressPreviewCoordinate = nil
+        addressPreviewAddressLine = ""
         coordinatesLockedFromMap = false
         mapPinnedCoordinate = nil
     }
@@ -2140,6 +2401,12 @@ struct SettingsPickupGameFormView: View {
         f.minimumFractionDigits = 0
         f.maximumFractionDigits = 2
         return f.string(from: n) ?? String(format: "%.2f", amount)
+    }
+
+    private static func isValidPickupCoordinate(_ coordinate: CLLocationCoordinate2D) -> Bool {
+        CLLocationCoordinate2DIsValid(coordinate)
+            && (-90.0...90.0).contains(coordinate.latitude)
+            && (-180.0...180.0).contains(coordinate.longitude)
     }
 
     private static func splitStoredStateAndZip(_ raw: String?) -> (state: String, zipCode: String) {
@@ -2312,6 +2579,18 @@ struct SettingsPickupGameFormView: View {
             return
         }
 
+        let ageRange = normalizedAgeRangePayload()
+        if specifyAgeRange {
+            guard let minAge = ageRange.min else {
+                errorText = "Choose a minimum age for this pickup game."
+                return
+            }
+            if let maxAge = ageRange.max, minAge > maxAge {
+                errorText = "Minimum age can’t be greater than maximum age."
+                return
+            }
+        }
+
         let isFree = costKind == .free
         var feeParsed: Double?
         if !isFree {
@@ -2342,18 +2621,12 @@ struct SettingsPickupGameFormView: View {
         let missingZip = trimmedZipCode.isEmpty
 #if DEBUG
         print("[PickupLocationDebug] postValidationMissingZip=\(missingZip)")
-        if hasPrefilledPickupPlaceLocation, missingZip || trimmedCity.isEmpty {
+        if hasValidMapPinLocation, missingZip || trimmedCity.isEmpty {
             print("[PickupLocationDebug] zipMissingAllowed=true cityMissing=\(trimmedCity.isEmpty)")
         }
 #endif
-        guard hasCompleteTypedAddress || hasPrefilledPickupPlaceLocation else {
-            if trimmedAddress.isEmpty && trimmedCity.isEmpty && trimmedState.isEmpty && trimmedZipCode.isEmpty {
-                errorText = "Location missing"
-            } else if missingZip && !hasPrefilledPickupPlaceLocation {
-                errorText = "Enter the ZIP code for this pickup game."
-            } else {
-                errorText = "Enter a complete street address, city, state, and ZIP code."
-            }
+        guard hasCompleteTypedAddress || hasValidMapPinLocation else {
+            errorText = "Enter an address or pick a location from the map."
             return
         }
 
@@ -2363,7 +2636,7 @@ struct SettingsPickupGameFormView: View {
 
         let latFinal: Double
         let lonFinal: Double
-        if coordinatesLockedFromMap, let pin = mapPinnedCoordinate {
+        if hasValidMapPinLocation, let pin = mapPinnedCoordinate {
             latFinal = pin.latitude
             lonFinal = pin.longitude
         } else {
@@ -2420,6 +2693,8 @@ struct SettingsPickupGameFormView: View {
                     playersNeeded: playersN,
                     playEnvironment: playEnvironment.rawValue,
                     participantPreference: participantPreference.rawValue,
+                    ageMin: ageRange.min,
+                    ageMax: ageRange.max,
                     isFree: isFree,
                     entryFeeAmount: feeParsed,
                     maxPlayers: maxP,
@@ -2450,6 +2725,8 @@ struct SettingsPickupGameFormView: View {
                     players_needed: playersN,
                     play_environment: playEnvironment.rawValue,
                     participant_preference: participantPreference.rawValue,
+                    age_min: ageRange.min,
+                    age_max: ageRange.max,
                     is_free: isFree,
                     entry_fee_amount: feeParsed,
                     max_players: maxP,

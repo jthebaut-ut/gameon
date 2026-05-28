@@ -63,10 +63,12 @@ enum PickupBulkImportService {
                     latitude: coordinate.latitude,
                     longitude: coordinate.longitude,
                     playersNeeded: playersNeeded,
-                    playEnvironment: PickupPlayEnvironment.either.rawValue,
-                    participantPreference: PickupParticipantPreference.everyone.rawValue,
-                    isFree: true,
-                    entryFeeAmount: nil,
+                    playEnvironment: row.playEnvironment,
+                    participantPreference: row.participantPreference,
+                    ageMin: row.ageMin,
+                    ageMax: row.ageMax,
+                    isFree: row.isFree,
+                    entryFeeAmount: row.isFree ? nil : row.entryFeeAmount,
                     maxPlayers: row.maxPlayers,
                     gameFormat: row.gameType
                 )
@@ -83,7 +85,7 @@ enum PickupBulkImportService {
         }
 
         if !inserted.isEmpty {
-            await viewModel.loadMyPickupGamesForSettings()
+            await viewModel.loadMyPickupGamesForSettings(forceRefresh: true, reason: "pickupBulkImportInserted")
             await viewModel.refreshPickupGamesForDiscoverMap(force: true, preservePickupCalendarDotDatesCache: true)
         }
 

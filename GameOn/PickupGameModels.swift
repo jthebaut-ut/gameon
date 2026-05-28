@@ -62,6 +62,8 @@ struct PickupGameRow: Codable, Identifiable, Equatable, Hashable {
     let players_needed: Int
     let play_environment: String
     let participant_preference: String
+    let age_min: Int?
+    let age_max: Int?
     let is_free: Bool
     let entry_fee_amount: Double?
     let max_players: Int?
@@ -150,6 +152,8 @@ extension PickupGameRow {
             players_needed: players_needed,
             play_environment: play_environment,
             participant_preference: participant_preference,
+            age_min: age_min,
+            age_max: age_max,
             is_free: is_free,
             entry_fee_amount: entry_fee_amount,
             max_players: max_players,
@@ -200,7 +204,10 @@ extension PickupGameRow {
     var pickupDateWithCompactTimeRange: String? {
         guard let start = PickupGameModels.parseSupabaseTimestamptz(game_start_at) else { return nil }
         let dateText = start.formatted(date: .abbreviated, time: .omitted)
-        if let range = pickupCompactTimeRange {
+        let end = end_time.flatMap { PickupGameModels.parseSupabaseTimestamptz($0) }
+            ?? PickupGameModels.defaultPickupEndTime(forStart: start)
+        if end > start {
+            let range = "\(start.formatted(date: .omitted, time: .shortened)) – \(end.formatted(date: .omitted, time: .shortened))"
             return "\(dateText) • \(range)"
         }
         return start.formatted(date: .abbreviated, time: .shortened)
@@ -240,6 +247,8 @@ struct PickupGameInsert: Encodable {
     let players_needed: Int
     let play_environment: String
     let participant_preference: String
+    let age_min: Int?
+    let age_max: Int?
     let is_free: Bool
     let entry_fee_amount: Double?
     let max_players: Int?
@@ -269,6 +278,8 @@ struct PickupGameInsert: Encodable {
             players_needed: players_needed,
             play_environment: play_environment,
             participant_preference: participant_preference,
+            age_min: age_min,
+            age_max: age_max,
             is_free: is_free,
             entry_fee_amount: entry_fee_amount,
             max_players: max_players,
@@ -295,6 +306,8 @@ struct PickupGameFullUpdate: Encodable {
     let players_needed: Int
     let play_environment: String
     let participant_preference: String
+    let age_min: Int?
+    let age_max: Int?
     let is_free: Bool
     let entry_fee_amount: Double?
     let max_players: Int?
@@ -322,6 +335,8 @@ struct PickupGameFullUpdate: Encodable {
             players_needed: players_needed,
             play_environment: play_environment,
             participant_preference: participant_preference,
+            age_min: age_min,
+            age_max: age_max,
             is_free: is_free,
             entry_fee_amount: entry_fee_amount,
             max_players: max_players,
@@ -725,8 +740,10 @@ enum PickupParticipantPreference: String, CaseIterable, Identifiable {
     case everyone
     case women_only
     case men_only
+    case kids_only
     case adults_only
     case teens_welcome
+    case seniors_welcome
 
     var id: String { rawValue }
 
@@ -735,8 +752,10 @@ enum PickupParticipantPreference: String, CaseIterable, Identifiable {
         case .everyone: return "Everyone Welcome"
         case .women_only: return "Women Only"
         case .men_only: return "Men Only"
+        case .kids_only: return "Kids Only"
         case .adults_only: return "Adults Only"
         case .teens_welcome: return "Teens Welcome"
+        case .seniors_welcome: return "Seniors Welcome"
         }
     }
 
@@ -745,8 +764,10 @@ enum PickupParticipantPreference: String, CaseIterable, Identifiable {
         case .everyone: return "All welcome"
         case .women_only: return "Women"
         case .men_only: return "Men"
+        case .kids_only: return "Kids"
         case .adults_only: return "Adults"
         case .teens_welcome: return "Teens OK"
+        case .seniors_welcome: return "Seniors"
         }
     }
 
@@ -755,6 +776,39 @@ enum PickupParticipantPreference: String, CaseIterable, Identifiable {
             return .everyone
         }
         return PickupParticipantPreference(rawValue: raw) ?? .everyone
+    }
+}
+
+enum PickupGameAgeRangeFormatter {
+    static let minimumAllowedAge = 1
+    static let maximumAllowedAge = 99
+
+    static func normalized(min rawMin: Int?, max rawMax: Int?) -> (min: Int?, max: Int?) {
+        let minAge = rawMin.map { min(max($0, minimumAllowedAge), maximumAllowedAge) }
+        let maxAge = rawMax.map { min(max($0, minimumAllowedAge), maximumAllowedAge) }
+        if let minAge, let maxAge, maxAge < minAge {
+            return (minAge, minAge)
+        }
+        return (minAge, maxAge)
+    }
+
+    static func ageRangeText(min rawMin: Int?, max rawMax: Int?) -> String? {
+        let normalized = normalized(min: rawMin, max: rawMax)
+        if let minAge = normalized.min, let maxAge = normalized.max {
+            return "Ages \(minAge)–\(maxAge)"
+        }
+        return nil
+    }
+
+    static func audienceText(
+        preference: PickupParticipantPreference,
+        minAge: Int?,
+        maxAge: Int?
+    ) -> String {
+        guard let range = ageRangeText(min: minAge, max: maxAge) else {
+            return preference.displayTitle
+        }
+        return "\(preference.displayTitle) • \(range)"
     }
 }
 
@@ -791,6 +845,14 @@ extension PickupGameRow {
 
     var participantPreferenceEnum: PickupParticipantPreference {
         PickupParticipantPreference.fromStored(participant_preference)
+    }
+
+    var participantAudienceDisplayTitle: String {
+        PickupGameAgeRangeFormatter.audienceText(
+            preference: participantPreferenceEnum,
+            minAge: age_min,
+            maxAge: age_max
+        )
     }
 
     /// One line for list rows: "Free" or "$12 entry" (USD).

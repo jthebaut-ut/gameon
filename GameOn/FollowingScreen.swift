@@ -153,7 +153,7 @@ struct FollowingScreen: View {
                 ) {
                     followingMyPickupFormMode = nil
                     Task {
-                        await viewModel.loadMyPickupGamesForSettings()
+                        await viewModel.loadMyPickupGamesForSettings(forceRefresh: true, reason: "followingFormDismiss")
                         await viewModel.refreshPickupGamesForDiscoverMap(force: true)
                         logFollowingMyPickupGames(action: "formDismissReload")
                     }
@@ -1048,7 +1048,8 @@ struct FollowingScreen: View {
     }
 
     private var joinedGamesListContent: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        let _: Void = logPickupPerfRender(mode: "Playing", rowCount: playingGameCards.count, renderPath: "LazyVStack+EquatableRenderCard")
+        return LazyVStack(alignment: .leading, spacing: 12) {
             if viewModel.isPickupFollowingJoinListRefreshing && !playingGameCards.isEmpty {
                 HStack(spacing: 8) {
                     ProgressView()
@@ -1068,7 +1069,10 @@ struct FollowingScreen: View {
                 )
             } else {
                 ForEach(playingGameCards) { card in
-                    pickupGameJoinCard(card)
+                    EquatableRenderCard(token: pickupPlayingCardRenderToken(for: card)) {
+                        pickupGameJoinCard(card)
+                    }
+                    .equatable()
                 }
             }
         }
@@ -1260,7 +1264,9 @@ struct FollowingScreen: View {
     }
 
     private var hostedGamesListContent: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        let hostingRowCount = viewModel.myPickupGamesForSettings.count + viewModel.myRemovedPickupGamesForSettings.count
+        let _: Void = logPickupPerfRender(mode: "Hosting", rowCount: hostingRowCount, renderPath: "LazyVStack+EquatableRenderCard")
+        return LazyVStack(alignment: .leading, spacing: 12) {
             if viewModel.myPickupGamesForSettings.isEmpty, viewModel.myRemovedPickupGamesForSettings.isEmpty {
                 hostingEmptyStateCard
             } else {
@@ -1303,6 +1309,9 @@ struct FollowingScreen: View {
                             onInvite: {
                                 logFollowingMyPickupGames(action: "inviteTap", selectedGameId: row.id)
                                 followingPickupInviteGame = row
+                            },
+                            onOpenMap: {
+                                openHostedPickupGameOnDiscoverMap(row)
                             }
                         )
                         .environmentObject(chatViewModel)
@@ -1329,6 +1338,26 @@ struct FollowingScreen: View {
                 }
             }
         }
+    }
+
+    private func pickupPlayingCardRenderToken(for card: PickupGameJoinRequestCardDisplay) -> PickupPlayingCardRenderToken {
+        let resolvedGame = viewModel.resolvedPickupGameRow(for: card.pickupGameId)
+        return PickupPlayingCardRenderToken(
+            card: card,
+            resolvedGame: resolvedGame,
+            organizerAvatarThumbnailURL: viewModel.pickupOrganizerAvatarThumbnailForDetail(userId: card.organizerUserId),
+            organizerAvatarURL: viewModel.pickupOrganizerAvatarFullForDetail(userId: card.organizerUserId),
+            organizerAvatarRefreshToken: viewModel.pickupOrganizerAvatarRefreshTokenForDetail(userId: card.organizerUserId),
+            organizerEmail: viewModel.pickupOrganizerEmailForDetail(userId: card.organizerUserId),
+            creatorTrustStats: viewModel.pickupCreatorTrustStats(for: card.organizerUserId),
+            currentUserId: viewModel.currentUserAuthId,
+            hasSubmittedCreatorRating: viewModel.hasSubmittedPickupCreatorRating(for: card.pickupGameId),
+            hasUnreadActivity: viewModel.pickupFollowingUnreadActivityGameIds.contains(card.pickupGameId),
+            isRefreshSpinning: viewModel.pickupFollowingCardRefreshSpinGameId == card.pickupGameId,
+            isWithdrawInFlight: followingPickupWithdrawInFlight,
+            lastJoinStatusRefreshAt: viewModel.lastJoinStatusRefreshAt,
+            colorScheme: followingColorScheme
+        )
     }
 
     private var hostingEmptyStateCard: some View {
@@ -1409,10 +1438,33 @@ struct FollowingScreen: View {
     }
 #endif
 
+    private func logPickupPerfRender(mode: String, rowCount: Int, renderPath: String) {
+#if DEBUG
+        print("[PickupPerf] screen=Going mode=\(mode) rowCount=\(rowCount) renderPath=\(renderPath) freshnessSkip=false forcedReload=false")
+#else
+        _ = mode
+        _ = rowCount
+        _ = renderPath
+#endif
+    }
+
     private func openCreatePickupFromGoing() {
         guard viewModel.canFanUsePickupGamesUI else { return }
         logGoingHubDebug(reason: "createPickupTapped", createPickupTapped: true)
         followingMyPickupFormMode = .add
+    }
+
+    private func openHostedPickupGameOnDiscoverMap(_ row: PickupGameRow) {
+        logFollowingMyPickupGames(action: "openMap", selectedGameId: row.id)
+        viewModel.requestDiscoverFocusForPickupGame(id: row.id, snapshot: row)
+    }
+
+    private func openPlayingPickupGameOnDiscoverMap(_ card: PickupGameJoinRequestCardDisplay) {
+        logFollowingMyPickupGames(action: "openPlayingMap", selectedGameId: card.pickupGameId)
+        viewModel.requestDiscoverFocusForPickupGame(
+            id: card.pickupGameId,
+            snapshot: viewModel.resolvedPickupGameRow(for: card.pickupGameId)
+        )
     }
 
 #if DEBUG
@@ -1459,7 +1511,7 @@ struct FollowingScreen: View {
         followingMyPickupDidScheduleExpiryRefresh = true
         Task {
             try? await Task.sleep(nanoseconds: 3_000_000_000)
-            await viewModel.loadMyPickupGamesForSettings()
+            await viewModel.loadMyPickupGamesForSettings(forceRefresh: true, reason: "followingPostCleanupDeadline")
             logFollowingMyPickupGames(action: "postCleanupDeadlineRefresh")
         }
     }
@@ -1468,7 +1520,7 @@ struct FollowingScreen: View {
         do {
             try await viewModel.deletePickupGame(id: row.id)
             followingMyPickupBanner = nil
-            await viewModel.loadMyPickupGamesForSettings()
+            await viewModel.loadMyPickupGamesForSettings(forceRefresh: true, reason: "followingDeleteSuccess")
             await viewModel.refreshPickupGamesForDiscoverMap(force: true)
             logFollowingMyPickupGames(action: "deleteGameSuccess", selectedGameId: row.id)
         } catch {
@@ -1495,6 +1547,9 @@ struct FollowingScreen: View {
 
         let previousInterestedOnly = interestedOnlyEncoded
         let previousGoingItems = viewModel.followingTabGoingItems
+        let previousCachedGoingItems = cachedGoingVenueGameItems
+        let previousGoingInterestCounts = viewModel.followingTabGoingInterestCounts
+        let previousServerGoingIDs = viewModel.followingTabUserVenueEventInterestIDs
         let oldStatus = item.goingTabStatusDebugValue
         let newStatus = target.goingTabStatusDebugValue
         var ok = true
@@ -1514,10 +1569,26 @@ struct FollowingScreen: View {
                     optimisticUpdate: false,
                     backendSaved: true
                 )
+                logGoingStatusOptimistic(
+                    before: oldStatus,
+                    after: newStatus,
+                    eventID: item.id,
+                    localUpdated: false,
+                    backendSynced: true,
+                    rollback: false
+                )
                 return
             }
             setInterestedOnlyLocally(item.id, false)
             applyOptimisticGoingTabAttendance(item, target: target)
+            logGoingStatusOptimistic(
+                before: oldStatus,
+                after: newStatus,
+                eventID: item.id,
+                localUpdated: true,
+                backendSynced: nil,
+                rollback: false
+            )
             logGoingTabStatusDebug(
                 eventID: item.id,
                 oldStatus: oldStatus,
@@ -1526,7 +1597,7 @@ struct FollowingScreen: View {
                 optimisticUpdate: true,
                 backendSaved: nil
             )
-            ok = await viewModel.markInterestedInVenueEvent(venueEventID: item.id, refreshFollowing: true)
+            ok = await syncGoingStatusToBackend(eventID: item.id, isGoing: true)
         case .interested:
             if !item.isServerGoing && item.isInterestedOnlyLocal {
                 logGoingTabStatusDebug(
@@ -1537,10 +1608,26 @@ struct FollowingScreen: View {
                     optimisticUpdate: false,
                     backendSaved: true
                 )
+                logGoingStatusOptimistic(
+                    before: oldStatus,
+                    after: newStatus,
+                    eventID: item.id,
+                    localUpdated: false,
+                    backendSynced: true,
+                    rollback: false
+                )
                 return
             }
             setInterestedOnlyLocally(item.id, true)
             applyOptimisticGoingTabAttendance(item, target: target)
+            logGoingStatusOptimistic(
+                before: oldStatus,
+                after: newStatus,
+                eventID: item.id,
+                localUpdated: true,
+                backendSynced: nil,
+                rollback: false
+            )
             logGoingTabStatusDebug(
                 eventID: item.id,
                 oldStatus: oldStatus,
@@ -1550,22 +1637,7 @@ struct FollowingScreen: View {
                 backendSaved: nil
             )
             if item.isServerGoing {
-                ok = await viewModel.setVenueEventInterest(
-                    venueEventID: item.id,
-                    isInterested: false,
-                    refreshFollowing: false,
-                    applyOptimistic: false,
-                    manageWriteInFlight: false,
-                    schedulePostWriteRefreshes: false,
-                    applyLocalSuccessState: false
-                )
-                if ok {
-                    await viewModel.refreshFollowingTabDataGlobally()
-                    viewModel.refreshFollowingInterestDerivedSnapshotsForUI()
-                }
-            } else {
-                await viewModel.refreshFollowingTabDataGlobally()
-                viewModel.refreshFollowingInterestDerivedSnapshotsForUI()
+                ok = await syncGoingStatusToBackend(eventID: item.id, isGoing: false)
             }
         case .notGoing:
             guard item.isActiveGoingTabPlan else {
@@ -1577,10 +1649,26 @@ struct FollowingScreen: View {
                     optimisticUpdate: false,
                     backendSaved: true
                 )
+                logGoingStatusOptimistic(
+                    before: oldStatus,
+                    after: newStatus,
+                    eventID: item.id,
+                    localUpdated: false,
+                    backendSynced: true,
+                    rollback: false
+                )
                 return
             }
             setInterestedOnlyLocally(item.id, false)
             applyOptimisticGoingTabAttendance(item, target: target)
+            logGoingStatusOptimistic(
+                before: oldStatus,
+                after: newStatus,
+                eventID: item.id,
+                localUpdated: true,
+                backendSynced: nil,
+                rollback: false
+            )
             logGoingTabStatusDebug(
                 eventID: item.id,
                 oldStatus: oldStatus,
@@ -1590,10 +1678,7 @@ struct FollowingScreen: View {
                 backendSaved: nil
             )
             if item.isServerGoing {
-                ok = await viewModel.removeInterestInVenueEvent(venueEventID: item.id, refreshFollowing: true)
-            } else {
-                await viewModel.refreshFollowingTabDataGlobally()
-                viewModel.refreshFollowingInterestDerivedSnapshotsForUI()
+                ok = await syncGoingStatusToBackend(eventID: item.id, isGoing: false)
             }
         }
 
@@ -1603,6 +1688,18 @@ struct FollowingScreen: View {
 #endif
             interestedOnlyEncoded = previousInterestedOnly
             viewModel.followingTabGoingItems = previousGoingItems
+            cachedGoingVenueGameItems = previousCachedGoingItems
+            viewModel.followingTabGoingInterestCounts = previousGoingInterestCounts
+            viewModel.followingTabUserVenueEventInterestIDs = previousServerGoingIDs
+            viewModel.refreshFollowingInterestDerivedSnapshotsForUI()
+            logGoingStatusOptimistic(
+                before: oldStatus,
+                after: newStatus,
+                eventID: item.id,
+                localUpdated: false,
+                backendSynced: false,
+                rollback: true
+            )
             logGoingTabStatusDebug(
                 eventID: item.id,
                 oldStatus: oldStatus,
@@ -1622,6 +1719,14 @@ struct FollowingScreen: View {
             optimisticUpdate: false,
             backendSaved: true
         )
+        logGoingStatusOptimistic(
+            before: oldStatus,
+            after: newStatus,
+            eventID: item.id,
+            localUpdated: true,
+            backendSynced: true,
+            rollback: false
+        )
 #if DEBUG
         switch target {
         case .going:
@@ -1634,23 +1739,53 @@ struct FollowingScreen: View {
 #endif
     }
 
+    private func syncGoingStatusToBackend(eventID: UUID, isGoing: Bool) async -> Bool {
+        await viewModel.setVenueEventInterest(
+            venueEventID: eventID,
+            isInterested: isGoing,
+            refreshFollowing: false,
+            applyOptimistic: false,
+            manageWriteInFlight: true,
+            schedulePostWriteRefreshes: false,
+            applyLocalSuccessState: false
+        )
+    }
+
     @MainActor
     private func applyOptimisticGoingTabAttendance(_ item: FollowingGoingDisplayItem, target: FollowingAttendanceTarget) {
+        let attendeeCount = optimisticAttendeeCount(for: item, target: target)
         switch target {
         case .going:
-            upsertOptimisticGoingTabItem(item, isServerGoing: true, isInterestedOnlyLocal: false)
+            viewModel.followingTabUserVenueEventInterestIDs.insert(item.id)
+            upsertOptimisticGoingTabItem(
+                item,
+                attendeeCount: attendeeCount,
+                isServerGoing: true,
+                isInterestedOnlyLocal: false
+            )
         case .interested:
-            upsertOptimisticGoingTabItem(item, isServerGoing: false, isInterestedOnlyLocal: true)
+            viewModel.followingTabUserVenueEventInterestIDs.remove(item.id)
+            upsertOptimisticGoingTabItem(
+                item,
+                attendeeCount: attendeeCount,
+                isServerGoing: false,
+                isInterestedOnlyLocal: true
+            )
         case .notGoing:
+            viewModel.followingTabUserVenueEventInterestIDs.remove(item.id)
             viewModel.followingTabGoingItems.removeAll { $0.id == item.id }
+            cachedGoingVenueGameItems.removeAll { $0.id == item.id }
         }
+        applyOptimisticGoingTabInterestCount(eventID: item.id, attendeeCount: attendeeCount)
         viewModel.followingTabGoingItems = MapViewModel.sortFollowingGoingItemsChronologically(viewModel.followingTabGoingItems)
+        cachedGoingVenueGameItems = MapViewModel.sortFollowingGoingItemsChronologically(cachedGoingVenueGameItems)
         viewModel.refreshFollowingInterestDerivedSnapshotsForUI()
     }
 
     @MainActor
     private func upsertOptimisticGoingTabItem(
         _ item: FollowingGoingDisplayItem,
+        attendeeCount: Int,
         isServerGoing: Bool,
         isInterestedOnlyLocal: Bool
     ) {
@@ -1658,7 +1793,7 @@ struct FollowingScreen: View {
             id: item.id,
             venueEvent: item.venueEvent,
             bar: item.bar,
-            attendeeCount: max(item.attendeeCount, isServerGoing ? 1 : item.attendeeCount),
+            attendeeCount: attendeeCount,
             isServerGoing: isServerGoing,
             isInterestedOnlyLocal: isInterestedOnlyLocal
         )
@@ -1666,6 +1801,31 @@ struct FollowingScreen: View {
             viewModel.followingTabGoingItems[index] = updated
         } else {
             viewModel.followingTabGoingItems.append(updated)
+        }
+        if let index = cachedGoingVenueGameItems.firstIndex(where: { $0.id == item.id }) {
+            cachedGoingVenueGameItems[index] = updated
+        } else {
+            cachedGoingVenueGameItems.append(updated)
+        }
+    }
+
+    private func optimisticAttendeeCount(for item: FollowingGoingDisplayItem, target: FollowingAttendanceTarget) -> Int {
+        switch target {
+        case .going:
+            return item.isServerGoing ? item.attendeeCount : max(item.attendeeCount + 1, 1)
+        case .interested:
+            return item.isServerGoing ? max(item.attendeeCount - 1, 0) : item.attendeeCount
+        case .notGoing:
+            return item.isServerGoing ? max(item.attendeeCount - 1, 0) : item.attendeeCount
+        }
+    }
+
+    @MainActor
+    private func applyOptimisticGoingTabInterestCount(eventID: UUID, attendeeCount: Int) {
+        if attendeeCount > 0 {
+            viewModel.followingTabGoingInterestCounts[eventID] = attendeeCount
+        } else {
+            viewModel.followingTabGoingInterestCounts.removeValue(forKey: eventID)
         }
     }
 
@@ -1687,14 +1847,34 @@ struct FollowingScreen: View {
 #endif
     }
 
+    private func logGoingStatusOptimistic(
+        before: String,
+        after: String,
+        eventID: UUID,
+        localUpdated: Bool,
+        backendSynced: Bool?,
+        rollback: Bool
+    ) {
+#if DEBUG
+        print("[GoingStatusOptimistic] before=\(before) after=\(after) eventId=\(eventID.uuidString.lowercased()) localUpdated=\(localUpdated) backendSynced=\(backendSynced.map { String($0) } ?? "pending") rollback=\(rollback)")
+#endif
+    }
+
     // MARK: - Shared UI pieces
 
     private func pickupGameJoinCard(_ card: PickupGameJoinRequestCardDisplay) -> some View {
+        let resolvedGame = viewModel.resolvedPickupGameRow(for: card.pickupGameId)
         let sportVisual = SportFilterCatalog.resolve(card.sport)
         let now = Date()
-        let pickupStarted = PickupGameModels.parseSupabaseTimestamptz(card.game_start_at).map { now >= $0 } ?? false
+        let pickupStarted = resolvedGame?.hasPickupGameStarted(now: now)
+            ?? PickupGameModels.parseSupabaseTimestamptz(card.game_start_at).map { now >= $0 }
+            ?? false
         let isOrganizerCanceled = card.pill == .canceledByOrganizer
         let isRejected = card.pill == .declined
+        let ratingPromptEligible = resolvedGame?.isPickupCreatorRatingPromptEligible(now: now) ?? false
+        let openMap = {
+            openPlayingPickupGameOnDiscoverMap(card)
+        }
 
         return VStack(alignment: .leading, spacing: FGSpacing.sm) {
             HStack(alignment: .top, spacing: FGSpacing.sm) {
@@ -1713,7 +1893,7 @@ struct FollowingScreen: View {
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                     GameFormatBadgeView(
-                        format: viewModel.resolvedPickupGameRow(for: card.pickupGameId)?.gameFormat ?? .pickup,
+                        format: resolvedGame?.gameFormat ?? .pickup,
                         colorScheme: followingColorScheme
                     )
                     pickupJoinStatusPill(card.pill)
@@ -1735,14 +1915,20 @@ struct FollowingScreen: View {
                 }
                 Spacer(minLength: 0)
             }
+            .contentShape(Rectangle())
+            .onTapGesture(perform: openMap)
 
             if !card.dateTimeLine.isEmpty {
                 Label(card.dateTimeLine, systemImage: "calendar")
                     .font(FGTypography.caption.weight(.semibold))
                     .foregroundStyle(FGColor.secondaryText(followingColorScheme))
                     .labelStyle(.titleAndIcon)
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: openMap)
                 if pickupStarted {
                     PickupGameStartedLineCaption()
+                        .contentShape(Rectangle())
+                        .onTapGesture(perform: openMap)
                 }
             }
             if !card.locationLine.isEmpty {
@@ -1751,6 +1937,8 @@ struct FollowingScreen: View {
                     .foregroundStyle(FGColor.secondaryText(followingColorScheme))
                     .lineLimit(2)
                     .labelStyle(.titleAndIcon)
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: openMap)
             }
 
             HStack(spacing: FGSpacing.sm) {
@@ -1781,8 +1969,8 @@ struct FollowingScreen: View {
 
             if !isOrganizerCanceled,
                card.pill == .approved,
-               let row = viewModel.resolvedPickupGameRow(for: card.pickupGameId),
-               row.isPickupCreatorRatingPromptEligible(),
+               let row = resolvedGame,
+               ratingPromptEligible,
                let me = viewModel.currentUserAuthId,
                me != card.organizerUserId,
                !viewModel.hasSubmittedPickupCreatorRating(for: card.pickupGameId) {
@@ -1793,6 +1981,8 @@ struct FollowingScreen: View {
                 Text(spots)
                     .font(FGTypography.metadata)
                     .foregroundStyle(FGColor.mutedText(followingColorScheme))
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: openMap)
             }
 
             if card.pill == .pending || card.pill == .approved || isRejected {
@@ -2605,7 +2795,7 @@ private struct PickupGameInviteDetailSheet: View {
                     .font(.system(size: 24, weight: .heavy, design: .rounded))
                     .foregroundStyle(FGColor.primaryText(colorScheme))
                     .fixedSize(horizontal: false, vertical: true)
-                Text(game.sport)
+                Text(AppSportCatalog.displayLabel(forSportToken: game.sport))
                     .font(FGTypography.caption.weight(.semibold))
                     .foregroundStyle(FGColor.secondaryText(colorScheme))
             }
@@ -2785,6 +2975,23 @@ private struct PickupInviteRenderToken: Equatable {
     let inviterAvatarThumbnailURL: String
     let inviterAvatarURL: String
     let isBusy: Bool
+    let colorScheme: ColorScheme
+}
+
+private struct PickupPlayingCardRenderToken: Equatable {
+    let card: PickupGameJoinRequestCardDisplay
+    let resolvedGame: PickupGameRow?
+    let organizerAvatarThumbnailURL: String?
+    let organizerAvatarURL: String?
+    let organizerAvatarRefreshToken: UUID
+    let organizerEmail: String
+    let creatorTrustStats: PickupCreatorPublicRatingStats?
+    let currentUserId: UUID?
+    let hasSubmittedCreatorRating: Bool
+    let hasUnreadActivity: Bool
+    let isRefreshSpinning: Bool
+    let isWithdrawInFlight: Bool
+    let lastJoinStatusRefreshAt: Date?
     let colorScheme: ColorScheme
 }
 
