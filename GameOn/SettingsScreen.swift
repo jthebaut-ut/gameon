@@ -1773,6 +1773,12 @@ struct SettingsScreen: View {
             onRefreshVenues: {
                 Task { await refreshSettingsManagedVenuesSection() }
             },
+            onRefreshPendingVenue: { venue in
+                await refreshPendingVenueClaimFromDashboard(venue)
+            },
+            onResendPendingVenue: { venue in
+                await resendPendingVenueClaimFromDashboard(venue)
+            },
             onCancelPendingVenue: { venue in
                 await viewModel.cancelBusinessVenueClaim(claimId: venue.id)
             },
@@ -2115,6 +2121,19 @@ struct SettingsScreen: View {
         await viewModel.refreshPendingVenueClaimsForSettings()
         await refreshSettingsInlineBusinessDashboard()
         await refreshSettingsBusinessProStatus()
+    }
+
+    private func refreshPendingVenueClaimFromDashboard(_ venue: BusinessVenueDashboardPendingVenueItem) async -> Bool {
+        let removed = await viewModel.refreshPendingVenueClaimDirectly(claimId: venue.id)
+        await refreshSettingsInlineBusinessDashboard()
+        await refreshSettingsBusinessProStatus()
+        return removed
+    }
+
+    private func resendPendingVenueClaimFromDashboard(_ venue: BusinessVenueDashboardPendingVenueItem) async -> Bool {
+        let sent = await viewModel.resendPendingVenueClaimRequest(claimId: venue.id)
+        await refreshSettingsInlineBusinessDashboard()
+        return sent
     }
 
     private func logSettingsInlineBusinessDashboardDebug() {

@@ -1602,6 +1602,8 @@ struct VenueOwnerDashboardView: View {
                 openBusinessDashboardGames(tab: .scheduled)
             },
             onRefreshVenues: {},
+            onRefreshPendingVenue: { _ in false },
+            onResendPendingVenue: { _ in false },
             onCancelPendingVenue: { _ in false },
             showsManagedVenuesSection: false,
             isStatisticsProActive: businessStatisticsAccessGranted,
@@ -7622,6 +7624,24 @@ struct VenueOwnerDashboardView: View {
                 externalSource: snapshot.externalSource,
                 venueId: viewModel.ownerVenueDatabaseId,
                 gameDate: snapshot.gameDate
+            )
+            if duplicate {
+                await MainActor.run {
+                    isSavingNewGame = false
+                    manageGamesError = "This game already exists for this venue."
+                    manageGamesFeedback = ""
+                }
+                return
+            }
+        } else {
+            let duplicate = await viewModel.venueGameManualDuplicateExists(
+                venueId: viewModel.ownerVenueDatabaseId,
+                gameTitle: trimmedTitle,
+                sport: snapshot.sport,
+                homeTeam: snapshot.homeTeam,
+                awayTeam: snapshot.awayTeam,
+                gameDate: snapshot.gameDate,
+                gameStartTime: snapshot.gameStartTime
             )
             if duplicate {
                 await MainActor.run {

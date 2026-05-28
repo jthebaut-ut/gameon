@@ -1655,6 +1655,9 @@ extension MapViewModel {
             }
             return ids
         }
+        let approvedManagedVenueSnapshot = await MainActor.run {
+            managedVenuesForOwner()
+        }
 
         do {
             let rows: [VenueClaimPendingSettingsRow] = try await supabase
@@ -1666,9 +1669,32 @@ extension MapViewModel {
                 .execute()
                 .value
 
+            let approvedVenueIDs = Set(
+                approvedManagedVenueSnapshot.compactMap(\.id)
+                    + rows.compactMap { row -> UUID? in
+                        Self.isApprovedClaimStatus(row.approval_status) ? row.venue_id : nil
+                    }
+            )
+            let approvedVenueKeys = Set(
+                (
+                    approvedManagedVenueSnapshot.map {
+                        Self.normalizedVenueMatchKey(name: $0.venue_name, address: $0.address)
+                    }
+                    + rows.compactMap { row -> String? in
+                        guard Self.isApprovedClaimStatus(row.approval_status) else { return nil }
+                        return Self.normalizedVenueMatchKey(name: row.venue_name, address: row.venue_address)
+                    }
+                ).filter { !$0.hasPrefix("|") }
+            )
+
             let filteredPending = rows.filter { row in
                 Self.isPendingUnapprovedClaimStatus(row.approval_status)
                     && Self.pendingClaimMatchesOwnerBusinesses(row, ownerBusinessIds: businessIds)
+                    && !Self.pendingClaimMatchesApprovedVenue(
+                        row,
+                        approvedVenueIDs: approvedVenueIDs,
+                        approvedVenueKeys: approvedVenueKeys
+                    )
             }
             let filteredRejected = rows.filter { row in
                 Self.isRejectedClaimStatus(row.approval_status)
@@ -1686,6 +1712,7 @@ extension MapViewModel {
                 let id = row.venue_id?.uuidString ?? row.id.uuidString
                 print("[ApprovedVenueVisibilityDebug] hiddenPendingVenue id=\(id)")
             }
+            print("[ApprovedVenueVisibilityDebug] approvedVenueIDs=\(approvedVenueIDs.map(\.uuidString).sorted().joined(separator: ","))")
 #endif
         } catch {
             print("ERROR LOADING PENDING VENUE CLAIMS:", error)
@@ -1695,6 +1722,129 @@ extension MapViewModel {
                 hasUnackedRejectedVenueClaimForOwnerEmail = false
             }
         }
+    }
+
+    @discardableResult
+    func refreshPendingVenueClaimDirectly(claimId: UUID) async -> Bool {
+        guard let rows = await loadVenueClaimRefreshRows(claimId: claimId) else {
+            await refreshPendingVenueClaimsForSettings()
+            return false
+        }
+        let row = rows.first
+        let approved = row.map { Self.isApprovedClaimStatus($0.approval_status) } ?? false
+        let venueID = row?.venue_id
+        let businessID = row?.business_id
+        let approvalStatus = row?.approval_status?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "missing"
+        var pendingRemoved = false
+
+        if approved || row == nil {
+            pendingRemoved = await MainActor.run {
+                let before = pendingVenueClaimsForSettings.count
+                pendingVenueClaimsForSettings.removeAll { $0.id == claimId }
+                rejectedVenueClaimsForSettings.removeAll { $0.id == claimId }
+                return pendingVenueClaimsForSettings.count < before
+            }
+            await refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
+        } else {
+            await refreshPendingVenueClaimsForSettings()
+        }
+        await refreshVenueClaimStatusLineFromDatabase()
+
+#if DEBUG
+        print(
+            "[VenueClaimRefreshDebug] claimId=\(claimId.uuidString) venueId=\(venueID?.uuidString ?? "nil") businessId=\(businessID?.uuidString ?? "nil") approval_status=\(approvalStatus) pendingRemoved=\(pendingRemoved)"
+        )
+#endif
+        return pendingRemoved
+    }
+
+    @discardableResult
+    func resendPendingVenueClaimRequest(claimId: UUID) async -> Bool {
+        guard let rows = await loadVenueClaimRefreshRows(claimId: claimId) else {
+#if DEBUG
+            print("[VenueClaimResendDebug] claimId=\(claimId.uuidString) venueId=nil businessId=nil approval_status=error emailSent=false")
+#endif
+            await refreshPendingVenueClaimsForSettings()
+            return false
+        }
+        guard let row = rows.first else {
+#if DEBUG
+            print("[VenueClaimResendDebug] claimId=\(claimId.uuidString) venueId=nil businessId=nil approval_status=missing emailSent=false")
+#endif
+            await refreshPendingVenueClaimsForSettings()
+            return false
+        }
+
+        let approvalStatus = row.approval_status?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard Self.isPendingUnapprovedClaimStatus(approvalStatus) else {
+            let removed = await refreshPendingVenueClaimDirectly(claimId: claimId)
+#if DEBUG
+            print(
+                "[VenueClaimResendDebug] claimId=\(claimId.uuidString) venueId=\(row.venue_id?.uuidString ?? "nil") businessId=\(row.business_id?.uuidString ?? "nil") approval_status=\(approvalStatus.isEmpty ? "nil" : approvalStatus) emailSent=false pendingRemoved=\(removed)"
+            )
+#endif
+            return false
+        }
+
+        let payload = venueClaimAdminNotifyPayload(from: row)
+        let emailSent = await sendVenueClaimAdminEmail(payload: payload)
+        await refreshPendingVenueClaimDirectly(claimId: claimId)
+#if DEBUG
+        print(
+            "[VenueClaimResendDebug] claimId=\(claimId.uuidString) venueId=\(row.venue_id?.uuidString ?? "nil") businessId=\(row.business_id?.uuidString ?? "nil") approval_status=\(approvalStatus.isEmpty ? "nil" : approvalStatus) emailSent=\(emailSent)"
+        )
+#endif
+        return emailSent
+    }
+
+    private func loadVenueClaimRefreshRows(claimId: UUID) async -> [VenueClaimRefreshRow]? {
+        do {
+            return try await supabase
+                .from("venue_claims")
+                .select("id,business_id,venue_id,owner_email,venue_name,venue_address,venue_address_line2,venue_city,venue_state,venue_country,venue_zip_code,venue_formatted_address,venue_latitude,venue_longitude,venue_phone,venue_website,venue_description,venue_features,screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,cover_photo_url,menu_photo_url,proof_note,approval_status,rejection_acknowledged_at,created_at")
+                .eq("id", value: claimId.uuidString.lowercased())
+                .limit(1)
+                .execute()
+                .value
+        } catch {
+#if DEBUG
+            print("[VenueClaimRefreshDebug] claimId=\(claimId.uuidString) venueId=nil businessId=nil approval_status=error pendingRemoved=false error=\(error.localizedDescription)")
+#endif
+            return nil
+        }
+    }
+
+    private struct VenueClaimRefreshRow: Decodable {
+        let id: UUID
+        let business_id: UUID?
+        let venue_id: UUID?
+        let owner_email: String?
+        let venue_name: String?
+        let venue_address: String?
+        let venue_address_line2: String?
+        let venue_city: String?
+        let venue_state: String?
+        let venue_country: String?
+        let venue_zip_code: String?
+        let venue_formatted_address: String?
+        let venue_latitude: Double?
+        let venue_longitude: Double?
+        let venue_phone: String?
+        let venue_website: String?
+        let venue_description: String?
+        let venue_features: String?
+        let screen_count: Int?
+        let serves_food: Bool?
+        let has_wifi: Bool?
+        let has_garden: Bool?
+        let has_projector: Bool?
+        let pet_friendly: Bool?
+        let cover_photo_url: String?
+        let menu_photo_url: String?
+        let proof_note: String?
+        let approval_status: String?
+        let rejection_acknowledged_at: String?
+        let created_at: String?
     }
 
     /// Persists dismissal of a rejected claim for the signed-in business owner (``rejection_acknowledged_at``); claim row remains for audit.
@@ -1862,6 +2012,18 @@ extension MapViewModel {
     private static func isApprovedClaimStatus(_ status: String?) -> Bool {
         let s = status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
         return s == "approved"
+    }
+
+    private static func pendingClaimMatchesApprovedVenue(
+        _ row: VenueClaimPendingSettingsRow,
+        approvedVenueIDs: Set<UUID>,
+        approvedVenueKeys: Set<String>
+    ) -> Bool {
+        if let venueID = row.venue_id, approvedVenueIDs.contains(venueID) {
+            return true
+        }
+        let key = normalizedVenueMatchKey(name: row.venue_name, address: row.venue_address)
+        return !key.hasPrefix("|") && approvedVenueKeys.contains(key)
     }
 
     /// First occurrence wins (stable for UI ordering).
@@ -2424,6 +2586,51 @@ extension MapViewModel {
             created_at: createdAt ?? "",
             approval_status: approvalStatus ?? "pending"
         )
+    }
+
+    private func venueClaimAdminNotifyPayload(from row: VenueClaimRefreshRow) -> VenueClaimAdminNotifyPayload {
+        let cover = row.cover_photo_url?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let menu = row.menu_photo_url?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let businessName = row.business_id.flatMap { businessId in
+            ownedBusinesses.first(where: { $0.id == businessId })?.display_name
+        }
+        var payload = VenueClaimAdminNotifyPayload(
+            claim_id: row.id.uuidString,
+            business_id: row.business_id?.uuidString,
+            venue_id: row.venue_id?.uuidString,
+            claim_kind: row.venue_id == nil ? "new_location" : "discover_claim",
+            owner_email: row.owner_email?.trimmingCharacters(in: .whitespacesAndNewlines) ?? OwnerBusinessEmail.normalized(venueOwnerEmail),
+            venue_name: row.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Venue request",
+            venue_address: row.venue_address?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
+            venue_address_line2: row.venue_address_line2?.trimmingCharacters(in: .whitespacesAndNewlines),
+            venue_city: row.venue_city?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
+            venue_state: row.venue_state?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
+            venue_country: row.venue_country?.trimmingCharacters(in: .whitespacesAndNewlines) ?? BusinessLocationCountryPolicy.defaultCountryCode,
+            venue_zip_code: row.venue_zip_code?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
+            venue_formatted_address: row.venue_formatted_address?.trimmingCharacters(in: .whitespacesAndNewlines),
+            venue_latitude: row.venue_latitude,
+            venue_longitude: row.venue_longitude,
+            venue_phone: row.venue_phone?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
+            venue_website: row.venue_website?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
+            venue_description: row.venue_description?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Venue request resent by business owner.",
+            venue_features: row.venue_features?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
+            screen_count: row.screen_count ?? 0,
+            serves_food: row.serves_food ?? false,
+            has_wifi: row.has_wifi ?? false,
+            has_garden: row.has_garden ?? false,
+            has_projector: row.has_projector ?? false,
+            pet_friendly: row.pet_friendly ?? false,
+            family_friendly: false,
+            parking_available: false,
+            proof_note: row.proof_note?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
+            cover_photo_url: cover,
+            menu_photo_url: menu,
+            photo_urls: [cover, menu].filter { !$0.isEmpty },
+            created_at: row.created_at ?? "",
+            approval_status: row.approval_status ?? "pending"
+        )
+        payload.business_name = businessName
+        return payload
     }
 
     /// Fire-and-forget admin email via Edge Function ``notify-venue-claim``.
@@ -5289,17 +5496,13 @@ extension MapViewModel {
         }
 
         let trimmedExternalSource = externalSource?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        dateFormatter.timeZone = TimeZone.current
-        let eventDate = dateFormatter.string(from: gameDate)
+        _ = gameDate
 
         do {
             var query = supabase
                 .from("venue_events")
                 .select("id")
                 .eq("external_game_id", value: trimmedExternalGameID)
-                .eq("event_date", value: eventDate)
                 .eq("admin_status", value: "active")
 
             if !trimmedExternalSource.isEmpty {
@@ -5311,6 +5514,11 @@ extension MapViewModel {
                 let ownerRowEmail = OwnerBusinessEmail.normalized(venueOwnerEmail)
                 if OwnerBusinessEmail.isValidStrict(ownerRowEmail) {
                     query = query.eq("owner_email", value: ownerRowEmail)
+                } else {
+#if DEBUG
+                    print("[BusinessGameImportDebug] duplicateCheckResult=false reason=missing_venue_scope")
+#endif
+                    return false
                 }
             }
 
@@ -5326,6 +5534,110 @@ extension MapViewModel {
 #endif
             return false
         }
+    }
+
+    func venueGameManualDuplicateExists(
+        venueId: UUID?,
+        gameTitle: String,
+        sport: String,
+        homeTeam: String?,
+        awayTeam: String?,
+        gameDate: Date,
+        gameStartTime: Date
+    ) async -> Bool {
+        let normalizedSport = Self.normalizedHostedGameIdentityComponent(sport)
+        let normalizedHomeTeam = Self.normalizedHostedGameIdentityComponent(homeTeam)
+        let normalizedAwayTeam = Self.normalizedHostedGameIdentityComponent(awayTeam)
+        let normalizedTitle = Self.normalizedHostedGameIdentityComponent(gameTitle)
+        guard !normalizedSport.isEmpty, (!normalizedTitle.isEmpty || (!normalizedHomeTeam.isEmpty && !normalizedAwayTeam.isEmpty)) else {
+            return false
+        }
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.timeZone = TimeZone.current
+        let eventDate = dateFormatter.string(from: gameDate)
+
+        let timeFormatter = DateFormatter()
+        timeFormatter.dateFormat = "h:mm a"
+        timeFormatter.timeZone = TimeZone.current
+        let eventTime = timeFormatter.string(from: gameStartTime)
+
+        do {
+            var query = supabase
+                .from("venue_events")
+                .select("id,venue_id,owner_email,venue_name,event_title,sport,home_team,away_team,event_date,event_time,scheduled_start_at,cleanup_delay_hours,purge_after_at,external_league,external_game_id,external_source,imported_from_api,admin_status,created_at")
+                .eq("event_date", value: eventDate)
+                .eq("event_time", value: eventTime)
+                .eq("admin_status", value: "active")
+
+            if let venueId {
+                query = query.eq("venue_id", value: venueId.uuidString.lowercased())
+            } else {
+                let ownerRowEmail = OwnerBusinessEmail.normalized(venueOwnerEmail)
+                if OwnerBusinessEmail.isValidStrict(ownerRowEmail) {
+                    query = query.eq("owner_email", value: ownerRowEmail)
+                } else {
+#if DEBUG
+                    print("[BusinessManualGameDuplicateDebug] duplicateCheckResult=false reason=missing_venue_scope")
+#endif
+                    return false
+                }
+            }
+
+            let rows: [VenueEventRow] = try await query.limit(50).execute().value
+            return rows.contains { row in
+                Self.manualHostedGameIdentityMatches(
+                    row: row,
+                    normalizedSport: normalizedSport,
+                    normalizedHomeTeam: normalizedHomeTeam,
+                    normalizedAwayTeam: normalizedAwayTeam,
+                    normalizedTitle: normalizedTitle
+                )
+            }
+        } catch {
+#if DEBUG
+            print("[BusinessManualGameDuplicateDebug] duplicateCheckResult=false error=\(error.localizedDescription)")
+#endif
+            return false
+        }
+    }
+
+    private static func manualHostedGameIdentityMatches(
+        row: VenueEventRow,
+        normalizedSport: String,
+        normalizedHomeTeam: String,
+        normalizedAwayTeam: String,
+        normalizedTitle: String
+    ) -> Bool {
+        guard row.imported_from_api != true else { return false }
+        let externalGameID = row.external_game_id?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let externalSource = row.external_source?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+        guard externalGameID.isEmpty, externalSource.isEmpty || externalSource == "manual" else { return false }
+        guard Self.normalizedHostedGameIdentityComponent(row.sport) == normalizedSport else { return false }
+
+        let rowHomeTeam = Self.normalizedHostedGameIdentityComponent(row.home_team)
+        let rowAwayTeam = Self.normalizedHostedGameIdentityComponent(row.away_team)
+        if !normalizedHomeTeam.isEmpty,
+           !normalizedAwayTeam.isEmpty,
+           !rowHomeTeam.isEmpty,
+           !rowAwayTeam.isEmpty {
+            return rowHomeTeam == normalizedHomeTeam && rowAwayTeam == normalizedAwayTeam
+        }
+
+        guard !normalizedTitle.isEmpty else { return false }
+        return Self.normalizedHostedGameIdentityComponent(row.event_title) == normalizedTitle
+    }
+
+    private static func normalizedHostedGameIdentityComponent(_ value: String?) -> String {
+        let folded = (value ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
+        return folded
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
     }
 
     private struct VenueEventDuplicateCheckRow: Decodable {

@@ -161,6 +161,8 @@ struct BusinessVenueDashboardOverviewView: View {
     @State private var pendingVenueToCancel: BusinessVenueDashboardPendingVenueItem?
     @State private var showCancelVenueAlert = false
     @State private var cancellingPendingVenueId: UUID?
+    @State private var refreshingPendingVenueId: UUID?
+    @State private var resendingPendingVenueId: UUID?
     @State private var pendingVenueCancelNotice: String?
 
     let data: BusinessVenueDashboardData
@@ -177,6 +179,8 @@ struct BusinessVenueDashboardOverviewView: View {
     let onCommentsReports: () -> Void
     let onViewAllGames: () -> Void
     let onRefreshVenues: () -> Void
+    let onRefreshPendingVenue: (BusinessVenueDashboardPendingVenueItem) async -> Bool
+    let onResendPendingVenue: (BusinessVenueDashboardPendingVenueItem) async -> Bool
     let onCancelPendingVenue: (BusinessVenueDashboardPendingVenueItem) async -> Bool
     let showsManagedVenuesSection: Bool
     let isStatisticsProActive: Bool
@@ -378,9 +382,9 @@ struct BusinessVenueDashboardOverviewView: View {
 
             if let pendingVenueCancelNotice {
                 HStack(spacing: 8) {
-                    Image(systemName: pendingVenueCancelNotice == "Venue request cancelled." ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                    Image(systemName: pendingVenueNoticeIsSuccess(pendingVenueCancelNotice) ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(pendingVenueCancelNotice == "Venue request cancelled." ? FGColor.accentGreen : FGColor.dangerRed)
+                        .foregroundStyle(pendingVenueNoticeIsSuccess(pendingVenueCancelNotice) ? FGColor.accentGreen : FGColor.dangerRed)
                     Text(pendingVenueCancelNotice)
                         .font(FGTypography.caption.weight(.semibold))
                         .foregroundStyle(FGColor.secondaryText(colorScheme))
@@ -388,7 +392,7 @@ struct BusinessVenueDashboardOverviewView: View {
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
-                .background((pendingVenueCancelNotice == "Venue request cancelled." ? FGColor.accentGreen : FGColor.dangerRed).opacity(colorScheme == .dark ? 0.16 : 0.10))
+                .background((pendingVenueNoticeIsSuccess(pendingVenueCancelNotice) ? FGColor.accentGreen : FGColor.dangerRed).opacity(colorScheme == .dark ? 0.16 : 0.10))
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
 
@@ -424,6 +428,12 @@ struct BusinessVenueDashboardOverviewView: View {
                     .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
             }
         }
+    }
+
+    private func pendingVenueNoticeIsSuccess(_ notice: String) -> Bool {
+        !notice.localizedCaseInsensitiveContains("couldn")
+            && !notice.localizedCaseInsensitiveContains("failed")
+            && !notice.localizedCaseInsensitiveContains("error")
     }
 
     @ViewBuilder
@@ -476,7 +486,14 @@ struct BusinessVenueDashboardOverviewView: View {
     }
 
     private func pendingVenueRow(_ venue: BusinessVenueDashboardPendingVenueItem) -> some View {
-        HStack(alignment: .top, spacing: 10) {
+        let rowBusy = cancellingPendingVenueId == venue.id
+            || refreshingPendingVenueId == venue.id
+            || resendingPendingVenueId == venue.id
+        let anyPendingActionBusy = cancellingPendingVenueId != nil
+            || refreshingPendingVenueId != nil
+            || resendingPendingVenueId != nil
+
+        return HStack(alignment: .top, spacing: 10) {
             statusIcon(systemName: "hourglass.circle.fill", tint: .orange)
             VStack(alignment: .leading, spacing: 3) {
                 Text(venue.name)
@@ -503,23 +520,77 @@ struct BusinessVenueDashboardOverviewView: View {
                         .clipShape(Capsule(style: .continuous))
                 }
                 .buttonStyle(.plain)
-                .disabled(cancellingPendingVenueId != nil)
+                .disabled(anyPendingActionBusy)
                 .accessibilityLabel("Cancel pending venue request")
 
-                Button(action: onRefreshVenues) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.caption.weight(.bold))
+                Button {
+                    Task { await resendPendingVenueRequest(venue) }
+                } label: {
+                    Text(resendingPendingVenueId == venue.id ? "Sending..." : "Resend request")
+                        .font(.caption2.weight(.bold))
                         .foregroundStyle(FGColor.accentBlue)
-                        .frame(width: 28, height: 28)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
                         .background(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.18 : 0.10))
-                        .clipShape(Circle())
+                        .clipShape(Capsule(style: .continuous))
                 }
                 .buttonStyle(.plain)
-                .disabled(cancellingPendingVenueId != nil)
+                .disabled(anyPendingActionBusy)
+                .accessibilityLabel("Resend pending venue request")
+
+                Button {
+                    Task { await refreshPendingVenueRequest(venue) }
+                } label: {
+                    Group {
+                        if refreshingPendingVenueId == venue.id {
+                            ProgressView()
+                                .controlSize(.mini)
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(FGColor.accentBlue)
+                        }
+                    }
+                    .frame(width: 28, height: 28)
+                    .background(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.18 : 0.10))
+                    .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .disabled(anyPendingActionBusy && !rowBusy)
                 .accessibilityLabel("Refresh venue status")
             }
         }
         .padding(.vertical, 4)
+    }
+
+    private func refreshPendingVenueRequest(_ venue: BusinessVenueDashboardPendingVenueItem) async {
+        guard refreshingPendingVenueId == nil else { return }
+        await MainActor.run {
+            refreshingPendingVenueId = venue.id
+            pendingVenueCancelNotice = nil
+        }
+        let removed = await onRefreshPendingVenue(venue)
+        await MainActor.run {
+            refreshingPendingVenueId = nil
+            pendingVenueCancelNotice = removed
+                ? "Venue approved. Approved venues refreshed."
+                : "Venue status refreshed."
+        }
+    }
+
+    private func resendPendingVenueRequest(_ venue: BusinessVenueDashboardPendingVenueItem) async {
+        guard resendingPendingVenueId == nil else { return }
+        await MainActor.run {
+            resendingPendingVenueId = venue.id
+            pendingVenueCancelNotice = nil
+        }
+        let sent = await onResendPendingVenue(venue)
+        await MainActor.run {
+            resendingPendingVenueId = nil
+            pendingVenueCancelNotice = sent
+                ? "Venue request resent."
+                : "Couldn’t resend venue request. Please try again."
+        }
     }
 
     private func cancelPendingVenueRequest(_ venue: BusinessVenueDashboardPendingVenueItem) async {
