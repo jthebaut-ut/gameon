@@ -640,6 +640,10 @@ final class MapViewModel: ObservableObject {
     @Published var pendingFollowingMapVenueID: UUID?
     /// Venue snapshot from Following so navigation works when ``bars`` does not yet include this id (map region elsewhere).
     @Published var pendingFollowingMapVenueSnapshot: BarVenue?
+    /// Following → Hosting pickup game: Discover consumes this to focus the pickup map on the hosted game.
+    @Published var pendingFollowingMapPickupGameID: UUID?
+    /// Pickup row snapshot from Following so navigation works before the Discover pickup map has refreshed.
+    @Published var pendingFollowingMapPickupGameSnapshot: PickupGameRow?
     /// Brief user-visible hint when opening a saved venue on the map fails (geocode / missing row).
     @Published var followingMapNavigationMessage: String?
     /// Per-venue-event interest avatars (Discover game rows). See ``loadGoingUserProfiles(for:)``.

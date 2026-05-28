@@ -337,6 +337,9 @@ extension MapViewModel {
             add("ping_pong")
             add("table_tennis")
             add("pingpong")
+        case "badminton":
+            add("badminton")
+            add("shuttlecock")
         default:
             break
         }

@@ -396,6 +396,13 @@ struct MainTabView: View {
             guard id != nil else { return }
             selectTab(.discover, reason: "pendingFollowingMapVenueID")
         }
+        .onChange(of: viewModel.pendingFollowingMapPickupGameID) { _, id in
+            guard id != nil else { return }
+            selectTab(.discover, reason: "pendingFollowingMapPickupGameID")
+            Task {
+                await viewModel.consumeFollowingPickupGameNavigationIfPending()
+            }
+        }
     }
 
     private func evaluateBlockingFanIdentitySetupPresentation(reason: String) {

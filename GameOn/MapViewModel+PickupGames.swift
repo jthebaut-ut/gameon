@@ -3,7 +3,7 @@ import Foundation
 import Supabase
 
 let pickupGamesSelectColumns =
-    "id,creator_user_id,creator_email,title,sport,description,game_format,skill_level,game_start_at,end_time,address,city,state,latitude,longitude,is_visible,players_needed,play_environment,participant_preference,is_free,entry_fee_amount,max_players,status,approved_join_count,cleanup_delay_hours,remove_after_at,created_at,updated_at"
+    "id,creator_user_id,creator_email,title,sport,description,game_format,skill_level,game_start_at,end_time,address,city,state,latitude,longitude,is_visible,players_needed,play_environment,participant_preference,age_min,age_max,is_free,entry_fee_amount,max_players,status,approved_join_count,cleanup_delay_hours,remove_after_at,created_at,updated_at"
 
 private let pickupOrganizerSettingsHistoryUserClearedIdsKeyPrefix = "gameon.settings.pickupOrganizerHistoryClearedIds."
 private let pickupGamesDiscoverCacheTTL: TimeInterval = 150
@@ -54,6 +54,8 @@ private func pickupGamesDiscoverRemoveAfterOrFilter(nowISO: String) -> String {
 }
 
 extension MapViewModel {
+
+    private static let myPickupGamesForSettingsFreshnessInterval: TimeInterval = 60
 
     private static let pickupHistoryClearLogISO8601: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
@@ -448,7 +450,7 @@ extension MapViewModel {
         // replication or an older refresh briefly misses it.
         mergePickupInsertedLocally(row)
         if let currentUserAuthId, row.creator_user_id == currentUserAuthId {
-            await loadMyPickupGamesForSettings()
+            await loadMyPickupGamesForSettings(forceRefresh: true, reason: "pickupPlaceCreate")
         }
 
         recomputeCalendarDotDates(force: true)
@@ -733,29 +735,48 @@ extension MapViewModel {
         print("[PickupPerf] enrichmentCompleted")
     }
 
-    func loadMyPickupGamesForSettings() async {
+    func loadMyPickupGamesForSettings(forceRefresh: Bool = false, reason: String = "ordinary") async {
         if let inFlight = myPickupGamesLightweightLoadTask {
 #if DEBUG
             print("[StartupPrefetchDebug] pickupMine coalesced=true")
+            print("[PickupPerf] screen=Going mode=Hosting rowCount=\(myPickupGamesForSettings.count + myRemovedPickupGamesForSettings.count) renderPath=loadMyPickupGamesForSettings freshnessSkip=false forcedReload=\(forceRefresh) reason=\(reason) coalesced=true")
 #endif
             await inFlight.value
-            return
+            if !forceRefresh { return }
+        }
+
+        if forceRefresh {
+            lastMyPickupGamesLightweightLoadAt = nil
+#if DEBUG
+            print("[PickupPerf] screen=Going mode=Hosting rowCount=\(myPickupGamesForSettings.count + myRemovedPickupGamesForSettings.count) renderPath=loadMyPickupGamesForSettings freshnessSkip=false forcedReload=true reason=\(reason)")
+#endif
+        } else if let lastMyPickupGamesLightweightLoadAt {
+            let age = Date().timeIntervalSince(lastMyPickupGamesLightweightLoadAt)
+            if age < Self.myPickupGamesForSettingsFreshnessInterval {
+#if DEBUG
+                print("[PickupPerf] screen=Going mode=Hosting rowCount=\(myPickupGamesForSettings.count + myRemovedPickupGamesForSettings.count) renderPath=loadMyPickupGamesForSettings freshnessSkip=true forcedReload=false reason=\(reason) age=\(String(format: "%.1f", age))")
+#endif
+                return
+            }
         }
         let task = Task<Void, Never> { [weak self] in
             guard let self else { return }
-            await self.loadMyPickupGamesForSettingsNow()
+            await self.loadMyPickupGamesForSettingsNow(reason: reason)
         }
         myPickupGamesLightweightLoadTask = task
         await task.value
         myPickupGamesLightweightLoadTask = nil
     }
 
-    private func loadMyPickupGamesForSettingsNow() async {
+    private func loadMyPickupGamesForSettingsNow(reason: String) async {
         guard canFanUsePickupGamesUI, let uid = currentUserAuthId else {
             myPickupGamesForSettings = []
             myRemovedPickupGamesForSettings = []
             pendingPickupGameJoinRequestCount = 0
             await stopPickupJoinRequestBadgeRealtime()
+#if DEBUG
+            print("[PickupPerf] screen=Going mode=Hosting rowCount=0 renderPath=loadMyPickupGamesForSettings freshnessSkip=false forcedReload=false reason=\(reason) skipped=featureUnavailable")
+#endif
             return
         }
 
@@ -790,12 +811,23 @@ extension MapViewModel {
             await loadOrganizerWithdrawnPickupRequestsForSettings(gameIds: rows.map(\.id))
             await loadOrganizerApprovedPickupJoinersForSettings(gameIds: rows.map(\.id))
             lastMyPickupGamesLightweightLoadAt = Date()
+#if DEBUG
+            print("[PickupPerf] screen=Going mode=Hosting rowCount=\(activeRows.count + myRemovedPickupGamesForSettings.count) renderPath=loadMyPickupGamesForSettings freshnessSkip=false forcedReload=false reason=\(reason)")
+#endif
         } catch {
 #if DEBUG
             print("[PickupGames] loadMine failed:", error)
 #endif
         }
         await loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: true)
+    }
+
+    private func markMyPickupGamesForSettingsStaleAfterMutation(row: PickupGameRow, reason: String) {
+        guard row.creator_user_id == currentUserAuthId else { return }
+        lastMyPickupGamesLightweightLoadAt = nil
+#if DEBUG
+        print("[PickupPerf] screen=Going mode=Hosting rowCount=\(myPickupGamesForSettings.count + myRemovedPickupGamesForSettings.count) renderPath=loadMyPickupGamesForSettings freshnessSkip=false forcedReload=true reason=\(reason)")
+#endif
     }
 
     func insertPickupGame(
@@ -813,6 +845,8 @@ extension MapViewModel {
         playersNeeded: Int,
         playEnvironment: String,
         participantPreference: String,
+        ageMin: Int? = nil,
+        ageMax: Int? = nil,
         isFree: Bool,
         entryFeeAmount: Double?,
         maxPlayers: Int?,
@@ -861,6 +895,8 @@ extension MapViewModel {
             players_needed: playersNeededClamped,
             play_environment: playEnvironment,
             participant_preference: participantPreference,
+            age_min: ageMin,
+            age_max: ageMax,
             is_free: isFree,
             entry_fee_amount: feePayload,
             max_players: maxPlayersClamped,
@@ -1067,6 +1103,7 @@ extension MapViewModel {
     }
 
     private func mergePickupGameAfterOrganizerSoftDelete(_ row: PickupGameRow) {
+        markMyPickupGamesForSettingsStaleAfterMutation(row: row, reason: "mutationSoftDelete")
         myPickupGamesForSettings.removeAll { $0.id == row.id }
         guard let uid = currentUserAuthId else {
             myRemovedPickupGamesForSettings.removeAll { $0.id == row.id }
@@ -1126,6 +1163,7 @@ extension MapViewModel {
             mergePickupGameAfterOrganizerSoftDelete(row)
             return
         }
+        markMyPickupGamesForSettingsStaleAfterMutation(row: row, reason: "mutationUpsert")
         if let i = myPickupGamesForSettings.firstIndex(where: { $0.id == row.id }) {
             myPickupGamesForSettings[i] = row
         } else {
