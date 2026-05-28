@@ -432,7 +432,7 @@ struct VenueProfileRow: Decodable {
     let venue_identity_key: String?
     /// `community` venues are released back to marketplace; `business` venues may be hard-deleted.
     let origin_type: String?
-    /// `public.venues.admin_status` (`active` / `archived`); omitted in older payloads.
+    /// `public.venues.admin_status` (`active` / `plan_locked` / `archived`); omitted in older payloads.
     let admin_status: String?
     /// Community place category, e.g. `play` for physical places to play sports.
     let community_type: String?
@@ -469,6 +469,7 @@ struct VenueProfileRow: Decodable {
     let menu_photo_url: String?
     let cover_photo_thumbnail_url: String?
     let menu_photo_thumbnail_url: String?
+    let created_at: String?
 }
 
 /// Embedded `public.businesses` row from PostgREST when selecting `businesses!venues_business_id_fkey(...)` on `venues`.
@@ -486,7 +487,7 @@ struct VenueRow: Decodable {
     let venue_identity_key: String?
     /// `community` venues are released back to marketplace; `business` venues may be hard-deleted.
     let origin_type: String?
-    /// `public.venues.admin_status` (`active` / `archived`); omitted in older payloads.
+    /// `public.venues.admin_status` (`active` / `plan_locked` / `archived`); omitted in older payloads.
     let admin_status: String?
     /// Community place category, e.g. `play` for physical places to play sports.
     let community_type: String?
@@ -811,6 +812,11 @@ nonisolated struct VenueClaimAdminNotifyPayload: Encodable {
     let photo_urls: [String]
     let created_at: String
     let approval_status: String
+    var business_name: String? = nil
+    var previous_status: String? = nil
+    var new_status: String? = nil
+    var cancelled_at: String? = nil
+    var cancellation_note: String? = nil
 }
 
 /// Subset of ``public.venue_claims`` for Settings “Pending locations” (Phase C1).

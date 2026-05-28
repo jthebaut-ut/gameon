@@ -110,6 +110,7 @@ struct ProfileIdentityCard: View {
     @State private var showSponsoredPromotionSupportSheet = false
     @AppStorage("profileSponsoredPlacement.lastVenueId") private var lastSponsoredProfileVenueIDRaw = ""
     @AppStorage("profileSponsoredPlacement.lastPlacementId") private var lastSponsoredProfilePlacementIDRaw = ""
+    @AppStorage("profileSponsoredPlacement.repeatCount") private var sponsoredProfileVenueRepeatCount = 0
 
     private static let bioCharacterLimit = 160
     private static let incomingPokesHighlightsLimit = 50
@@ -1568,10 +1569,22 @@ struct ProfileIdentityCard: View {
 
         let selected = weightedSponsoredProfilePlacement(from: eligiblePlacements)
         if let selected {
-            lastSponsoredProfileVenueIDRaw = selected.venue.id.uuidString.lowercased()
-            lastSponsoredProfilePlacementIDRaw = selected.placementID.uuidString.lowercased()
+            recordSponsoredProfilePlacementSelection(selected)
         }
         return selected
+    }
+
+    private func recordSponsoredProfilePlacementSelection(_ selected: SponsoredProfileVenueRecommendation) {
+        let previousVenueId = lastSponsoredProfileVenueIDRaw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let selectedVenueId = selected.venue.id.uuidString.lowercased()
+        let nextRepeatCount = previousVenueId == selectedVenueId
+            ? max(sponsoredProfileVenueRepeatCount, 0) + 1
+            : 1
+
+        lastSponsoredProfileVenueIDRaw = selectedVenueId
+        lastSponsoredProfilePlacementIDRaw = selected.placementID.uuidString.lowercased()
+        sponsoredProfileVenueRepeatCount = nextRepeatCount
+        print("[SponsoredPlacementRotation] selectedRepeatCount=\(nextRepeatCount)")
     }
 
     private func weightedSponsoredProfilePlacement(
@@ -1585,15 +1598,40 @@ struct ProfileIdentityCard: View {
         }
 
         let lastVenueId = lastSponsoredProfileVenueIDRaw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let repeatCount = max(sponsoredProfileVenueRepeatCount, 0)
+        print("[SponsoredPlacementRotation] lastShownVenueId=\(lastVenueId.isEmpty ? "none" : lastVenueId)")
+        print("[SponsoredPlacementRotation] repeatCount=\(repeatCount)")
+
         let rotationPool: [SponsoredProfileVenueRecommendation]
-        if eligiblePlacements.count > 1, !lastVenueId.isEmpty {
+        let repeatGuardApplied: Bool
+        if eligiblePlacements.count >= 3, !lastVenueId.isEmpty {
             let withoutRecentVenue = eligiblePlacements.filter {
                 $0.venue.id.uuidString.lowercased() != lastVenueId
             }
             if withoutRecentVenue.isEmpty {
                 rotationPool = eligiblePlacements
+                repeatGuardApplied = false
+                print("[SponsoredPlacementRotation] recentlyExcludedPlacement=none")
             } else {
                 rotationPool = withoutRecentVenue
+                repeatGuardApplied = true
+                let recentlyExcluded = eligiblePlacements
+                    .filter { $0.venue.id.uuidString.lowercased() == lastVenueId }
+                    .map { "\($0.placementID.uuidString.lowercased()):\($0.venue.name)" }
+                    .joined(separator: ",")
+                print("[SponsoredPlacementRotation] recentlyExcludedPlacement=\(recentlyExcluded.isEmpty ? "none" : recentlyExcluded)")
+            }
+        } else if eligiblePlacements.count == 2, !lastVenueId.isEmpty, repeatCount >= 2 {
+            let withoutRepeatedVenue = eligiblePlacements.filter {
+                $0.venue.id.uuidString.lowercased() != lastVenueId
+            }
+            if withoutRepeatedVenue.isEmpty {
+                rotationPool = eligiblePlacements
+                repeatGuardApplied = false
+                print("[SponsoredPlacementRotation] recentlyExcludedPlacement=none")
+            } else {
+                rotationPool = withoutRepeatedVenue
+                repeatGuardApplied = true
                 let recentlyExcluded = eligiblePlacements
                     .filter { $0.venue.id.uuidString.lowercased() == lastVenueId }
                     .map { "\($0.placementID.uuidString.lowercased()):\($0.venue.name)" }
@@ -1602,18 +1640,23 @@ struct ProfileIdentityCard: View {
             }
         } else {
             rotationPool = eligiblePlacements
+            repeatGuardApplied = false
             print("[SponsoredPlacementRotation] recentlyExcludedPlacement=none")
         }
+        print("[SponsoredPlacementRotation] repeatGuardApplied=\(repeatGuardApplied)")
 
         let totalWeight = rotationPool.reduce(0) { $0 + $1.priorityWeight }
         print("[SponsoredPlacementRotation] totalWeight=\(totalWeight)")
         guard totalWeight > 0 else {
             let selected = rotationPool.first
+            print("[SponsoredPlacementRotation] selectionRandomValue=nil")
             print("[SponsoredPlacementRotation] selectedPlacement=\(selected?.placementID.uuidString.lowercased() ?? "nil") venueName=\(selected?.venue.name ?? "nil")")
             return selected
         }
 
-        var ticket = Int.random(in: 1...totalWeight)
+        let randomValue = Int.random(in: 1...totalWeight)
+        print("[SponsoredPlacementRotation] selectionRandomValue=\(randomValue)")
+        var ticket = randomValue
         for placement in rotationPool {
             ticket -= placement.priorityWeight
             if ticket <= 0 {
@@ -3253,10 +3296,10 @@ private struct SponsoredPlacementRPCRow: Decodable {
     let menu_photo_thumbnail_url: String?
     let sport_tags: [String]?
     let fans_going_count: Int?
-    let priority_weight: Int?
+    let priority_weight: SponsoredPlacementPriorityWeight?
 
     var resolvedPriorityWeight: Int {
-        let weight = priority_weight ?? 1
+        let weight = priority_weight?.value ?? 1
         return weight > 0 ? weight : 1
     }
 
@@ -3330,6 +3373,25 @@ private struct SponsoredPlacementRPCRow: Decodable {
 
     private func trimmed(_ value: String?) -> String {
         value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+}
+
+private struct SponsoredPlacementPriorityWeight: Decodable {
+    let value: Int?
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if container.decodeNil() {
+            value = nil
+        } else if let intValue = try? container.decode(Int.self) {
+            value = intValue
+        } else if let doubleValue = try? container.decode(Double.self), doubleValue.isFinite {
+            value = Int(doubleValue)
+        } else if let stringValue = try? container.decode(String.self) {
+            value = Int(stringValue.trimmingCharacters(in: .whitespacesAndNewlines))
+        } else {
+            value = nil
+        }
     }
 }
 
@@ -4113,6 +4175,17 @@ private struct ProfileSuggestedFansSection: View {
         static let reasonRowHeight: CGFloat = 24
     }
 
+    private var suggestionsAvatarFingerprint: String {
+        suggestions.map { suggestion in
+            [
+                suggestion.userID.uuidString.lowercased(),
+                suggestion.avatarThumbnailURL ?? "",
+                suggestion.avatarURL ?? ""
+            ].joined(separator: ":")
+        }
+        .joined(separator: "|")
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             header
@@ -4126,6 +4199,9 @@ private struct ProfileSuggestedFansSection: View {
             }
         }
         .padding(.vertical, 2)
+        .task(id: suggestionsAvatarFingerprint) {
+            await prefetchSuggestedFanAvatars()
+        }
     }
 
     private var header: some View {
@@ -4144,7 +4220,7 @@ private struct ProfileSuggestedFansSection: View {
 
     private var loadingRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 14) {
+            LazyHStack(spacing: 14) {
                 ForEach(0..<3, id: \.self) { _ in
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
                         .fill(Color.white.opacity(colorScheme == .dark ? 0.05 : 0.72))
@@ -4185,7 +4261,7 @@ private struct ProfileSuggestedFansSection: View {
 
     private var suggestionsRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .top, spacing: 14) {
+            LazyHStack(alignment: .top, spacing: 14) {
                 ForEach(suggestions) { suggestion in
                     suggestionCard(suggestion)
                 }
@@ -4194,6 +4270,56 @@ private struct ProfileSuggestedFansSection: View {
             .padding(.vertical, 4)
             .padding(.trailing, 8)
         }
+    }
+
+    private func prefetchSuggestedFanAvatars() async {
+        var seen = Set<URL>()
+        var urls: [URL] = []
+
+        func appendURL(thumbnail: String?, full: String?, userId: UUID) {
+            let token = ProfileAvatarRefreshToken.stable(
+                userId: userId,
+                thumbnailURL: thumbnail,
+                avatarURL: full
+            )
+            guard let raw = ImageDisplayURL.forListDisplay(
+                thumbnail: thumbnail,
+                full: full ?? "",
+                refreshToken: token
+            ),
+                  let url = URL(string: raw),
+                  seen.insert(url).inserted else { return }
+            urls.append(url)
+        }
+
+        for suggestion in suggestions.prefix(8) {
+            appendURL(
+                thumbnail: suggestion.avatarThumbnailURL,
+                full: suggestion.avatarURL,
+                userId: suggestion.userID
+            )
+            for avatar in suggestion.mutualFriendAvatars.prefix(3) {
+                appendURL(
+                    thumbnail: avatar.avatarThumbnailURL,
+                    full: avatar.avatarURL,
+                    userId: avatar.userID
+                )
+            }
+        }
+
+        guard !urls.isEmpty else {
+#if DEBUG
+            print("[SmoothPerf] operation=suggestedFansAvatarPrefetch skipped=noURLs durationMs=0 coalesced=false avatarCount=0")
+#endif
+            return
+        }
+
+        let startedAt = Date()
+        await DiscoverMapImageCache.shared.prefetch(urls: urls, bucket: .avatar)
+#if DEBUG
+        let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
+        print("[SmoothPerf] operation=suggestedFansAvatarPrefetch skipped=none durationMs=\(ms) coalesced=false avatarCount=\(urls.count)")
+#endif
     }
 
     private func suggestionCard(_ suggestion: FriendSuggestionProfile) -> some View {

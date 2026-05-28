@@ -145,6 +145,8 @@ final class SportsAPIService {
             return "American Football"
         case "UFC":
             return "Fighting"
+        case "badminton":
+            return "Badminton"
         default:
             return sport
         }
@@ -158,6 +160,8 @@ final class SportsAPIService {
             return "NFL"
         case "Fighting":
             return "UFC"
+        case "Badminton":
+            return "badminton"
         default:
             return sport
         }

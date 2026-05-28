@@ -15,10 +15,20 @@ enum BusinessMembershipPolicy {
     }
 }
 
+enum BusinessLimitCopy {
+    static let venueLimitReached = "You’ve reached your active venue limit. Upgrade to FanGeo Pro for unlimited locations."
+    static let hostedGameLimitReached = "You’ve reached your monthly hosted game limit. Upgrade to FanGeo Pro for unlimited hosted games, or wait until your next monthly cycle."
+    static let planLockedVenueBanner = "Some of your venues are locked because your business exceeds the free plan limit. Upgrade to FanGeo Pro to reactivate all locations."
+    static let planLockedVenueBadge = "Locked"
+    static let planLockedVenueSubtitle = "Upgrade to FanGeo Pro to reactivate."
+    static let planLockedVenueHostedGameBlocked = "This venue is locked under the current business plan. Upgrade to FanGeo Pro to host games here."
+    static let backendCompatibilityRequired = "FanGeo needs a quick update before this business feature can be used. Please update the app and try again."
+}
+
 struct BusinessEntitlementSnapshot: Decodable, Equatable {
     let business_id: UUID
-    let plan_type: String
-    let plan_status: String
+    let plan_type: String?
+    let plan_status: String?
     let pro_expires_at: String?
     let is_pro_active: Bool
     let days_remaining: Int?
@@ -26,8 +36,8 @@ struct BusinessEntitlementSnapshot: Decodable, Equatable {
     let sponsored_enabled: Bool
     let unlimited_venues: Bool
     let unlimited_hosting: Bool
-    let venue_limit: Int
-    let monthly_host_limit: Int
+    let venue_limit: Int?
+    let monthly_host_limit: Int?
     let venues_used: Int
     let hosted_games_this_month: Int
 }
@@ -52,8 +62,55 @@ struct BusinessVenueGamePostingStatus: Equatable {
     let venueLimit: Int
     let monthlyHostLimit: Int
 
+    var isBusinessPro: Bool { businessProActive }
+    var activeVenueCount: Int { businessVenueCount }
+    var activeVenueLimit: Int? { unlimitedVenues || isBusinessPro ? nil : venueLimit }
+    var monthlyHostedGameLimit: Int? { unlimitedHosting || isBusinessPro ? nil : monthlyHostLimit }
+    var currentMonthHostedGameCount: Int { monthlyHostedGameCount }
+    var hostedGameLimit: Int { monthlyHostLimit }
     var monthlyPostCount: Int { monthlyHostedGameCount }
     var freeLimitReached: Bool { freeMonthlyVenueGameLimitReached }
+
+    private static let proPlanTypes: Set<String> = ["pro_promo", "pro_paid", "manual_pro"]
+    private static let effectivelyUnlimitedMonthlyHostLimit = 10_000
+    private static let effectivelyUnlimitedVenueLimit = 10_000
+
+    var canAddVenue: Bool {
+        if isBusinessPro || unlimitedVenues { return true }
+        return activeVenueCount < max(1, venueLimit)
+    }
+
+    var canAddHostedGame: Bool {
+        if isBusinessPro || unlimitedHosting { return true }
+        return monthlyHostedGameCount < max(1, monthlyHostLimit)
+    }
+
+    var canHostBusinessGames: Bool { canAddHostedGame }
+
+    var venueLimitReason: String {
+        if isBusinessPro { return "business_pro" }
+        if unlimitedVenues { return "unlimited_venues" }
+        if activeVenueCount < max(1, venueLimit) { return "within_active_venue_limit" }
+        return "active_venue_limit_reached"
+    }
+
+    var hostedGameLimitReason: String {
+        if isBusinessPro { return "business_pro" }
+        if unlimitedHosting {
+            if monthlyHostLimitIsEffectivelyUnlimited { return "monthly_host_limit_unlimited" }
+            return "unlimited_hosting"
+        }
+        if monthlyHostedGameCount < max(1, monthlyHostLimit) {
+            return "within_monthly_host_limit"
+        }
+        return "monthly_host_limit_reached"
+    }
+
+    var canHostBusinessGamesReason: String { hostedGameLimitReason }
+
+    private var monthlyHostLimitIsEffectivelyUnlimited: Bool {
+        monthlyHostLimit >= Self.effectivelyUnlimitedMonthlyHostLimit
+    }
 
     static func freeFallback(
         businessId: UUID?,
@@ -83,27 +140,87 @@ struct BusinessVenueGamePostingStatus: Equatable {
         )
     }
 
-    static func fromServer(_ entitlement: BusinessEntitlementSnapshot) -> BusinessVenueGamePostingStatus {
-        let isPromo = entitlement.is_pro_active && entitlement.plan_type == "pro_promo"
+    static func fromServer(
+        _ entitlement: BusinessEntitlementSnapshot,
+        activeVenueCount: Int? = nil
+    ) -> BusinessVenueGamePostingStatus {
+        let rawPlanType = entitlement.plan_type ?? "free"
+        let rawPlanStatus = entitlement.plan_status ?? "active"
+        let planType = rawPlanType.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let planStatus = rawPlanStatus.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let planStatusAllowsProAccess = planStatus.isEmpty || planStatus == "active"
+        let expirationAllowsProAccess: Bool = {
+            guard let raw = entitlement.pro_expires_at?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !raw.isEmpty else {
+                return true
+            }
+            guard let expiry = SupabaseTimestampParsing.parseTimestamptz(raw) else {
+                return false
+            }
+            return expiry > Date()
+        }()
+        let venueLimitIsUnlimited = entitlement.venue_limit == nil
+            || (entitlement.venue_limit ?? 0) >= effectivelyUnlimitedVenueLimit
+        let monthlyLimitIsUnlimited = entitlement.monthly_host_limit == nil
+            || (entitlement.monthly_host_limit ?? 0) >= effectivelyUnlimitedMonthlyHostLimit
+        let activeProPlan = proPlanTypes.contains(planType)
+            && planStatusAllowsProAccess
+            && expirationAllowsProAccess
+        let rawUnlimitedVenuesIsActive = entitlement.unlimited_venues && planStatusAllowsProAccess && expirationAllowsProAccess
+        let rawUnlimitedHostingIsActive = entitlement.unlimited_hosting && planStatusAllowsProAccess && expirationAllowsProAccess
+        let normalizedBusinessProActive = (entitlement.is_pro_active && planStatusAllowsProAccess && expirationAllowsProAccess)
+            || activeProPlan
+            || rawUnlimitedVenuesIsActive
+            || rawUnlimitedHostingIsActive
+        let venueLimitGrantsUnlimitedVenues = venueLimitIsUnlimited
+            && planStatusAllowsProAccess
+            && expirationAllowsProAccess
+            && (normalizedBusinessProActive || planType != "free")
+        let monthlyLimitGrantsUnlimitedHosting = monthlyLimitIsUnlimited
+            && planStatusAllowsProAccess
+            && expirationAllowsProAccess
+            && (normalizedBusinessProActive || planType != "free")
+        let normalizedUnlimitedVenues = normalizedBusinessProActive
+            || venueLimitGrantsUnlimitedVenues
+        let normalizedUnlimitedHosting = normalizedBusinessProActive
+            || monthlyLimitGrantsUnlimitedHosting
+        let normalizedVenueLimit: Int
+        if normalizedUnlimitedVenues {
+            normalizedVenueLimit = entitlement.venue_limit ?? effectivelyUnlimitedVenueLimit
+        } else if venueLimitIsUnlimited {
+            normalizedVenueLimit = BusinessMembershipPolicy.freeVenueListingLimit
+        } else {
+            normalizedVenueLimit = entitlement.venue_limit ?? BusinessMembershipPolicy.freeVenueListingLimit
+        }
+        let normalizedMonthlyHostLimit: Int
+        if normalizedUnlimitedHosting {
+            normalizedMonthlyHostLimit = entitlement.monthly_host_limit ?? effectivelyUnlimitedMonthlyHostLimit
+        } else if monthlyLimitIsUnlimited {
+            normalizedMonthlyHostLimit = BusinessMembershipPolicy.freeMonthlyVenueGameLimit
+        } else {
+            normalizedMonthlyHostLimit = entitlement.monthly_host_limit ?? BusinessMembershipPolicy.freeMonthlyVenueGameLimit
+        }
+        let isPromo = normalizedBusinessProActive && planType == "pro_promo"
+        let venueCount = activeVenueCount ?? entitlement.venues_used
         return BusinessVenueGamePostingStatus(
             promoActive: isPromo,
-            businessVenueCount: entitlement.venues_used,
+            businessVenueCount: venueCount,
             monthlyHostedGameCount: entitlement.hosted_games_this_month,
-            freeVenueListingLimitReached: !entitlement.unlimited_venues && entitlement.venues_used >= entitlement.venue_limit,
-            freeMonthlyVenueGameLimitReached: !entitlement.unlimited_hosting && entitlement.hosted_games_this_month >= entitlement.monthly_host_limit,
+            freeVenueListingLimitReached: !normalizedUnlimitedVenues && venueCount >= normalizedVenueLimit,
+            freeMonthlyVenueGameLimitReached: !normalizedUnlimitedHosting && entitlement.hosted_games_this_month >= normalizedMonthlyHostLimit,
             limitsOverriddenBySummerPromo: isPromo,
-            businessProActive: entitlement.is_pro_active,
+            businessProActive: normalizedBusinessProActive,
             businessId: entitlement.business_id,
-            planType: entitlement.plan_type,
-            planStatus: entitlement.plan_status,
+            planType: rawPlanType,
+            planStatus: rawPlanStatus,
             proExpiresAt: entitlement.pro_expires_at,
             daysRemaining: entitlement.days_remaining,
             statisticsEnabled: entitlement.statistics_enabled,
             sponsoredEnabled: entitlement.sponsored_enabled,
-            unlimitedVenues: entitlement.unlimited_venues,
-            unlimitedHosting: entitlement.unlimited_hosting,
-            venueLimit: entitlement.venue_limit,
-            monthlyHostLimit: entitlement.monthly_host_limit
+            unlimitedVenues: normalizedUnlimitedVenues,
+            unlimitedHosting: normalizedUnlimitedHosting,
+            venueLimit: normalizedVenueLimit,
+            monthlyHostLimit: normalizedMonthlyHostLimit
         )
     }
 }

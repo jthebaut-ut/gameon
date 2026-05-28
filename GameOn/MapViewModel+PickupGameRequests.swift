@@ -53,6 +53,8 @@ private struct PickupAlreadyInvitedUserRow: Decodable {
 extension MapViewModel {
     private static let followingJoinRequestsFreshnessInterval: TimeInterval = 60
     private static let incomingPickupInvitesFreshnessInterval: TimeInterval = 25
+    private static let pickupForegroundRefreshDebounceInterval: TimeInterval = 8
+    private static let pendingPickupJoinRequestCountFreshnessInterval: TimeInterval = 8
 
     func resolvedPickupGameRow(for id: UUID) -> PickupGameRow? {
         if let s = selectedPickupGameForMap, s.id == id { return s }
@@ -194,6 +196,7 @@ extension MapViewModel {
         if !forceRefresh, let inFlight = incomingPickupInvitesLoadTask {
 #if DEBUG
             print("[StartupPrefetchDebug] tier=1 task=pickupInvites coalesced=true")
+            print("[SmoothPerf] operation=pickupInvitesLoad skipped=inFlight durationMs=0 coalesced=true rowCount=\(incomingPickupGameInvites.count)")
 #endif
             await inFlight.value
             return
@@ -204,10 +207,13 @@ extension MapViewModel {
            Date().timeIntervalSince(lastIncomingPickupInvitesLoadAt) < Self.incomingPickupInvitesFreshnessInterval {
 #if DEBUG
             print("[StartupPrefetchDebug] tier=1 task=pickupInvites cacheHit=true")
+            let age = Date().timeIntervalSince(lastIncomingPickupInvitesLoadAt)
+            print("[SmoothPerf] operation=pickupInvitesLoad skipped=fresh durationMs=0 coalesced=false age=\(String(format: "%.1f", age)) rowCount=\(incomingPickupGameInvites.count)")
 #endif
             return
         }
 
+        let startedAt = Date()
         let task = Task<Void, Never> { [weak self] in
             guard let self else { return }
             await self.loadIncomingPickupGameInvitesNow(uid: uid)
@@ -215,6 +221,10 @@ extension MapViewModel {
         incomingPickupInvitesLoadTask = task
         await task.value
         incomingPickupInvitesLoadTask = nil
+#if DEBUG
+        let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
+        print("[SmoothPerf] operation=pickupInvitesLoad skipped=none durationMs=\(ms) coalesced=false rowCount=\(incomingPickupGameInvites.count)")
+#endif
     }
 
     private func loadIncomingPickupGameInvitesNow(uid: UUID) async {
@@ -310,9 +320,25 @@ extension MapViewModel {
 #if DEBUG
         print("[PickupInviteRealtimeDebug] reconnectOnForeground=true")
 #endif
+        if let lastPickupInviteForegroundRefreshAt {
+            let age = Date().timeIntervalSince(lastPickupInviteForegroundRefreshAt)
+            if age < Self.pickupForegroundRefreshDebounceInterval {
+#if DEBUG
+                print("[SmoothPerf] operation=pickupInviteForegroundRefresh skipped=freshForeground durationMs=0 coalesced=false age=\(String(format: "%.1f", age)) avatarCount=0")
+#endif
+                return
+            }
+        }
+
+        let startedAt = Date()
+        lastPickupInviteForegroundRefreshAt = startedAt
         await stopPickupInviteRealtime()
         await ensurePickupInviteRealtimeIfNeeded()
         await loadIncomingPickupGameInvites(forceRefresh: true)
+#if DEBUG
+        let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
+        print("[SmoothPerf] operation=pickupInviteForegroundRefresh skipped=none durationMs=\(ms) coalesced=false rowCount=\(incomingPickupGameInvites.count)")
+#endif
     }
 
     func stopPickupInviteRealtime() async {
@@ -1378,13 +1404,58 @@ extension MapViewModel {
     // MARK: - Organizer pending join requests (Account tab badge)
 
     /// Counts `pickup_game_requests` in `pending` status for active pickup games created by the current fan user.
-    func loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: Bool = true) async {
+    func loadPendingPickupGameJoinRequestCountForCreator(
+        resyncRealtimeSubscription: Bool = true,
+        forceRefresh: Bool = false
+    ) async {
         guard canFanUsePickupGamesUI, let uid = currentUserAuthId else {
             pendingPickupGameJoinRequestCount = 0
             await stopPickupJoinRequestBadgeRealtime()
+#if DEBUG
+            print("[SmoothPerf] operation=pendingPickupRequestBadge skipped=notEligible durationMs=0 coalesced=false rowCount=0")
+#endif
             return
         }
 
+        if !forceRefresh, let inFlight = pendingPickupJoinRequestCountLoadTask {
+#if DEBUG
+            print("[SmoothPerf] operation=pendingPickupRequestBadge skipped=inFlight durationMs=0 coalesced=true")
+#endif
+            await inFlight.value
+            return
+        }
+
+        if !forceRefresh,
+           lastPendingPickupJoinRequestCountUserId == uid,
+           let lastPendingPickupJoinRequestCountLoadAt {
+            let age = Date().timeIntervalSince(lastPendingPickupJoinRequestCountLoadAt)
+            if age < Self.pendingPickupJoinRequestCountFreshnessInterval {
+#if DEBUG
+                print("[SmoothPerf] operation=pendingPickupRequestBadge skipped=fresh durationMs=0 coalesced=false age=\(String(format: "%.1f", age)) rowCount=\(pendingPickupGameJoinRequestCount)")
+#endif
+                return
+            }
+        }
+
+        let startedAt = Date()
+        let task = Task<Void, Never> { [weak self] in
+            guard let self else { return }
+            await self.loadPendingPickupGameJoinRequestCountForCreatorNow(
+                uid: uid,
+                resyncRealtimeSubscription: resyncRealtimeSubscription,
+                startedAt: startedAt
+            )
+        }
+        pendingPickupJoinRequestCountLoadTask = task
+        await task.value
+        pendingPickupJoinRequestCountLoadTask = nil
+    }
+
+    private func loadPendingPickupGameJoinRequestCountForCreatorNow(
+        uid: UUID,
+        resyncRealtimeSubscription: Bool,
+        startedAt: Date
+    ) async {
         struct PickupGameIdOnlyRow: Decodable {
             let id: UUID
         }
@@ -1402,6 +1473,12 @@ extension MapViewModel {
             guard !ids.isEmpty else {
                 pendingPickupGameJoinRequestCount = 0
                 await stopPickupJoinRequestBadgeRealtime()
+                lastPendingPickupJoinRequestCountLoadAt = Date()
+                lastPendingPickupJoinRequestCountUserId = uid
+#if DEBUG
+                let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
+                print("[SmoothPerf] operation=pendingPickupRequestBadge skipped=noHostedGames durationMs=\(ms) coalesced=false rowCount=0")
+#endif
                 return
             }
 
@@ -1412,13 +1489,21 @@ extension MapViewModel {
                 .eq("status", value: "pending")
                 .execute()
             pendingPickupGameJoinRequestCount = response.count ?? 0
+            lastPendingPickupJoinRequestCountLoadAt = Date()
+            lastPendingPickupJoinRequestCountUserId = uid
 
             if resyncRealtimeSubscription {
                 await syncPickupJoinRequestBadgeRealtimeSubscription(trackedGameIds: ids)
             }
+#if DEBUG
+            let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
+            print("[SmoothPerf] operation=pendingPickupRequestBadge skipped=none durationMs=\(ms) coalesced=false rowCount=\(pendingPickupGameJoinRequestCount)")
+#endif
         } catch {
 #if DEBUG
             print("[PickupRequest] pending badge count load failed:", error)
+            let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
+            print("[SmoothPerf] operation=pendingPickupRequestBadge skipped=error durationMs=\(ms) coalesced=false rowCount=\(pendingPickupGameJoinRequestCount)")
 #endif
         }
     }
@@ -1461,7 +1546,10 @@ extension MapViewModel {
             guard let self else { return }
             try? await Task.sleep(nanoseconds: 360_000_000)
             guard !Task.isCancelled else { return }
-            await self.loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: false)
+            await self.loadPendingPickupGameJoinRequestCountForCreator(
+                resyncRealtimeSubscription: false,
+                forceRefresh: true
+            )
             let hostGameIds = await MainActor.run { self.myPickupGamesForSettings.map(\.id) }
             if !hostGameIds.isEmpty {
                 await self.loadOrganizerPickupRequestSummaries(gameIds: hostGameIds)

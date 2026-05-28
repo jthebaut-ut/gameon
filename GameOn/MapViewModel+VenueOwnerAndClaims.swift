@@ -95,6 +95,9 @@ private enum BusinessVenueDeletionError: LocalizedError {
 
 extension MapViewModel {
 
+    static let hostedGameRPCDebugDetailsUserInfoKey = "BusinessHostedGameRPCDebugDetails"
+    static let businessLocationRPCDebugDetailsUserInfoKey = "BusinessLocationRPCDebugDetails"
+
     // MARK: - Discover → claim this business (Phase A; no `venue_id` on insert yet)
 
     /// Captures public venue context from Discover and prefills owner claim/profile fields; requests Account tab + venue owner auth.
@@ -484,10 +487,14 @@ extension MapViewModel {
 #endif
 
         do {
+            let rpcParams = CreateBusinessVenueClaimRPCParams(claim: claim, businessId: businessId)
+#if DEBUG
+            print("[BusinessLocationRPCParams] orderedKeys=\(rpcParams.debugKeys)")
+#endif
             let insertedRows: [VenueClaimInsertedRow] = try await supabase
                 .rpc(
                     "create_business_venue_claim",
-                    params: CreateBusinessVenueClaimRPCParams(claim: claim, businessId: businessId)
+                    params: rpcParams
                 )
                 .execute()
                 .value
@@ -561,6 +568,13 @@ extension MapViewModel {
         } catch {
             print("VENUE CLAIM INSERT ERROR (signup):", error)
 #if DEBUG
+            Self.logVenueSubmissionRPCDebug(
+                rpcName: "create_business_venue_claim",
+                failingQuerySection: "signupVenueClaimInsert",
+                error: error,
+                businessId: businessId,
+                venueId: claim.venue_id
+            )
             print("[BusinessSignup] venue_claim insert error localized=\(error.localizedDescription) full=\(error)")
 #endif
             let dup = VenueClaimDuplicateCheck.userMessageIfKnownInsertError(error)
@@ -725,10 +739,14 @@ extension MapViewModel {
         )
 
         do {
+            let rpcParams = CreateBusinessVenueClaimRPCParams(claim: claim, businessId: businessId)
+#if DEBUG
+            print("[BusinessLocationRPCParams] orderedKeys=\(rpcParams.debugKeys)")
+#endif
             let insertedRows: [VenueClaimInsertedRow] = try await supabase
                 .rpc(
                     "create_business_venue_claim",
-                    params: CreateBusinessVenueClaimRPCParams(claim: claim, businessId: businessId)
+                    params: rpcParams
                 )
                 .execute()
                 .value
@@ -792,6 +810,15 @@ extension MapViewModel {
             await refreshPendingVenueClaimsForSettings()
         } catch {
             print("VENUE CLAIM INSERT ERROR (signup after confirmation):", error)
+#if DEBUG
+            Self.logVenueSubmissionRPCDebug(
+                rpcName: "create_business_venue_claim",
+                failingQuerySection: "emailConfirmationVenueClaimInsert",
+                error: error,
+                businessId: businessId,
+                venueId: claim.venue_id
+            )
+#endif
             let dup = VenueClaimDuplicateCheck.userMessageIfKnownInsertError(error)
             await MainActor.run {
                 venueAuthErrorMessage = dup
@@ -964,12 +991,39 @@ extension MapViewModel {
         isVenueOwnerBusinessDataLoading = true
     }
 
-    /// Active venues for this owner: business-linked rows when present, otherwise legacy `owner_email` rows.
+    /// Managed venues for this owner: active rows plus `plan_locked` rows that remain visible to the business owner.
     func managedVenuesForOwner() -> [VenueProfileRow] {
         if !ownedBusinessVenues.isEmpty {
             return ownedBusinessVenues
         }
         return legacyOwnerVenuesForEmailFallback
+    }
+
+    static func venueAdminStatus(_ raw: String?) -> String {
+        raw?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+    }
+
+    static func venueIsPlanLocked(_ row: VenueProfileRow?) -> Bool {
+        venueAdminStatus(row?.admin_status) == "plan_locked"
+    }
+
+    static func venueIsActiveForBusinessLimit(_ row: VenueProfileRow) -> Bool {
+        let status = venueAdminStatus(row.admin_status)
+        return status.isEmpty || status == "active"
+    }
+
+    static func venueIsOwnerVisibleManagedStatus(_ row: VenueProfileRow) -> Bool {
+        let status = venueAdminStatus(row.admin_status)
+        return status.isEmpty || status == "active" || status == "plan_locked"
+    }
+
+    func selectedManagedVenueIsPlanLocked() -> Bool {
+        guard let selectedVenueID = ownerVenueDatabaseId else { return false }
+        return Self.venueIsPlanLocked(managedVenuesForOwner().first(where: { $0.id == selectedVenueID }))
+    }
+
+    func managedVenuesContainPlanLocked() -> Bool {
+        managedVenuesForOwner().contains { Self.venueIsPlanLocked($0) }
     }
 
     /// True only when at least one ``public.businesses`` row is loaded for this owner (do not infer from claim approval alone).
@@ -1663,15 +1717,137 @@ extension MapViewModel {
         }
     }
 
+    func cancelBusinessVenueClaim(claimId: UUID) async -> Bool {
+        if await businessBanGuardBlocks(path: "venueClaim", action: "cancelBusinessVenueClaim") {
+            return false
+        }
+
+        let snapshot = await MainActor.run { () -> (claim: VenueClaimPendingSettingsRow?, businessId: UUID?, ownerEmail: String, businessName: String?) in
+            let claim = pendingVenueClaimsForSettings.first(where: { $0.id == claimId })
+            let businessId = claim?.business_id ?? currentBusinessIdForAddLocation() ?? ownedBusinesses.first?.id
+            let businessName = businessId.flatMap { id in
+                ownedBusinesses.first(where: { $0.id == id })?.display_name
+            } ?? ownedBusinesses.first?.display_name
+            return (
+                claim,
+                businessId,
+                OwnerBusinessEmail.isValidStrict(OwnerBusinessEmail.normalized(venueOwnerEmail))
+                    ? OwnerBusinessEmail.normalized(venueOwnerEmail)
+                    : OwnerBusinessEmail.normalized(currentUserEmail),
+                businessName?.trimmingCharacters(in: .whitespacesAndNewlines)
+            )
+        }
+
+        guard let claim = snapshot.claim, let businessId = snapshot.businessId else {
+#if DEBUG
+            print("[BusinessVenueClaimCancel] claimId=\(claimId.uuidString) businessId=nil ownerEmail=\(snapshot.ownerEmail) previousStatus=nil newStatus=nil emailSent=false error=missing_claim_or_business")
+#endif
+            return false
+        }
+
+        let ownerEmail = snapshot.ownerEmail
+        let previousStatus = claim.approval_status?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "pending"
+#if DEBUG
+        print("[BusinessVenueClaimCancel] claimId=\(claimId.uuidString) businessId=\(businessId.uuidString) ownerEmail=\(ownerEmail) previousStatus=\(previousStatus)")
+#endif
+
+        do {
+            let rows: [CancelBusinessVenueClaimResult] = try await supabase
+                .rpc(
+                    "cancel_business_venue_claim",
+                    params: CancelBusinessVenueClaimRPCParams(
+                        p_claim_id: claimId,
+                        p_business_id: businessId
+                    )
+                )
+                .execute()
+                .value
+            let result = rows.first
+            let rawNewStatus = result?.new_status?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let rawCancelledAt = result?.cancelled_at?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let newStatus = rawNewStatus.isEmpty ? "cancelled" : rawNewStatus
+            let cancelledAt = rawCancelledAt.isEmpty ? Self.venueClaimCancelTimestamp() : rawCancelledAt
+
+            await MainActor.run {
+                pendingVenueClaimsForSettings.removeAll { $0.id == claimId }
+            }
+
+            var payload = VenueClaimAdminNotifyPayload(
+                claim_id: claimId.uuidString,
+                business_id: businessId.uuidString,
+                venue_id: claim.venue_id?.uuidString,
+                claim_kind: "cancelled_before_review",
+                owner_email: ownerEmail,
+                venue_name: claim.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Submitted venue",
+                venue_address: claim.venue_address?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
+                venue_address_line2: claim.venue_address_line2?.trimmingCharacters(in: .whitespacesAndNewlines),
+                venue_city: claim.venue_city?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
+                venue_state: claim.venue_state?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
+                venue_country: claim.venue_country?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
+                venue_zip_code: "",
+                venue_formatted_address: nil,
+                venue_latitude: nil,
+                venue_longitude: nil,
+                venue_phone: "",
+                venue_website: "",
+                venue_description: "",
+                venue_features: "",
+                screen_count: 0,
+                serves_food: false,
+                has_wifi: false,
+                has_garden: false,
+                has_projector: false,
+                pet_friendly: false,
+                family_friendly: false,
+                parking_available: false,
+                proof_note: "",
+                cover_photo_url: "",
+                menu_photo_url: "",
+                photo_urls: [],
+                created_at: claim.created_at ?? "",
+                approval_status: newStatus
+            )
+            payload.business_name = snapshot.businessName
+            payload.previous_status = result?.previous_status ?? previousStatus
+            payload.new_status = newStatus
+            payload.cancelled_at = cancelledAt
+            payload.cancellation_note = "The business owner cancelled this venue request before approval/rejection."
+
+            let emailSent = await sendVenueClaimAdminEmail(payload: payload)
+#if DEBUG
+            print("[BusinessVenueClaimCancel] claimId=\(claimId.uuidString) businessId=\(businessId.uuidString) ownerEmail=\(ownerEmail) previousStatus=\(previousStatus) newStatus=\(newStatus) emailSent=\(emailSent)")
+#endif
+
+            await refreshPendingVenueClaimsForSettings()
+            await refreshVenueClaimStatusLineFromDatabase()
+            return true
+        } catch {
+#if DEBUG
+            print("[BusinessVenueClaimCancel] claimId=\(claimId.uuidString) businessId=\(businessId.uuidString) ownerEmail=\(ownerEmail) previousStatus=\(previousStatus) newStatus=nil emailSent=false error=\(error.localizedDescription)")
+#endif
+            await refreshPendingVenueClaimsForSettings()
+            await refreshVenueClaimStatusLineFromDatabase()
+            return false
+        }
+    }
+
     private static func isVenueClaimRejectionAcknowledged(_ rejectionAcknowledgedAt: String?) -> Bool {
         let t = rejectionAcknowledgedAt?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return !t.isEmpty
+    }
+
+    private static func venueClaimCancelTimestamp() -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter.string(from: Date())
     }
 
     private static func isPendingUnapprovedClaimStatus(_ status: String?) -> Bool {
         let s = status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
         if isApprovedClaimStatus(status) { return false }
         if s == "released" { return false }
+        if s == "business_deleted" { return false }
+        if s == "cancelled" || s == "canceled" || s == "withdrawn" { return false }
         if s.contains("reject") { return false }
         return true
     }
@@ -1789,7 +1965,7 @@ extension MapViewModel {
             .from("venues")
             .select()
             .in("id", values: idStrings)
-            .eq("admin_status", value: "active")
+            .in("admin_status", values: ["active", "plan_locked"])
             .execute()
             .value
     }
@@ -1811,7 +1987,49 @@ extension MapViewModel {
         let approval_status: String?
     }
 
+    private struct CancelBusinessVenueClaimRPCParams: Encodable {
+        let p_claim_id: UUID
+        let p_business_id: UUID
+    }
+
+    private struct CancelBusinessVenueClaimResult: Decodable {
+        let claim_id: UUID?
+        let business_id: UUID?
+        let previous_status: String?
+        let new_status: String?
+        let cancelled_at: String?
+    }
+
     private struct CreateBusinessVenueClaimRPCParams: Encodable {
+        enum CodingKeys: String, CodingKey {
+            case p_business_id
+            case p_owner_email
+            case p_venue_id
+            case p_venue_name
+            case p_venue_address
+            case p_venue_address_line2
+            case p_venue_city
+            case p_venue_state
+            case p_venue_country
+            case p_venue_zip_code
+            case p_venue_formatted_address
+            case p_venue_latitude
+            case p_venue_longitude
+            case p_venue_phone
+            case p_venue_website
+            case p_venue_description
+            case p_venue_features
+            case p_screen_count
+            case p_serves_food
+            case p_has_wifi
+            case p_has_garden
+            case p_has_projector
+            case p_pet_friendly
+            case p_cover_photo_url
+            case p_menu_photo_url
+            case p_proof_note
+        }
+
         let p_business_id: UUID
         let p_owner_email: String
         let p_venue_id: UUID?
@@ -1867,22 +2085,162 @@ extension MapViewModel {
             p_menu_photo_url = claim.menu_photo_url
             p_proof_note = claim.proof_note
         }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(p_business_id, forKey: .p_business_id)
+            try container.encode(p_owner_email, forKey: .p_owner_email)
+            if let p_venue_id {
+                try container.encode(p_venue_id, forKey: .p_venue_id)
+            } else {
+                try container.encodeNil(forKey: .p_venue_id)
+            }
+            try container.encode(p_venue_name, forKey: .p_venue_name)
+            try container.encode(p_venue_address, forKey: .p_venue_address)
+            if let p_venue_address_line2 {
+                try container.encode(p_venue_address_line2, forKey: .p_venue_address_line2)
+            } else {
+                try container.encodeNil(forKey: .p_venue_address_line2)
+            }
+            try container.encode(p_venue_city, forKey: .p_venue_city)
+            try container.encode(p_venue_state, forKey: .p_venue_state)
+            try container.encode(p_venue_country, forKey: .p_venue_country)
+            try container.encode(p_venue_zip_code, forKey: .p_venue_zip_code)
+            if let p_venue_formatted_address {
+                try container.encode(p_venue_formatted_address, forKey: .p_venue_formatted_address)
+            } else {
+                try container.encodeNil(forKey: .p_venue_formatted_address)
+            }
+            if let p_venue_latitude {
+                try container.encode(p_venue_latitude, forKey: .p_venue_latitude)
+            } else {
+                try container.encodeNil(forKey: .p_venue_latitude)
+            }
+            if let p_venue_longitude {
+                try container.encode(p_venue_longitude, forKey: .p_venue_longitude)
+            } else {
+                try container.encodeNil(forKey: .p_venue_longitude)
+            }
+            try container.encode(p_venue_phone, forKey: .p_venue_phone)
+            try container.encode(p_venue_website, forKey: .p_venue_website)
+            try container.encode(p_venue_description, forKey: .p_venue_description)
+            try container.encode(p_venue_features, forKey: .p_venue_features)
+            try container.encode(p_screen_count, forKey: .p_screen_count)
+            try container.encode(p_serves_food, forKey: .p_serves_food)
+            try container.encode(p_has_wifi, forKey: .p_has_wifi)
+            try container.encode(p_has_garden, forKey: .p_has_garden)
+            try container.encode(p_has_projector, forKey: .p_has_projector)
+            try container.encode(p_pet_friendly, forKey: .p_pet_friendly)
+            try container.encode(p_cover_photo_url, forKey: .p_cover_photo_url)
+            try container.encode(p_menu_photo_url, forKey: .p_menu_photo_url)
+            try container.encode(p_proof_note, forKey: .p_proof_note)
+        }
+
+        var debugSignature: String {
+            [
+                "p_business_id:uuid",
+                "p_owner_email:text present=\(!p_owner_email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_venue_id:uuid? present=\(p_venue_id != nil)",
+                "p_venue_name:text present=\(!p_venue_name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_venue_address:text present=\(!p_venue_address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_venue_address_line2:text? present=\(p_venue_address_line2?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false)",
+                "p_venue_city:text present=\(!p_venue_city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_venue_state:text present=\(!p_venue_state.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_venue_country:text present=\(!p_venue_country.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_venue_zip_code:text present=\(!p_venue_zip_code.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_venue_formatted_address:text? present=\(p_venue_formatted_address?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false)",
+                "p_venue_latitude:double precision? present=\(p_venue_latitude != nil)",
+                "p_venue_longitude:double precision? present=\(p_venue_longitude != nil)",
+                "p_venue_phone:text present=\(!p_venue_phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_venue_website:text present=\(!p_venue_website.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_venue_description:text present=\(!p_venue_description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_venue_features:text present=\(!p_venue_features.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_screen_count:integer",
+                "p_serves_food:boolean",
+                "p_has_wifi:boolean",
+                "p_has_garden:boolean",
+                "p_has_projector:boolean",
+                "p_pet_friendly:boolean",
+                "p_cover_photo_url:text present=\(!p_cover_photo_url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_menu_photo_url:text present=\(!p_menu_photo_url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_proof_note:text present=\(!p_proof_note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)"
+            ].joined(separator: ", ")
+        }
+
+        var debugKeys: String {
+            [
+                "p_business_id",
+                "p_owner_email",
+                "p_venue_id",
+                "p_venue_name",
+                "p_venue_address",
+                "p_venue_address_line2",
+                "p_venue_city",
+                "p_venue_state",
+                "p_venue_country",
+                "p_venue_zip_code",
+                "p_venue_formatted_address",
+                "p_venue_latitude",
+                "p_venue_longitude",
+                "p_venue_phone",
+                "p_venue_website",
+                "p_venue_description",
+                "p_venue_features",
+                "p_screen_count",
+                "p_serves_food",
+                "p_has_wifi",
+                "p_has_garden",
+                "p_has_projector",
+                "p_pet_friendly",
+                "p_cover_photo_url",
+                "p_menu_photo_url",
+                "p_proof_note"
+            ].joined(separator: ",")
+        }
     }
 
     private struct CreateBusinessHostedGameRPCParams: Encodable {
+        enum CodingKeys: String, CodingKey {
+            case p_business_id
+            case p_venue_id
+            case p_owner_email
+            case p_venue_name
+            case p_event_title
+            case p_sport
+            case p_home_team
+            case p_away_team
+            case p_external_league
+            case p_event_date
+            case p_event_time
+            case p_external_game_id
+            case p_external_source
+            case p_imported_from_api
+            case p_sound_on
+            case p_audio_type
+            case p_drink_special
+            case p_cover_charge
+            case p_expected_crowd
+            case p_available_seating
+            case p_reservations_available
+            case p_waitlist_available
+            case p_admin_status
+            case p_scheduled_start_at
+            case p_cleanup_delay_hours
+        }
+
         let p_business_id: UUID
         let p_venue_id: UUID?
         let p_owner_email: String
         let p_venue_name: String
         let p_event_title: String
         let p_sport: String
-        let p_home_team: String?
-        let p_away_team: String?
-        let p_external_league: String?
+        let p_home_team: String
+        let p_away_team: String
+        let p_external_league: String
         let p_event_date: String
         let p_event_time: String
-        let p_external_game_id: String?
-        let p_external_source: String?
+        let p_external_game_id: String
+        let p_external_source: String
         let p_imported_from_api: Bool
         let p_sound_on: Bool
         let p_audio_type: String
@@ -1903,13 +2261,14 @@ extension MapViewModel {
             p_venue_name = game.venue_name
             p_event_title = game.event_title
             p_sport = game.sport
-            p_home_team = game.home_team
-            p_away_team = game.away_team
-            p_external_league = game.external_league
+            p_home_team = game.home_team?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            p_away_team = game.away_team?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            p_external_league = game.external_league?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             p_event_date = game.event_date
             p_event_time = game.event_time
-            p_external_game_id = game.external_game_id
-            p_external_source = game.external_source
+            p_external_game_id = game.external_game_id?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let externalSource = game.external_source?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            p_external_source = externalSource.isEmpty ? "manual" : externalSource
             p_imported_from_api = game.imported_from_api
             p_sound_on = game.sound_on
             p_audio_type = game.audio_type
@@ -1922,6 +2281,99 @@ extension MapViewModel {
             p_admin_status = game.admin_status
             p_scheduled_start_at = game.scheduled_start_at
             p_cleanup_delay_hours = game.cleanup_delay_hours
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(p_business_id, forKey: .p_business_id)
+            if let p_venue_id {
+                try container.encode(p_venue_id, forKey: .p_venue_id)
+            } else {
+                try container.encodeNil(forKey: .p_venue_id)
+            }
+            try container.encode(p_owner_email, forKey: .p_owner_email)
+            try container.encode(p_venue_name, forKey: .p_venue_name)
+            try container.encode(p_event_title, forKey: .p_event_title)
+            try container.encode(p_sport, forKey: .p_sport)
+            try container.encode(p_home_team, forKey: .p_home_team)
+            try container.encode(p_away_team, forKey: .p_away_team)
+            try container.encode(p_external_league, forKey: .p_external_league)
+            try container.encode(p_event_date, forKey: .p_event_date)
+            try container.encode(p_event_time, forKey: .p_event_time)
+            try container.encode(p_external_game_id, forKey: .p_external_game_id)
+            try container.encode(p_external_source, forKey: .p_external_source)
+            try container.encode(p_imported_from_api, forKey: .p_imported_from_api)
+            try container.encode(p_sound_on, forKey: .p_sound_on)
+            try container.encode(p_audio_type, forKey: .p_audio_type)
+            try container.encode(p_drink_special, forKey: .p_drink_special)
+            try container.encode(p_cover_charge, forKey: .p_cover_charge)
+            try container.encode(p_expected_crowd, forKey: .p_expected_crowd)
+            try container.encode(p_available_seating, forKey: .p_available_seating)
+            try container.encode(p_reservations_available, forKey: .p_reservations_available)
+            try container.encode(p_waitlist_available, forKey: .p_waitlist_available)
+            try container.encode(p_admin_status, forKey: .p_admin_status)
+            try container.encode(p_scheduled_start_at, forKey: .p_scheduled_start_at)
+            try container.encode(p_cleanup_delay_hours, forKey: .p_cleanup_delay_hours)
+        }
+
+        var debugSignature: String {
+            [
+                "p_business_id:uuid",
+                "p_venue_id:uuid? present=\(p_venue_id != nil)",
+                "p_owner_email:text present=\(!p_owner_email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_venue_name:text present=\(!p_venue_name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_event_title:text present=\(!p_event_title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_sport:text present=\(!p_sport.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_home_team:text present=\(!p_home_team.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_away_team:text present=\(!p_away_team.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_external_league:text present=\(!p_external_league.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_event_date:text present=\(!p_event_date.isEmpty)",
+                "p_event_time:text present=\(!p_event_time.isEmpty)",
+                "p_external_game_id:text present=\(!p_external_game_id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_external_source:text present=\(!p_external_source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_imported_from_api:boolean",
+                "p_sound_on:boolean",
+                "p_audio_type:text present=\(!p_audio_type.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_drink_special:text present=\(!p_drink_special.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_cover_charge:text present=\(!p_cover_charge.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_expected_crowd:text present=\(!p_expected_crowd.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_available_seating:text present=\(!p_available_seating.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_reservations_available:boolean",
+                "p_waitlist_available:boolean",
+                "p_admin_status:text present=\(!p_admin_status.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_scheduled_start_at:text present=\(!p_scheduled_start_at.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)",
+                "p_cleanup_delay_hours:integer"
+            ].joined(separator: ", ")
+        }
+
+        var debugKeys: String {
+            [
+                "p_business_id",
+                "p_venue_id",
+                "p_owner_email",
+                "p_venue_name",
+                "p_event_title",
+                "p_sport",
+                "p_home_team",
+                "p_away_team",
+                "p_external_league",
+                "p_event_date",
+                "p_event_time",
+                "p_external_game_id",
+                "p_external_source",
+                "p_imported_from_api",
+                "p_sound_on",
+                "p_audio_type",
+                "p_drink_special",
+                "p_cover_charge",
+                "p_expected_crowd",
+                "p_available_seating",
+                "p_reservations_available",
+                "p_waitlist_available",
+                "p_admin_status",
+                "p_scheduled_start_at",
+                "p_cleanup_delay_hours"
+            ].joined(separator: ",")
         }
     }
 
@@ -2015,6 +2467,44 @@ extension MapViewModel {
                 print("[VenueClaimNotify] notification failed error=\(error.localizedDescription) full=\(error)")
 #endif
             }
+        }
+    }
+
+    /// Awaitable variant used when a user-facing flow needs to log whether the admin email queued.
+    @discardableResult
+    private func sendVenueClaimAdminEmail(payload: VenueClaimAdminNotifyPayload) async -> Bool {
+        let bodyData: Data
+        do {
+            bodyData = try JSONEncoder().encode(payload)
+        } catch {
+#if DEBUG
+            print("[VenueClaimNotify] encode failed:", error)
+#endif
+            return false
+        }
+
+        struct NotifyResponse: Decodable { let ok: Bool?; let error: String?; let detail: String? }
+        do {
+            let response: NotifyResponse = try await supabase.functions.invoke(
+                "notify-venue-claim",
+                options: FunctionInvokeOptions(method: .post, body: bodyData)
+            )
+            return response.ok == true
+        } catch let error as FunctionsError {
+#if DEBUG
+            if case let .httpError(status, data) = error {
+                let body = String(data: data, encoding: .utf8) ?? "<non-utf8 body>"
+                print("[VenueClaimNotify] notification failed error=\(error.localizedDescription) httpStatus=\(status) body=\(body) full=\(error)")
+            } else {
+                print("[VenueClaimNotify] notification failed error=\(error.localizedDescription) full=\(error)")
+            }
+#endif
+            return false
+        } catch {
+#if DEBUG
+            print("[VenueClaimNotify] notification failed error=\(error.localizedDescription) full=\(error)")
+#endif
+            return false
         }
     }
 
@@ -2169,6 +2659,9 @@ extension MapViewModel {
 
     /// Inserts a Phase C1 “add location” claim: ``venue_id`` nil, ``business_id`` set, no ``venues`` row until admin approval.
     func submitAddLocationClaim(form: AddLocationClaimForm) async -> String? {
+#if DEBUG
+        businessLocationRPCDebugDetails = ""
+#endif
         if await businessBanGuardBlocks(path: "addLocation", action: "submitAddLocationClaim") {
             return "Your account is suspended."
         }
@@ -2184,12 +2677,21 @@ extension MapViewModel {
             return "Could not find a business account for this request."
         }
 
-        let serverAllowsVenueClaim = await canBusinessCreateVenueServerSide(businessId: businessId)
+        let venueListingStatus = await businessVenueGamePostingStatus(storeKitBusinessProActive: false)
+        let serverAllowsVenueClaim = venueListingStatus.canAddVenue
+        let sessionUserId: UUID?
+        do {
+            let activeSession = try await supabase.auth.session
+            sessionUserId = activeSession.user.id
+        } catch {
+            sessionUserId = nil
+        }
+        let currentAuthenticatedUserId = currentUserAuthId ?? sessionUserId
 #if DEBUG
-        print("[BusinessEntitlementGate] businessId=\(businessId.uuidString.lowercased()) operation=createVenue allowed=\(serverAllowsVenueClaim) reason=\(serverAllowsVenueClaim ? "serverAllowed" : "venueLimitReached")")
+        print("[BusinessEntitlementGate] businessId=\(businessId.uuidString.lowercased()) operation=createVenue allowed=\(serverAllowsVenueClaim) reason=\(venueListingStatus.venueLimitReason)")
 #endif
         guard serverAllowsVenueClaim else {
-            return "Free businesses can list 5 venues. Upgrade to Business Pro for unlimited venue listings."
+            return BusinessLimitCopy.venueLimitReached
         }
 
         if let err = validationErrorForAddLocationClaimForm(form) {
@@ -2212,10 +2714,16 @@ extension MapViewModel {
         let claim = await venueClaimInsertForBusinessAddLocation(ownerEmail: email, businessId: businessId, form: form)
 
         do {
+            let rpcName = "create_business_venue_claim"
+            let rpcParams = CreateBusinessVenueClaimRPCParams(claim: claim, businessId: businessId)
+#if DEBUG
+            print("[BusinessLocationRPCParams] orderedKeys=\(rpcParams.debugKeys)")
+            print("[BusinessLocationRPCStart] businessId=\(businessId.uuidString.lowercased()) venueId=\(claim.venue_id?.uuidString.lowercased() ?? "nil") authUserId=\(currentAuthenticatedUserId?.uuidString.lowercased() ?? "nil") ownerEmail=\(email) canAddVenue=\(serverAllowsVenueClaim) entitlement=\(Self.businessLocationEntitlementDebugSummary(venueListingStatus)) rpcName=\(rpcName) paramsKeys=\(rpcParams.debugKeys)")
+#endif
             let insertedRows: [VenueClaimInsertedRow] = try await supabase
                 .rpc(
-                    "create_business_venue_claim",
-                    params: CreateBusinessVenueClaimRPCParams(claim: claim, businessId: businessId)
+                    rpcName,
+                    params: rpcParams
                 )
                 .execute()
                 .value
@@ -2230,6 +2738,7 @@ extension MapViewModel {
             let vn = claim.venue_name
             print("[AddLocation] submitting full location request via RPC business_id=\(businessId.uuidString) venue_name=\(vn) screen_count=\(claim.screen_count) features_len=\(claim.venue_features.count)")
             print("[BusinessEntitlementGate] businessId=\(businessId.uuidString.lowercased()) operation=createVenue allowed=true reason=rpcInserted")
+            print("[BusinessLocationRPCSuccess] businessId=\(businessId.uuidString.lowercased()) venueId=\(claim.venue_id?.uuidString.lowercased() ?? "nil") authUserId=\(currentAuthenticatedUserId?.uuidString.lowercased() ?? "nil") ownerEmail=\(email) canAddVenue=\(serverAllowsVenueClaim) entitlement=\(Self.businessLocationEntitlementDebugSummary(venueListingStatus)) rpcName=\(rpcName) paramsKeys=\(rpcParams.debugKeys) returnedRows=\(insertedRows.count)")
 #endif
             let notifyPayload = venueClaimAdminNotifyPayloadFromInsert(
                 claim: claim,
@@ -2245,6 +2754,29 @@ extension MapViewModel {
             await refreshPendingVenueClaimsForSettings()
             return nil
         } catch {
+#if DEBUG
+            let rpcParams = CreateBusinessVenueClaimRPCParams(claim: claim, businessId: businessId)
+            let debugDetails = Self.businessLocationRPCDebugDetails(
+                error,
+                businessId: businessId,
+                venueId: claim.venue_id,
+                authUserId: currentAuthenticatedUserId,
+                ownerEmail: email,
+                canAddVenue: serverAllowsVenueClaim,
+                listingStatus: venueListingStatus,
+                rpcName: "create_business_venue_claim",
+                params: rpcParams
+            )
+            businessLocationRPCDebugDetails = debugDetails
+            Self.logVenueSubmissionRPCDebug(
+                rpcName: "create_business_venue_claim",
+                failingQuerySection: "submitAddLocationClaim",
+                error: error,
+                businessId: businessId,
+                venueId: claim.venue_id
+            )
+            print("[BusinessLocationRPCFailure] \(debugDetails.replacingOccurrences(of: "\n", with: " | "))")
+#endif
             print("ERROR SUBMITTING ADD LOCATION CLAIM:", error)
             return VenueClaimDuplicateCheck.userMessageIfKnownInsertError(error)
                 ?? Self.businessEntitlementGateUserMessage(error)
@@ -2289,12 +2821,37 @@ extension MapViewModel {
 
     private func sortedManagedVenues(_ rows: [VenueProfileRow]) -> [VenueProfileRow] {
         rows.sorted {
+            let aLocked = Self.venueIsPlanLocked($0)
+            let bLocked = Self.venueIsPlanLocked($1)
+            if aLocked != bLocked { return !aLocked && bLocked }
             let a = $0.venue_name ?? ""
             let b = $1.venue_name ?? ""
             if a == b, let ia = $0.id, let ib = $1.id { return ia.uuidString < ib.uuidString }
             return a.localizedCaseInsensitiveCompare(b) == .orderedAscending
         }
     }
+
+#if DEBUG
+    private static func logBusinessPlanLockTransitions(
+        previousStatusByVenueID: [UUID: String],
+        currentRows: [VenueProfileRow],
+        fallbackBusinessId: UUID?,
+        planType: String,
+        planStatus: String
+    ) {
+        let activeVenueCount = Set(currentRows.filter(venueIsActiveForBusinessLimit).compactMap(\.id)).count
+        for row in currentRows {
+            guard let venueId = row.id else { continue }
+            let currentStatusRaw = venueAdminStatus(row.admin_status)
+            let currentStatus = currentStatusRaw.isEmpty ? "active" : currentStatusRaw
+            let previousStatus = previousStatusByVenueID[venueId] ?? "unknown"
+            guard currentStatus == "plan_locked" || previousStatus == "plan_locked" else { continue }
+            let downgradeDetected = currentStatus == "plan_locked" && previousStatus != "plan_locked"
+            let businessId = row.business_id ?? fallbackBusinessId
+            print("[BusinessPlanLock] businessId=\(businessId?.uuidString.lowercased() ?? "nil") venueId=\(venueId.uuidString.lowercased()) previousStatus=\(previousStatus) newStatus=\(currentStatus) activeVenueCount=\(activeVenueCount) planType=\(planType) planStatus=\(planStatus) downgradeDetected=\(downgradeDetected)")
+        }
+    }
+#endif
 
     private func applySelectedVenueAfterBusinessLoad() {
         let managed = managedVenuesForOwner()
@@ -2429,8 +2986,9 @@ extension MapViewModel {
         }
     }
 
-    func updateManagedVenueProfileCaches(_ saved: VenueProfileRow) {
-        guard let savedId = saved.id else { return }
+    @discardableResult
+    func updateManagedVenueProfileCaches(_ saved: VenueProfileRow) -> Bool {
+        guard let savedId = saved.id else { return false }
         var updated = false
         ownedBusinessVenues = ownedBusinessVenues.map { row in
             if row.id == savedId {
@@ -2448,8 +3006,153 @@ extension MapViewModel {
         }
         if !updated, ownedBusinessVenues.isEmpty {
             legacyOwnerVenuesForEmailFallback.append(saved)
+            updated = true
         }
         print("[VenuePhotoSaveDebug] cacheUpdatedPhotoURL=\(saved.cover_photo_url ?? "")")
+        return updated
+    }
+
+    func refreshVenuePhotoDisplayStateAfterProfileSave(_ saved: VenueProfileRow) async {
+        guard let venueId = saved.id else { return }
+
+        let oldCoverPhotoURL = venuePhotoDebugCoverURL(for: venueId)
+        let oldCacheURLs = venuePhotoCacheInvalidationURLs(for: venueId, saved: nil)
+        let businessVenueRowUpdated = updateManagedVenueProfileCaches(saved)
+        applyVenueProfileRowToOwnerState(saved)
+
+        var discoverVenueUpdated = false
+        bars = bars.map { bar in
+            guard bar.id == venueId else { return bar }
+            discoverVenueUpdated = true
+            return Self.copyBarVenue(bar, applyingVenueProfile: saved)
+        }
+
+        if let selected = selectedBar, selected.id == venueId {
+            selectedBar = Self.copyBarVenue(selected, applyingVenueProfile: saved)
+        }
+        let selectedVenueUpdated = selectedBar?.id == venueId
+
+        followingTabSavedVenues = followingTabSavedVenues.map { bar in
+            guard bar.id == venueId else { return bar }
+            return Self.copyBarVenue(bar, applyingVenueProfile: saved)
+        }
+
+        let newCacheURLs = venuePhotoCacheInvalidationURLs(for: venueId, saved: saved)
+        let invalidationURLs = Array(Set(oldCacheURLs + newCacheURLs))
+        let cacheInvalidated = !invalidationURLs.isEmpty
+        if cacheInvalidated {
+            await DiscoverMapImageCache.shared.invalidate(urls: invalidationURLs)
+        }
+
+#if DEBUG
+        print("[VenuePhotoRefreshDebug] venueId=\(venueId.uuidString.lowercased())")
+        print("[VenuePhotoRefreshDebug] oldCoverPhotoURL=\(oldCoverPhotoURL)")
+        print("[VenuePhotoRefreshDebug] newCoverPhotoURL=\(saved.cover_photo_url ?? "")")
+        print("[VenuePhotoRefreshDebug] cacheInvalidated=\(cacheInvalidated)")
+        print("[VenuePhotoRefreshDebug] selectedVenueUpdated=\(selectedVenueUpdated)")
+        print("[VenuePhotoRefreshDebug] discoverVenueUpdated=\(discoverVenueUpdated)")
+        print("[VenuePhotoRefreshDebug] businessVenueRowUpdated=\(businessVenueRowUpdated)")
+#endif
+    }
+
+    private func venuePhotoDebugCoverURL(for venueId: UUID) -> String {
+        let candidates = [
+            selectedBar?.id == venueId ? selectedBar?.coverPhotoURL : nil,
+            bars.first(where: { $0.id == venueId })?.coverPhotoURL,
+            ownedBusinessVenues.first(where: { $0.id == venueId })?.cover_photo_url,
+            legacyOwnerVenuesForEmailFallback.first(where: { $0.id == venueId })?.cover_photo_url,
+            ownerVenueDatabaseId == venueId ? venueCoverPhotoURL : nil
+        ]
+        return candidates
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .first { !$0.isEmpty } ?? ""
+    }
+
+    private func venuePhotoCacheInvalidationURLs(for venueId: UUID, saved: VenueProfileRow?) -> [URL] {
+        let managed = ownedBusinessVenues.first(where: { $0.id == venueId })
+        let legacy = legacyOwnerVenuesForEmailFallback.first(where: { $0.id == venueId })
+        let bar = bars.first(where: { $0.id == venueId })
+        let selected = selectedBar?.id == venueId ? selectedBar : nil
+        let raw = [
+            saved?.cover_photo_url,
+            saved?.cover_photo_thumbnail_url,
+            saved?.menu_photo_url,
+            saved?.menu_photo_thumbnail_url,
+            managed?.cover_photo_url,
+            managed?.cover_photo_thumbnail_url,
+            managed?.menu_photo_url,
+            managed?.menu_photo_thumbnail_url,
+            legacy?.cover_photo_url,
+            legacy?.cover_photo_thumbnail_url,
+            legacy?.menu_photo_url,
+            legacy?.menu_photo_thumbnail_url,
+            bar?.coverPhotoURL,
+            bar?.coverPhotoThumbnailURL,
+            bar?.menuPhotoURL,
+            bar?.menuPhotoThumbnailURL,
+            selected?.coverPhotoURL,
+            selected?.coverPhotoThumbnailURL,
+            selected?.menuPhotoURL,
+            selected?.menuPhotoThumbnailURL,
+            ownerVenueDatabaseId == venueId ? venueCoverPhotoURL : nil,
+            ownerVenueDatabaseId == venueId ? venueCoverPhotoThumbnailURL : nil,
+            ownerVenueDatabaseId == venueId ? venueMenuPhotoURL : nil,
+            ownerVenueDatabaseId == venueId ? venueMenuPhotoThumbnailURL : nil
+        ]
+
+        var seen = Set<String>()
+        return raw.compactMap { value -> URL? in
+            let trimmed = ImageDisplayURL.canonicalStorageURLString(value)
+            guard !trimmed.isEmpty, seen.insert(trimmed).inserted else { return nil }
+            return URL(string: trimmed)
+        }
+    }
+
+    private static func copyBarVenue(_ bar: BarVenue, applyingVenueProfile saved: VenueProfileRow) -> BarVenue {
+        let coordinate: CLLocationCoordinate2D = {
+            guard let lat = saved.latitude,
+                  let lon = saved.longitude else {
+                return bar.coordinate
+            }
+            let candidate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+            return CLLocationCoordinate2DIsValid(candidate) ? candidate : bar.coordinate
+        }()
+
+        return BarVenue(
+            id: bar.id,
+            name: saved.venue_name ?? bar.name,
+            address: saved.formatted_address ?? saved.address ?? bar.address,
+            phone: saved.phone ?? bar.phone,
+            primarySport: bar.primarySport,
+            distance: bar.distance,
+            rating: bar.rating,
+            tags: bar.tags,
+            games: bar.games,
+            coordinate: coordinate,
+            goingCounts: bar.goingCounts,
+            screenCount: saved.screen_count ?? bar.screenCount,
+            servesFood: saved.serves_food ?? bar.servesFood,
+            hasWifi: saved.has_wifi ?? bar.hasWifi,
+            hasGarden: saved.has_garden ?? bar.hasGarden,
+            hasProjector: saved.has_projector ?? bar.hasProjector,
+            petFriendly: saved.pet_friendly ?? bar.petFriendly,
+            rawVenueFeatures: saved.features ?? bar.rawVenueFeatures,
+            coverPhotoURL: saved.cover_photo_url ?? bar.coverPhotoURL,
+            menuPhotoURL: saved.menu_photo_url ?? bar.menuPhotoURL,
+            coverPhotoThumbnailURL: saved.cover_photo_thumbnail_url ?? bar.coverPhotoThumbnailURL,
+            menuPhotoThumbnailURL: saved.menu_photo_thumbnail_url ?? bar.menuPhotoThumbnailURL,
+            ownerEmail: saved.owner_email ?? bar.ownerEmail,
+            businessId: saved.business_id ?? bar.businessId,
+            adminStatus: saved.admin_status ?? bar.adminStatus,
+            communityType: saved.community_type ?? bar.communityType,
+            placeType: saved.place_type ?? bar.placeType,
+            sportTags: saved.sport_tags ?? bar.sportTags,
+            venueOwnerEmailRaw: saved.owner_email ?? bar.venueOwnerEmailRaw,
+            businessOwnerEmailRaw: bar.businessOwnerEmailRaw,
+            contactEmailRaw: bar.contactEmailRaw,
+            supporterCountry: saved.supporter_country ?? bar.supporterCountry,
+            originType: saved.origin_type ?? bar.originType
+        )
     }
 
     @MainActor
@@ -2842,6 +3545,12 @@ extension MapViewModel {
 #endif
             return false
         }
+        if selectedManagedVenueIsPlanLocked() {
+#if DEBUG
+            print("[VenueSupporterIdentityDebug] save blocked venueId=\(venueId.uuidString.lowercased()) reason=plan_locked")
+#endif
+            return false
+        }
 #if DEBUG
         print("[VenueSupporterIdentityDebug] save venueId=\(venueId.uuidString.lowercased()) supporterCountry=\(normalized ?? "nil")")
         print("[VenueSupporterIdentityDebug] backendGuard=rpc_update_venue_supporter_country")
@@ -2995,7 +3704,15 @@ extension MapViewModel {
         }
 
         do {
-            let previousApprovedVenueIds = Set(managedVenuesForOwner().compactMap(\.id))
+            let previousManagedVenueRows = managedVenuesForOwner()
+            let previousApprovedVenueIds = Set(previousManagedVenueRows.compactMap(\.id))
+            let previousStatusByVenueID = Dictionary(
+                uniqueKeysWithValues: previousManagedVenueRows.compactMap { row -> (UUID, String)? in
+                    guard let id = row.id else { return nil }
+                    let status = Self.venueAdminStatus(row.admin_status)
+                    return (id, status.isEmpty ? "active" : status)
+                }
+            )
             let authUid = await MainActor.run { currentUserAuthId }
 
             var businessesFromEmail: [BusinessRow] = []
@@ -3024,6 +3741,12 @@ extension MapViewModel {
             let businesses = Self.dedupeBusinessRowsPreservingOrder(
                 businessesFromEmail + businessesFromUser + claimLinkedBusinesses
             )
+            let planLockEntitlement: BusinessEntitlementSnapshot?
+            if let business = businesses.first {
+                planLockEntitlement = await loadBusinessEntitlements(businessId: business.id)
+            } else {
+                planLockEntitlement = nil
+            }
 
             var archivedFromEmail: [BusinessRow] = []
             if OwnerBusinessEmail.isValidStrict(emailTrimmed) {
@@ -3058,7 +3781,7 @@ extension MapViewModel {
                     .from("venues")
                     .select()
                     .in("business_id", values: idStrings)
-                    .eq("admin_status", value: "active")
+                    .in("admin_status", values: ["active", "plan_locked"])
                     .execute()
                     .value
             }
@@ -3069,7 +3792,7 @@ extension MapViewModel {
                 .from("venues")
                 .select()
                 .eq("owner_email", value: emailTrimmed)
-                .eq("admin_status", value: "active")
+                .in("admin_status", values: ["active", "plan_locked"])
                 .execute()
                 .value
 
@@ -3097,7 +3820,7 @@ extension MapViewModel {
                                 .from("venues")
                                 .select()
                                 .in("business_id", values: newIdStrings)
-                                .eq("admin_status", value: "active")
+                                .in("admin_status", values: ["active", "plan_locked"])
                                 .execute()
                                 .value
                             venueRowsByBusiness = Self.dedupeVenueProfileRowsPreservingOrder(
@@ -3114,7 +3837,7 @@ extension MapViewModel {
                     .from("venues")
                     .select()
                     .eq("owner_user_id", value: authUid)
-                    .eq("admin_status", value: "active")
+                    .in("admin_status", values: ["active", "plan_locked"])
                     .execute()
                     .value
             }
@@ -3129,6 +3852,15 @@ extension MapViewModel {
             let approvedManagedVenueIds = Set(mergedVenues.compactMap(\.id))
             let newlyApprovedManagedVenueIds = approvedManagedVenueIds.subtracting(previousApprovedVenueIds)
             let coordinateBackfilledVenueIds = await backfillApprovedManagedVenueCoordinatesIfNeeded(mergedVenues)
+#if DEBUG
+            Self.logBusinessPlanLockTransitions(
+                previousStatusByVenueID: previousStatusByVenueID,
+                currentRows: mergedVenues,
+                fallbackBusinessId: planLockEntitlement?.business_id,
+                planType: planLockEntitlement?.plan_type ?? "unknown",
+                planStatus: planLockEntitlement?.plan_status ?? "unknown"
+            )
+#endif
 
             await MainActor.run {
                 ownedBusinesses = resolvedBusinesses
@@ -3601,7 +4333,7 @@ extension MapViewModel {
                     .from("venues")
                     .select()
                     .eq("id", value: vid.uuidString.lowercased())
-                    .eq("admin_status", value: "active")
+                    .in("admin_status", values: ["active", "plan_locked"])
                     .limit(1)
                     .execute()
                     .value
@@ -3622,7 +4354,7 @@ extension MapViewModel {
                 .from("venues")
                 .select()
                 .eq("owner_email", value: email)
-                .eq("admin_status", value: "active")
+                .in("admin_status", values: ["active", "plan_locked"])
                 .limit(1)
                 .execute()
                 .value
@@ -3662,6 +4394,12 @@ extension MapViewModel {
         do {
             let ownerEmailRow = OwnerBusinessEmail.normalized(venueOwnerEmail)
             guard OwnerBusinessEmail.isValidStrict(ownerEmailRow) else { return false }
+            if selectedManagedVenueIsPlanLocked() {
+#if DEBUG
+                print("[VenueDetailsLock] save blocked reason=plan_locked venueId=\(ownerVenueDatabaseId?.uuidString.lowercased() ?? "nil")")
+#endif
+                return false
+            }
 
             let pendingCoverMatchesSelectedVenue = pendingVenueCoverPhotoVenueID == nil || pendingVenueCoverPhotoVenueID == ownerVenueDatabaseId
             let pendingMenuMatchesSelectedVenue = pendingVenueMenuPhotoVenueID == nil || pendingVenueMenuPhotoVenueID == ownerVenueDatabaseId
@@ -3894,21 +4632,18 @@ extension MapViewModel {
             }
 
             print("VENUE PROFILE SAVED")
-            await loadVenuesFromSupabase(forceRefresh: true)
-#if DEBUG
-            print("[VenueFeatureDebug] propagatedToDiscover=true")
-#endif
             if let saved = await loadVenueProfile() {
-                await MainActor.run {
-                    updateManagedVenueProfileCaches(saved)
-                    applyVenueProfileRowToOwnerState(saved)
-                }
+                await refreshVenuePhotoDisplayStateAfterProfileSave(saved)
 #if DEBUG
                 print("[VenueFeatureDebug] selectedFeatures=\(saved.features ?? "")")
                 print("[VenueFeatureDebug] businessSelectedFeatures=\(saved.features ?? "")")
 #endif
                 print("[VenuePhotoSaveDebug] savedDatabasePhotoURL=\(saved.cover_photo_url ?? "")")
             }
+            await loadVenuesFromSupabase(forceRefresh: true)
+#if DEBUG
+            print("[VenueFeatureDebug] propagatedToDiscover=true")
+#endif
             return true
 
         } catch {
@@ -4150,16 +4885,38 @@ extension MapViewModel {
             )
         }
 
-        let serverAllowsHostedGame = await canBusinessHostGameServerSide(businessId: businessId)
+        if selectedManagedVenueIsPlanLocked() {
 #if DEBUG
-        print("[BusinessEntitlementGate] businessId=\(businessId.uuidString.lowercased()) operation=hostGame allowed=\(serverAllowsHostedGame) reason=\(serverAllowsHostedGame ? "serverAllowed" : "monthlyHostLimitReached")")
+            print("[BusinessEntitlementGate] businessId=\(businessId.uuidString.lowercased()) operation=hostGame allowed=false reason=plan_locked venueId=\(ownerVenueDatabaseId?.uuidString.lowercased() ?? "nil")")
+#endif
+            return .failure(
+                NSError(
+                    domain: "VenueGameListing",
+                    code: 403,
+                    userInfo: [NSLocalizedDescriptionKey: BusinessLimitCopy.planLockedVenueHostedGameBlocked]
+                )
+            )
+        }
+
+        let hostingStatus = await businessVenueGamePostingStatus(storeKitBusinessProActive: false)
+        let serverAllowsHostedGame = hostingStatus.canHostBusinessGames
+        let sessionUserId: UUID?
+        do {
+            let activeSession = try await supabase.auth.session
+            sessionUserId = activeSession.user.id
+        } catch {
+            sessionUserId = nil
+        }
+        let currentAuthenticatedUserId = currentUserAuthId ?? sessionUserId
+#if DEBUG
+        print("[BusinessEntitlementGate] businessId=\(businessId.uuidString.lowercased()) operation=hostGame allowed=\(serverAllowsHostedGame) reason=\(hostingStatus.canHostBusinessGamesReason)")
 #endif
         guard serverAllowsHostedGame else {
             return .failure(
                 NSError(
                     domain: "VenueGameListing",
                     code: 403,
-                    userInfo: [NSLocalizedDescriptionKey: "Free businesses can host 5 games per month. Upgrade to Business Pro for unlimited hosting."]
+                    userInfo: [NSLocalizedDescriptionKey: BusinessLimitCopy.hostedGameLimitReached]
                 )
             )
         }
@@ -4180,6 +4937,7 @@ extension MapViewModel {
         let trimmedExternalLeague = externalLeague?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let trimmedHomeTeam = homeTeam?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let trimmedAwayTeam = awayTeam?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        var rpcDebugParams: CreateBusinessHostedGameRPCParams?
 
         do {
             let dateFormatter = DateFormatter()
@@ -4222,15 +4980,23 @@ extension MapViewModel {
                 cleanup_delay_hours: retentionHours
             )
 
+            let rpcName = "create_business_hosted_game"
+            let rpcParams = CreateBusinessHostedGameRPCParams(game: newGame, businessId: businessId)
+            rpcDebugParams = rpcParams
+#if DEBUG
+            print("[HostedGameRPCParams] orderedKeys=\(rpcParams.debugKeys)")
+            print("[HostedGameRPCStart] businessId=\(businessId.uuidString.lowercased()) venueId=\(ownerVenueDatabaseId?.uuidString.lowercased() ?? "nil") authUserId=\(currentAuthenticatedUserId?.uuidString.lowercased() ?? "nil") ownerEmail=\(ownerRowEmail) canHostBusinessGames=\(serverAllowsHostedGame) entitlement=\(Self.businessHostedGameEntitlementDebugSummary(hostingStatus)) rpcName=\(rpcName) paramsKeys=\(rpcParams.debugKeys)")
+#endif
             let inserted: [VenueEventRow] = try await supabase
                 .rpc(
-                    "create_business_hosted_game",
-                    params: CreateBusinessHostedGameRPCParams(game: newGame, businessId: businessId)
+                    rpcName,
+                    params: rpcParams
                 )
                 .execute()
                 .value
 #if DEBUG
             print("[BusinessEntitlementGate] businessId=\(businessId.uuidString.lowercased()) operation=hostGame allowed=true reason=rpcInserted")
+            print("[HostedGameRPCSuccess] businessId=\(businessId.uuidString.lowercased()) venueId=\(ownerVenueDatabaseId?.uuidString.lowercased() ?? "nil") authUserId=\(currentAuthenticatedUserId?.uuidString.lowercased() ?? "nil") ownerEmail=\(ownerRowEmail) canHostBusinessGames=\(serverAllowsHostedGame) entitlement=\(Self.businessHostedGameEntitlementDebugSummary(hostingStatus)) rpcName=\(rpcName) paramsKeys=\(rpcParams.debugKeys) returnedRows=\(inserted.count)")
 #endif
 
             guard let row = inserted.first else {
@@ -4266,17 +5032,189 @@ extension MapViewModel {
             print("GAME LISTING SAVED")
             return .success(row)
         } catch {
+#if DEBUG
+            let debugDetails = Self.businessHostedGameRPCDebugDetails(
+                error,
+                businessId: businessId,
+                venueId: ownerVenueDatabaseId,
+                authUserId: currentAuthenticatedUserId,
+                ownerEmail: ownerRowEmail,
+                canHostBusinessGames: serverAllowsHostedGame,
+                hostingStatus: hostingStatus,
+                rpcName: "create_business_hosted_game",
+                params: rpcDebugParams
+            )
+            print("[HostedGameRPCFailure] \(debugDetails.replacingOccurrences(of: "\n", with: " | "))")
+            logBusinessHostedGameRPCDebug(
+                error,
+                businessId: businessId,
+                venueId: ownerVenueDatabaseId,
+                authUserId: currentAuthenticatedUserId,
+                ownerEmail: ownerRowEmail,
+                canHostBusinessGames: serverAllowsHostedGame,
+                hostingStatus: hostingStatus,
+                params: rpcDebugParams
+            )
+#endif
             print("ERROR SAVING GAME LISTING:", error)
             let message = Self.userFacingVenueGameScheduleOrSaveError(error)
+            var userInfo: [String: Any] = [NSLocalizedDescriptionKey: message]
+#if DEBUG
+            userInfo[Self.hostedGameRPCDebugDetailsUserInfoKey] = debugDetails
+#endif
             return .failure(
                 NSError(
                     domain: "VenueGameListing",
                     code: 3,
-                    userInfo: [NSLocalizedDescriptionKey: message]
+                    userInfo: userInfo
                 )
             )
         }
     }
+
+#if DEBUG
+    private func logBusinessHostedGameRPCDebug(
+        _ error: Error,
+        businessId: UUID,
+        venueId: UUID?,
+        authUserId: UUID?,
+        ownerEmail: String,
+        canHostBusinessGames: Bool,
+        hostingStatus: BusinessVenueGamePostingStatus,
+        params: CreateBusinessHostedGameRPCParams?
+    ) {
+        let details = Self.businessHostedGameRPCDebugDetails(
+            error,
+            businessId: businessId,
+            venueId: venueId,
+            authUserId: authUserId,
+            ownerEmail: ownerEmail,
+            canHostBusinessGames: canHostBusinessGames,
+            hostingStatus: hostingStatus,
+            rpcName: "create_business_hosted_game",
+            params: params
+        )
+        for line in details.split(separator: "\n", omittingEmptySubsequences: false) {
+            print("[BusinessHostedGameRPCDebug] \(line)")
+        }
+    }
+
+    private static func businessHostedGameEntitlementDebugSummary(_ status: BusinessVenueGamePostingStatus) -> String {
+        [
+            "businessId=\(status.businessId?.uuidString.lowercased() ?? "nil")",
+            "businessProActive=\(status.businessProActive)",
+            "isBusinessPro=\(status.isBusinessPro)",
+            "planType=\(status.planType)",
+            "planStatus=\(status.planStatus)",
+            "proExpiresAt=\(status.proExpiresAt ?? "nil")",
+            "unlimitedHosting=\(status.unlimitedHosting)",
+            "monthlyHostLimit=\(status.monthlyHostLimit)",
+            "monthlyHostedGameCount=\(status.monthlyHostedGameCount)",
+            "canHostBusinessGames=\(status.canHostBusinessGames)",
+            "reason=\(status.canHostBusinessGamesReason)"
+        ].joined(separator: " ")
+    }
+
+    private static func businessLocationEntitlementDebugSummary(_ status: BusinessVenueGamePostingStatus) -> String {
+        [
+            "businessId=\(status.businessId?.uuidString.lowercased() ?? "nil")",
+            "businessProActive=\(status.businessProActive)",
+            "isBusinessPro=\(status.isBusinessPro)",
+            "planType=\(status.planType)",
+            "planStatus=\(status.planStatus)",
+            "proExpiresAt=\(status.proExpiresAt ?? "nil")",
+            "unlimitedVenues=\(status.unlimitedVenues)",
+            "activeVenueLimit=\(status.activeVenueLimit.map(String.init) ?? "unlimited")",
+            "activeVenueCount=\(status.activeVenueCount)",
+            "canAddVenue=\(status.canAddVenue)",
+            "reason=\(status.venueLimitReason)"
+        ].joined(separator: " ")
+    }
+
+    private static func businessLocationRPCDebugDetails(
+        _ error: Error,
+        businessId: UUID,
+        venueId: UUID?,
+        authUserId: UUID?,
+        ownerEmail: String,
+        canAddVenue: Bool,
+        listingStatus: BusinessVenueGamePostingStatus,
+        rpcName: String,
+        params: CreateBusinessVenueClaimRPCParams?
+    ) -> String {
+        let nsError = error as NSError
+        let missingRPC = businessEntitlementGateErrorIsMissingRpc(error)
+        return [
+            "rpcName=\(rpcName)",
+            "failingQuerySection=submitAddLocationClaim",
+            "postgresError=\(error.localizedDescription)",
+            "businessId=\(businessId.uuidString.lowercased())",
+            "venueId=\(venueId?.uuidString.lowercased() ?? "nil")",
+            "authUserId=\(authUserId?.uuidString.lowercased() ?? "nil")",
+            "ownerEmail=\(ownerEmail)",
+            "canAddVenue=\(canAddVenue)",
+            "entitlement=\(businessLocationEntitlementDebugSummary(listingStatus))",
+            "localizedDescription=\(error.localizedDescription)",
+            "fullReflectedError=\(String(reflecting: error))",
+            "nsErrorDomain=\(nsError.domain)",
+            "nsErrorCode=\(nsError.code)",
+            "nsErrorUserInfo=\(String(describing: nsError.userInfo))",
+            "missingRPCDetection=\(missingRPC)",
+            "paramsKeys=\(params?.debugKeys ?? "unavailable-before-rpc-params-built")",
+            "paramsShape=\(params?.debugSignature ?? "unavailable-before-rpc-params-built")",
+            "expectedSQLSignature=create_business_venue_claim(p_business_id uuid, p_owner_email text, p_venue_id uuid, p_venue_name text, p_venue_address text, p_venue_address_line2 text, p_venue_city text, p_venue_state text, p_venue_country text, p_venue_zip_code text, p_venue_formatted_address text, p_venue_latitude double precision, p_venue_longitude double precision, p_venue_phone text, p_venue_website text, p_venue_description text, p_venue_features text, p_screen_count integer, p_serves_food boolean, p_has_wifi boolean, p_has_garden boolean, p_has_projector boolean, p_pet_friendly boolean, p_cover_photo_url text, p_menu_photo_url text, p_proof_note text)",
+            "schemaCacheReloadSQL=NOTIFY pgrst, 'reload schema';"
+        ].joined(separator: "\n")
+    }
+
+    private static func logVenueSubmissionRPCDebug(
+        rpcName: String,
+        failingQuerySection: String,
+        error: Error,
+        businessId: UUID,
+        venueId: UUID?
+    ) {
+        print("[VenueSubmissionRPCDebug] rpcName=\(rpcName)")
+        print("[VenueSubmissionRPCDebug] failingQuerySection=\(failingQuerySection)")
+        print("[VenueSubmissionRPCDebug] postgresError=\(error.localizedDescription)")
+        print("[VenueSubmissionRPCDebug] businessId=\(businessId.uuidString.lowercased())")
+        print("[VenueSubmissionRPCDebug] venueId=\(venueId?.uuidString.lowercased() ?? "nil")")
+    }
+
+    private static func businessHostedGameRPCDebugDetails(
+        _ error: Error,
+        businessId: UUID,
+        venueId: UUID?,
+        authUserId: UUID?,
+        ownerEmail: String,
+        canHostBusinessGames: Bool,
+        hostingStatus: BusinessVenueGamePostingStatus,
+        rpcName: String,
+        params: CreateBusinessHostedGameRPCParams?
+    ) -> String {
+        let nsError = error as NSError
+        let missingRPC = businessEntitlementGateErrorIsMissingRpc(error)
+        return [
+            "businessId=\(businessId.uuidString.lowercased())",
+            "venueId=\(venueId?.uuidString.lowercased() ?? "nil")",
+            "authUserId=\(authUserId?.uuidString.lowercased() ?? "nil")",
+            "ownerEmail=\(ownerEmail)",
+            "canHostBusinessGames=\(canHostBusinessGames)",
+            "entitlement=\(businessHostedGameEntitlementDebugSummary(hostingStatus))",
+            "rpcName=\(rpcName)",
+            "localizedDescription=\(error.localizedDescription)",
+            "fullReflectedError=\(String(reflecting: error))",
+            "nsErrorDomain=\(nsError.domain)",
+            "nsErrorCode=\(nsError.code)",
+            "nsErrorUserInfo=\(String(describing: nsError.userInfo))",
+            "missingRPCDetection=\(missingRPC)",
+            "paramsKeys=\(params?.debugKeys ?? "unavailable-before-rpc-params-built")",
+            "paramsShape=\(params?.debugSignature ?? "unavailable-before-rpc-params-built")",
+            "expectedSQLSignature=create_business_hosted_game(p_business_id uuid, p_venue_id uuid, p_owner_email text, p_venue_name text, p_event_title text, p_sport text, p_home_team text, p_away_team text, p_external_league text, p_event_date text, p_event_time text, p_external_game_id text, p_external_source text, p_imported_from_api boolean, p_sound_on boolean, p_audio_type text, p_drink_special text, p_cover_charge text, p_expected_crowd text, p_available_seating text, p_reservations_available boolean, p_waitlist_available boolean, p_admin_status text, p_scheduled_start_at text, p_cleanup_delay_hours integer)",
+            "schemaCacheReloadSQL=NOTIFY pgrst, 'reload schema';"
+        ].joined(separator: "\n")
+    }
+#endif
 
     private static func userFacingVenueGameScheduleOrSaveError(_ error: Error) -> String {
         let raw = error.localizedDescription
@@ -4304,21 +5242,36 @@ extension MapViewModel {
         let s = error.localizedDescription.lowercased()
         if s.contains("free businesses can list 1 venue")
             || s.contains("free businesses can list 5 venues")
-            || s.contains("venue listings") {
-            return "Free businesses can list 5 venues. Upgrade to Business Pro for unlimited venue listings."
+            || s.contains("venue listings")
+            || s.contains("active venue") {
+            return BusinessLimitCopy.venueLimitReached
         }
         if s.contains("free businesses can host 5 games")
             || s.contains("unlimited hosting")
             || s.contains("monthly host") {
-            return "Free businesses can host 5 games per month. Upgrade to Business Pro for unlimited hosting."
+            return BusinessLimitCopy.hostedGameLimitReached
         }
-        if s.contains("create_business_venue_claim") {
-            return "Please update FanGeo to add business locations."
+        if s.contains("plan_locked")
+            || s.contains("locked under the current business plan") {
+            return BusinessLimitCopy.planLockedVenueHostedGameBlocked
         }
-        if s.contains("create_business_hosted_game") {
-            return "Please update FanGeo to host business games."
+        if s.contains("create_business_venue_claim"),
+           businessEntitlementGateErrorIsMissingRpc(error) {
+            return BusinessLimitCopy.backendCompatibilityRequired
+        }
+        if s.contains("create_business_hosted_game"),
+           businessEntitlementGateErrorIsMissingRpc(error) {
+            return BusinessLimitCopy.backendCompatibilityRequired
         }
         return nil
+    }
+
+    private static func businessEntitlementGateErrorIsMissingRpc(_ error: Error) -> Bool {
+        let s = error.localizedDescription.lowercased()
+        return s.contains("could not find the function")
+            || s.contains("schema cache")
+            || s.contains("undefined function")
+            || s.contains("pgrst202")
     }
 
     func venueGameImportDuplicateExists(
@@ -4379,10 +5332,52 @@ extension MapViewModel {
         let id: UUID?
     }
 
-    /// Updates only `event_title` for a venue-owned game (Manage Games title edit).
+    /// Updates only `event_title` for imported games; manual games may also correct stored participant/team names.
     func updateVenueGameEventTitle(id: UUID, newTitle: String) async -> String? {
+        await updateVenueGameEventDetails(
+            id: id,
+            newTitle: newTitle,
+            homeTeam: nil,
+            awayTeam: nil,
+            allowTeamEdits: false
+        )
+    }
+
+    func updateVenueGameEventDetails(
+        id: UUID,
+        newTitle: String,
+        homeTeam: String?,
+        awayTeam: String?,
+        allowTeamEdits: Bool
+    ) async -> String? {
         struct VenueEventTitlePatch: Encodable {
             let event_title: String
+        }
+        struct VenueEventManualDetailsPatch: Encodable {
+            enum CodingKeys: String, CodingKey {
+                case event_title
+                case home_team
+                case away_team
+            }
+
+            let event_title: String
+            let home_team: String?
+            let away_team: String?
+
+            func encode(to encoder: Encoder) throws {
+                var container = encoder.container(keyedBy: CodingKeys.self)
+                try container.encode(event_title, forKey: .event_title)
+                if let home_team {
+                    try container.encode(home_team, forKey: .home_team)
+                } else {
+                    try container.encodeNil(forKey: .home_team)
+                }
+                if let away_team {
+                    try container.encode(away_team, forKey: .away_team)
+                } else {
+                    try container.encodeNil(forKey: .away_team)
+                }
+            }
         }
 
         if await businessBanGuardBlocks(path: "venueGame", action: "updateVenueGameEventTitle") {
@@ -4393,20 +5388,64 @@ extension MapViewModel {
         guard !trimmed.isEmpty else { return "Title can’t be empty." }
 
         do {
-            let patch = VenueEventTitlePatch(event_title: trimmed)
-            let _: [VenueEventRow] = try await supabase
+            let existingRows: [VenueEventRow] = try await supabase
                 .from("venue_events")
-                .update(patch)
+                .select("id,venue_id,owner_email,venue_name,event_title,sport,home_team,away_team,event_date,event_time,scheduled_start_at,cleanup_delay_hours,purge_after_at,external_league,external_game_id,external_source,imported_from_api,admin_status,created_at")
                 .eq("id", value: id.uuidString.lowercased())
-                .select()
+                .limit(1)
                 .execute()
                 .value
 
+            guard let existing = existingRows.first else {
+                return "Could not find that hosted game."
+            }
+
+            let canEditTeams = allowTeamEdits && Self.venueEventAllowsManualTeamEdits(existing)
+            if canEditTeams {
+                let patch = VenueEventManualDetailsPatch(
+                    event_title: trimmed,
+                    home_team: Self.trimmedNilableVenueGameTeam(homeTeam),
+                    away_team: Self.trimmedNilableVenueGameTeam(awayTeam)
+                )
+                let _: [VenueEventRow] = try await supabase
+                    .from("venue_events")
+                    .update(patch)
+                    .eq("id", value: id.uuidString.lowercased())
+                    .select()
+                    .execute()
+                    .value
+            } else {
+                let patch = VenueEventTitlePatch(event_title: trimmed)
+                let _: [VenueEventRow] = try await supabase
+                    .from("venue_events")
+                    .update(patch)
+                    .eq("id", value: id.uuidString.lowercased())
+                    .select()
+                    .execute()
+                    .value
+            }
+
             return nil
         } catch {
-            print("ERROR UPDATING VENUE GAME TITLE:", error)
+            print("ERROR UPDATING VENUE GAME DETAILS:", error)
             return error.localizedDescription
         }
+    }
+
+    private static func venueEventAllowsManualTeamEdits(_ row: VenueEventRow) -> Bool {
+        if row.imported_from_api == true { return false }
+        let externalSource = row.external_source?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased() ?? ""
+        let externalGameID = row.external_game_id?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return externalGameID.isEmpty
+            && (externalSource.isEmpty || externalSource == "manual")
+    }
+
+    private static func trimmedNilableVenueGameTeam(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     func updateVenueGameListing(

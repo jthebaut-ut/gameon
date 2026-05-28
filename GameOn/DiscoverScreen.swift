@@ -12,6 +12,26 @@ private enum GuestDiscoverLockedCopy {
         "Log in or create a FanGeo account to view details, join pickup games, save venues, and unlock the full FanGeo experience."
 }
 
+private enum DiscoverPreviewDateFormatters {
+    static let sqlDay: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar.current
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone.current
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
+
+    static let sqlDayWithShortTime: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar.current
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd h:mm a"
+        formatter.timeZone = TimeZone.current
+        return formatter
+    }()
+}
+
 #if DEBUG
 @MainActor
 private enum VenueHeroCrashDebugTracker {
@@ -362,7 +382,7 @@ private struct PickupPlaceClusterSheetView: View {
         if text.contains("soccer") { return "soccerball" }
         if text.contains("basketball") { return "basketball.fill" }
         if text.contains("baseball") || text.contains("softball") { return "baseball.fill" }
-        if text.contains("tennis") || text.contains("pickleball") { return "figure.tennis" }
+        if text.contains("tennis") || text.contains("pickleball") || text.contains("badminton") { return "figure.tennis" }
         if text.contains("volleyball") { return "volleyball.fill" }
         return "sportscourt.fill"
     }
@@ -4117,7 +4137,7 @@ struct DiscoverScreen: View {
             .zIndex(display.isSelected ? 30 : 10)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Pickup \(row.sport), \(display.needed) spots open, \(row.title)")
+        .accessibilityLabel("Pickup \(AppSportCatalog.displayLabel(forSportToken: row.sport)), \(display.needed) spots open, \(row.title)")
     }
 
     private func pickupPlacePrimarySport(_ place: PickupPlaceRow) -> String {
@@ -4133,7 +4153,7 @@ struct DiscoverScreen: View {
         if text.contains("soccer") { return "soccerball" }
         if text.contains("basketball") { return "basketball.fill" }
         if text.contains("baseball") || text.contains("softball") { return "baseball.fill" }
-        if text.contains("tennis") || text.contains("pickleball") { return "figure.tennis" }
+        if text.contains("tennis") || text.contains("pickleball") || text.contains("badminton") { return "figure.tennis" }
         if text.contains("volleyball") { return "volleyball.fill" }
         return "sportscourt.fill"
     }
@@ -4258,7 +4278,7 @@ struct DiscoverScreen: View {
                         .font(FGTypography.sectionTitle)
                         .foregroundStyle(mainInk)
                         .lineLimit(2)
-                    Text("\(sport) • \(placeType)")
+                    Text("\(AppSportCatalog.displayLabel(forSportToken: sport)) • \(placeType)")
                         .font(FGTypography.metadata.weight(.medium))
                         .foregroundStyle(subInk)
                         .lineLimit(2)
@@ -4373,7 +4393,7 @@ struct DiscoverScreen: View {
             if guestMapsActionsToLogin {
                 return "Sign in to see schedule, location, and roster details"
             }
-            return "\(row.sport) • \(row.skillLevelEnum.displayTitle) • \(row.playEnvironmentEnum.shortLabel)"
+            return "\(AppSportCatalog.displayLabel(forSportToken: row.sport)) • \(row.skillLevelEnum.displayTitle) • \(row.playEnvironmentEnum.shortLabel)"
         }()
         let sportTint = viewModel.colorForSport(row.sport)
         let sportEmoji = viewModel.emojiForSport(row.sport)
@@ -4436,7 +4456,7 @@ struct DiscoverScreen: View {
                 } label: {
                     VStack(alignment: .leading, spacing: 7) {
                         GameFormatBadgeView(format: row.gameFormat, colorScheme: colorScheme)
-                        Text(guestMapsActionsToLogin ? row.sport : row.title)
+                        Text(guestMapsActionsToLogin ? AppSportCatalog.displayLabel(forSportToken: row.sport) : row.title)
                             .font(FGTypography.sectionTitle)
                             .foregroundStyle(mainInk)
                             .multilineTextAlignment(.leading)
@@ -4459,6 +4479,19 @@ struct DiscoverScreen: View {
                             if showStarted {
                                 PickupGameStartedLineCaption()
                                     .padding(.top, 2)
+                            }
+                        }
+
+                        if !guestMapsActionsToLogin {
+                            HStack(alignment: .top, spacing: 8) {
+                                Image(systemName: "person.2.fill")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(FGColor.accentGreen)
+                                Text(row.participantAudienceDisplayTitle)
+                                    .font(FGTypography.caption.weight(.medium))
+                                    .foregroundStyle(subInk)
+                                    .lineLimit(2)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
                         }
 
@@ -5619,12 +5652,7 @@ struct DiscoverScreen: View {
     }
 
     private func venuePreviewFanZoneDateString(for date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar.current
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone.current
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.string(from: date)
+        DiscoverPreviewDateFormatters.sqlDay.string(from: date)
     }
 
     private func venuePreviewFanZoneCacheKey(venueID: UUID, date: Date) -> String {
@@ -7400,12 +7428,7 @@ struct DiscoverScreen: View {
     }
 
     private func venuePreviewOrderSQLDayString(for date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar.current
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone.current
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.string(from: date)
+        DiscoverPreviewDateFormatters.sqlDay.string(from: date)
     }
 
     private func logVenueGameOrderDebug(events: [SportsEvent], bar: BarVenue) {
@@ -7755,6 +7778,8 @@ struct DiscoverScreen: View {
             return "MMA"
         case "tennis":
             return "Tennis"
+        case "badminton", "shuttlecock":
+            return "Badminton"
         case "formula 1", "formula1", "formula one", "f1", "racing":
             return "Formula 1"
         default:
@@ -8315,39 +8340,20 @@ struct DiscoverScreen: View {
             return nil
         }
 
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar.current
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "yyyy-MM-dd h:mm a"
-        formatter.timeZone = TimeZone.current
-        return formatter.date(from: "\(day) \(time)")
+        return DiscoverPreviewDateFormatters.sqlDayWithShortTime.date(from: "\(day) \(time)")
     }
 
     private func venuePredictionFallbackDay(for row: VenueEventRow) -> Date? {
         guard let day = trimmedNonEmpty(row.event_date) else { return nil }
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar.current
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.timeZone = TimeZone.current
-        return formatter.date(from: day)
+        return DiscoverPreviewDateFormatters.sqlDay.date(from: day)
     }
 
     private func venuePredictionFallbackStartDate(for event: SportsEvent) -> Date? {
         let time = event.time.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !time.isEmpty, time.lowercased() != "time tbd" else { return nil }
-        let dayFormatter = DateFormatter()
-        dayFormatter.calendar = Calendar.current
-        dayFormatter.locale = Locale(identifier: "en_US_POSIX")
-        dayFormatter.dateFormat = "yyyy-MM-dd"
-        dayFormatter.timeZone = TimeZone.current
-
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar.current
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "yyyy-MM-dd h:mm a"
-        formatter.timeZone = TimeZone.current
-        return formatter.date(from: "\(dayFormatter.string(from: event.date)) \(time)")
+        return DiscoverPreviewDateFormatters.sqlDayWithShortTime.date(
+            from: "\(DiscoverPreviewDateFormatters.sqlDay.string(from: event.date)) \(time)"
+        )
     }
 
     private func trimmedNonEmpty(_ value: String?) -> String? {
@@ -9136,7 +9142,7 @@ struct DiscoverScreen: View {
                         }
                 }
             }
-            Text(gamesToday.count == 1 ? gamesToday.first?.sport ?? bar.primarySport : "\(gamesToday.count) games")
+            Text(gamesToday.count == 1 ? AppSportCatalog.displayLabel(forSportToken: gamesToday.first?.sport ?? bar.primarySport) : "\(gamesToday.count) games")
                 .font(.caption2)
                 .fontWeight(.bold)
                 .foregroundStyle(isPro ? proVenueGlyphInk.opacity(0.92) : .white)
@@ -9358,7 +9364,9 @@ private struct DiscoverOverlaySportPillRow: View {
             if !DiscoverOverlaySportChip.isPinnedPopularSelection(viewModel.selectedSport) {
                 DiscoverOverlaySportPill(
                     selection: viewModel.selectedSport,
-                    label: viewModel.selectedSport,
+                    label: viewModel.selectedSport == viewModel.selectedSport.lowercased()
+                        ? AppSportCatalog.displayLabel(forSportToken: viewModel.selectedSport)
+                        : viewModel.selectedSport,
                     isSelected: true,
                     action: { onSelect(viewModel.selectedSport) }
                 )

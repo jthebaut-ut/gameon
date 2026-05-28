@@ -1256,6 +1256,8 @@ struct LiveScreen: View {
             return "Find Football Bars"
         case .tennis:
             return "Find Tennis Bars"
+        case .badminton:
+            return "Find Badminton Venues"
         case .golf:
             return "Find Golf Bars"
         case .formula1, .other:
@@ -1277,6 +1279,8 @@ struct LiveScreen: View {
             return "NFL"
         case .tennis:
             return "Tennis"
+        case .badminton:
+            return "badminton"
         case .golf:
             return "Golf"
         case .formula1, .other:
@@ -1796,7 +1800,7 @@ struct LiveScreen: View {
                         .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundStyle(FGColor.primaryText(colorScheme))
                         .lineLimit(2)
-                    Text("\(pickup.sport) pickup · \(pickupStartDisplay(for: pickup))")
+                    Text("\(AppSportCatalog.displayLabel(forSportToken: pickup.sport)) pickup · \(pickupStartDisplay(for: pickup))")
                         .font(FGTypography.caption)
                         .foregroundStyle(FGColor.secondaryText(colorScheme))
                         .lineLimit(1)
@@ -1933,7 +1937,7 @@ struct LiveScreen: View {
                         .font(FGTypography.cardTitle)
                         .foregroundStyle(FGColor.primaryText(colorScheme))
                         .lineLimit(2)
-                    Text("\(row.sport) pickup · \(pickupStartDisplay(for: row))")
+                    Text("\(AppSportCatalog.displayLabel(forSportToken: row.sport)) pickup · \(pickupStartDisplay(for: row))")
                         .font(FGTypography.caption)
                         .foregroundStyle(FGColor.secondaryText(colorScheme))
                         .lineLimit(1)

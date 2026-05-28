@@ -1073,9 +1073,9 @@ struct SettingsScreen: View {
             }
         } label: {
             settingsRow(
-                title: settingsBusinessMembershipStatus?.businessProActive == true ? "Business Pro active" : "Business Pro",
+                title: settingsBusinessMembershipStatus?.businessProActive == true ? "Business Pro active" : "Business Regular",
                 subtitle: settingsBusinessProRowSubtitle,
-                systemImage: "sparkles.rectangle.stack.fill"
+                systemImage: settingsBusinessMembershipStatus?.businessProActive == true ? "sparkles.rectangle.stack.fill" : "lock.shield.fill"
             )
         }
         .buttonStyle(.plain)
@@ -1735,6 +1735,8 @@ struct SettingsScreen: View {
     private var settingsInlineBusinessDashboard: some View {
         BusinessVenueDashboardOverviewView(
             data: settingsBusinessDashboardData,
+            businessId: viewModel.currentBusinessIdForAddLocation(),
+            businessUsageStatus: settingsBusinessMembershipStatus,
             onNotifications: {
                 showReportedCommentsSheet = true
             },
@@ -1771,6 +1773,9 @@ struct SettingsScreen: View {
             onRefreshVenues: {
                 Task { await refreshSettingsManagedVenuesSection() }
             },
+            onCancelPendingVenue: { venue in
+                await viewModel.cancelBusinessVenueClaim(claimId: venue.id)
+            },
             showsManagedVenuesSection: true,
             isStatisticsProActive: settingsBusinessStatisticsAccessGranted,
             isAddVenueAllowed: settingsBusinessCanCreateVenueFromServer,
@@ -1798,12 +1803,12 @@ struct SettingsScreen: View {
 
     private var settingsBusinessCanCreateVenueFromServer: Bool {
         guard let status = settingsBusinessMembershipStatus else { return true }
-        return status.unlimitedVenues || status.businessVenueCount < max(1, status.venueLimit)
+        return status.canAddVenue
     }
 
     private var settingsBusinessCanHostGameFromServer: Bool {
         guard let status = settingsBusinessMembershipStatus else { return true }
-        return status.unlimitedHosting || status.monthlyHostedGameCount < max(1, status.monthlyHostLimit)
+        return status.canAddHostedGame
     }
 
     private var settingsBusinessProRowSubtitle: String {
@@ -1811,7 +1816,7 @@ struct SettingsScreen: View {
             return "Checking server-controlled access..."
         }
         guard status.businessProActive else {
-            return "Upgrade for unlimited venues, hosted games, and statistics."
+            return "5 active venues • 5 hosted games/month"
         }
         if let days = status.daysRemaining, days <= 14 {
             return days == 1 ? "Expires in 1 day" : "Expires in \(days) days"
@@ -2442,7 +2447,7 @@ struct SettingsScreen: View {
             await refreshSettingsBusinessProStatus()
             await MainActor.run {
                 guard settingsBusinessCanCreateVenueFromServer else {
-                    addLocationSubmitBanner = "Venue limit reached. Upgrade to Business Pro for unlimited venue listings."
+                    addLocationSubmitBanner = BusinessLimitCopy.venueLimitReached
                     showBusinessUsageSheet = true
                     return
                 }
@@ -2462,6 +2467,7 @@ struct SettingsScreen: View {
     }
 
     private func addLocationSubmitBannerForegroundStyle() -> Color {
+        if addLocationSubmitBanner == BusinessLimitCopy.venueLimitReached { return .red }
         if viewModel.hasActiveVenueClaimRejectionForBusinessUI { return .red }
         if viewModel.businessSettingsLocationChrome() == .rejected { return .red }
         return .green
@@ -2474,6 +2480,9 @@ struct SettingsScreen: View {
     /// After Add Location succeeds we set ``addLocationSubmitBanner``; copy tracks ``approval_status`` via pending rows + location chrome.
     private func addLocationSubmitBannerDisplayText() -> String? {
         guard addLocationSubmitBanner != nil else { return nil }
+        if addLocationSubmitBanner == BusinessLimitCopy.venueLimitReached {
+            return BusinessLimitCopy.venueLimitReached
+        }
         if !viewModel.pendingVenueClaimsForSettings.isEmpty {
             return "Location request submitted. FanGeo will review it before this location can manage games."
         }
@@ -3712,20 +3721,7 @@ private struct SettingsProfileHero: View {
 
                     Spacer(minLength: 0)
 
-                    if isBusinessProfile {
-                        Button(action: venueOwnerOnNotifications) {
-                            Image(systemName: "bell.badge.fill")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundStyle(.white.opacity(0.92))
-                                .frame(width: 36, height: 36)
-                                .background(Color.white.opacity(0.12))
-                                .clipShape(Circle())
-                                .overlay {
-                                    Circle().strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
-                                }
-                        }
-                        .buttonStyle(.plain)
-                    } else {
+                    if !isBusinessProfile {
                         Image(systemName: "chevron.right")
                             .font(.system(size: 14, weight: .bold))
                             .foregroundStyle(.white.opacity(0.86))
@@ -3940,27 +3936,42 @@ private struct SettingsCalendarDisplayCard: View {
 }
 
 private struct SettingsReportedCommentsAdminCard: View {
+    @Environment(\.colorScheme) private var colorScheme
     @ObservedObject var viewModel: MapViewModel
+
+    private var cardBackground: Color {
+        colorScheme == .dark
+            ? Color(red: 0.18, green: 0.05, blue: 0.06).opacity(0.72)
+            : Color.red.opacity(0.08)
+    }
+
+    private var containerBackground: Color {
+        colorScheme == .dark
+            ? FGColor.cardBackground(colorScheme)
+            : Color.white.opacity(0.95)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Reported Comments")
                 .font(.headline)
                 .fontWeight(.bold)
+                .foregroundStyle(FGColor.primaryText(colorScheme))
 
             Button {
                 Task {
                     await viewModel.loadReportedComments()
                 }
             } label: {
-                Text("Refresh Reports")
+                Label("Refresh Reports", systemImage: "arrow.clockwise")
                     .fontWeight(.bold)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.black)
                     .foregroundStyle(.white)
+                    .background(FGColor.brandGradient)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
             }
+            .buttonStyle(.plain)
 
             if viewModel.reportedCommentDisplays.isEmpty {
                 Text("No reported comments.")
@@ -3968,11 +3979,13 @@ private struct SettingsReportedCommentsAdminCard: View {
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(viewModel.reportedCommentDisplays) { report in
+                    let commentUnavailable = isCommentUnavailable(report)
                     VStack(alignment: .leading, spacing: 12) {
 
                         HStack(alignment: .top, spacing: 12) {
 
-                            if let url = URL(string: report.commenterAvatarURL),
+                            if !commentUnavailable,
+                               let url = URL(string: report.commenterAvatarURL),
                                !report.commenterAvatarURL.isEmpty {
 
                                 AsyncImage(url: url) { image in
@@ -3988,35 +4001,32 @@ private struct SettingsReportedCommentsAdminCard: View {
 
                             } else {
 
-                                Circle()
-                                    .fill(Color.orange.opacity(0.15))
-                                    .frame(width: 44, height: 44)
-                                    .overlay {
-                                        Text(String(report.commenterName.prefix(1)).uppercased())
-                                            .fontWeight(.bold)
-                                            .foregroundStyle(.orange)
-                                    }
+                                reportAvatarFallback(unavailable: commentUnavailable, name: report.commenterName)
                             }
 
                             VStack(alignment: .leading, spacing: 6) {
-                                Text(report.commenterName)
+                                Text(commentUnavailable ? "Comment unavailable" : report.commenterName)
                                     .font(.headline)
                                     .fontWeight(.bold)
+                                    .foregroundStyle(FGColor.primaryText(colorScheme))
 
-                                Text("“\(report.commentText)”")
-                                    .font(.subheadline)
+                                if !commentUnavailable {
+                                    Text("“\(report.commentText)”")
+                                        .font(.subheadline)
+                                        .foregroundStyle(FGColor.primaryText(colorScheme).opacity(0.88))
+                                }
 
                                 Text("\(report.venueName) • \(report.eventTitle)")
                                     .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(FGColor.secondaryText(colorScheme))
 
                                 Text("Reported: \(formattedReportDate(report.reportedAt))")
                                     .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(FGColor.secondaryText(colorScheme))
 
                                 Text("Reported by: \(report.reporterName)")
                                     .font(.caption2)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(FGColor.secondaryText(colorScheme))
                                 
                                 HStack(spacing: 10) {
 
@@ -4031,10 +4041,11 @@ private struct SettingsReportedCommentsAdminCard: View {
                                             .fontWeight(.bold)
                                             .frame(maxWidth: .infinity)
                                             .padding(.vertical, 10)
-                                            .background(Color.red.opacity(0.14))
-                                            .foregroundStyle(.red)
+                                            .background(FGColor.dangerRed.opacity(colorScheme == .dark ? 0.24 : 0.14))
+                                            .foregroundStyle(FGColor.dangerRed)
                                             .clipShape(RoundedRectangle(cornerRadius: 12))
                                     }
+                                    .buttonStyle(.plain)
 
                                     Button {
                                         Task {
@@ -4046,23 +4057,48 @@ private struct SettingsReportedCommentsAdminCard: View {
                                             .fontWeight(.bold)
                                             .frame(maxWidth: .infinity)
                                             .padding(.vertical, 10)
-                                            .background(Color.green.opacity(0.14))
-                                            .foregroundStyle(.green)
+                                            .background(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.24 : 0.14))
+                                            .foregroundStyle(FGColor.accentGreen)
                                             .clipShape(RoundedRectangle(cornerRadius: 12))
                                     }
+                                    .buttonStyle(.plain)
                                 }
                             }
                         }
                     }
                     .padding()
-                    .background(Color.red.opacity(0.08))
+                    .background(cardBackground)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .strokeBorder(FGColor.dangerRed.opacity(colorScheme == .dark ? 0.38 : 0.18), lineWidth: 1)
+                    }
                 }
             }
         }
         .padding()
-        .background(Color.white.opacity(0.95))
+        .background(containerBackground)
         .clipShape(RoundedRectangle(cornerRadius: 22))
+        .overlay {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+        }
+    }
+
+    private func reportAvatarFallback(unavailable: Bool, name: String) -> some View {
+        Circle()
+            .fill(unavailable ? FGColor.secondaryText(colorScheme).opacity(0.14) : Color.orange.opacity(0.15))
+            .frame(width: 44, height: 44)
+            .overlay {
+                Image(systemName: unavailable ? "text.bubble.fill" : "person.fill")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(unavailable ? FGColor.secondaryText(colorScheme) : Color.orange)
+            }
+            .accessibilityHidden(true)
+    }
+
+    private func isCommentUnavailable(_ report: ReportedCommentDisplay) -> Bool {
+        report.commentText.trimmingCharacters(in: .whitespacesAndNewlines).localizedCaseInsensitiveCompare("Comment not found") == .orderedSame
     }
 
     private func formattedReportDate(_ rawDate: String) -> String {
@@ -6385,6 +6421,7 @@ struct BusinessLocationVenuePicker: View {
 
     private enum ManagedVenueSelectorStatus {
         case approved
+        case locked
         case pending
         case rejected
     }
@@ -6403,6 +6440,7 @@ struct BusinessLocationVenuePicker: View {
     private struct ManagedVenueListingCounts {
         let totalVenueCount: Int
         let approvedVenueCount: Int
+        let lockedVenueCount: Int
         let pendingVenueCount: Int
     }
 
@@ -6442,9 +6480,11 @@ struct BusinessLocationVenuePicker: View {
                 venueID: id,
                 claimID: nil,
                 title: venueDisplayName(for: row),
-                subtitle: venueLocationSubtitle(for: row).isEmpty ? "Approved location for listings, games, and analytics." : venueLocationSubtitle(for: row),
-                statusNote: nil,
-                status: .approved,
+                subtitle: MapViewModel.venueIsPlanLocked(row)
+                    ? BusinessLimitCopy.planLockedVenueSubtitle
+                    : (venueLocationSubtitle(for: row).isEmpty ? "Approved location for listings, games, and analytics." : venueLocationSubtitle(for: row)),
+                statusNote: MapViewModel.venueIsPlanLocked(row) ? BusinessLimitCopy.planLockedVenueSubtitle : nil,
+                status: managedVenueStatus(for: row),
                 venueRow: row
             )
         }
@@ -6522,6 +6562,7 @@ struct BusinessLocationVenuePicker: View {
     private func managedVenueStatus(for row: VenueProfileRow) -> ManagedVenueSelectorStatus {
         let raw = row.admin_status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
         if raw.isEmpty || raw == "active" { return .approved }
+        if raw == "plan_locked" { return .locked }
         if raw.contains("pending") || raw.contains("review") { return .pending }
         if raw.contains("reject") || raw.contains("archive") { return .rejected }
         return .approved
@@ -6529,6 +6570,7 @@ struct BusinessLocationVenuePicker: View {
 
     private var managedVenueListingCounts: ManagedVenueListingCounts {
         var approvedVenueIDs = Set<UUID>()
+        var lockedVenueIDs = Set<UUID>()
         var pendingVenueIDs = Set<UUID>()
 
         for row in viewModel.managedVenuesForOwner() {
@@ -6536,6 +6578,8 @@ struct BusinessLocationVenuePicker: View {
             switch managedVenueStatus(for: row) {
             case .approved:
                 approvedVenueIDs.insert(id)
+            case .locked:
+                lockedVenueIDs.insert(id)
             case .pending:
                 pendingVenueIDs.insert(id)
             case .rejected:
@@ -6550,20 +6594,24 @@ struct BusinessLocationVenuePicker: View {
         }
 
         return ManagedVenueListingCounts(
-            totalVenueCount: approvedVenueIDs.union(pendingVenueIDs).count,
+            totalVenueCount: approvedVenueIDs.union(lockedVenueIDs).union(pendingVenueIDs).count,
             approvedVenueCount: approvedVenueIDs.count,
+            lockedVenueCount: lockedVenueIDs.count,
             pendingVenueCount: pendingVenueIDs.count
         )
     }
 
     private var dashboardVenueListingCountLine: String {
         let count = managedVenueListingCounts.totalVenueCount
-        return "\(count) \(count == 1 ? "venue listing" : "venue listings")"
+        return "\(count) \(count == 1 ? "managed venue" : "managed venues")"
     }
 
     private var dashboardVenueListingStatusLine: String {
         let counts = managedVenueListingCounts
-        return "\(counts.approvedVenueCount) approved • \(counts.pendingVenueCount) pending"
+        if counts.lockedVenueCount > 0 {
+            return "\(counts.approvedVenueCount) active • \(counts.lockedVenueCount) locked • \(counts.pendingVenueCount) pending"
+        }
+        return "\(counts.approvedVenueCount) active • \(counts.pendingVenueCount) pending"
     }
 
     private func venueClaimLocationSubtitle(for claim: VenueClaimPendingSettingsRow) -> String {
@@ -6597,6 +6645,7 @@ struct BusinessLocationVenuePicker: View {
     private func venueStatusTitle(for row: VenueProfileRow?) -> String? {
         let raw = row?.admin_status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
         if raw.isEmpty || raw == "active" { return "Approved" }
+        if raw == "plan_locked" { return BusinessLimitCopy.planLockedVenueBadge }
         if raw.contains("pending") || raw.contains("review") { return "Pending" }
         return raw.capitalized
     }
@@ -6604,6 +6653,7 @@ struct BusinessLocationVenuePicker: View {
     private func venueStatusTint(for row: VenueProfileRow?) -> Color {
         let raw = row?.admin_status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
         if raw.isEmpty || raw == "active" { return FGColor.accentGreen }
+        if raw == "plan_locked" { return .orange }
         if raw.contains("pending") || raw.contains("review") { return FGColor.accentYellow }
         if raw.contains("reject") || raw.contains("archive") { return FGColor.dangerRed }
         return FGColor.accentBlue
@@ -6613,6 +6663,8 @@ struct BusinessLocationVenuePicker: View {
         switch status {
         case .approved:
             return "Approved"
+        case .locked:
+            return BusinessLimitCopy.planLockedVenueBadge
         case .pending:
             return "Pending"
         case .rejected:
@@ -6624,6 +6676,8 @@ struct BusinessLocationVenuePicker: View {
         switch status {
         case .approved:
             return FGColor.accentGreen
+        case .locked:
+            return .orange
         case .pending:
             return .orange
         case .rejected:
@@ -6743,7 +6797,7 @@ struct BusinessLocationVenuePicker: View {
                 : selectedVenueSubtitle,
             systemImage: isEmpty ? "mappin.and.ellipse" : "building.2",
             tint: isEmpty ? FGColor.mutedText(colorScheme) : FGColor.accentBlue,
-            showsApprovedBadge: !isEmpty,
+            showsApprovedBadge: selectedManagedVenueSelectorRow?.status == .approved,
             chevronSystemName: "chevron.up.chevron.down"
         )
     }
@@ -6890,6 +6944,9 @@ struct BusinessLocationVenuePicker: View {
                     if let venueSelectorNotice {
                         managedVenueSelectorStatusBanner(venueSelectorNotice)
                     }
+                    if viewModel.managedVenuesContainPlanLocked() {
+                        managedVenueSelectorStatusBanner(BusinessLimitCopy.planLockedVenueBanner)
+                    }
 
                     ForEach(managedVenueSelectorRows) { row in
                         managedVenueSheetRow(row)
@@ -6952,10 +7009,10 @@ struct BusinessLocationVenuePicker: View {
     }
 
     private func managedVenueSheetRow(_ row: ManagedVenueSelectorRow) -> some View {
-        let isSelected = row.status == .approved && row.venueID == viewModel.ownerVenueDatabaseId
+        let isSelected = row.venueID == viewModel.ownerVenueDatabaseId
         let tint = statusTint(for: row.status)
         return Button {
-            guard row.status == .approved, let id = row.venueID else {
+            guard (row.status == .approved || row.status == .locked), let id = row.venueID else {
                 if row.status == .pending {
                     venueSelectorNotice = "This venue is waiting for admin approval."
 #if DEBUG
@@ -6965,6 +7022,9 @@ struct BusinessLocationVenuePicker: View {
                     venueSelectorNotice = "This venue request was rejected."
                 }
                 return
+            }
+            if row.status == .locked {
+                venueSelectorNotice = BusinessLimitCopy.planLockedVenueSubtitle
             }
 #if DEBUG
             print("[BusinessVenueSelectorDebug] venueSelected id=\(id.uuidString)")

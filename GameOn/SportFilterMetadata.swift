@@ -31,6 +31,8 @@ nonisolated enum SportFilterCatalog {
             return ChipVisual(emoji: "🏒", systemImage: "hockey.puck.fill", accent: Color(red: 0.12, green: 0.45, blue: 0.92))
         case "tennis":
             return ChipVisual(emoji: "🎾", systemImage: "tennisball.fill", accent: Color(red: 0.98, green: 0.82, blue: 0.08))
+        case "badminton":
+            return ChipVisual(emoji: "🏸", systemImage: "sportscourt.fill", accent: Color(red: 0.52, green: 0.72, blue: 0.18))
         case "golf":
             return ChipVisual(emoji: "⛳", systemImage: "figure.golf", accent: Color(red: 0.18, green: 0.62, blue: 0.32))
         case "volleyball":
@@ -138,6 +140,7 @@ nonisolated enum SportFilterCatalog {
         if normalized.contains("softball") { return "softball" }
         if normalized.contains("mma") || normalized.contains("ufc") || normalized.contains("combat sport") { return "mma" }
         if normalized.contains("boxing") { return "boxing" }
+        if normalized.contains("badminton") || normalized.contains("shuttlecock") { return "badminton" }
         if normalized.contains("table tennis") || normalized.contains("tabletennis") { return "pingpong" }
         if normalized.contains("tennis") { return "tennis" }
         if normalized.contains("golf") { return "golf" }
@@ -208,6 +211,7 @@ nonisolated enum SportFilterCatalog {
         case "baseball": return ["baseball", "mlb"]
         case "hockey": return ["hockey", "nhl", "ice hockey"]
         case "tennis": return ["tennis"]
+        case "badminton": return ["badminton", "shuttlecock"]
         case "golf": return ["golf"]
         case "volleyball": return ["volleyball"]
         case "pingpong": return ["ping pong", "pingpong", "table tennis", "tabletennis"]
@@ -256,6 +260,8 @@ extension LiveSportVisualType {
             return "Football"
         case .tennis:
             return "Tennis"
+        case .badminton:
+            return "badminton"
         case .golf:
             return "Golf"
         case .formula1:
@@ -266,7 +272,7 @@ extension LiveSportVisualType {
     }
 
     var filterChipLabel: String {
-        sportFilterCatalogKey
+        AppSportCatalog.displayLabel(forSportToken: sportFilterCatalogKey)
     }
 
     var catalogVisual: SportFilterCatalog.ChipVisual {

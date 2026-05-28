@@ -8,6 +8,7 @@ nonisolated enum LiveSportVisualType: String, Codable, CaseIterable, Equatable {
     case baseball
     case nfl
     case tennis
+    case badminton
     case golf
     case formula1
     case other
@@ -26,6 +27,8 @@ nonisolated enum LiveSportVisualType: String, Codable, CaseIterable, Equatable {
             return "NFL"
         case .tennis:
             return "Tennis"
+        case .badminton:
+            return "Badminton"
         case .golf:
             return "Golf"
         case .formula1:
@@ -50,6 +53,8 @@ nonisolated enum LiveSportVisualType: String, Codable, CaseIterable, Equatable {
             return .baseball
         case "tennis":
             return .tennis
+        case "badminton", "shuttlecock":
+            return .badminton
         case "golf":
             return .golf
         case "formula 1", "formula1", "formula one", "f1", "racing", "motorsport", "motor sport":

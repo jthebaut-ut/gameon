@@ -158,8 +158,14 @@ enum BusinessVenueDashboardGameDateTimeFormatter {
 struct BusinessVenueDashboardOverviewView: View {
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
+    @State private var pendingVenueToCancel: BusinessVenueDashboardPendingVenueItem?
+    @State private var showCancelVenueAlert = false
+    @State private var cancellingPendingVenueId: UUID?
+    @State private var pendingVenueCancelNotice: String?
 
     let data: BusinessVenueDashboardData
+    let businessId: UUID?
+    let businessUsageStatus: BusinessVenueGamePostingStatus?
     let onNotifications: () -> Void
     let onMenu: () -> Void
     let onAddGame: () -> Void
@@ -171,6 +177,7 @@ struct BusinessVenueDashboardOverviewView: View {
     let onCommentsReports: () -> Void
     let onViewAllGames: () -> Void
     let onRefreshVenues: () -> Void
+    let onCancelPendingVenue: (BusinessVenueDashboardPendingVenueItem) async -> Bool
     let showsManagedVenuesSection: Bool
     let isStatisticsProActive: Bool
     let isAddVenueAllowed: Bool
@@ -182,6 +189,10 @@ struct BusinessVenueDashboardOverviewView: View {
 
     private var proGold: Color {
         Color(red: 0.86, green: 0.63, blue: 0.22)
+    }
+
+    private var usageQuickActionState: BusinessUsageQuickActionState {
+        BusinessUsageQuickActionState(status: businessUsageStatus)
     }
 
     var body: some View {
@@ -197,7 +208,31 @@ struct BusinessVenueDashboardOverviewView: View {
             print("[BusinessDashboardCleanup] removedDarkFanLevelCard=true")
             print("[BusinessDashboardDebug] addVenueQuickActionVisible=true")
             print("[BusinessDashboardLayoutDebug] quickActionOrderUpdated=true")
+            logBusinessUsageStatusDebug()
 #endif
+        }
+        .onChange(of: businessUsageStatus) { _, _ in
+            logBusinessUsageStatusDebug()
+        }
+        .onChange(of: businessId) { _, _ in
+            logBusinessUsageStatusDebug()
+        }
+        .alert("Cancel venue request?", isPresented: $showCancelVenueAlert) {
+            Button("Keep Request", role: .cancel) {
+                pendingVenueToCancel = nil
+            }
+            Button("Cancel Request", role: .destructive) {
+                if let venue = pendingVenueToCancel {
+                    Task {
+                        await cancelPendingVenueRequest(venue)
+                        await MainActor.run {
+                            pendingVenueToCancel = nil
+                        }
+                    }
+                }
+            }
+        } message: {
+            Text("This will withdraw your pending venue request before FanGeo reviews it.")
         }
     }
 
@@ -209,14 +244,20 @@ struct BusinessVenueDashboardOverviewView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    BusinessVenueDashboardActionCard(title: "Usage", systemImage: "chart.line.uptrend.xyaxis", tint: FGColor.accentBlue, action: onUsage)
+                    BusinessVenueDashboardActionCard(
+                        title: "Usage",
+                        systemImage: "chart.line.uptrend.xyaxis",
+                        tint: usageQuickActionState.tint,
+                        badgeText: usageQuickActionState.badgeText,
+                        action: onUsage
+                    )
                     BusinessVenueDashboardActionCard(
                         title: L10n.t("add_venue", languageCode: appLanguageRaw),
                         subtitle: isAddVenueAllowed ? nil : "Limit reached",
                         systemImage: isAddVenueAllowed ? "plus.circle.fill" : "lock.fill",
                         tint: isAddVenueAllowed ? FGColor.accentBlue : Color.gray,
-                        badgeText: isAddVenueAllowed ? nil : "PRO",
-                        isPremium: !isAddVenueAllowed,
+                        badgeText: nil,
+                        isPremium: false,
                         isLimited: !isAddVenueAllowed,
                         action: handleAddVenueTapped
                     )
@@ -224,17 +265,17 @@ struct BusinessVenueDashboardOverviewView: View {
                         BusinessVenueDashboardActionCard(title: L10n.t("venue_details", languageCode: appLanguageRaw), systemImage: "photo.on.rectangle.angled", tint: FGColor.accentBlue, action: onAddGame)
                         BusinessVenueDashboardActionCard(
                             title: L10n.t("manage_games", languageCode: appLanguageRaw),
-                            subtitle: isHostedGameAllowed ? nil : "Add locked",
+                            subtitle: isHostedGameAllowed ? nil : "Limit/locked",
                             systemImage: isHostedGameAllowed ? "sportscourt" : "lock.fill",
                             tint: isHostedGameAllowed ? FGColor.accentGreen : Color.gray,
-                            badgeText: isHostedGameAllowed ? nil : "PRO",
-                            isPremium: !isHostedGameAllowed,
+                            badgeText: nil,
+                            isPremium: false,
                             isLimited: !isHostedGameAllowed,
                             action: isHostedGameAllowed ? onTonightGames : onUsage
                         )
                         BusinessVenueDashboardActionCard(
                             title: L10n.t("statistics", languageCode: appLanguageRaw),
-                            subtitle: isStatisticsProActive ? nil : "Business Pro",
+                            subtitle: isStatisticsProActive ? nil : "Pro",
                             systemImage: isStatisticsProActive ? "chart.bar.xaxis" : "lock.fill",
                             tint: proGold,
                             badgeText: "PRO",
@@ -242,8 +283,17 @@ struct BusinessVenueDashboardOverviewView: View {
                             isLimited: !isStatisticsProActive,
                             action: onAnalytics
                         )
-                        BusinessVenueDashboardActionCard(title: "Flagged Comments", systemImage: "exclamationmark.bubble", tint: Color.gray, action: onCommentsReports)
                     }
+                    BusinessVenueDashboardActionCard(
+                        title: "Flagged Comments",
+                        subtitle: "Review reports",
+                        systemImage: "exclamationmark.bubble",
+                        tint: FGColor.accentYellow,
+                        badgeText: nil,
+                        isPremium: false,
+                        isLimited: false,
+                        action: onCommentsReports
+                    )
                 }
                 .padding(.vertical, 3)
             }
@@ -255,6 +305,22 @@ struct BusinessVenueDashboardOverviewView: View {
         print("[BusinessDashboardDebug] addVenueQuickActionTapped=true allowed=\(isAddVenueAllowed)")
 #endif
         onAddVenue()
+    }
+
+    private func logBusinessUsageStatusDebug() {
+#if DEBUG
+        let state = usageQuickActionState
+        let activeVenueLimit = businessUsageStatus.map { $0.activeVenueLimit.map(String.init) ?? "unlimited" } ?? "unknown"
+        let monthlyHostedGameLimit = businessUsageStatus.map { $0.monthlyHostedGameLimit.map(String.init) ?? "unlimited" } ?? "unknown"
+        print("[BusinessUsageStatusDebug] businessId=\(businessId?.uuidString.lowercased() ?? "nil")")
+        print("[BusinessUsageStatusDebug] isBusinessPro=\(businessUsageStatus?.isBusinessPro.description ?? "unknown")")
+        print("[BusinessUsageStatusDebug] activeVenueCount=\(businessUsageStatus.map { String($0.activeVenueCount) } ?? "unknown")")
+        print("[BusinessUsageStatusDebug] activeVenueLimit=\(activeVenueLimit)")
+        print("[BusinessUsageStatusDebug] hostedGamesThisMonth=\(businessUsageStatus.map { String($0.monthlyHostedGameCount) } ?? "unknown")")
+        print("[BusinessUsageStatusDebug] monthlyHostedGameLimit=\(monthlyHostedGameLimit)")
+        print("[BusinessUsageStatusDebug] usageStatusColor=\(state.usageStatusColor)")
+        print("[BusinessUsageStatusDebug] reason=\(state.reason)")
+#endif
     }
 
     private var tonightSection: some View {
@@ -308,6 +374,22 @@ struct BusinessVenueDashboardOverviewView: View {
                         .foregroundStyle(FGColor.accentBlue)
                 }
                 .buttonStyle(.plain)
+            }
+
+            if let pendingVenueCancelNotice {
+                HStack(spacing: 8) {
+                    Image(systemName: pendingVenueCancelNotice == "Venue request cancelled." ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(pendingVenueCancelNotice == "Venue request cancelled." ? FGColor.accentGreen : FGColor.dangerRed)
+                    Text(pendingVenueCancelNotice)
+                        .font(FGTypography.caption.weight(.semibold))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background((pendingVenueCancelNotice == "Venue request cancelled." ? FGColor.accentGreen : FGColor.dangerRed).opacity(colorScheme == .dark ? 0.16 : 0.10))
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
 
             VStack(alignment: .leading, spacing: 14) {
@@ -407,18 +489,52 @@ struct BusinessVenueDashboardOverviewView: View {
                     .lineLimit(2)
             }
             Spacer(minLength: 0)
-            Button(action: onRefreshVenues) {
-                Image(systemName: "arrow.clockwise")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(FGColor.accentBlue)
-                    .frame(width: 28, height: 28)
-                    .background(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.18 : 0.10))
-                    .clipShape(Circle())
+            VStack(alignment: .trailing, spacing: 6) {
+                Button {
+                    pendingVenueToCancel = venue
+                    showCancelVenueAlert = true
+                } label: {
+                    Text(cancellingPendingVenueId == venue.id ? "Cancelling..." : "Cancel request")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(FGColor.dangerRed)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
+                        .background(FGColor.dangerRed.opacity(colorScheme == .dark ? 0.16 : 0.10))
+                        .clipShape(Capsule(style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .disabled(cancellingPendingVenueId != nil)
+                .accessibilityLabel("Cancel pending venue request")
+
+                Button(action: onRefreshVenues) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(FGColor.accentBlue)
+                        .frame(width: 28, height: 28)
+                        .background(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.18 : 0.10))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .disabled(cancellingPendingVenueId != nil)
+                .accessibilityLabel("Refresh venue status")
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Refresh venue status")
         }
         .padding(.vertical, 4)
+    }
+
+    private func cancelPendingVenueRequest(_ venue: BusinessVenueDashboardPendingVenueItem) async {
+        guard cancellingPendingVenueId == nil else { return }
+        await MainActor.run {
+            cancellingPendingVenueId = venue.id
+            pendingVenueCancelNotice = nil
+        }
+        let cancelled = await onCancelPendingVenue(venue)
+        await MainActor.run {
+            cancellingPendingVenueId = nil
+            pendingVenueCancelNotice = cancelled
+                ? "Venue request cancelled."
+                : "Couldn’t cancel venue request. Please try again."
+        }
     }
 
     private func statusIcon(systemName: String, tint: Color) -> some View {
@@ -474,6 +590,57 @@ struct BusinessVenueDashboardOverviewView: View {
 #endif
     }
 
+}
+
+private struct BusinessUsageQuickActionState {
+    let tint: Color
+    let badgeText: String?
+    let usageStatusColor: String
+    let reason: String
+
+    init(status: BusinessVenueGamePostingStatus?) {
+        guard let status else {
+            tint = FGColor.accentBlue
+            badgeText = nil
+            usageStatusColor = "neutral"
+            reason = "loading_unknown"
+            return
+        }
+
+        if status.isBusinessPro {
+            tint = FGColor.accentGreen
+            badgeText = "OK"
+            usageStatusColor = "green"
+            reason = "business_pro_unlimited"
+            return
+        }
+
+        let activeVenueLimit = max(1, status.activeVenueLimit ?? status.venueLimit)
+        let monthlyHostedGameLimit = max(1, status.monthlyHostedGameLimit ?? status.monthlyHostLimit)
+        let venueLimitReached = status.activeVenueCount >= activeVenueLimit
+        let hostedGameLimitReached = status.monthlyHostedGameCount >= monthlyHostedGameLimit
+
+        if venueLimitReached || hostedGameLimitReached {
+            tint = FGColor.dangerRed
+            badgeText = "Limit"
+            usageStatusColor = "red"
+            switch (venueLimitReached, hostedGameLimitReached) {
+            case (true, true):
+                reason = "venue_and_hosted_game_limits_reached"
+            case (true, false):
+                reason = "active_venue_limit_reached"
+            case (false, true):
+                reason = "monthly_hosted_game_limit_reached"
+            case (false, false):
+                reason = "within_limits"
+            }
+        } else {
+            tint = FGColor.accentGreen
+            badgeText = "OK"
+            usageStatusColor = "green"
+            reason = "within_limits"
+        }
+    }
 }
 
 private struct BusinessVenueDashboardActionCard: View {
@@ -570,7 +737,7 @@ private struct BusinessVenueDashboardActionCard: View {
             .opacity(isLimited ? 0.86 : 1)
         }
         .buttonStyle(.plain)
-        .accessibilityHint(isLimited ? "Business Pro required" : "")
+        .accessibilityHint(isLimited ? (isPremium ? "Business Pro required" : "Limit reached or venue locked") : "")
     }
 
     private var actionCardBackground: some ShapeStyle {

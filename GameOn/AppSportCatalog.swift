@@ -39,6 +39,7 @@ public enum AppSportCatalog {
                 ("Wrestling", "Wrestling"),
             ]),
             Category(id: "indoor", title: "Indoor", rows: [
+                ("Badminton", "badminton"),
                 ("Bowling", "Bowling"),
                 ("Handball", "Handball"),
                 ("Esports", "Esports"),
@@ -123,7 +124,7 @@ public enum AppSportCatalog {
         let toolbarPriority: [String] = [
             "Soccer", "Basketball", "Football", "Baseball", "Hockey", "Golf",
             "NBA", "NFL", "NHL",
-            "Tennis", "Volleyball", "Ping Pong", "UFC", "Formula 1",
+            "Tennis", "badminton", "Volleyball", "Ping Pong", "UFC", "Formula 1",
         ]
         for s in toolbarPriority { append(s) }
 

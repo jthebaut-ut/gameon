@@ -146,6 +146,9 @@ final class MapViewModel: ObservableObject {
     @Published var pendingVenueClaimsForSettings: [VenueClaimPendingSettingsRow] = []
     /// Rejected, not-yet-dismissed ``venue_claims`` for Settings (“Rejected locations”). Rows with ``rejection_acknowledged_at`` set are excluded at fetch time.
     @Published var rejectedVenueClaimsForSettings: [VenueClaimPendingSettingsRow] = []
+#if DEBUG
+    @Published var businessLocationRPCDebugDetails: String = ""
+#endif
     /// From ``refreshVenueClaimStatusLineFromDatabase()`` scan of recent ``venue_claims`` by owner email: any row is rejected and ``rejection_acknowledged_at`` is unset.
     @Published var hasUnackedRejectedVenueClaimForOwnerEmail: Bool = false
     /// Per-venue approved ownership resolved from `venue_claims.venue_id` for Venue Detail claim visibility.
@@ -809,6 +812,13 @@ final class MapViewModel: ObservableObject {
     @Published var unseenPokesCount: Int = 0
     /// Latest incoming poke timestamp from the most recent fetch (badge + acknowledgment).
     var latestTrackedIncomingPokeAt: Date?
+    var unseenPokesBadgeRefreshTask: Task<Void, Never>?
+    var lastUnseenPokesBadgeRefreshAt: Date?
+    var lastUnseenPokesBadgeRefreshUserId: UUID?
+    var pendingPickupJoinRequestCountLoadTask: Task<Void, Never>?
+    var lastPendingPickupJoinRequestCountLoadAt: Date?
+    var lastPendingPickupJoinRequestCountUserId: UUID?
+    var lastPickupInviteForegroundRefreshAt: Date?
     /// Last successful Following pickup join-card reload; non-published so tab freshness checks do not redraw roots.
     var lastSuccessfulFollowingJoinRequestsRefreshAt: Date?
     var lastSuccessfulFollowingJoinRequestsRefreshUserId: UUID?

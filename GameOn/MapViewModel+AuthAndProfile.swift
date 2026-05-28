@@ -617,6 +617,8 @@ extension MapViewModel {
         socialActionToastText = nil
         socialActionToastIsError = false
         followingMapNavigationMessage = nil
+        pendingFollowingMapPickupGameID = nil
+        pendingFollowingMapPickupGameSnapshot = nil
         clearFollowingTabCaches()
         clearFollowingInterestedOnlyDefaults()
 
@@ -650,6 +652,15 @@ extension MapViewModel {
         incomingPickupInvitesLoadTask?.cancel()
         incomingPickupInvitesLoadTask = nil
         lastIncomingPickupInvitesLoadAt = nil
+        lastPickupInviteForegroundRefreshAt = nil
+        unseenPokesBadgeRefreshTask?.cancel()
+        unseenPokesBadgeRefreshTask = nil
+        lastUnseenPokesBadgeRefreshAt = nil
+        lastUnseenPokesBadgeRefreshUserId = nil
+        pendingPickupJoinRequestCountLoadTask?.cancel()
+        pendingPickupJoinRequestCountLoadTask = nil
+        lastPendingPickupJoinRequestCountLoadAt = nil
+        lastPendingPickupJoinRequestCountUserId = nil
         pendingPickupGameJoinRequestCount = 0
         myPickupGameJoinRequestCards = []
         incomingPickupGameInvites = []

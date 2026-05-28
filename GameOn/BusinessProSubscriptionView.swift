@@ -8,13 +8,13 @@ struct BusinessProSubscriptionView: View {
     @ObservedObject private var purchaseService = BusinessProPurchaseService.shared
 
     private let proFeatures = [
-        "Unlimited venue listings",
+        "Unlimited locations",
         "Unlimited hosted games",
         "Analytics access"
     ]
 
     private let freeFeatures = [
-        "5 venue listings",
+        "5 active venues",
         "5 hosted games/month"
     ]
 

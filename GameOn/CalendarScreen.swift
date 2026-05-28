@@ -54,7 +54,8 @@ struct CalendarScreen: View {
         ("MMA", "Combat"),
         ("Racing", nil),
         ("Golf", nil),
-        ("Tennis", nil)
+        ("Tennis", nil),
+        ("badminton", "Badminton")
     ]
 
     private var displayedEvents: [SportsEvent] {
@@ -584,7 +585,7 @@ struct CalendarScreen: View {
                                 .fill(accent.opacity(calendarColorScheme == .dark ? 0.18 : 0.10))
                         )
 
-                    Text("\(match.sport) • \(match.league)")
+                    Text("\(AppSportCatalog.displayLabel(forSportToken: match.sport)) • \(match.league)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -656,7 +657,7 @@ struct CalendarScreen: View {
         let capacityMeta = pickupCalendarCapacityPillText(for: pickupRow)
         let rosterState = pickupRow.map { $0.isPickupFullForDiscover ? "full" : "open" } ?? "unknown"
         let metaLine: String? = pickupRow.map { row in
-            [row.skillLevelEnum.displayTitle, row.playEnvironmentEnum.shortLabel, row.entryFeeDisplayLine]
+            [row.skillLevelEnum.displayTitle, row.playEnvironmentEnum.shortLabel, row.participantAudienceDisplayTitle, row.entryFeeDisplayLine]
                 .joined(separator: " · ")
         }
 

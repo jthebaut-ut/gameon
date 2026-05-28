@@ -36,6 +36,12 @@ struct PickupBulkImportPreparedRow: Identifiable, Equatable {
     let state: String
     let playersNeeded: Int?
     let maxPlayers: Int?
+    let playEnvironment: String
+    let participantPreference: String
+    let ageMin: Int?
+    let ageMax: Int?
+    let isFree: Bool
+    let entryFeeAmount: Double?
     let coordinate: CLLocationCoordinate2D?
     let gameType: GameType
     let leagueName: String?
@@ -54,6 +60,10 @@ struct PickupBulkImportPreparedRow: Identifiable, Equatable {
 
     var locationLine: String {
         [address, city, state].filter { !$0.isEmpty }.joined(separator: ", ")
+    }
+
+    var ageRangeDisplayText: String? {
+        PickupGameAgeRangeFormatter.ageRangeText(min: ageMin, max: ageMax)
     }
 
     static func == (lhs: PickupBulkImportPreparedRow, rhs: PickupBulkImportPreparedRow) -> Bool {
@@ -126,6 +136,12 @@ enum PickupBulkImportValidator {
         let state = raw.value("state")
         let playersRaw = raw.value("players_needed")
         let maxPlayersRaw = raw.value("max_players")
+        let playEnvironmentRaw = raw.value("play_environment")
+        let participantPreferenceRaw = raw.value("participant_preference")
+        let minAgeCell = readAgeColumn(from: raw, header: "min_age")
+        let maxAgeCell = readAgeColumn(from: raw, header: "max_age")
+        let isFreeRaw = raw.value("is_free")
+        let entryFeeRaw = raw.value("entry_fee_amount")
         let gameFormatRaw = raw.value("game_format")
         let leagueName = raw.value("league_name")
         let homeTeam = raw.value("home_team")
@@ -144,17 +160,17 @@ enum PickupBulkImportValidator {
 
         let sport = canonicalSport(from: sportRaw)
         if sport == nil, !sportRaw.isEmpty {
-            errors.append("Invalid sport name.")
+            errors.append(invalidValueMessage(field: "sport", value: sportRaw, guidance: "Allowed sports: \(allowedSportLabels())."))
         }
 
         let gameFormat = canonicalGameFormat(from: gameFormatRaw)
         if gameFormat == nil, !gameFormatRaw.isEmpty {
-            errors.append("Invalid game_format. Use pickup, practice, or scrimmage.")
+            errors.append(invalidValueMessage(field: "game_format", value: gameFormatRaw, guidance: "Use: pickup, practice, or scrimmage."))
         }
 
         let skillLevel = skillRaw.isEmpty ? PickupGameSkillLevel.casual.rawValue : canonicalSkillLevel(from: skillRaw)
         if skillLevel == nil {
-            errors.append("Invalid skill level.")
+            errors.append(invalidValueMessage(field: "skill_level", value: skillRaw, guidance: "Use: \(allowedSkillLevelValues())."))
         }
 
         let start = parseDateTime(startRaw)
@@ -200,9 +216,59 @@ enum PickupBulkImportValidator {
             errors.append("max_players must be numeric when provided.")
         }
 
+        let playEnvironment = playEnvironmentRaw.isEmpty ? PickupPlayEnvironment.either.rawValue : canonicalPlayEnvironment(from: playEnvironmentRaw)
+        if playEnvironment == nil {
+            errors.append(invalidValueMessage(field: "play_environment", value: playEnvironmentRaw, guidance: "Use: indoor, outdoor, or either."))
+        }
+
+        let participantPreference = canonicalParticipantPreference(from: participantPreferenceRaw)
+        if participantPreference == nil, !participantPreferenceRaw.isEmpty {
+            errors.append(invalidValueMessage(field: "participant_preference", value: participantPreferenceRaw, guidance: "Use: everyone, men, women, coed, kids, teens, adults, or seniors."))
+        }
+
+        let isFree = parseOptionalImportBoolean(isFreeRaw)
+        if isFree == nil, !isFreeRaw.isEmpty {
+            errors.append(invalidValueMessage(field: "is_free", value: isFreeRaw, guidance: "Use: TRUE or FALSE."))
+        }
+
+        var entryFeeAmount: Double?
+        if !entryFeeRaw.isEmpty {
+            if let parsed = Double(entryFeeRaw), parsed >= 0, parsed <= 999_999 {
+                entryFeeAmount = (parsed * 100.0).rounded() / 100.0
+            } else {
+                errors.append("entry_fee_amount must be a valid number.")
+            }
+        }
+        if isFree == false && (entryFeeAmount ?? 0) <= 0 {
+            errors.append("entry_fee_amount is required when is_free is FALSE.")
+        }
+
+        let ageRange = parseImportAgeRange(
+            minRaw: minAgeCell.normalizedValue,
+            maxRaw: maxAgeCell.normalizedValue,
+            errors: &errors
+        )
+        let ageMin = ageRange.min
+        let ageMax = ageRange.max
+
         if duplicateKeys.contains(duplicateKey(for: raw)) {
             errors.append("Duplicate row in import file.")
         }
+
+#if DEBUG
+        if !errors.isEmpty {
+            logAgeDebug(
+                rowNumber: raw.rowNumber,
+                minAgeCell: minAgeCell,
+                maxAgeCell: maxAgeCell,
+                participantPreference: participantPreferenceRaw,
+                isFree: raw.value("is_free"),
+                entryFee: raw.value("entry_fee_amount"),
+                maxPlayers: maxPlayersRaw,
+                endTime: endRaw
+            )
+        }
+#endif
 
         var coordinate: CLLocationCoordinate2D?
         if errors.isEmpty {
@@ -257,6 +323,12 @@ enum PickupBulkImportValidator {
             state: state,
             playersNeeded: playersNeeded,
             maxPlayers: maxPlayers,
+            playEnvironment: playEnvironment ?? PickupPlayEnvironment.either.rawValue,
+            participantPreference: participantPreference ?? PickupParticipantPreference.everyone.rawValue,
+            ageMin: ageMin,
+            ageMax: ageMax,
+            isFree: isFree ?? true,
+            entryFeeAmount: entryFeeAmount,
             coordinate: coordinate,
             gameType: gameFormat ?? .pickup,
             leagueName: leagueName.isEmpty ? nil : leagueName,
@@ -298,6 +370,19 @@ enum PickupBulkImportValidator {
         return nil
     }
 
+    private static func canonicalPlayEnvironment(from raw: String) -> String? {
+        let normalized = normalizeToken(raw)
+        guard !normalized.isEmpty else { return PickupPlayEnvironment.either.rawValue }
+        for environment in PickupPlayEnvironment.allCases {
+            if normalizeToken(environment.rawValue) == normalized
+                || normalizeToken(environment.displayTitle) == normalized
+                || normalizeToken(environment.shortLabel) == normalized {
+                return environment.rawValue
+            }
+        }
+        return nil
+    }
+
     private static func canonicalGameFormat(from raw: String) -> GameType? {
         let normalized = normalizeToken(raw)
         guard !normalized.isEmpty else { return .pickup }
@@ -308,6 +393,228 @@ enum PickupBulkImportValidator {
         }
         return nil
     }
+
+    private static func canonicalParticipantPreference(from raw: String) -> String? {
+        let normalized = normalizeToken(raw)
+        guard !normalized.isEmpty else { return PickupParticipantPreference.everyone.rawValue }
+        switch normalized {
+        case "coed", "all", "all_welcome", "everyone":
+            return PickupParticipantPreference.everyone.rawValue
+        case "men", "male", "men_only", "males":
+            return PickupParticipantPreference.men_only.rawValue
+        case "women", "female", "women_only", "females":
+            return PickupParticipantPreference.women_only.rawValue
+        case "kids", "kids_only", "children", "youth":
+            return PickupParticipantPreference.kids_only.rawValue
+        case "teens", "teen", "teenagers", "teens_welcome":
+            return PickupParticipantPreference.teens_welcome.rawValue
+        case "adults", "adult", "adults_only":
+            return PickupParticipantPreference.adults_only.rawValue
+        case "seniors", "seniors_welcome":
+            return PickupParticipantPreference.seniors_welcome.rawValue
+        default:
+            break
+        }
+        for preference in PickupParticipantPreference.allCases {
+            if normalizeToken(preference.rawValue) == normalized
+                || normalizeToken(preference.displayTitle) == normalized
+                || normalizeToken(preference.shortLabel) == normalized {
+                return preference.rawValue
+            }
+        }
+        return nil
+    }
+
+    private static func parseOptionalImportBoolean(_ raw: String) -> Bool? {
+        let normalized = normalizeToken(raw)
+        guard !normalized.isEmpty else { return true }
+        switch normalized {
+        case "true":
+            return true
+        case "false":
+            return false
+        default:
+            return nil
+        }
+    }
+
+    private static func invalidValueMessage(field: String, value: String, guidance: String) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return "Invalid \(field) \"\(trimmed)\". \(guidance)"
+    }
+
+    private static func allowedSportLabels() -> String {
+        AppSportCatalog.formPickerSportsOrdered
+            .map { AppSportCatalog.displayLabel(forSportToken: $0) }
+            .joined(separator: ", ")
+    }
+
+    private static func allowedSkillLevelValues() -> String {
+        listText(PickupGameSkillLevel.allCases.map(\.rawValue))
+    }
+
+    private static func listText(_ values: [String]) -> String {
+        switch values.count {
+        case 0:
+            return ""
+        case 1:
+            return values[0]
+        case 2:
+            return "\(values[0]) or \(values[1])"
+        default:
+            return values.dropLast().joined(separator: ", ") + ", or \(values.last ?? "")"
+        }
+    }
+
+    private enum AgeColumnKind {
+        case minimum
+        case maximum
+
+        var displayName: String {
+            switch self {
+            case .minimum: return "Minimum age"
+            case .maximum: return "Maximum age"
+            }
+        }
+    }
+
+    private static func parseImportAgeRange(
+        minRaw: String,
+        maxRaw: String,
+        errors: inout [String]
+    ) -> (min: Int?, max: Int?) {
+        let minValue = normalizedImportAgeRangeValue(minRaw)
+        let maxValue = normalizedImportAgeRangeValue(maxRaw)
+        guard !minValue.isEmpty, !maxValue.isEmpty else {
+            return (nil, nil)
+        }
+
+        let minAge = parseRequiredImportAge(minValue, kind: .minimum, errors: &errors)
+        let maxAge = parseRequiredImportAge(maxValue, kind: .maximum, errors: &errors)
+        guard let minAge, let maxAge else {
+            return (nil, nil)
+        }
+        if minAge > maxAge {
+            errors.append("Minimum age \(minAge) can’t be greater than maximum age \(maxAge).")
+            return (nil, nil)
+        }
+        return (minAge, maxAge)
+    }
+
+    private static func parseRequiredImportAge(_ raw: String, kind: AgeColumnKind, errors: inout [String]) -> Int? {
+        guard let parsed = Int(raw) else {
+            errors.append("\(kind.displayName) \"\(raw)\" must be a number. Use numbers only for age ranges (example: 8, 18, 55).")
+            return nil
+        }
+        return parsed
+    }
+
+    private static func normalizedImportAgeRangeValue(_ raw: String) -> String {
+        let trimmed = normalizedOptionalAgeField(raw)
+        let lowered = trimmed.lowercased()
+        if lowered == "true" || lowered == "false" {
+            return ""
+        }
+        return trimmed
+    }
+
+    private struct AgeColumnRead {
+        let headerUsed: String
+        let rawValue: String
+        let normalizedValue: String
+    }
+
+    private static func readAgeColumn(
+        from row: PickupBulkImportRawRow,
+        header: String
+    ) -> AgeColumnRead {
+        guard row.hasSourceHeader(header) else {
+            return AgeColumnRead(
+                headerUsed: "(missing)",
+                rawValue: "",
+                normalizedValue: ""
+            )
+        }
+
+        let raw = row.rawValue(header) ?? ""
+        let normalized = normalizedOptionalAgeField(raw)
+        logBooleanAgeMappingBugIfNeeded(header: header, rawValue: raw, normalizedValue: normalized)
+        return AgeColumnRead(
+            headerUsed: header,
+            rawValue: raw,
+            normalizedValue: normalized
+        )
+    }
+
+    private static func normalizedOptionalAgeField(_ raw: String) -> String {
+        let withoutInvisibleWhitespace = raw
+            .replacingOccurrences(of: "\u{00A0}", with: " ")
+            .replacingOccurrences(of: "\u{200B}", with: "")
+            .replacingOccurrences(of: "\u{200C}", with: "")
+            .replacingOccurrences(of: "\u{200D}", with: "")
+            .replacingOccurrences(of: "\u{FEFF}", with: "")
+        let trimmed = withoutInvisibleWhitespace.trimmingCharacters(in: .whitespacesAndNewlines)
+        let lowered = trimmed.lowercased()
+        if lowered.isEmpty
+            || lowered == "\"\""
+            || lowered == "''"
+            || lowered == "nil"
+            || lowered == "null"
+            || lowered == "nsnull"
+            || lowered == "<null>"
+            || lowered == "(null)"
+            || lowered == "undefined"
+            || lowered == "n/a"
+            || lowered == "na"
+            || lowered == "-"
+            || lowered == "—"
+            || lowered == "–" {
+            return ""
+        }
+        if lowered == "true" || lowered == "false" {
+            return ""
+        }
+        return trimmed
+    }
+
+    private static func logBooleanAgeMappingBugIfNeeded(header: String, rawValue: String, normalizedValue: String) {
+        let token = normalizedValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let rawToken = rawValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard token == "true" || token == "false" || rawToken == "true" || rawToken == "false" else { return }
+#if DEBUG
+        print("[PickupImportColumnBug] age field mapped to boolean column header=\(header) rawValue=\(rawValue)")
+#endif
+    }
+
+#if DEBUG
+    private static func debugAgeValue(_ raw: String) -> String {
+        raw.isEmpty ? "(empty)" : raw
+    }
+
+    private static func logAgeDebug(
+        rowNumber: Int,
+        minAgeCell: AgeColumnRead,
+        maxAgeCell: AgeColumnRead,
+        participantPreference: String,
+        isFree: String,
+        entryFee: String,
+        maxPlayers: String,
+        endTime: String
+    ) {
+        print("[PickupImportAgeDebug] row=\(rowNumber)")
+        print("[PickupImportAgeDebug] minHeaderUsed=\(minAgeCell.headerUsed)")
+        print("[PickupImportAgeDebug] maxHeaderUsed=\(maxAgeCell.headerUsed)")
+        print("[PickupImportAgeDebug] rawMinAge=\(debugAgeValue(minAgeCell.rawValue))")
+        print("[PickupImportAgeDebug] rawMaxAge=\(debugAgeValue(maxAgeCell.rawValue))")
+        print("[PickupImportAgeDebug] normalizedMinAge=\(debugAgeValue(minAgeCell.normalizedValue))")
+        print("[PickupImportAgeDebug] normalizedMaxAge=\(debugAgeValue(maxAgeCell.normalizedValue))")
+        print("[PickupImportAgeDebug] participantPreference=\(participantPreference.isEmpty ? "(empty)" : participantPreference)")
+        print("[PickupImportAgeDebug] isFree=\(isFree.isEmpty ? "(empty)" : isFree)")
+        print("[PickupImportAgeDebug] entryFee=\(entryFee.isEmpty ? "(empty)" : entryFee)")
+        print("[PickupImportAgeDebug] maxPlayers=\(maxPlayers.isEmpty ? "(empty)" : maxPlayers)")
+        print("[PickupImportAgeDebug] endTime=\(endTime.isEmpty ? "(empty)" : endTime)")
+    }
+#endif
 
     private static func duplicateRowKeys(_ rows: [PickupBulkImportRawRow]) -> Set<String> {
         var counts: [String: Int] = [:]

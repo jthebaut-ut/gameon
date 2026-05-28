@@ -5,9 +5,26 @@ struct PickupBulkImportRawRow: Identifiable, Equatable {
     let id = UUID()
     let rowNumber: Int
     let values: [String: String]
+    let sourceHeaders: Set<String>
 
     func value(_ column: String) -> String {
         values[column, default: ""].trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    func rawValue(_ column: String) -> String? {
+        values[column]
+    }
+
+    func hasSourceHeader(_ column: String) -> Bool {
+        sourceHeaders.contains(Self.normalizedHeader(column))
+    }
+
+    private static func normalizedHeader(_ value: String) -> String {
+        value
+            .replacingOccurrences(of: "\u{00A0}", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+            .replacingOccurrences(of: #"[\s-]+"#, with: "_", options: .regularExpression)
     }
 }
 
@@ -35,10 +52,11 @@ enum PickupBulkImportParseError: LocalizedError {
 }
 
 enum PickupBulkImportParser {
-    static let templateResourceName = "FanGeoPickupGamesTemplate"
-    static let templateResourceExtension = "xlsx"
+    nonisolated static let templateResourceName = "FanGeoPickupGamesTemplate"
+    nonisolated static let templateResourceExtension = "xlsx"
     private static let preferredXLSXWorksheetName = "Pickup Games Upload"
     private static let ignoredXLSXWorksheetNames: Set<String> = ["Instructions", "Allowed Values"]
+    nonisolated private static let officialTemplateRelativePath = "Resources/Templates/FanGeoPickupGamesTemplate.xlsx"
 
     static let requiredHeaders = [
         "title",
@@ -54,10 +72,43 @@ enum PickupBulkImportParser {
         "players_needed",
         "play_environment",
         "participant_preference",
+        "min_age",
+        "max_age",
         "is_free",
         "entry_fee_amount",
         "max_players",
         "end_time"
+    ]
+
+    nonisolated private static let officialTemplateHeaders = [
+        "title",
+        "game_format",
+        "sport",
+        "description",
+        "skill_level",
+        "game_start_at",
+        "address",
+        "city",
+        "state",
+        "country",
+        "players_needed",
+        "play_environment",
+        "participant_preference",
+        "min_age",
+        "max_age",
+        "is_free",
+        "entry_fee_amount",
+        "max_players",
+        "end_time"
+    ]
+
+    nonisolated private static let officialTemplateForcedColumns: [String: Int] = [
+        "min_age": 13,
+        "max_age": 14,
+        "is_free": 15,
+        "entry_fee_amount": 16,
+        "max_players": 17,
+        "end_time": 18
     ]
 
     private static let fallbackSheetRequiredHeaders = [
@@ -94,9 +145,9 @@ enum PickupBulkImportParser {
 #endif
         switch ext {
         case "csv":
-            return try parseCSV(data: Data(contentsOf: url))
+            return try parseCSV(data: Data(contentsOf: url), sourceURL: url)
         case "xlsx":
-            return try parseXLSX(data: Data(contentsOf: url))
+            return try parseXLSX(data: Data(contentsOf: url), sourceURL: url)
         default:
             throw PickupBulkImportParseError.unsupportedFileType
         }
@@ -111,7 +162,20 @@ enum PickupBulkImportParser {
         return try rawRows(fromTable: rows)
     }
 
+    private static func parseCSV(data: Data, sourceURL: URL?) throws -> [PickupBulkImportRawRow] {
+        guard !data.isEmpty else { throw PickupBulkImportParseError.emptyFile }
+        guard let text = String(data: data, encoding: .utf8) else {
+            throw PickupBulkImportParseError.invalidTextEncoding
+        }
+        let rows = csvRows(from: text)
+        return try rawRows(fromTable: rows, sourceURL: sourceURL)
+    }
+
     static func parseXLSX(data: Data) throws -> [PickupBulkImportRawRow] {
+        try parseXLSX(data: data, sourceURL: nil)
+    }
+
+    private static func parseXLSX(data: Data, sourceURL: URL?) throws -> [PickupBulkImportRawRow] {
         guard !data.isEmpty else { throw PickupBulkImportParseError.emptyFile }
         let archive = try MinimalXLSXArchive(data: data)
         let stringsXML = archive.stringEntry(named: "xl/sharedStrings.xml") ?? ""
@@ -131,16 +195,31 @@ enum PickupBulkImportParser {
 #if DEBUG
         print("[PickupBulkImport] selectedSheet=\(selected.name)")
 #endif
-        return try rawRows(fromTable: selected.table)
+        return try rawRows(fromTable: selected.table, sourceURL: sourceURL)
     }
 
-    private static func rawRows(fromTable rows: [[String]]) throws -> [PickupBulkImportRawRow] {
+    private static func rawRows(fromTable rows: [[String]], sourceURL: URL? = nil) throws -> [PickupBulkImportRawRow] {
         guard let headerRow = rows.first else { throw PickupBulkImportParseError.emptyFile }
-        let headers = headerRow.map { normalizeHeader($0) }
+        let rawHeaders = headerRow.map { normalizeHeader($0) }
+        let usesOfficialTemplateMap = shouldForceOfficialTemplateMapping(
+            rawHeaders: rawHeaders,
+            sourceURL: sourceURL
+        )
+        var sourceHeaders = Set(rawHeaders.filter { !$0.isEmpty })
+        if usesOfficialTemplateMap {
+            sourceHeaders.formUnion(officialTemplateHeaders)
+        }
+        let headers = rawHeaders
+        var columnMap = headerMap(from: headerRow)
+        if usesOfficialTemplateMap {
+            forceOfficialTemplateColumns(in: &columnMap)
+        }
 #if DEBUG
         print("[PickupBulkImport] detectedHeaders=\(headers.filter { !$0.isEmpty }.joined(separator: ","))")
+        print("[PickupImportColumnDebug] headers=\(headerRow.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.joined(separator: "|"))")
+        print("[PickupImportColumnDebug] mappedColumns=\(debugMappedColumns(columnMap))")
 #endif
-        let missing = requiredHeaders.filter { !headers.contains($0) }
+        let missing = requiredHeaders.filter { columnMap[normalizeHeader($0)] == nil }
         guard missing.isEmpty else { throw PickupBulkImportParseError.missingHeader(missing) }
 
         var output: [PickupBulkImportRawRow] = []
@@ -148,10 +227,14 @@ enum PickupBulkImportParser {
             let hasAnyValue = row.contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
             guard hasAnyValue else { continue }
             var values: [String: String] = [:]
-            for (index, header) in headers.enumerated() where !header.isEmpty {
-                values[header] = index < row.count ? row[index] : ""
+            for (header, index) in columnMap where !header.isEmpty {
+                values[header] = valueForHeader(at: index, in: row)
             }
-            output.append(PickupBulkImportRawRow(rowNumber: offset + 2, values: values))
+            if usesOfficialTemplateMap {
+                applyOfficialTemplateCorrection(to: &values, row: row, rowNumber: offset + 2)
+            }
+            let rawRow = PickupBulkImportRawRow(rowNumber: offset + 2, values: values, sourceHeaders: sourceHeaders)
+            output.append(rawRow)
         }
 
 #if DEBUG
@@ -160,11 +243,91 @@ enum PickupBulkImportParser {
         return output
     }
 
-    private static func normalizeHeader(_ value: String) -> String {
+    private nonisolated static func normalizeHeader(_ value: String) -> String {
         value
+            .replacingOccurrences(of: "\u{00A0}", with: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased()
-            .replacingOccurrences(of: " ", with: "_")
+            .replacingOccurrences(of: #"[\s-]+"#, with: "_", options: .regularExpression)
+    }
+
+    private nonisolated static func headerMap(from headerRow: [String]) -> [String: Int] {
+        let normalizedHeaders = headerRow.map(normalizeHeader)
+        var mapped: [String: Int] = [:]
+        for (index, header) in normalizedHeaders.enumerated() {
+            guard !header.isEmpty, mapped[header] == nil else { continue }
+            mapped[header] = index
+        }
+        return mapped
+    }
+
+    private nonisolated static func valueForHeader(at index: Int, in row: [String]) -> String {
+        guard index < row.count else { return "" }
+        return row[index]
+    }
+
+    private nonisolated static func shouldForceOfficialTemplateMapping(
+        rawHeaders: [String],
+        sourceURL: URL?
+    ) -> Bool {
+        headersMatchOfficialTemplate(rawHeaders)
+            || isOfficialTemplateFileURL(sourceURL)
+    }
+
+    private nonisolated static func headersMatchOfficialTemplate(_ rawHeaders: [String]) -> Bool {
+        guard rawHeaders.count >= officialTemplateHeaders.count else { return false }
+        return zip(rawHeaders.prefix(officialTemplateHeaders.count), officialTemplateHeaders).allSatisfy { detected, expected in
+            detected == expected
+        }
+    }
+
+    private nonisolated static func isOfficialTemplateFileURL(_ sourceURL: URL?) -> Bool {
+        guard let sourceURL else { return false }
+        let normalizedPath = sourceURL.standardizedFileURL.path.replacingOccurrences(of: "\\", with: "/")
+        let expectedFilename = "\(templateResourceName).\(templateResourceExtension)"
+        return normalizedPath.hasSuffix(officialTemplateRelativePath)
+            || sourceURL.lastPathComponent == expectedFilename
+    }
+
+    private nonisolated static func forceOfficialTemplateColumns(in columnMap: inout [String: Int]) {
+        for (header, index) in officialTemplateForcedColumns {
+            columnMap[header] = index
+        }
+    }
+
+    private nonisolated static func applyOfficialTemplateCorrection(
+        to values: inout [String: String],
+        row: [String],
+        rowNumber: Int
+    ) {
+        let minAge = valueForHeader(at: officialTemplateForcedColumns["min_age"] ?? 13, in: row)
+        let maxAge = valueForHeader(at: officialTemplateForcedColumns["max_age"] ?? 14, in: row)
+        let isFree = valueForHeader(at: officialTemplateForcedColumns["is_free"] ?? 15, in: row)
+        let entryFeeAmount = valueForHeader(at: officialTemplateForcedColumns["entry_fee_amount"] ?? 16, in: row)
+        let maxPlayers = valueForHeader(at: officialTemplateForcedColumns["max_players"] ?? 17, in: row)
+        let endTime = valueForHeader(at: officialTemplateForcedColumns["end_time"] ?? 18, in: row)
+
+#if DEBUG
+        let resolvedAgeWasBoolean = isBooleanText(values["min_age"]) || isBooleanText(values["max_age"])
+#endif
+        values["min_age"] = minAge
+        values["max_age"] = maxAge
+        values["is_free"] = isFree
+        values["entry_fee_amount"] = entryFeeAmount
+        values["max_players"] = maxPlayers
+        values["end_time"] = endTime
+#if DEBUG
+        print("[PickupImportOfficialTemplateMap] row=\(rowNumber) min_age=\(minAge) max_age=\(maxAge) is_free=\(isFree) entry_fee_amount=\(entryFeeAmount) max_players=\(maxPlayers) end_time=\(endTime) correctedBooleanAge=\(resolvedAgeWasBoolean)")
+#endif
+    }
+
+    private nonisolated static func isBooleanText(_ raw: String?) -> Bool {
+        switch raw?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "true", "false":
+            return true
+        default:
+            return false
+        }
     }
 
     private static func selectWorksheet(
@@ -195,6 +358,13 @@ enum PickupBulkImportParser {
     }
 
 #if DEBUG
+    private static func debugMappedColumns(_ mappedColumns: [String: Int]) -> String {
+        mappedColumns
+            .sorted { $0.key < $1.key }
+            .map { "\($0.key):\($0.value)" }
+            .joined(separator: ",")
+    }
+
     private static func logRawRows(for worksheetTables: [(worksheet: XLSXWorksheet, table: [[String]])]) {
         for candidate in worksheetTables {
             for (offset, row) in candidate.table.prefix(10).enumerated() {

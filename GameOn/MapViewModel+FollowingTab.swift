@@ -41,6 +41,8 @@ extension MapViewModel {
         followingTabUserVenueEventInterestIDs = []
         pendingFollowingMapVenueID = nil
         pendingFollowingMapVenueSnapshot = nil
+        pendingFollowingMapPickupGameID = nil
+        pendingFollowingMapPickupGameSnapshot = nil
     }
 
     /// Email-scoped Following lists (`favorite_venues`, `venue_event_interests`) without a usable session email. Does **not** clear pickup join cards (``loadMyPickupGameJoinRequestsForFollowing()`` is keyed by auth user id).

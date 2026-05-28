@@ -215,7 +215,7 @@ struct DiscoverPickupGameDetailSheet: View {
                         .font(FGTypography.sectionTitle)
                         .foregroundStyle(pickupDetailMainInk)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text("\(g.sport) · \(g.playEnvironmentEnum.shortLabel)")
+                    Text("\(AppSportCatalog.displayLabel(forSportToken: g.sport)) · \(g.playEnvironmentEnum.shortLabel)")
                         .font(FGTypography.metadata.weight(.medium))
                         .foregroundStyle(pickupDetailSubInk)
                 }
@@ -292,7 +292,7 @@ struct DiscoverPickupGameDetailSheet: View {
                 ) {
                     pickupDetailTile(
                         title: "Who’s welcome",
-                        value: g.participantPreferenceEnum.displayTitle,
+                        value: g.participantAudienceDisplayTitle,
                         systemImage: "person.2.fill"
                     )
                     pickupDetailTile(
@@ -964,7 +964,7 @@ struct PickupGameInviteFriendsSheet: View {
                         .font(FGTypography.cardTitle)
                         .foregroundStyle(FGColor.primaryText(colorScheme))
                         .lineLimit(2)
-                    Text("\(game.sport) · \(game.gameFormat.displayTitle)")
+                    Text("\(AppSportCatalog.displayLabel(forSportToken: game.sport)) · \(game.gameFormat.displayTitle)")
                         .font(FGTypography.caption.weight(.semibold))
                         .foregroundStyle(FGColor.secondaryText(colorScheme))
                     if let dateLine = game.pickupDateWithCompactTimeRange {

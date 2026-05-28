@@ -61,6 +61,8 @@ struct PickupBulkImportPreviewView: View {
                         .foregroundStyle(FGColor.secondaryText(colorScheme))
                         .fixedSize(horizontal: false, vertical: true)
 
+                    pickupAgeRangeImportTip
+
                     if let templateURL {
                         ShareLink(item: templateURL) {
                             Label("Download Template", systemImage: "arrow.down.doc")
@@ -223,6 +225,16 @@ struct PickupBulkImportPreviewView: View {
     private var importButtonTitle: String {
         if isImporting { return "Importing..." }
         return "Import Games"
+    }
+
+    private var pickupAgeRangeImportTip: some View {
+        Label("Use the official FanGeoPickupGamesTemplate.xlsx file to add and import pickup games.", systemImage: "info.circle.fill")
+            .font(FGTypography.caption.weight(.semibold))
+            .foregroundStyle(FGColor.accentBlue)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.14 : 0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     @ViewBuilder
@@ -424,39 +436,52 @@ private struct PickupBulkImportPreviewRowView: View {
             .disabled(!isSelectionEnabled)
             .accessibilityLabel(isSelected ? "Deselect row \(row.rowNumber)" : "Select row \(row.rowNumber)")
 
-            VStack(alignment: .leading, spacing: 7) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(row.title.isEmpty ? "Untitled pickup game" : row.title)
-                        .font(FGTypography.body.weight(.semibold))
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
-                        .lineLimit(2)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .top, spacing: 8) {
+                    Text(sportEmoji)
+                        .font(.title3)
+                        .accessibilityHidden(true)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(row.title.isEmpty ? "Untitled pickup game" : row.title)
+                            .font(FGTypography.body.weight(.semibold))
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                            .lineLimit(2)
+
+                        Text(sportLine)
+                            .font(FGTypography.caption.weight(.semibold))
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .lineLimit(1)
+                    }
 
                     Spacer(minLength: 8)
 
-                    GameFormatBadgeView(format: row.gameType, colorScheme: colorScheme)
+                    VStack(alignment: .trailing, spacing: 5) {
+                        GameFormatBadgeView(format: row.gameType, colorScheme: colorScheme)
 
-                    Text(row.status.displayTitle)
-                        .font(FGTypography.caption.weight(.black))
-                        .foregroundStyle(statusTint)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(statusTint.opacity(colorScheme == .dark ? 0.18 : 0.12), in: Capsule())
+                        Text(row.status.displayTitle)
+                            .font(FGTypography.caption.weight(.black))
+                            .foregroundStyle(statusTint)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(statusTint.opacity(colorScheme == .dark ? 0.18 : 0.12), in: Capsule())
+                    }
                 }
 
-                Text(detailLine)
-                    .font(FGTypography.caption)
-                    .foregroundStyle(FGColor.secondaryText(colorScheme))
-                    .fixedSize(horizontal: false, vertical: true)
+                importPreviewMetaRow(systemImage: "calendar", text: dateTimeLine)
 
-                if !row.locationLine.isEmpty {
-                    Text(cityStateLine)
-                        .font(FGTypography.caption)
-                        .foregroundStyle(FGColor.secondaryText(colorScheme))
-                        .lineLimit(2)
+                if let locationLine {
+                    importPreviewMetaRow(systemImage: "mappin.and.ellipse", text: locationLine)
                 }
 
-                if let metadataLine {
-                    Text(metadataLine)
+                importPreviewChipRow(primaryChips)
+
+                if !secondaryChips.isEmpty {
+                    importPreviewChipRow(secondaryChips)
+                }
+
+                if let extraMetadataLine {
+                    Text(extraMetadataLine)
                         .font(FGTypography.caption)
                         .foregroundStyle(FGColor.secondaryText(colorScheme))
                         .lineLimit(2)
@@ -489,18 +514,94 @@ private struct PickupBulkImportPreviewRowView: View {
         }
     }
 
-    private var detailLine: String {
-        let startText = row.gameStartAt.map {
-            Self.dateFormatter.string(from: $0)
-        } ?? "Invalid start"
-        return "\(row.sport) • \(startText)"
+    private var sportLine: String {
+        AppSportCatalog.displayLabel(forSportToken: row.sport)
     }
 
-    private var cityStateLine: String {
-        [row.city, row.state].filter { !$0.isEmpty }.joined(separator: ", ")
+    private var sportEmoji: String {
+        switch sportLine.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "soccer":
+            return "⚽️"
+        case "basketball":
+            return "🏀"
+        case "pickleball":
+            return "🏓"
+        case "badminton":
+            return "🏸"
+        case "tennis":
+            return "🎾"
+        case "baseball":
+            return "⚾️"
+        case "football":
+            return "🏈"
+        default:
+            return "🏟"
+        }
     }
 
-    private var metadataLine: String? {
+    private var dateTimeLine: String {
+        guard let start = row.gameStartAt else { return "Invalid start" }
+        let startText = "\(Self.dateOnlyFormatter.string(from: start)) • \(Self.timeFormatter.string(from: start))"
+        guard let end = row.endTime else {
+            return startText
+        }
+        if Calendar.current.isDate(start, inSameDayAs: end) {
+            return "\(startText) – \(Self.timeFormatter.string(from: end))"
+        }
+        let endText = "\(Self.dateOnlyFormatter.string(from: end)) • \(Self.timeFormatter.string(from: end))"
+        return "\(startText) – \(endText)"
+    }
+
+    private var locationLine: String? {
+        let address = row.address.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cityState = [row.city, row.state]
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: ", ")
+        let parts = [address, cityState].filter { !$0.isEmpty }
+        guard !parts.isEmpty else { return nil }
+        return parts.joined(separator: " • ")
+    }
+
+    private var primaryChips: [ImportPreviewChip] {
+        [
+            ImportPreviewChip(text: playersText, tint: FGColor.accentBlue),
+            ImportPreviewChip(text: costText, tint: row.isFree ? FGColor.accentGreen : Color.orange),
+            ImportPreviewChip(text: participantPreferenceText, tint: FGColor.accentGreen)
+        ]
+    }
+
+    private var secondaryChips: [ImportPreviewChip] {
+        var chips = [
+            ImportPreviewChip(text: skillLevelText, tint: Color.purple)
+        ]
+        if let age = row.ageRangeDisplayText {
+            chips.append(ImportPreviewChip(text: age, tint: Color.orange))
+        }
+        return chips
+    }
+
+    private var playersText: String {
+        let needed = row.playersNeeded.map { "\($0) needed" } ?? "Players needed missing"
+        guard let maxPlayers = row.maxPlayers else { return needed }
+        return "\(needed) • max \(maxPlayers)"
+    }
+
+    private var costText: String {
+        if row.isFree { return "Free" }
+        guard let amount = row.entryFeeAmount else { return "Paid" }
+        return "Paid • \(PickupGameModels.currencyChipString(amount: amount))"
+    }
+
+    private var participantPreferenceText: String {
+        PickupParticipantPreference.fromStored(row.participantPreference).displayTitle
+    }
+
+    private var skillLevelText: String {
+        PickupGameSkillLevel.fromStored(row.skillLevel).displayTitle
+    }
+
+    private var extraMetadataLine: String? {
         let values = [row.leagueName, row.homeTeam, row.awayTeam, row.season, row.division]
             .compactMap { value -> String? in
                 guard let value, !value.isEmpty else { return nil }
@@ -510,10 +611,51 @@ private struct PickupBulkImportPreviewRowView: View {
         return values.joined(separator: " • ")
     }
 
-    private static let dateFormatter: DateFormatter = {
+    @ViewBuilder
+    private func importPreviewMetaRow(systemImage: String, text: String) -> some View {
+        Label(text, systemImage: systemImage)
+            .font(FGTypography.caption)
+            .foregroundStyle(FGColor.secondaryText(colorScheme))
+            .lineLimit(2)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func importPreviewChipRow(_ chips: [ImportPreviewChip]) -> some View {
+        HStack(spacing: 6) {
+            ForEach(chips) { chip in
+                Text(chip.text)
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(chip.tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(chip.tint.opacity(colorScheme == .dark ? 0.16 : 0.10), in: Capsule())
+                    .overlay(
+                        Capsule()
+                            .strokeBorder(chip.tint.opacity(colorScheme == .dark ? 0.32 : 0.20), lineWidth: 1)
+                    )
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    private static let dateOnlyFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.dateStyle = .medium
+        formatter.dateFormat = "MMM d, yyyy"
+        return formatter
+    }()
+
+    private static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .none
         formatter.timeStyle = .short
         return formatter
     }()
+}
+
+private struct ImportPreviewChip: Identifiable {
+    var id: String { text }
+    let text: String
+    let tint: Color
 }

@@ -47,6 +47,11 @@ interface Payload {
   photo_urls: string[]
   created_at: string
   approval_status: string
+  business_name?: string | null
+  previous_status?: string | null
+  new_status?: string | null
+  cancelled_at?: string | null
+  cancellation_note?: string | null
 }
 
 function escapeHtml(s: string): string {
@@ -195,10 +200,13 @@ Deno.serve(async (req) => {
     })
   }
 
+  const kind = (payload.claim_kind ?? "").trim()
+  const isCancellation = kind === "cancelled_before_review"
+
   const adminTo = Deno.env.get("ADMIN_EMAIL_TO")?.trim()
   const resendKey = Deno.env.get("RESEND_API_KEY")?.trim()
   const resendFrom = Deno.env.get("RESEND_FROM")?.trim()
-  if (!adminTo || !resendKey || !resendFrom) {
+  if ((!adminTo && !isCancellation) || !resendKey || !resendFrom) {
     console.error("notify-venue-claim: missing ADMIN_EMAIL_TO, RESEND_API_KEY, or RESEND_FROM")
     return new Response(JSON.stringify({ error: "server_misconfigured" }), {
       status: 500,
@@ -206,12 +214,15 @@ Deno.serve(async (req) => {
     })
   }
 
-  const kind = (payload.claim_kind ?? "").trim()
   let headline = "Venue claim submitted"
   let intro =
     "A business owner submitted a venue claim. Review and approve or reject in your admin workflow."
 
-  if (kind === "new_location") {
+  if (isCancellation) {
+    headline = "Venue request cancelled before review"
+    intro =
+      "The business owner cancelled this venue request before approval/rejection."
+  } else if (kind === "new_location") {
     headline = "New location request"
     intro =
       "A business owner submitted a new location request under their business account. It is pending admin review."
@@ -228,7 +239,9 @@ Deno.serve(async (req) => {
 
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")?.trim() ?? ""
   let duplicateAdminBanner = ""
-  if (serviceRoleKey) {
+  if (isCancellation) {
+    duplicateAdminBanner = ""
+  } else if (serviceRoleKey) {
     duplicateAdminBanner = await duplicateAdminWarningHtml(supabaseUrl, serviceRoleKey, cid)
   } else {
     console.warn(
@@ -238,7 +251,9 @@ Deno.serve(async (req) => {
 
   let actionRow = ""
 
-  if (linkSecret) {
+  if (isCancellation) {
+    actionRow = ""
+  } else if (linkSecret) {
     const approveUrl = escapeHtml(await signedVenueClaimAdminActionUrl(supabaseUrl, linkSecret, cid, "approve"))
     const rejectUrl = escapeHtml(await signedVenueClaimAdminActionUrl(supabaseUrl, linkSecret, cid, "reject"))
     console.log(
@@ -268,6 +283,11 @@ Deno.serve(async (req) => {
       ? `<tr><td style="padding:6px 0;vertical-align:top;width:180px"><strong>business_id</strong></td><td style="padding:6px 0">${escapeHtml(payload.business_id!.trim())}</td></tr>`
       : ""
 
+  const businessNameLine =
+    payload.business_name?.trim()
+      ? `<tr><td style="padding:6px 0;vertical-align:top;width:180px"><strong>Business name</strong></td><td style="padding:6px 0">${escapeHtml(payload.business_name!.trim())}</td></tr>`
+      : ""
+
   const venueLine =
     payload.venue_id?.trim()
       ? `<tr><td style="padding:6px 0;vertical-align:top"><strong>venue_id</strong></td><td style="padding:6px 0">${escapeHtml(payload.venue_id!.trim())}</td></tr>`
@@ -278,6 +298,14 @@ Deno.serve(async (req) => {
     return c.length > 0 ? ` · ${escapeHtml(c)}` : ""
   })()
 
+  const cancellationRows = isCancellation
+    ? `
+    <tr><td style="padding:6px 0;vertical-align:top"><strong>Previous status</strong></td><td style="padding:6px 0">${escapeHtml((payload.previous_status ?? payload.approval_status ?? "").trim() || "pending")}</td></tr>
+    <tr><td style="padding:6px 0;vertical-align:top"><strong>New status</strong></td><td style="padding:6px 0">${escapeHtml((payload.new_status ?? payload.approval_status ?? "cancelled").trim() || "cancelled")}</td></tr>
+    <tr><td style="padding:6px 0;vertical-align:top"><strong>Cancelled timestamp</strong></td><td style="padding:6px 0">${escapeHtml((payload.cancelled_at ?? new Date().toISOString()).trim())}</td></tr>
+    <tr><td style="padding:6px 0;vertical-align:top"><strong>Note</strong></td><td style="padding:6px 0">${escapeHtml((payload.cancellation_note ?? "The business owner cancelled this venue request before approval/rejection.").trim())}</td></tr>`
+    : ""
+
   const html = `<!DOCTYPE html>
 <html>
 <body style="font-family:system-ui,-apple-system,sans-serif;line-height:1.55;color:#1a1a1a;max-width:720px">
@@ -285,14 +313,16 @@ Deno.serve(async (req) => {
   <p style="margin:0 0 16px;font-size:15px">${intro}</p>
   ${duplicateAdminBanner}
   <p style="margin:0 0 10px;font-size:14px"><strong>Business owner email:</strong> ${escapeHtml(payload.owner_email.trim())}</p>
-  <p style="margin:0 0 18px;font-size:14px;color:#475569"><strong>Status:</strong> pending admin review (${escapeHtml(payload.approval_status || "pending")})</p>
+  <p style="margin:0 0 18px;font-size:14px;color:#475569"><strong>Status:</strong> ${isCancellation ? escapeHtml((payload.new_status ?? payload.approval_status ?? "cancelled").trim() || "cancelled") : `pending admin review (${escapeHtml(payload.approval_status || "pending")})`}</p>
   ${actionRow}
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:18px 0"/>
   <table style="font-size:14px;border-collapse:collapse;width:100%">
     <tr><td style="padding:6px 0;vertical-align:top;width:180px"><strong>claim_id</strong></td><td style="padding:6px 0">${escapeHtml(cid)}</td></tr>
     <tr><td style="padding:6px 0;vertical-align:top"><strong>claim_kind</strong></td><td style="padding:6px 0">${escapeHtml(kind)}</td></tr>
+    ${businessNameLine}
     ${bizLine}
     ${venueLine}
+    ${cancellationRows}
     <tr><td style="padding:6px 0;vertical-align:top"><strong>Venue</strong></td><td style="padding:6px 0">${escapeHtml(payload.venue_name)}</td></tr>
     <tr><td style="padding:6px 0;vertical-align:top"><strong>Address</strong></td><td style="padding:6px 0">${escapeHtml(payload.venue_address)}, ${escapeHtml(payload.venue_city)}, ${escapeHtml(payload.venue_state)} ${escapeHtml(payload.venue_zip_code)}${venueCountryTail}</td></tr>
     <tr><td style="padding:6px 0;vertical-align:top"><strong>Phone</strong></td><td style="padding:6px 0">${escapeHtml(payload.venue_phone)}</td></tr>
@@ -313,11 +343,17 @@ Deno.serve(async (req) => {
 </html>`
 
   const subjectPrefix =
-    kind === "new_location"
+    isCancellation
+      ? "Venue request cancelled before review"
+      : kind === "new_location"
       ? "FanGeo — New location request"
       : kind === "discover_claim"
         ? "FanGeo — Discover venue claim"
         : "FanGeo — Venue claim"
+  const emailSubject = isCancellation
+    ? "Venue request cancelled before review"
+    : `${subjectPrefix} — ${payload.venue_name.slice(0, 60)}`
+  const emailTo = isCancellation ? "support@fangeosports.com" : (adminTo ?? "")
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -327,8 +363,8 @@ Deno.serve(async (req) => {
     },
     body: JSON.stringify({
       from: resendFrom,
-      to: [adminTo],
-      subject: `${subjectPrefix} — ${payload.venue_name.slice(0, 60)}`,
+      to: [emailTo],
+      subject: emailSubject,
       html,
     }),
   })

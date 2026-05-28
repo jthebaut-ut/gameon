@@ -7,6 +7,7 @@ enum FavoriteTeamSport: String, CaseIterable, Identifiable, Codable, Hashable {
     case basketball = "Basketball"
     case football = "Football"
     case tennis = "Tennis"
+    case badminton = "Badminton"
     case baseball = "Baseball"
     case hockey = "Hockey"
     case golf = "Golf"
@@ -31,6 +32,7 @@ enum FavoriteTeamSport: String, CaseIterable, Identifiable, Codable, Hashable {
         case .basketball: return "basketball.fill"
         case .football: return "football.fill"
         case .tennis: return "tennisball.fill"
+        case .badminton: return "sportscourt.fill"
         case .baseball: return "baseball.fill"
         case .hockey: return "hockey.puck.fill"
         case .golf: return "figure.golf"
@@ -46,6 +48,7 @@ enum FavoriteTeamSport: String, CaseIterable, Identifiable, Codable, Hashable {
         case .basketball: return Color(red: 0.95, green: 0.55, blue: 0.12)
         case .football: return Color(red: 0.55, green: 0.38, blue: 0.22)
         case .tennis: return Color(red: 0.62, green: 0.82, blue: 0.18)
+        case .badminton: return Color(red: 0.52, green: 0.72, blue: 0.18)
         case .baseball: return Color(red: 0.78, green: 0.18, blue: 0.22)
         case .hockey: return Color(red: 0.18, green: 0.72, blue: 0.92)
         case .golf: return Color(red: 0.18, green: 0.62, blue: 0.32)
@@ -62,6 +65,7 @@ enum FavoriteTeamSport: String, CaseIterable, Identifiable, Codable, Hashable {
         case .hockey: return "NHL"
         case .combat: return "UFC"
         case .racing: return "Formula 1"
+        case .badminton: return "badminton"
         default: return chipTitle
         }
     }
@@ -106,6 +110,9 @@ func sportIcon(for sportName: String) -> String {
     if normalized.contains("tennis") {
         return "🎾"
     }
+    if normalized.contains("badminton") || normalized.contains("shuttlecock") {
+        return "🏸"
+    }
     if normalized.contains("golf") {
         return "⛳️"
     }
@@ -149,6 +156,9 @@ func sportAccentColor(for sportName: String) -> Color {
     }
     if normalized.contains("tennis") {
         return Color(red: 0.72, green: 0.90, blue: 0.14)
+    }
+    if normalized.contains("badminton") || normalized.contains("shuttlecock") {
+        return Color(red: 0.52, green: 0.72, blue: 0.18)
     }
     if normalized.contains("combat") || normalized.contains("mma") || normalized.contains("ufc") || normalized.contains("boxing") {
         return Color(red: 0.76, green: 0.12, blue: 0.14)
@@ -235,7 +245,7 @@ struct FavoriteTeam: Identifiable, Hashable, Codable {
 
 enum FavoriteTeamCatalog {
     private static let localCatalog: [FavoriteTeam] =
-        soccer + basketball + football + baseball + hockey + golf + racing + tennis + combat + ncaa + favoritePlayers + favoriteTournaments
+        soccer + basketball + football + baseball + hockey + golf + racing + tennis + badminton + combat + ncaa + favoritePlayers + favoriteTournaments
     private static let businessGameManagementCatalog = businessGameManagementFavorites(excluding: localCatalog)
 
     /// Favorite Teams uses the same country/team source as business game management, then layers in
@@ -247,6 +257,7 @@ enum FavoriteTeamCatalog {
         .basketball,
         .football,
         .tennis,
+        .badminton,
         .baseball,
         .hockey,
         .golf,
@@ -407,6 +418,11 @@ enum FavoriteTeamCatalog {
                 FavoriteTeamCategory(id: "tennis-players", title: "Players"),
                 FavoriteTeamCategory(id: "tennis-tournaments", title: "Tournaments")
             ]
+        case .badminton:
+            return [
+                FavoriteTeamCategory(id: "badminton-players", title: "Players"),
+                FavoriteTeamCategory(id: "badminton-tournaments", title: "Tournaments")
+            ]
         case .baseball:
             return [
                 FavoriteTeamCategory(id: "baseball-clubs", title: "Clubs"),
@@ -480,6 +496,10 @@ enum FavoriteTeamCatalog {
             return team.sport == .tennis && team.kind == .player
         case "tennis-tournaments":
             return team.sport == .tennis && team.kind == .tournament
+        case "badminton-players":
+            return team.sport == .badminton && team.kind == .player
+        case "badminton-tournaments":
+            return team.sport == .badminton && team.kind == .tournament
         case "baseball-mlb":
             return team.sport == .baseball && team.kind == .team
         case "baseball-clubs":
@@ -584,6 +604,7 @@ enum FavoriteTeamCatalog {
         "NHL",
         "NFL",
         "College Football",
+        "Badminton",
         "Favorite Players",
         "Drivers",
         "Fighters",
@@ -656,6 +677,7 @@ enum FavoriteTeamCatalog {
         case .baseball: return (0.74, 0.16, 0.22)
         case .hockey: return (0.16, 0.62, 0.82)
         case .tennis: return (0.62, 0.82, 0.18)
+        case .badminton: return (0.52, 0.72, 0.18)
         case .golf: return (0.16, 0.56, 0.28)
         case .combat: return (0.62, 0.16, 0.16)
         case .racing: return (0.84, 0.12, 0.16)
@@ -850,6 +872,20 @@ enum FavoriteTeamCatalog {
         team("tennis-roland-garros", "Roland Garros", .tennis, "Tennis Major", "tennisball.fill", 0.82, 0.36, 0.14, region: "Tournaments", kind: .tournament, shortCode: "RG", aliases: ["French Open"]),
         team("tennis-wimbledon", "Wimbledon", .tennis, "Tennis Major", "tennisball.fill", 0.24, 0.52, 0.28, region: "Tournaments", kind: .tournament, shortCode: "WIM"),
         team("tennis-us-open", "US Open Tennis", .tennis, "Tennis Major", "tennisball.fill", 0.12, 0.28, 0.68, region: "Tournaments", kind: .tournament, shortCode: "USO", aliases: ["U.S. Open"])
+    ]
+
+    // MARK: Badminton (players and tournaments; text-only identities)
+
+    private static let badminton: [FavoriteTeam] = [
+        team("badminton-viktor-axelsen", "Viktor Axelsen", .badminton, "Badminton", "sportscourt.fill", 0.52, 0.72, 0.18, region: "Favorite Players", kind: .player, shortCode: "VA", aliases: ["Axelsen"]),
+        team("badminton-an-se-young", "An Se-young", .badminton, "Badminton", "sportscourt.fill", 0.18, 0.58, 0.72, region: "Favorite Players", kind: .player, shortCode: "ASY", aliases: ["An Seyoung"]),
+        team("badminton-pv-sindhu", "P. V. Sindhu", .badminton, "Badminton", "sportscourt.fill", 0.82, 0.42, 0.18, region: "Favorite Players", kind: .player, shortCode: "PVS", aliases: ["PV Sindhu", "Sindhu"]),
+        team("badminton-carolina-marin", "Carolina Marin", .badminton, "Badminton", "sportscourt.fill", 0.76, 0.18, 0.24, region: "Favorite Players", kind: .player, shortCode: "CM", aliases: ["Marin"]),
+        team("badminton-tai-tzu-ying", "Tai Tzu-ying", .badminton, "Badminton", "sportscourt.fill", 0.46, 0.26, 0.72, region: "Favorite Players", kind: .player, shortCode: "TTY", aliases: ["Tai Tzuying"]),
+        team("badminton-lee-zii-jia", "Lee Zii Jia", .badminton, "Badminton", "sportscourt.fill", 0.18, 0.46, 0.72, region: "Favorite Players", kind: .player, shortCode: "LZJ", aliases: ["Lee Zii Jia"]),
+        team("badminton-world-championships", "BWF World Championships", .badminton, "Badminton", "sportscourt.fill", 0.52, 0.72, 0.18, region: "Tournaments", kind: .tournament, shortCode: "BWF", aliases: ["Badminton World Championships"]),
+        team("badminton-thomas-cup", "Thomas Cup", .badminton, "Badminton", "sportscourt.fill", 0.24, 0.52, 0.30, region: "Tournaments", kind: .tournament, shortCode: "TC"),
+        team("badminton-uber-cup", "Uber Cup", .badminton, "Badminton", "sportscourt.fill", 0.72, 0.32, 0.52, region: "Tournaments", kind: .tournament, shortCode: "UC")
     ]
 
     // MARK: Combat Sports (fighters; text-only identities)

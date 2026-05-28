@@ -12,8 +12,6 @@ extension MapViewModel {
         calendar: Calendar = .current
     ) async -> BusinessVenueGamePostingStatus {
         _ = storeKitBusinessProActive
-        _ = now
-        _ = calendar
 
         guard let businessId = currentBusinessIdForAddLocation() else {
             logBusinessEntitlementDebug(
@@ -25,9 +23,10 @@ extension MapViewModel {
         }
 
         guard let entitlement = await loadBusinessEntitlements(businessId: businessId) else {
+            let activeVenueCount = activeManagedVenueListingCount(businessId: businessId)
             let fallback = BusinessVenueGamePostingStatus.freeFallback(
                 businessId: businessId,
-                venuesUsed: managedVenuesForOwner().filter { $0.business_id == businessId }.count
+                venuesUsed: activeVenueCount
             )
             logBusinessEntitlementDebug(
                 businessId: businessId,
@@ -62,6 +61,15 @@ extension MapViewModel {
 #endif
             return nil
         }
+    }
+
+    private func activeManagedVenueListingCount(businessId: UUID) -> Int {
+        let ids = managedVenuesForOwner().compactMap { row -> UUID? in
+            guard row.business_id == businessId else { return nil }
+            guard Self.venueIsActiveForBusinessLimit(row) else { return nil }
+            return row.id
+        }
+        return Set(ids).count
     }
 
     func canBusinessCreateVenueServerSide(businessId: UUID) async -> Bool {
@@ -114,9 +122,10 @@ extension MapViewModel {
 #if DEBUG
         print("[BusinessEntitlementDebug] source=\(source) businessId=\(businessId?.uuidString.lowercased() ?? "nil")")
         print("[BusinessEntitlementDebug] planType=\(status.planType) planStatus=\(status.planStatus) proExpiresAt=\(status.proExpiresAt ?? "nil") isProActive=\(status.businessProActive)")
-        print("[BusinessEntitlementDebug] venuesUsed=\(status.businessVenueCount) venueLimit=\(status.venueLimit) unlimitedVenues=\(status.unlimitedVenues)")
+        print("[BusinessEntitlementDebug] activeVenueCount=\(status.activeVenueCount) activeVenueLimit=\(status.activeVenueLimit.map(String.init) ?? "unlimited") unlimitedVenues=\(status.unlimitedVenues)")
         print("[BusinessEntitlementDebug] hostedGamesThisMonth=\(status.monthlyHostedGameCount) monthlyHostLimit=\(status.monthlyHostLimit) unlimitedHosting=\(status.unlimitedHosting)")
         print("[BusinessEntitlementDebug] statisticsAccess=\(status.statisticsEnabled) sponsoredAccess=\(status.sponsoredEnabled)")
+        print("[BusinessEntitlementDebug] businessId=\(businessId?.uuidString.lowercased() ?? "nil") plan_type=\(status.planType) plan_status=\(status.planStatus) pro_expires_at=\(status.proExpiresAt ?? "nil") unlimited_venues=\(status.unlimitedVenues) unlimited_hosting=\(status.unlimitedHosting) activeVenueCount=\(status.activeVenueCount) activeVenueLimit=\(status.activeVenueLimit.map(String.init) ?? "unlimited") currentMonthHostedGameCount=\(status.currentMonthHostedGameCount) monthlyHostedGameLimit=\(status.monthlyHostedGameLimit.map(String.init) ?? "unlimited") canAddVenue=\(status.canAddVenue) canAddHostedGame=\(status.canAddHostedGame) venueLimitReason=\(status.venueLimitReason) hostedGameLimitReason=\(status.hostedGameLimitReason)")
 #endif
     }
 }

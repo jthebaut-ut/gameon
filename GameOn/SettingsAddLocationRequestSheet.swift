@@ -154,8 +154,8 @@ struct AddBusinessLocationRequestSheet: View {
         if viewModel.currentBusinessIdForAddLocation() == nil {
             m.append("Could not resolve business for this request")
         }
-        if businessMembershipStatus?.freeVenueListingLimitReached == true {
-            m.append("Free businesses can list 5 venues. Upgrade to Business Pro for unlimited venue listings.")
+        if businessMembershipStatus?.canAddVenue == false {
+            m.append(BusinessLimitCopy.venueLimitReached)
         }
         if form.locationName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             m.append("Missing location name")
@@ -359,6 +359,22 @@ struct AddBusinessLocationRequestSheet: View {
                             tint: FGColor.dangerRed,
                             systemImage: "exclamationmark.triangle.fill"
                         )
+#if DEBUG
+                        if !viewModel.businessLocationRPCDebugDetails.isEmpty {
+                            Text(viewModel.businessLocationRPCDebugDetails)
+                                .font(.caption2.monospaced())
+                                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                                .textSelection(.enabled)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .padding(10)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(FGAdaptiveSurface.controlFill, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .strokeBorder(FGColor.divider(colorScheme).opacity(0.45), lineWidth: 1)
+                                }
+                        }
+#endif
                     }
                 }
                 .padding(.horizontal, FGSpacing.lg)
@@ -371,6 +387,9 @@ struct AddBusinessLocationRequestSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 form.errorMessage = ""
+#if DEBUG
+                viewModel.businessLocationRPCDebugDetails = ""
+#endif
 #if DEBUG
                 logAddLocationFormState()
 #endif
@@ -486,6 +505,9 @@ struct AddBusinessLocationRequestSheet: View {
     private func submit() async {
         await MainActor.run {
             form.errorMessage = ""
+#if DEBUG
+            viewModel.businessLocationRPCDebugDetails = ""
+#endif
             form.isSubmitting = true
         }
 
@@ -501,10 +523,10 @@ struct AddBusinessLocationRequestSheet: View {
         }
 
         let membershipStatus = await refreshBusinessMembershipStatus()
-        if membershipStatus.freeVenueListingLimitReached {
+        if !membershipStatus.canAddVenue {
             await MainActor.run {
                 form.isSubmitting = false
-                form.errorMessage = "Free businesses can list 5 venues. Upgrade to Business Pro for unlimited venue listings."
+                form.errorMessage = BusinessLimitCopy.venueLimitReached
             }
             return
         }

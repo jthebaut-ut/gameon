@@ -4,6 +4,17 @@ import Supabase
 /// Client preflight + user-facing copy for ``check_venue_claim_duplicate`` / duplicate insert errors.
 enum VenueClaimDuplicateCheck {
     struct RpcParams: Encodable {
+        enum CodingKeys: String, CodingKey {
+            case p_business_id
+            case p_owner_email
+            case p_venue_name
+            case p_venue_address
+            case p_venue_city
+            case p_venue_state
+            case p_venue_zip
+            case p_exclude_claim_id
+        }
+
         let p_business_id: UUID?
         let p_owner_email: String
         let p_venue_name: String
@@ -12,6 +23,39 @@ enum VenueClaimDuplicateCheck {
         let p_venue_state: String
         let p_venue_zip: String
         let p_exclude_claim_id: UUID?
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            if let p_business_id {
+                try container.encode(p_business_id, forKey: .p_business_id)
+            } else {
+                try container.encodeNil(forKey: .p_business_id)
+            }
+            try container.encode(p_owner_email, forKey: .p_owner_email)
+            try container.encode(p_venue_name, forKey: .p_venue_name)
+            try container.encode(p_venue_address, forKey: .p_venue_address)
+            try container.encode(p_venue_city, forKey: .p_venue_city)
+            try container.encode(p_venue_state, forKey: .p_venue_state)
+            try container.encode(p_venue_zip, forKey: .p_venue_zip)
+            if let p_exclude_claim_id {
+                try container.encode(p_exclude_claim_id, forKey: .p_exclude_claim_id)
+            } else {
+                try container.encodeNil(forKey: .p_exclude_claim_id)
+            }
+        }
+
+        var debugPayload: String {
+            [
+                "p_business_id=\(p_business_id?.uuidString.lowercased() ?? "null")",
+                "p_owner_email=\(p_owner_email)",
+                "p_venue_name=\(p_venue_name)",
+                "p_venue_address=\(p_venue_address)",
+                "p_venue_city=\(p_venue_city)",
+                "p_venue_state=\(p_venue_state)",
+                "p_venue_zip=\(p_venue_zip)",
+                "p_exclude_claim_id=\(p_exclude_claim_id?.uuidString.lowercased() ?? "null")"
+            ].joined(separator: " ")
+        }
     }
 
     private struct CodeRow: Decodable {
@@ -62,22 +106,39 @@ enum VenueClaimDuplicateCheck {
                 .execute()
                 .value
             let code = rows.first?.code ?? "ok"
-            print("[VenueDuplicate] RPC returned code = \(code)")
+#if DEBUG
+            print("[VenueDuplicateCheckDebug] rpcName=check_venue_claim_duplicate")
+            print("[VenueDuplicateCheckDebug] resultCode=\(code)")
+            print("[VenueDuplicateCheckDebug] rpcParams=\(params.debugPayload)")
+#endif
             return userMessage(forRpcCode: code)
         } catch {
 #if DEBUG
-print("[VenueDuplicate] RPC check failed FULL ERROR:")
-print(error)
-print("[VenueDuplicate] NSError:")
-print(error as NSError)
-print("[VenueDuplicate] userInfo:")
-print((error as NSError).userInfo)
-print("[VenueDuplicate] params:")
-print(params)
+            logRpcError(error, params: params)
 #endif
 
-return "Could not verify whether this location is a duplicate. Check your connection and try again."
+            return "Could not verify whether this location is a duplicate. Check your connection and try again."
         }
+    }
+
+    private static func logRpcError(_ error: Error, params: RpcParams) {
+        print("[VenueDuplicateCheckDebug] rpcName=check_venue_claim_duplicate")
+        if let postgrestError = error as? PostgrestError {
+            print("[VenueDuplicateCheckDebug] PostgrestError.code=\(postgrestError.code ?? "nil")")
+            print("[VenueDuplicateCheckDebug] PostgrestError.message=\(postgrestError.message)")
+            print("[VenueDuplicateCheckDebug] PostgrestError.detail=\(postgrestError.detail ?? "nil")")
+            print("[VenueDuplicateCheckDebug] PostgrestError.hint=\(postgrestError.hint ?? "nil")")
+        } else {
+            print("[VenueDuplicateCheckDebug] PostgrestError.code=nil")
+            print("[VenueDuplicateCheckDebug] PostgrestError.message=\(error.localizedDescription)")
+            print("[VenueDuplicateCheckDebug] PostgrestError.detail=nil")
+            print("[VenueDuplicateCheckDebug] PostgrestError.hint=nil")
+        }
+        let nsError = error as NSError
+        print("[VenueDuplicateCheckDebug] NSError.domain=\(nsError.domain)")
+        print("[VenueDuplicateCheckDebug] NSError.code=\(nsError.code)")
+        print("[VenueDuplicateCheckDebug] NSError.userInfo=\(String(describing: nsError.userInfo))")
+        print("[VenueDuplicateCheckDebug] rpcParams=\(params.debugPayload)")
     }
 
     /// Maps Postgres trigger messages and unique violations to the same copy as RPC.

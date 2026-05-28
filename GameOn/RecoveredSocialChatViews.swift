@@ -1,5 +1,21 @@
 import SwiftUI
 
+private enum ChatRowTimeFormatters {
+    static let shortTime: DateFormatter = {
+        let df = DateFormatter()
+        df.timeStyle = .short
+        df.dateStyle = .none
+        return df
+    }()
+
+    static let monthDay: DateFormatter = {
+        let df = DateFormatter()
+        df.locale = .autoupdatingCurrent
+        df.setLocalizedDateFormatFromTemplate("MMM d")
+        return df
+    }()
+}
+
 // MARK: - Avatar (toolbar / rows / bubbles)
 
 struct ProfileAvatarView: View {
@@ -347,10 +363,36 @@ struct FriendsTabView: View {
         chatConversationFriendsSnapshot = conversations
         friendsDirectoryItemsSnapshot = directory
         filteredFriendsDirectoryItemsSnapshot = filtered
+        prefetchChatInboxAvatars(reason: reason, rows: conversations)
 #if DEBUG
         let ms = (CFAbsoluteTimeGetCurrent() - started) * 1000
         print("[RenderPerf] view=FriendsTabView renderMs=\(String(format: "%.2f", ms)) rebuildReason=\(reason)")
 #endif
+    }
+
+    private func prefetchChatInboxAvatars(reason: String, rows: [ChatViewModel.FriendDisplay]) {
+        let urls = rows.prefix(12).compactMap { item -> URL? in
+            guard let raw = ImageDisplayURL.forList(
+                thumbnail: item.preview.avatarThumbnailURL,
+                full: item.preview.avatarURL
+            ) else { return nil }
+            return URL(string: raw)
+        }
+        guard !urls.isEmpty else {
+#if DEBUG
+            print("[SmoothPerf] operation=chatInboxAvatarPrefetch skipped=noURLs durationMs=0 coalesced=false avatarCount=0 reason=\(reason)")
+#endif
+            return
+        }
+
+        Task {
+            let startedAt = Date()
+            await DiscoverMapImageCache.shared.prefetch(urls: urls, bucket: .avatar)
+#if DEBUG
+            let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
+            print("[SmoothPerf] operation=chatInboxAvatarPrefetch skipped=none durationMs=\(ms) coalesced=false avatarCount=\(urls.count) reason=\(reason)")
+#endif
+        }
     }
 
     @ViewBuilder
@@ -545,7 +587,7 @@ struct FriendsTabView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 14) {
+                    LazyVStack(alignment: .leading, spacing: 14) {
                         friendsDirectorySearchField
 
                         if filteredFriendsDirectoryItems.isEmpty {
@@ -783,16 +825,10 @@ struct FriendsTabView: View {
         guard let date else { return "" }
         let cal = Calendar.current
         if cal.isDateInToday(date) {
-            let df = DateFormatter()
-            df.timeStyle = .short
-            df.dateStyle = .none
-            return df.string(from: date)
+            return ChatRowTimeFormatters.shortTime.string(from: date)
         }
         if cal.isDateInYesterday(date) { return "Yesterday" }
-        let df = DateFormatter()
-        df.locale = .autoupdatingCurrent
-        df.setLocalizedDateFormatFromTemplate("MMM d")
-        return df.string(from: date)
+        return ChatRowTimeFormatters.monthDay.string(from: date)
     }
 }
 
@@ -1231,7 +1267,7 @@ private struct AddFriendGlassSheet: View {
             }
         } else {
             ScrollView {
-                VStack(spacing: 6) {
+                LazyVStack(spacing: 6) {
                     ForEach(viewModel.addFriendSearchResults) { target in
                         AddFriendSearchResultRow(
                             target: target,
