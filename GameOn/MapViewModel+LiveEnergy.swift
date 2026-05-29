@@ -3,7 +3,17 @@ import Foundation
 extension MapViewModel {
     func cachedVenueEventRow(for bar: BarVenue, gameTitle: String) -> VenueEventRow? {
         venueEventRows.first { row in
-            guard row.event_title == gameTitle else { return false }
+            let storedTitle = row.event_title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let publicTitle = VenueGameCompetitorDisplay.publicTitle(
+                eventTitle: row.event_title,
+                sport: row.sport,
+                homeTeam: row.home_team,
+                awayTeam: row.away_team
+            )
+            guard storedTitle.caseInsensitiveCompare(gameTitle) == .orderedSame
+                    || publicTitle.caseInsensitiveCompare(gameTitle) == .orderedSame else {
+                return false
+            }
             if let venueID = row.venue_id, venueID == bar.id { return true }
             if row.venue_name == bar.name { return true }
             if let owner = row.owner_email,

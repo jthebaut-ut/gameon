@@ -327,6 +327,17 @@ private nonisolated enum DiscoverMapRenderSnapshotBuilder {
         return lhs.caseInsensitiveCompare(rhs) == .orderedSame
     }
 
+    private static func venueEventDisplayTitleMatches(_ row: VenueEventRow, _ gameTitle: String) -> Bool {
+        if venueEventTitlesMatch(row.event_title, gameTitle) { return true }
+        let publicTitle = VenueGameCompetitorDisplay.publicTitle(
+            eventTitle: row.event_title,
+            sport: row.sport,
+            homeTeam: row.home_team,
+            awayTeam: row.away_team
+        )
+        return venueEventTitlesMatch(publicTitle, gameTitle)
+    }
+
     private static func cachedVenueEventID(
         for bar: BarVenue,
         gameTitle: String,
@@ -366,7 +377,7 @@ private nonisolated enum DiscoverMapRenderSnapshotBuilder {
         bar: BarVenue,
         gameTitle: String
     ) -> Bool {
-        guard venueEventTitlesMatch(row.event_title, gameTitle) else { return false }
+        guard venueEventDisplayTitleMatches(row, gameTitle) else { return false }
         if let venueID = row.venue_id, venueID == bar.id { return true }
         let barName = bar.name.trimmingCharacters(in: .whitespacesAndNewlines)
         let venueName = row.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""

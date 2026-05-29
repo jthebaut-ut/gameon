@@ -669,6 +669,7 @@ struct BusinessLocationUSStatePicker: View {
 
     var body: some View {
         Picker(title, selection: $stateCode) {
+            Text("Select state").tag("")
             ForEach(USStatesForBusinessLocation.abbreviationsSortedByName, id: \.0) { row in
                 Text("\(row.0) — \(row.1)").tag(row.0)
             }

@@ -141,6 +141,27 @@ private struct BusinessAnalyticsRankedMetric: Identifiable {
     let tint: Color
 }
 
+private enum BusinessAnalyticsHelpMetric: String, Identifiable {
+    case engagementOverview = "Engagement Overview"
+    case topPerformingEvents = "Top Performing Events"
+    case busiestDays = "Busiest Days"
+
+    var id: String { rawValue }
+
+    var title: String { rawValue }
+
+    var explanation: String {
+        switch self {
+        case .engagementOverview:
+            return "Engagement measures fan activity across your venue, including interested fans, comments, chat activity, reactions, fan updates, and watch party participation."
+        case .topPerformingEvents:
+            return "Top Performing Events ranks events by overall engagement activity, including interested fans, comments, chat activity, energy votes, and fan interactions."
+        case .busiestDays:
+            return "Busiest Days shows which days generate the most fan activity so you can identify strong promotion opportunities."
+        }
+    }
+}
+
 private struct BusinessInsightsSparkline: View {
     let values: [Int]
     let tint: Color
@@ -655,6 +676,8 @@ struct VenueOwnerDashboardView: View {
     @State private var analyticsGameHistoryMonth: Int = 0
     @State private var analyticsGameHistoryLoading = false
     @State private var analyticsGameHistoryError = ""
+    @State private var showBusinessAnalyticsGuide = false
+    @State private var businessAnalyticsHelpMetric: BusinessAnalyticsHelpMetric?
 
     private enum VenueAnalyticsDatePreset: String, CaseIterable {
         case thisWeek = "This week"
@@ -711,6 +734,12 @@ struct VenueOwnerDashboardView: View {
 
     private var manualPredictionTeamValidationMessage: String {
         L10n.t("add_both_teams_predictions", languageCode: appLanguageRaw)
+    }
+
+    private var manualPredictionCompetitorValidationMessage: String {
+        manualGameUsesPlayerCompetitorLabels
+            ? "Add both players so fans can see the matchup."
+            : manualPredictionTeamValidationMessage
     }
 
     @State private var manageGamesListTab: ManageGamesListTab = .scheduled
@@ -1108,6 +1137,7 @@ struct VenueOwnerDashboardView: View {
         .alert(venueRemovalConfirmationTitle, isPresented: $showDeleteVenueConfirmation) {
             Button("Cancel", role: .cancel) {}
             Button(venueRemovalActionTitle, role: .destructive) {
+                logBusinessVenueDeleteDebug("deleteConfirmationAccepted")
                 Task {
                     await performDeleteSelectedVenue()
                 }
@@ -2236,7 +2266,9 @@ struct VenueOwnerDashboardView: View {
     }
     
     private var profileSection: some View {
-        dashboardCard(
+        VStack(alignment: .leading, spacing: 16) {
+
+            dashboardCard(
             title: entryPoint == .profileEditor ? "Venue listing" : "Location profile",
             subtitle: entryPoint == .profileEditor
                 ? "Editable items save to the venue selected above."
@@ -2326,6 +2358,7 @@ struct VenueOwnerDashboardView: View {
                 .opacity(selectedVenuePlanLocked ? 0.78 : 1)
 
                 Button {
+                    guard !isDeletingVenue else { return }
                     guard !selectedVenuePlanLocked else {
                         profileSaveMessage = BusinessLimitCopy.planLockedVenueSubtitle
                         return
@@ -2395,26 +2428,43 @@ struct VenueOwnerDashboardView: View {
                 } label: {
                     primaryButtonText("Save Profile")
                 }
-                .disabled(selectedVenuePlanLocked)
-                .opacity(selectedVenuePlanLocked ? 0.55 : 1)
+                .disabled(selectedVenuePlanLocked || isDeletingVenue)
+                .opacity(selectedVenuePlanLocked || isDeletingVenue ? 0.55 : 1)
             }
 
-            if !profileSaveMessage.isEmpty {
-                Text(profileSaveMessage)
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundStyle(profileSaveMessage == BusinessLimitCopy.planLockedVenueSubtitle ? .orange : .green)
-                    .frame(maxWidth: .infinity, alignment: .center)
-            }
+                if !profileSaveMessage.isEmpty {
 
-            if !venueDeleteError.isEmpty {
-                Text(venueDeleteError)
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(FGColor.dangerRed)
-                    .frame(maxWidth: .infinity, alignment: .center)
-            }
+                               Text(profileSaveMessage)
 
-            deleteVenueDangerZone
+                                   .font(.caption)
+
+                                   .fontWeight(.bold)
+
+                                   .foregroundStyle(profileSaveMessage == BusinessLimitCopy.planLockedVenueSubtitle ? .orange : .green)
+
+                                   .frame(maxWidth: .infinity, alignment: .center)
+
+                           }
+
+                           if !venueDeleteError.isEmpty {
+
+                               Text(venueDeleteError)
+
+                                   .font(.caption.weight(.bold))
+
+                                   .foregroundStyle(FGColor.dangerRed)
+
+                                   .frame(maxWidth: .infinity, alignment: .center)
+
+                           }
+
+                           }
+
+                       }
+
+            if !shouldShowVenueDetailsEmptyState,
+               selectedManagedVenueForRemoval != nil {
+                deleteVenueDangerZone
             }
         }
     }
@@ -2522,9 +2572,10 @@ struct VenueOwnerDashboardView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            Button {
-                venueDeleteError = ""
-                showDeleteVenueConfirmation = true
+            Button(role: .destructive) {
+                Task {
+                    await performDeleteSelectedVenue()
+                }
             } label: {
                 HStack(spacing: 8) {
                     if isDeletingVenue {
@@ -2545,8 +2596,6 @@ struct VenueOwnerDashboardView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .shadow(color: venueRemovalTint.opacity(colorScheme == .dark ? 0.24 : 0.18), radius: 10, y: 4)
             }
-            .buttonStyle(.plain)
-            .disabled(isDeletingVenue || viewModel.ownerVenueDatabaseId == nil)
             .opacity(viewModel.ownerVenueDatabaseId == nil ? 0.55 : 1)
             .accessibilityHint(selectedVenueIsCommunityClaim
                 ? "Releases this venue back to the community marketplace."
@@ -2559,6 +2608,7 @@ struct VenueOwnerDashboardView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .strokeBorder(venueRemovalTint.opacity(0.24), lineWidth: 1)
+                .allowsHitTesting(false)
         )
     }
 
@@ -2571,21 +2621,26 @@ struct VenueOwnerDashboardView: View {
 
     @MainActor
     private func performDeleteSelectedVenue() async {
+        logBusinessVenueDeleteDebug("performDeleteStarted")
         guard let venueId = viewModel.ownerVenueDatabaseId else {
+            logBusinessVenueDeleteDebug("blockedMissingVenueId")
             venueDeleteError = "Select a venue first."
             return
         }
 
+        logBusinessVenueDeleteDebug("deleteStarted", venueId: venueId)
         isDeletingVenue = true
         venueDeleteError = ""
         profileSaveMessage = ""
 
         do {
             let result = try await viewModel.releaseOrDeleteBusinessVenue(venueId: venueId)
+            await refreshBusinessPlanStatus(source: "venueDelete", force: true, refreshOwnedVenues: true)
             profileSaveMessage = result.releasedCommunityVenue ? "Venue released successfully." : "Venue deleted successfully."
             syncDisplayedVenuePhotoURLsFromViewModel()
             selectedCoverPhoto = nil
             selectedMenuPhoto = nil
+            print("[BusinessVenueDeleteDebug] deleteSucceeded venueId=\(venueId.uuidString.lowercased())")
 
             if entryPoint == .profileEditor {
                 try? await Task.sleep(nanoseconds: 450_000_000)
@@ -2594,10 +2649,57 @@ struct VenueOwnerDashboardView: View {
                 selectedSection = .overview
             }
         } catch {
-            venueDeleteError = error.localizedDescription
+            logBusinessVenueDeleteDebug("deleteFailed", venueId: venueId, error: error)
+            venueDeleteError = userFacingVenueDeleteError(error)
         }
 
         isDeletingVenue = false
+    }
+
+    private func userFacingVenueDeleteError(_ error: Error) -> String {
+        let raw = "\(error) \(error.localizedDescription)"
+        if raw.localizedCaseInsensitiveContains("duplicate_venue_same_business") {
+            return "Unable to delete this venue. Please refresh and try again."
+        }
+        let message = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+        return message.isEmpty ? "Unable to delete this venue. Please try again." : message
+    }
+
+    private func logBusinessVenueDeleteDebug(
+        _ event: String,
+        venueId explicitVenueId: UUID? = nil,
+        error: Error? = nil,
+        errorDescription: String? = nil
+    ) {
+        let venueId = explicitVenueId ?? viewModel.ownerVenueDatabaseId
+        let selectedVenueName = selectedManagedVenueForRemoval?.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let profileVenueName = viewModel.ownerVenueName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let venueName = selectedVenueName.isEmpty ? profileVenueName : selectedVenueName
+        let adminStatus = venueId
+            .flatMap { id in viewModel.managedVenuesForOwner().first(where: { $0.id == id })?.admin_status }
+            .flatMap { raw -> String? in
+                let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+                return trimmed.isEmpty ? nil : trimmed
+            } ?? "active"
+        let venueIdText = venueId?.uuidString.lowercased() ?? "nil"
+        var message: String
+        switch event {
+        case "deleteButtonTapped":
+            message = "[BusinessVenueDeleteDebug] deleteButtonTapped selectedVenueId=\(venueIdText) selectedVenueName=\(venueName.isEmpty ? "nil" : venueName)"
+        case "blockedMissingVenueId":
+            message = "[BusinessVenueDeleteDebug] blockedMissingVenueId"
+        default:
+            message = "[BusinessVenueDeleteDebug] \(event) venueId=\(venueIdText)"
+        }
+        if event == "deleteTapped" {
+            message += " venueName=\(venueName.isEmpty ? "nil" : venueName) adminStatus=\(adminStatus)"
+        }
+        if let error {
+            message += " error=\(error.localizedDescription)"
+        } else if let errorDescription {
+            message += " error=\(errorDescription)"
+        }
+        print(message)
     }
 
     private func venueSupporterCountryEditor() -> some View {
@@ -3351,10 +3453,22 @@ struct VenueOwnerDashboardView: View {
                 }
             }
         }
+        .sheet(isPresented: $showBusinessAnalyticsGuide) {
+            businessAnalyticsGuideSheet
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(FGAdaptiveSurface.sheetRoot)
+        }
+        .sheet(item: $businessAnalyticsHelpMetric) { metric in
+            businessAnalyticsMetricHelpSheet(metric)
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(FGAdaptiveSurface.sheetRoot)
+        }
     }
 
     private var businessIntelligenceHeader: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 10) {
             Text("Business Intelligence")
                 .font(.system(size: 26, weight: .black, design: .rounded))
                 .foregroundStyle(businessAnalyticsPrimaryText)
@@ -3364,6 +3478,25 @@ struct VenueOwnerDashboardView: View {
             Text("Insight and performance tools for your venue.")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(businessAnalyticsSecondaryText)
+
+            Button {
+#if DEBUG
+                print("[BusinessAnalyticsHelpDebug] openedGuide")
+#endif
+                showBusinessAnalyticsGuide = true
+            } label: {
+                Label("How FanGeo Analytics Works", systemImage: "questionmark.circle.fill")
+                    .font(.caption.weight(.black))
+                    .foregroundStyle(businessAnalyticsPrimaryText)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.78), in: Capsule(style: .continuous))
+                    .overlay {
+                        Capsule(style: .continuous)
+                            .strokeBorder(businessAnalyticsGlassStroke.opacity(0.48), lineWidth: 1)
+                    }
+            }
+            .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.985, hapticOnPress: false))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -3417,6 +3550,180 @@ struct VenueOwnerDashboardView: View {
 #if DEBUG
         print("[BusinessAnalyticsDebug] \(message)")
 #endif
+    }
+
+    private func openBusinessAnalyticsMetricHelp(_ metric: BusinessAnalyticsHelpMetric) {
+#if DEBUG
+        print("[BusinessAnalyticsHelpDebug] openedMetricHelp metric=\(metric.title)")
+#endif
+        businessAnalyticsHelpMetric = metric
+    }
+
+    private var businessAnalyticsGuideSheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    businessAnalyticsGuideSection(
+                        title: "Engagement Score",
+                        body: "Engagement measures fan activity across your venue.",
+                        bullets: [
+                            "Interested fans",
+                            "Comments",
+                            "Chat activity",
+                            "Reactions",
+                            "Fan updates",
+                            "Watch party participation"
+                        ],
+                        footer: "Higher engagement indicates stronger fan involvement."
+                    )
+
+                    businessAnalyticsGuideSection(
+                        title: "Momentum",
+                        body: "Momentum measures how much activity an event is generating right now.",
+                        bullets: [
+                            "Fan interest",
+                            "Chat activity",
+                            "Energy votes",
+                            "Fan updates"
+                        ],
+                        footer: "Low = early activity\nMedium = growing activity\nHigh = strong activity"
+                    )
+
+                    businessAnalyticsGuideSection(
+                        title: "Crowd Building",
+                        body: "Crowd Building highlights events where fan activity is growing but attendance is still developing.",
+                        footer: "These events may benefit from additional promotion."
+                    )
+
+                    businessAnalyticsGuideSection(
+                        title: "Top Performing Events",
+                        body: "Events are ranked by overall engagement activity.",
+                        bullets: [
+                            "Interested fans",
+                            "Comments",
+                            "Chat activity",
+                            "Energy votes",
+                            "Fan interactions"
+                        ]
+                    )
+
+                    businessAnalyticsGuideSection(
+                        title: "Busiest Days",
+                        body: "Shows which days generate the most fan activity.",
+                        footer: "Use this to identify strong promotion opportunities."
+                    )
+
+                    businessAnalyticsGuideSection(
+                        title: "Fan Reach",
+                        body: "Fan Reach estimates how many fans interacted with your venue content and events.",
+                        footer: "This metric will continue improving as FanGeo grows."
+                    )
+                }
+                .padding(FGSpacing.lg)
+            }
+            .navigationTitle("FanGeo Analytics Guide")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { showBusinessAnalyticsGuide = false }
+                }
+            }
+            .fanGeoScreenBackground()
+        }
+    }
+
+    private func businessAnalyticsMetricHelpSheet(_ metric: BusinessAnalyticsHelpMetric) -> some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 14) {
+                Image(systemName: "questionmark.circle.fill")
+                    .font(.system(size: 34, weight: .bold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(FGColor.accentBlue)
+
+                Text(metric.title)
+                    .font(.title3.weight(.black))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+
+                Text(metric.explanation)
+                    .font(FGTypography.body)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Spacer(minLength: 0)
+            }
+            .padding(FGSpacing.lg)
+            .navigationTitle("Analytics Help")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { businessAnalyticsHelpMetric = nil }
+                }
+            }
+            .fanGeoScreenBackground()
+        }
+    }
+
+    private func businessAnalyticsGuideSection(
+        title: String,
+        body: String,
+        bullets: [String] = [],
+        footer: String? = nil
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Text(title.uppercased())
+                .font(.caption.weight(.black))
+                .foregroundStyle(FGColor.accentBlue)
+
+            Text(body)
+                .font(FGTypography.body.weight(.semibold))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+                .fixedSize(horizontal: false, vertical: true)
+
+            if !bullets.isEmpty {
+                VStack(alignment: .leading, spacing: 5) {
+                    ForEach(bullets, id: \.self) { bullet in
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text("•")
+                                .font(FGTypography.body.weight(.bold))
+                                .foregroundStyle(FGColor.accentGreen)
+                            Text(bullet)
+                                .font(FGTypography.body)
+                                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
+
+            if let footer {
+                Text(footer)
+                    .font(FGTypography.caption.weight(.semibold))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(FGAdaptiveSurface.cardElevated)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme).opacity(0.74), lineWidth: 1)
+        }
+    }
+
+    private func businessAnalyticsMetricHelpButton(_ metric: BusinessAnalyticsHelpMetric) -> some View {
+        Button {
+            openBusinessAnalyticsMetricHelp(metric)
+        } label: {
+            Image(systemName: "info.circle")
+                .font(.caption.weight(.bold))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(businessAnalyticsSecondaryText)
+                .frame(width: 22, height: 22)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Learn about \(metric.title)")
     }
 
     private func venueAnalyticsDashboardInner() -> some View {
@@ -3635,7 +3942,8 @@ struct VenueOwnerDashboardView: View {
                 businessAnalyticsRankedCard(
                     title: "Busiest Days",
                     subtitle: "by engagement",
-                    metrics: businessAnalyticsBusiestDays(from: displayed)
+                    metrics: businessAnalyticsBusiestDays(from: displayed),
+                    helpMetric: .busiestDays
                 )
             }
 
@@ -3655,9 +3963,7 @@ struct VenueOwnerDashboardView: View {
                 Text("Engagement Overview")
                     .font(.headline.weight(.black))
                     .foregroundStyle(businessAnalyticsPrimaryText)
-                Image(systemName: "info.circle")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(businessAnalyticsSecondaryText)
+                businessAnalyticsMetricHelpButton(.engagementOverview)
                 Spacer(minLength: 0)
                 Text(analyticsDatePreset.rawValue)
                     .font(.caption.weight(.black))
@@ -3760,13 +4066,19 @@ struct VenueOwnerDashboardView: View {
     private func businessAnalyticsRankedCard(
         title: String,
         subtitle: String,
-        metrics: [BusinessAnalyticsRankedMetric]
+        metrics: [BusinessAnalyticsRankedMetric],
+        helpMetric: BusinessAnalyticsHelpMetric? = nil
     ) -> some View {
         VStack(alignment: .leading, spacing: 9) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.headline.weight(.black))
-                    .foregroundStyle(businessAnalyticsPrimaryText)
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(title)
+                        .font(.headline.weight(.black))
+                        .foregroundStyle(businessAnalyticsPrimaryText)
+                    if let helpMetric {
+                        businessAnalyticsMetricHelpButton(helpMetric)
+                    }
+                }
                 Text(subtitle)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(businessAnalyticsSecondaryText)
@@ -3892,9 +4204,12 @@ struct VenueOwnerDashboardView: View {
 
         return VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Top Performing Events")
-                    .font(.headline.weight(.black))
-                    .foregroundStyle(businessAnalyticsPrimaryText)
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text("Top Performing Events")
+                        .font(.headline.weight(.black))
+                        .foregroundStyle(businessAnalyticsPrimaryText)
+                    businessAnalyticsMetricHelpButton(.topPerformingEvents)
+                }
                 Text(analyticsDatePreset.rawValue.lowercased())
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(businessAnalyticsSecondaryText)
@@ -6012,9 +6327,9 @@ struct VenueOwnerDashboardView: View {
                         .textInputAutocapitalization(.words)
 
                     if showsTeamFields {
-                        TextField(usesParticipantLabels ? "Participant 1" : "Team 1", text: $titleEditTeam1Draft)
+                        TextField(usesParticipantLabels ? "Player 1" : "Team 1", text: $titleEditTeam1Draft)
                             .textInputAutocapitalization(.words)
-                        TextField(usesParticipantLabels ? "Participant 2" : "Team 2", text: $titleEditTeam2Draft)
+                        TextField(usesParticipantLabels ? "Player 2" : "Team 2", text: $titleEditTeam2Draft)
                             .textInputAutocapitalization(.words)
                     }
 
@@ -6025,7 +6340,7 @@ struct VenueOwnerDashboardView: View {
                     }
                 } footer: {
                     Text(isManual
-                         ? "You can update the title and teams fans see. Sport, date, and time stay locked."
+                         ? "You can update the internal title and the teams or players fans see. Sport, date, and time stay locked."
                          : "This is the title fans see for your watch party. The sport, teams, date, and time stay locked.")
                 }
             }
@@ -6055,7 +6370,7 @@ struct VenueOwnerDashboardView: View {
     }
 
     private func titleEditUsesParticipantLabels(for target: VenueOwnerGameTitleEditTarget) -> Bool {
-        Self.hostedGameSupportsOptionalParticipantMatchup(target.row.sport ?? "")
+        Self.hostedGameUsesPlayerCompetitors(target.row.sport ?? "")
     }
 
     private func titleEditValidationMessage(for target: VenueOwnerGameTitleEditTarget) -> String? {
@@ -6065,14 +6380,16 @@ struct VenueOwnerDashboardView: View {
         let team2 = titleEditTeam2Draft.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if Self.hostedGameRequiresTeamMatchup(target.row.sport ?? ""), team1.isEmpty || team2.isEmpty {
-            return manualPredictionTeamValidationMessage
+            return titleEditUsesParticipantLabels(for: target)
+                ? "Add both players so fans can see the matchup."
+                : manualPredictionTeamValidationMessage
         }
 
         if !team1.isEmpty,
            !team2.isEmpty,
            team1.localizedCaseInsensitiveCompare(team2) == .orderedSame {
             return titleEditUsesParticipantLabels(for: target)
-                ? "Participant 1 and Participant 2 must be different."
+                ? "Player 1 and Player 2 must be different."
                 : "Team 1 and Team 2 must be different."
         }
 
@@ -6314,6 +6631,10 @@ struct VenueOwnerDashboardView: View {
         gameCreationMode == .manual && Self.hostedGameSupportsOptionalParticipantMatchup(viewModel.ownerVenuePrimarySport)
     }
 
+    private var manualGameUsesPlayerCompetitorLabels: Bool {
+        gameCreationMode == .manual && Self.hostedGameUsesPlayerCompetitors(viewModel.ownerVenuePrimarySport)
+    }
+
     private var manualGameShowsParticipantFields: Bool {
         manualGameRequiresStructuredTeams || manualGameSupportsOptionalParticipants
     }
@@ -6363,45 +6684,19 @@ struct VenueOwnerDashboardView: View {
     }
 
     private static func hostedGameRequiresTeamMatchup(_ sport: String) -> Bool {
-        switch normalizedHostedGameMatchupSport(sport) {
-        case "soccer", "basketball", "football", "hockey", "baseball", "volleyball",
-             "rugby", "cricket", "lacrosse", "water_polo", "handball":
-            return true
-        default:
-            return false
-        }
+        VenueGameCompetitorDisplay.requiresCompetitors(for: sport)
     }
 
     private static func hostedGameSupportsOptionalParticipantMatchup(_ sport: String) -> Bool {
-        switch normalizedHostedGameMatchupSport(sport) {
-        case "mma", "ufc", "boxing", "tennis", "pickleball", "table_tennis", "badminton":
-            return true
-        default:
-            return false
-        }
+        false
+    }
+
+    private static func hostedGameUsesPlayerCompetitors(_ sport: String) -> Bool {
+        VenueGameCompetitorDisplay.competitorMode(for: sport) == .player
     }
 
     private static func normalizedHostedGameMatchupSport(_ sport: String) -> String {
-        let lowered = sport.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        if lowered.contains("soccer") { return "soccer" }
-        if lowered.contains("basketball") || lowered == "nba" { return "basketball" }
-        if lowered.contains("football") || lowered == "nfl" { return "football" }
-        if lowered.contains("hockey") || lowered == "nhl" { return "hockey" }
-        if lowered.contains("baseball") || lowered == "mlb" { return "baseball" }
-        if lowered.contains("volleyball") { return "volleyball" }
-        if lowered.contains("rugby") { return "rugby" }
-        if lowered.contains("cricket") { return "cricket" }
-        if lowered.contains("lacrosse") { return "lacrosse" }
-        if lowered.contains("water polo") { return "water_polo" }
-        if lowered.contains("handball") { return "handball" }
-        if lowered.contains("mma") || lowered.contains("mixed martial") { return "mma" }
-        if lowered.contains("ufc") { return "ufc" }
-        if lowered.contains("boxing") { return "boxing" }
-        if lowered.contains("pickleball") { return "pickleball" }
-        if lowered.contains("table tennis") || lowered.contains("ping pong") { return "table_tennis" }
-        if lowered.contains("badminton") { return "badminton" }
-        if lowered.contains("tennis") { return "tennis" }
-        return lowered
+        VenueGameCompetitorDisplay.normalizedSportKey(sport)
     }
 
     private var gameCreationModePicker: some View {
@@ -6897,6 +7192,11 @@ struct VenueOwnerDashboardView: View {
                     print("[ManageGamesAddPane] title appear")
 #endif
                 }
+            Text("Internal listing title. Fans will see the teams/players on the game card.")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 4)
 
             Group {
                 DatePicker(
@@ -6972,7 +7272,7 @@ struct VenueOwnerDashboardView: View {
             }
 
             if manualGameRequiresStructuredTeams && !manualStructuredTeamsHaveBothTeams {
-                Text(manualPredictionTeamValidationMessage)
+                Text(manualPredictionCompetitorValidationMessage)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(FGColor.dangerRed)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -6990,7 +7290,7 @@ struct VenueOwnerDashboardView: View {
                 }
 
             if manualGameShowsParticipantFields && manualStructuredTeamsAreDuplicate {
-                Text("Team 1 and Team 2 must be different.")
+                Text(manualGameUsesPlayerCompetitorLabels ? "Player 1 and Player 2 must be different." : "Team 1 and Team 2 must be different.")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(FGColor.dangerRed)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -7057,11 +7357,10 @@ struct VenueOwnerDashboardView: View {
     }
 
     private var manualStructuredTeamsFields: some View {
-        let firstTitle = manualGameSupportsOptionalParticipants ? "Participant 1" : L10n.t("team_1", languageCode: appLanguageRaw)
-        let secondTitle = manualGameSupportsOptionalParticipants ? "Participant 2" : L10n.t("team_2", languageCode: appLanguageRaw)
+        let labels = VenueGameCompetitorDisplay.competitorLabels(for: viewModel.ownerVenuePrimarySport)
         return VStack(alignment: .leading, spacing: 8) {
             ManualTeamAutocompleteView(
-                title: firstTitle,
+                title: labels.0,
                 text: Binding(
                 get: { gameTeam1 },
                 set: { updateManualGameTeam1($0) }
@@ -7078,7 +7377,7 @@ struct VenueOwnerDashboardView: View {
             )
 
             ManualTeamAutocompleteView(
-                title: secondTitle,
+                title: labels.1,
                 text: Binding(
                 get: { gameTeam2 },
                 set: { updateManualGameTeam2($0) }
@@ -7201,6 +7500,14 @@ struct VenueOwnerDashboardView: View {
         }
         print("[BusinessManualGameDebug] generatedTitle=\(generated)")
         print("[BusinessManualGameDebug] titleManuallyEdited=\(titleManuallyEdited)")
+#endif
+    }
+
+    private func logVenueGameCreationCompetitorDebug(validationPassed: Bool) {
+#if DEBUG
+        let labels = VenueGameCompetitorDisplay.competitorLabels(for: viewModel.ownerVenuePrimarySport)
+        let mode = VenueGameCompetitorDisplay.competitorMode(for: viewModel.ownerVenuePrimarySport)
+        print("[VenueGameCreationCompetitorDebug] sport=\(viewModel.ownerVenuePrimarySport), mode=\(mode.rawValue), label1=\(labels.0), label2=\(labels.1), value1=\(trimmedManualTeam1), value2=\(trimmedManualTeam2), validationPassed=\(validationPassed)")
 #endif
     }
 
@@ -7572,14 +7879,16 @@ struct VenueOwnerDashboardView: View {
                 calendar: cal
             )
             logBusinessManualGameTeamDebug()
+            logVenueGameCreationCompetitorDebug(validationPassed: !manualGameRequiresStructuredTeams || manualStructuredTeamsAreValid)
             return (t, past, manualGameRequiresStructuredTeams, manualGameSupportsOptionalParticipants, trimmedManualTeam1, trimmedManualTeam2)
         }
 
         if requiresStructuredTeams, manualTeam1.isEmpty || manualTeam2.isEmpty {
             await MainActor.run {
-                manageGamesError = manualPredictionTeamValidationMessage
+                manageGamesError = manualPredictionCompetitorValidationMessage
                 manageGamesFeedback = ""
                 logBusinessManualGameTeamDebug()
+                logVenueGameCreationCompetitorDebug(validationPassed: false)
             }
             return
         }
@@ -7590,6 +7899,7 @@ struct VenueOwnerDashboardView: View {
                 manageGamesError = "Add both participants to show a matchup, or leave both blank."
                 manageGamesFeedback = ""
                 logBusinessManualGameTeamDebug()
+                logVenueGameCreationCompetitorDebug(validationPassed: false)
             }
             return
         }
@@ -7599,9 +7909,10 @@ struct VenueOwnerDashboardView: View {
            !manualTeam2.isEmpty,
            manualTeam1.localizedCaseInsensitiveCompare(manualTeam2) == .orderedSame {
             await MainActor.run {
-                manageGamesError = "Team 1 and Team 2 must be different."
+                manageGamesError = manualGameUsesPlayerCompetitorLabels ? "Player 1 and Player 2 must be different." : "Team 1 and Team 2 must be different."
                 manageGamesFeedback = ""
                 logBusinessManualGameTeamDebug()
+                logVenueGameCreationCompetitorDebug(validationPassed: false)
             }
             return
         }
@@ -7905,6 +8216,7 @@ struct VenueOwnerDashboardView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 24)
                 .strokeBorder(Color(.separator).opacity(0.45), lineWidth: 1)
+                .allowsHitTesting(false)
         )
     }
     
@@ -8012,10 +8324,10 @@ private struct HostedVenueGameCardIdentity {
 
         sportDisplay = sport
 
-        if titleIsCustom {
-            primaryTitle = rawTitle
-        } else if let matchup {
+        if let matchup {
             primaryTitle = matchup
+        } else if titleIsCustom {
+            primaryTitle = rawTitle
         } else if !league.isEmpty && !Self.equivalent(league, sport) {
             primaryTitle = league
         } else if sport == "Sports" {
@@ -8024,10 +8336,8 @@ private struct HostedVenueGameCardIdentity {
             primaryTitle = "\(sport) Watch Party"
         }
 
-        if titleIsCustom, let matchup, !Self.equivalent(rawTitle, matchup) {
-            secondaryLine = "\(sport) • \(matchup)"
-        } else if let matchup, !Self.equivalent(primaryTitle, matchup) {
-            secondaryLine = "\(sport) • \(matchup)"
+        if let matchup, titleIsCustom, !Self.equivalent(rawTitle, matchup) {
+            secondaryLine = "\(sport) • \(rawTitle)"
         } else if Self.sportCanUseLeagueSubtitle(sportRaw.isEmpty ? sport : sportRaw),
                   !league.isEmpty,
                   !Self.equivalent(league, primaryTitle),
@@ -8053,14 +8363,7 @@ private struct HostedVenueGameCardIdentity {
     }
 
     private static func sportUsesOpponentLine(_ sport: String) -> Bool {
-        let key = sport.lowercased()
-        let teamOrOpponentSports = [
-            "soccer", "football", "basketball", "baseball", "softball", "hockey",
-            "rugby", "cricket", "volleyball", "lacrosse", "handball", "water polo",
-            "mma", "ufc", "boxing", "tennis", "pickleball", "table tennis", "ping pong",
-            "badminton"
-        ]
-        return teamOrOpponentSports.contains { key.contains($0) }
+        VenueGameCompetitorDisplay.requiresCompetitors(for: sport)
     }
 
     private static func sportCanUseLeagueSubtitle(_ sport: String) -> Bool {

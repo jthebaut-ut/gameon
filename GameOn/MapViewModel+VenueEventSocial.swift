@@ -19,6 +19,17 @@ extension MapViewModel {
         return lhs.caseInsensitiveCompare(rhs) == .orderedSame
     }
 
+    private func venueEventDisplayTitleMatches(_ row: VenueEventRow, _ gameTitle: String) -> Bool {
+        if venueEventTitlesMatch(row.event_title, gameTitle) { return true }
+        let publicTitle = VenueGameCompetitorDisplay.publicTitle(
+            eventTitle: row.event_title,
+            sport: row.sport,
+            homeTeam: row.home_team,
+            awayTeam: row.away_team
+        )
+        return venueEventTitlesMatch(publicTitle, gameTitle)
+    }
+
     private func venueEventRow(_ row: VenueEventRow, matches bar: BarVenue) -> Bool {
         if let vid = row.venue_id, vid == bar.id { return true }
         let barName = bar.name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1094,7 +1105,7 @@ extension MapViewModel {
         if let id = venueEventIDsByKey[primary] ?? venueEventIDsByKey[venueEventLookupKey(for: bar, gameTitle: trimmed)] {
             return id
         }
-        if let row = venueEventRows.first(where: { venueEventRow($0, matches: bar) && venueEventTitlesMatch($0.event_title, trimmed) }),
+        if let row = venueEventRows.first(where: { venueEventRow($0, matches: bar) && venueEventDisplayTitleMatches($0, trimmed) }),
            let id = row.id {
             cacheDiscoveredVenueEventID(id, bar: bar, gameTitle: trimmed, rowTitle: row.event_title)
             return id
@@ -1112,7 +1123,7 @@ extension MapViewModel {
             return id
         }
         return venueEventRows.first { row in
-            venueEventRow(row, matches: bar) && venueEventTitlesMatch(row.event_title, trimmed)
+            venueEventRow(row, matches: bar) && venueEventDisplayTitleMatches(row, trimmed)
         }?.id
     }
 
@@ -1423,7 +1434,7 @@ extension MapViewModel {
         }
 
         if let row = venueEventRows.first(where: { row in
-            guard venueEventRow(row, matches: bar), venueEventTitlesMatch(row.event_title, trimmed) else { return false }
+            guard venueEventRow(row, matches: bar), venueEventDisplayTitleMatches(row, trimmed) else { return false }
             guard let rowDate = row.event_date else { return true }
             return rowDate == selectedDaySQL
         }),
@@ -1443,7 +1454,7 @@ extension MapViewModel {
                 .execute()
                 .value
 
-            if let row = rowsByVenueId.first(where: { venueEventTitlesMatch($0.event_title, trimmed) }),
+            if let row = rowsByVenueId.first(where: { venueEventDisplayTitleMatches($0, trimmed) }),
                let id = row.id {
                 cacheDiscoveredVenueEventID(id, bar: bar, gameTitle: trimmed, rowTitle: row.event_title)
                 print("[GoingButtonDebug] normalizedEventId=\(id.uuidString.lowercased()) source=networkVenueId")
@@ -1468,7 +1479,7 @@ extension MapViewModel {
                 .execute()
                 .value
 
-            if let row = rows.first(where: { venueEventTitlesMatch($0.event_title, trimmed) }),
+            if let row = rows.first(where: { venueEventDisplayTitleMatches($0, trimmed) }),
                let id = row.id {
                 cacheDiscoveredVenueEventID(id, bar: bar, gameTitle: trimmed, rowTitle: row.event_title)
                 print("[GoingButtonDebug] normalizedEventId=\(id.uuidString.lowercased()) source=networkLegacy")

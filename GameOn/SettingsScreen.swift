@@ -131,6 +131,13 @@ private enum VenueOwnerDashboardSheetRoute: String, Identifiable {
     }
 }
 
+private struct BusinessProfileVenueHydrationState: Equatable {
+    let isReady: Bool
+    let reason: String
+    let selectedVenueId: UUID?
+    let managedCount: Int
+}
+
 private enum ProfileSettingsRoute: Hashable {
     case liveActivitySharing
     case notifications
@@ -189,6 +196,7 @@ struct SettingsScreen: View {
     @State private var settingsBusinessProfileRefreshSequence = 0
     @State private var settingsBusinessProfileLatestRequestId = 0
     @State private var settingsBusinessProfileLastEntitlementSignature = ""
+    @State private var settingsBusinessProfileHydrationInFlight = false
     /// Holds Add-location draft fields across ``MapViewModel`` publishes (e.g. after photo upload) so the sheet does not reset.
     @StateObject private var addLocationSheetFormState = AddLocationSheetFormState()
     /// Which pending claim row is running ``performPendingClaimRefresh(claimId:)`` (nil = idle).
@@ -362,7 +370,10 @@ struct SettingsScreen: View {
                         BusinessLocationVenuePicker(
                             viewModel: viewModel,
                             chrome: .dashboard,
-                            onRequestAddNewLocation: { openAddLocationFromPicker() }
+                            onRequestAddNewLocation: { openAddLocationFromPicker() },
+                            isHydrating: businessProfileVenueSelectorIsHydrating,
+                            hydrationReason: businessProfileVenueHydrationState.reason,
+                            onBlockedEarlyTap: logBusinessProfileHydrationBlockedEarlyTap
                         )
                         .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
                         .listRowBackground(Color.clear)
@@ -480,7 +491,10 @@ struct SettingsScreen: View {
                                     BusinessLocationVenuePicker(
                                         viewModel: viewModel,
                                         chrome: .settings,
-                                        onRequestAddNewLocation: { openAddLocationFromPicker() }
+                                        onRequestAddNewLocation: { openAddLocationFromPicker() },
+                                        isHydrating: businessProfileVenueSelectorIsHydrating,
+                                        hydrationReason: businessProfileVenueHydrationState.reason,
+                                        onBlockedEarlyTap: logBusinessProfileHydrationBlockedEarlyTap
                                     )
 
                                     if let bannerText = addLocationSubmitBannerDisplayText(), !bannerText.isEmpty {
@@ -517,7 +531,10 @@ struct SettingsScreen: View {
                                     BusinessLocationVenuePicker(
                                         viewModel: viewModel,
                                         chrome: .settings,
-                                        onRequestAddNewLocation: { openAddLocationFromPicker() }
+                                        onRequestAddNewLocation: { openAddLocationFromPicker() },
+                                        isHydrating: businessProfileVenueSelectorIsHydrating,
+                                        hydrationReason: businessProfileVenueHydrationState.reason,
+                                        onBlockedEarlyTap: logBusinessProfileHydrationBlockedEarlyTap
                                     )
 
                                     settingsRowDivider()
@@ -740,12 +757,7 @@ struct SettingsScreen: View {
                 showDeleteVenueOwnerSheet = false
             }
         }
-        .onChange(of: venueOwnerDashboardSheet) { _, newRoute in
-            print("[BusinessDashboardRouteDebug] sheetRoute=\(String(describing: newRoute))")
-        }
         .sheet(item: $venueOwnerDashboardSheet) { route in
-            let _ = print("[BusinessDashboardRouteDebug] sheetRoute=\(route.rawValue)")
-            let _ = print("[BusinessDashboardRouteDebug] entryPoint=\(String(describing: route.entryPoint))")
             VenueOwnerDashboardView(viewModel: viewModel, entryPoint: route.entryPoint)
                 .id(route.id)
                 .presentationDetents([.large])
@@ -2229,6 +2241,72 @@ struct SettingsScreen: View {
             && !viewModel.managedVenuesForOwner().isEmpty
     }
 
+    private var businessProfileVenueHydrationState: BusinessProfileVenueHydrationState {
+        let managedVenues = viewModel.managedVenuesForOwner()
+        let managedCount = managedVenues.count
+        let selectedVenueId = viewModel.ownerVenueDatabaseId
+
+        if viewModel.isVenueOwnerBusinessDataLoading {
+            return BusinessProfileVenueHydrationState(isReady: false, reason: "businessDataLoading", selectedVenueId: selectedVenueId, managedCount: managedCount)
+        }
+        if settingsBusinessProfileHydrationInFlight {
+            return BusinessProfileVenueHydrationState(isReady: false, reason: "businessProfileHydrationInFlight", selectedVenueId: selectedVenueId, managedCount: managedCount)
+        }
+        if settingsBusinessMembershipStatus == nil {
+            return BusinessProfileVenueHydrationState(isReady: false, reason: "entitlementLoading", selectedVenueId: selectedVenueId, managedCount: managedCount)
+        }
+        guard !managedVenues.isEmpty else {
+            return BusinessProfileVenueHydrationState(isReady: false, reason: "managedVenuesLoading", selectedVenueId: selectedVenueId, managedCount: managedCount)
+        }
+        guard let selectedVenueId else {
+            return BusinessProfileVenueHydrationState(isReady: false, reason: "selectedVenueNil", selectedVenueId: nil, managedCount: managedCount)
+        }
+        guard let selectedVenue = managedVenues.first(where: { $0.id == selectedVenueId }) else {
+            return BusinessProfileVenueHydrationState(isReady: false, reason: "selectedVenueStale", selectedVenueId: selectedVenueId, managedCount: managedCount)
+        }
+        guard MapViewModel.venueIsActiveForBusinessLimit(selectedVenue) else {
+            return BusinessProfileVenueHydrationState(isReady: false, reason: "selectedVenueInactive", selectedVenueId: selectedVenueId, managedCount: managedCount)
+        }
+        return BusinessProfileVenueHydrationState(isReady: true, reason: "ready", selectedVenueId: selectedVenueId, managedCount: managedCount)
+    }
+
+    private var businessProfileVenueHydrationLogToken: String {
+        let state = businessProfileVenueHydrationState
+        return "\(state.isReady)|\(state.reason)|\(state.selectedVenueId?.uuidString.lowercased() ?? "nil")|\(state.managedCount)"
+    }
+
+    private var businessProfileVenueSelectorIsHydrating: Bool {
+        let state = businessProfileVenueHydrationState
+        return !state.isReady && state.reason != "managedVenuesLoading"
+    }
+
+    private func logBusinessProfileHydrationState() {
+#if DEBUG
+        let state = businessProfileVenueHydrationState
+        if state.isReady {
+            print("[BusinessProfileHydrationDebug] ready=true selectedVenueId=\(state.selectedVenueId?.uuidString.lowercased() ?? "nil") managedCount=\(state.managedCount)")
+        } else {
+            print("[BusinessProfileHydrationDebug] ready=false reason=\(state.reason)")
+        }
+#endif
+    }
+
+    private func logBusinessProfileHydrationBlockedEarlyTap(action: String, reason: String) {
+#if DEBUG
+        print("[BusinessProfileHydrationDebug] blockedEarlyTap action=\(action) reason=\(reason)")
+#endif
+    }
+
+    @MainActor
+    private func businessProfileVenueHydrationAllowsAction(_ action: String) -> Bool {
+        let state = businessProfileVenueHydrationState
+        guard state.isReady else {
+            logBusinessProfileHydrationBlockedEarlyTap(action: action, reason: state.reason)
+            return false
+        }
+        return true
+    }
+
     private var settingsInlineBusinessDashboard: some View {
         BusinessVenueDashboardOverviewView(
             data: settingsBusinessDashboardData,
@@ -2285,10 +2363,16 @@ struct SettingsScreen: View {
             showsManagedVenuesSection: true,
             isStatisticsProActive: settingsBusinessStatisticsAccessGranted,
             isAddVenueAllowed: settingsBusinessCanCreateVenueFromServer,
-            isHostedGameAllowed: settingsBusinessCanHostGameFromServer
+            isHostedGameAllowed: settingsBusinessCanHostGameFromServer,
+            isVenueHydrationReady: businessProfileVenueHydrationState.isReady,
+            venueHydrationReason: businessProfileVenueHydrationState.reason
         )
         .onAppear {
+            logBusinessProfileHydrationState()
             logSettingsInlineBusinessDashboardDebug()
+        }
+        .onChange(of: businessProfileVenueHydrationLogToken) { _, _ in
+            logBusinessProfileHydrationState()
         }
         .task(id: settingsInlineBusinessDashboardLoadToken) {
             await refreshSettingsInlineBusinessDashboard()
@@ -2353,12 +2437,13 @@ struct SettingsScreen: View {
     }
 
     private var settingsBusinessDashboardSelectedVenue: VenueProfileRow? {
+        guard businessProfileVenueHydrationState.isReady else { return nil }
         let managedVenues = viewModel.managedVenuesForOwner()
         if let venueID = viewModel.ownerVenueDatabaseId,
            let selected = managedVenues.first(where: { $0.id == venueID }) {
             return selected
         }
-        return managedVenues.first
+        return nil
     }
 
     private var settingsBusinessDashboardApprovedVenueItems: [BusinessVenueDashboardApprovedVenueItem] {
@@ -2449,6 +2534,9 @@ struct SettingsScreen: View {
     }
 
     private var settingsBusinessDashboardVenueName: String {
+        guard businessProfileVenueHydrationState.isReady else {
+            return "Loading venues..."
+        }
         let selectedName = settingsBusinessDashboardSelectedVenue?.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if !selectedName.isEmpty { return selectedName }
 
@@ -2566,7 +2654,13 @@ struct SettingsScreen: View {
     }
 
     private func settingsBusinessDashboardGameTitle(_ row: VenueEventRow) -> String {
-        let title = row.event_title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let title = VenueGameCompetitorDisplay.publicTitle(
+            eventTitle: row.event_title,
+            sport: row.sport,
+            homeTeam: row.home_team,
+            awayTeam: row.away_team
+        )
+        .trimmingCharacters(in: .whitespacesAndNewlines)
         return title.isEmpty ? "Game" : title
     }
 
@@ -2643,6 +2737,15 @@ struct SettingsScreen: View {
     ) async {
         guard isBusinessAccountProfileContext || viewModel.isVenueOwnerLoggedIn else { return }
         let requestId = nextSettingsBusinessProfileRefreshRequestId()
+        settingsBusinessProfileHydrationInFlight = true
+        logBusinessProfileHydrationState()
+        defer {
+            Task { @MainActor in
+                guard requestId == settingsBusinessProfileLatestRequestId else { return }
+                settingsBusinessProfileHydrationInFlight = false
+                logBusinessProfileHydrationState()
+            }
+        }
         if debounce {
             try? await Task.sleep(nanoseconds: 250_000_000)
         }
@@ -3071,6 +3174,16 @@ struct SettingsScreen: View {
 
     private func openBusinessVenueToolRoute(_ route: VenueOwnerDashboardSheetRoute) {
         Task {
+            switch route {
+            case .manageVenue, .manageGames:
+                let allowed = await MainActor.run {
+                    businessProfileVenueHydrationAllowsAction(route.rawValue)
+                }
+                guard allowed else { return }
+            case .businessDashboard, .statistics:
+                break
+            }
+
             if await viewModel.businessBanGuardBlocks(path: "businessDashboard", action: route.rawValue) {
                 return
             }
@@ -3078,19 +3191,38 @@ struct SettingsScreen: View {
             await MainActor.run {
                 switch route {
                 case .manageVenue, .manageGames:
-                    guard !viewModel.managedVenuesForOwner().isEmpty else {
+                    guard viewModel.ensureValidSelectedManagedVenueForPresentation(source: route.rawValue) else {
 #if DEBUG
                         print("[VenueOwnerEmptyStateDebug] noManagedVenues=true")
 #endif
+                        logBusinessProfileHydrationBlockedEarlyTap(action: route.rawValue, reason: "noValidSelectedVenueAfterRepair")
                         presentAddLocationSheet(reason: "businessDashboard")
                         return
                     }
-                    venueOwnerDashboardSheet = route
+                    setVenueOwnerDashboardRoute(route, source: "openBusinessVenueToolRoute")
                 case .businessDashboard, .statistics:
-                    venueOwnerDashboardSheet = route
+                    setVenueOwnerDashboardRoute(route, source: "openBusinessVenueToolRoute")
                 }
             }
         }
+    }
+
+    @MainActor
+    private func setVenueOwnerDashboardRoute(
+        _ route: VenueOwnerDashboardSheetRoute,
+        source: String
+    ) {
+        let oldRoute = venueOwnerDashboardSheet
+        guard oldRoute != route else {
+#if DEBUG
+            print("[BusinessDashboardRouteDebug] preventedDuplicateRoute route=\(route.rawValue)")
+#endif
+            return
+        }
+#if DEBUG
+        print("[BusinessDashboardRouteDebug] routeSet source=\(source) oldRoute=\(oldRoute?.rawValue ?? "nil") newRoute=\(route.rawValue) selectedVenueId=\(viewModel.ownerVenueDatabaseId?.uuidString.lowercased() ?? "nil")")
+#endif
+        venueOwnerDashboardSheet = route
     }
 
     private func openAddLocationFromBusinessDashboard() {
@@ -7343,20 +7475,34 @@ struct BusinessLocationVenuePicker: View {
     var chrome: Chrome = .settings
     /// When set (Settings), shown as the last menu action to submit a new business location for review.
     var onRequestAddNewLocation: (() -> Void)?
+    var isHydrating = false
+    var hydrationReason = "ready"
+    var onBlockedEarlyTap: ((String, String) -> Void)?
     @State private var showVenueListSheet = false
     @State private var isRefreshingVenueSelector = false
     @State private var venueSelectorNotice: String?
 
-    init(viewModel: MapViewModel, chrome: Chrome = .settings, onRequestAddNewLocation: (() -> Void)? = nil) {
+    init(
+        viewModel: MapViewModel,
+        chrome: Chrome = .settings,
+        onRequestAddNewLocation: (() -> Void)? = nil,
+        isHydrating: Bool = false,
+        hydrationReason: String = "ready",
+        onBlockedEarlyTap: ((String, String) -> Void)? = nil
+    ) {
         self.viewModel = viewModel
         self.chrome = chrome
         self.onRequestAddNewLocation = onRequestAddNewLocation
+        self.isHydrating = isHydrating
+        self.hydrationReason = hydrationReason
+        self.onBlockedEarlyTap = onBlockedEarlyTap
     }
 
     private var venuePairs: [(UUID, String)] {
         var seenVenueIDs = Set<UUID>()
         return viewModel.managedVenuesForOwner().compactMap { row in
             guard let id = row.id else { return nil }
+            guard managedVenueStatus(for: row) == .approved else { return nil }
             guard seenVenueIDs.insert(id).inserted else { return nil }
             let raw = row.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             let label = raw.isEmpty ? "Location" : raw
@@ -7404,13 +7550,18 @@ struct BusinessLocationVenuePicker: View {
 
     private var selectedManagedVenueSelectorRow: ManagedVenueSelectorRow? {
         if let selectedId = viewModel.ownerVenueDatabaseId,
-           let selected = managedVenueSelectorRows.first(where: { $0.venueID == selectedId }) {
+           let selected = managedVenueSelectorRows.first(where: { $0.venueID == selectedId }),
+           selected.status == .approved {
             return selected
         }
-        return managedVenueSelectorRows.first
+        return managedVenueSelectorRows.first(where: { $0.status == .approved })
+            ?? managedVenueSelectorRows.first
     }
 
     private var selectedVenueLabel: String {
+        if isHydrating {
+            return "Loading venues..."
+        }
         if let selected = selectedManagedVenueSelectorRow {
             return selected.title
         }
@@ -7421,7 +7572,14 @@ struct BusinessLocationVenuePicker: View {
         return venuePairs.first?.1 ?? "Location"
     }
 
+    private var inactiveVenueSelectionNotice: String {
+        "This venue is inactive on the Regular plan and cannot be managed until activated by FanGeo or Business Pro."
+    }
+
     private var selectedVenueSubtitle: String {
+        if isHydrating {
+            return "Business profile is loading managed venues."
+        }
         if let selected = selectedManagedVenueSelectorRow {
             return selected.statusNote ?? selected.subtitle
         }
@@ -7496,11 +7654,17 @@ struct BusinessLocationVenuePicker: View {
     }
 
     private var dashboardVenueListingCountLine: String {
+        if isHydrating {
+            return "Loading venues..."
+        }
         let count = managedVenueListingCounts.totalVenueCount
         return "\(count) \(count == 1 ? "managed venue" : "managed venues")"
     }
 
     private var dashboardVenueListingStatusLine: String {
+        if isHydrating {
+            return "Please wait before managing venues"
+        }
         let counts = managedVenueListingCounts
         if counts.lockedVenueCount > 0 {
             return "\(counts.approvedVenueCount) active • \(counts.lockedVenueCount) locked • \(counts.pendingVenueCount) pending"
@@ -7577,6 +7741,12 @@ struct BusinessLocationVenuePicker: View {
         case .rejected:
             return FGColor.dangerRed
         }
+    }
+
+    private func blockHydratingTap(action: String) -> Bool {
+        guard isHydrating else { return false }
+        onBlockedEarlyTap?(action, hydrationReason)
+        return true
     }
 
     private var settingsPickerLabel: String {
@@ -7666,8 +7836,12 @@ struct BusinessLocationVenuePicker: View {
     private func settingsChromeMenuContent() -> some View {
         ForEach(venuePairs, id: \.0) { pair in
             Button {
+                guard !blockHydratingTap(action: "viewingVenueSelector") else { return }
                 Task {
                     await viewModel.selectManagedVenue(id: pair.0)
+#if DEBUG
+                    print("[BusinessManagedVenueTapDebug] selectedVenueUpdated venueId=\(pair.0.uuidString.lowercased())")
+#endif
                 }
             } label: {
                 Text(pair.1)
@@ -7703,7 +7877,18 @@ struct BusinessLocationVenuePicker: View {
                 .font(FGTypography.metadata.weight(.semibold))
                 .foregroundStyle(FGColor.secondaryText(colorScheme))
 
-            if venuePairs.isEmpty, onRequestAddNewLocation == nil {
+            if isHydrating {
+                settingsPickerRowLabel(
+                    title: "Loading venues...",
+                    subtitle: "Business profile is loading managed venues.",
+                    systemImage: "hourglass",
+                    tint: FGColor.mutedText(colorScheme),
+                    showsApprovedBadge: false,
+                    chevronSystemName: "chevron.right"
+                )
+                .opacity(0.72)
+                .allowsHitTesting(false)
+            } else if venuePairs.isEmpty, onRequestAddNewLocation == nil {
                 settingsPickerRowLabel(
                     title: "No approved venues yet",
                     subtitle: "Claim a venue from the map: Discover → venue → Claim this venue.",
@@ -7761,6 +7946,7 @@ struct BusinessLocationVenuePicker: View {
 
     private var dashboardChromeSelectorButton: some View {
         Button {
+            guard !blockHydratingTap(action: "viewingVenueSelector") else { return }
 #if DEBUG
             print("[BusinessVenueSelectorDebug] selectorTapped=true")
 #endif
@@ -7807,7 +7993,7 @@ struct BusinessLocationVenuePicker: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                Image(systemName: "chevron.down")
+                Image(systemName: isHydrating ? "hourglass" : "chevron.down")
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(FGColor.mutedText(colorScheme))
             }
@@ -7824,6 +8010,7 @@ struct BusinessLocationVenuePicker: View {
             .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.28 : 0.08), radius: 18, x: 0, y: 10)
         }
         .buttonStyle(.plain)
+        .opacity(isHydrating ? 0.62 : 1)
         .onAppear {
 #if DEBUG
             print("[BusinessVenueSelectorDebug] selectorVisible=true")
@@ -7903,10 +8090,12 @@ struct BusinessLocationVenuePicker: View {
     }
 
     private func managedVenueSheetRow(_ row: ManagedVenueSelectorRow) -> some View {
-        let isSelected = row.venueID == viewModel.ownerVenueDatabaseId
+        let isSelected = row.status == .approved && row.venueID == viewModel.ownerVenueDatabaseId
         let tint = statusTint(for: row.status)
         return Button {
-            guard (row.status == .approved || row.status == .locked), let id = row.venueID else {
+            guard !blockHydratingTap(action: "viewingVenueSelector") else { return }
+            logBusinessManagedVenueTapDebug("tapped", row: row)
+            guard let id = row.venueID else {
                 if row.status == .pending {
                     venueSelectorNotice = "This venue is waiting for admin approval."
 #if DEBUG
@@ -7917,15 +8106,26 @@ struct BusinessLocationVenuePicker: View {
                 }
                 return
             }
+
             if row.status == .locked {
-                venueSelectorNotice = BusinessLimitCopy.planLockedVenueSubtitle
+                venueSelectorNotice = inactiveVenueSelectionNotice
+                logBusinessManagedVenueTapDebug("ignoredInactiveVenue", row: row, venueId: id)
+                return
             }
-#if DEBUG
-            print("[BusinessVenueSelectorDebug] venueSelected id=\(id.uuidString)")
-#endif
+
+            guard row.status == .approved else {
+                venueSelectorNotice = row.status == .pending
+                    ? "This venue is waiting for admin approval."
+                    : "This venue request was rejected."
+                return
+            }
+
             showVenueListSheet = false
             Task {
                 await viewModel.selectManagedVenue(id: id)
+#if DEBUG
+                print("[BusinessManagedVenueTapDebug] selectedVenueUpdated venueId=\(id.uuidString.lowercased())")
+#endif
             }
         } label: {
             HStack(spacing: FGSpacing.md) {
@@ -7972,6 +8172,23 @@ struct BusinessLocationVenuePicker: View {
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         }
         .buttonStyle(.plain)
+    }
+
+    private func logBusinessManagedVenueTapDebug(
+        _ event: String,
+        row: ManagedVenueSelectorRow,
+        venueId explicitVenueId: UUID? = nil
+    ) {
+#if DEBUG
+        let venueId = explicitVenueId ?? row.venueID
+        let venueName = row.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let status = statusTitle(for: row.status)
+        if event == "tapped" {
+            print("[BusinessManagedVenueTapDebug] tapped venueId=\(venueId?.uuidString.lowercased() ?? "nil") venueName=\(venueName.isEmpty ? "nil" : venueName) status=\(status)")
+        } else if event == "ignoredInactiveVenue" {
+            print("[BusinessManagedVenueTapDebug] ignoredInactiveVenue venueId=\(venueId?.uuidString.lowercased() ?? "nil")")
+        }
+#endif
     }
 
     private func refreshManagedVenueSelector() async {
@@ -8050,7 +8267,14 @@ struct BusinessLocationVenuePicker: View {
 
     var body: some View {
         Group {
-            if venuePairs.isEmpty && managedVenueSelectorRows.isEmpty {
+            if isHydrating {
+                switch chrome {
+                case .settings:
+                    settingsChromePickerStack()
+                case .dashboard:
+                    dashboardChromeSelectorButton
+                }
+            } else if venuePairs.isEmpty && managedVenueSelectorRows.isEmpty {
                 switch chrome {
                 case .settings:
                     settingsChromePickerStack()
@@ -8076,6 +8300,11 @@ struct BusinessLocationVenuePicker: View {
         .onAppear { logPickerDebug() }
         .onChange(of: viewModel.ownerVenueDatabaseId) { _, _ in
             logPickerDebug()
+        }
+        .onChange(of: isHydrating) { _, hydrating in
+            if hydrating {
+                showVenueListSheet = false
+            }
         }
     }
 }

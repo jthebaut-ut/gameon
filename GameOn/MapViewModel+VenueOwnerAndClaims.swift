@@ -15,6 +15,15 @@ private struct ReleaseOrDeleteBusinessVenueParams: Encodable {
     let p_venue_id: UUID
 }
 
+private struct BusinessVenueDeleteVerificationRow: Decodable {
+    let id: UUID?
+    let venue_name: String?
+    let business_id: UUID?
+    let owner_email: String?
+    let admin_status: String?
+    let origin_type: String?
+}
+
 struct BusinessVenueReleaseOrDeleteResult: Decodable {
     let ok: Bool
     let action: String?
@@ -80,6 +89,7 @@ private struct BusinessVenueDeletionLocalSnapshot {
 
 private enum BusinessVenueDeletionError: LocalizedError {
     case notSignedIn
+    case missingAuthSession
     case missingVenue
     case serverRejected
 
@@ -87,6 +97,8 @@ private enum BusinessVenueDeletionError: LocalizedError {
         switch self {
         case .notSignedIn:
             return "Sign in as the business owner to manage this venue."
+        case .missingAuthSession:
+            return "Please sign in again to delete this venue."
         case .missingVenue:
             return "Select a venue first."
         case .serverRejected:
@@ -3406,13 +3418,21 @@ extension MapViewModel {
 
     private func applySelectedVenueAfterBusinessLoad() {
         let managed = managedVenuesForOwner()
-        guard !managed.isEmpty else {
+        let activeManaged = managed.filter(Self.venueIsActiveForBusinessLimit)
+        guard !activeManaged.isEmpty else {
+            let invalidSelection = ownerVenueDatabaseId?.uuidString.lowercased()
+                ?? readPersistedSelectedVenueId()?.uuidString.lowercased()
+                ?? "nil"
+            let availableIds = managed.compactMap(\.id).map { $0.uuidString.lowercased() }.sorted().joined(separator: ",")
             ownerVenueDatabaseId = nil
             persistSelectedVenueId(nil)
+#if DEBUG
+            print("[BusinessVenuePickerDebug] invalidSelectionPrevented selection=\(invalidSelection) availableIds=\(availableIds.isEmpty ? "none" : availableIds)")
+#endif
             return
         }
 
-        if managed.count == 1, let id = managed.first?.id {
+        if activeManaged.count == 1, let id = activeManaged.first?.id {
             ownerVenueDatabaseId = id
             persistSelectedVenueId(id)
 #if DEBUG
@@ -3421,8 +3441,8 @@ extension MapViewModel {
             return
         }
 
-        let managedIds = Set(managed.compactMap(\.id))
-        if let persisted = readPersistedSelectedVenueId(), managedIds.contains(persisted) {
+        let activeManagedIds = Set(activeManaged.compactMap(\.id))
+        if let persisted = readPersistedSelectedVenueId(), activeManagedIds.contains(persisted) {
             ownerVenueDatabaseId = persisted
 #if DEBUG
             print("[BusinessPhaseB2] restored selected venue id=\(persisted.uuidString)")
@@ -3430,15 +3450,22 @@ extension MapViewModel {
             return
         }
 
-        let sortedOwned = sortedManagedVenues(ownedBusinessVenues)
+        let sortedOwned = sortedManagedVenues(ownedBusinessVenues.filter(Self.venueIsActiveForBusinessLimit))
         let pickId: UUID?
         if let first = sortedOwned.first?.id {
             pickId = first
         } else {
-            pickId = sortedManagedVenues(managed).first?.id
+            pickId = sortedManagedVenues(activeManaged).first?.id
         }
 
         if let id = pickId {
+#if DEBUG
+            let invalidSelection = ownerVenueDatabaseId?.uuidString.lowercased()
+                ?? readPersistedSelectedVenueId()?.uuidString.lowercased()
+                ?? "nil"
+            let availableIds = activeManaged.compactMap(\.id).map { $0.uuidString.lowercased() }.sorted().joined(separator: ",")
+            print("[BusinessVenuePickerDebug] invalidSelectionPrevented selection=\(invalidSelection) availableIds=\(availableIds.isEmpty ? "none" : availableIds)")
+#endif
             ownerVenueDatabaseId = id
             persistSelectedVenueId(id)
 #if DEBUG
@@ -3448,6 +3475,35 @@ extension MapViewModel {
             ownerVenueDatabaseId = nil
             persistSelectedVenueId(nil)
         }
+    }
+
+    @MainActor
+    func ensureValidSelectedManagedVenueForPresentation(source: String) -> Bool {
+        let activeManaged = managedVenuesForOwner().filter(Self.venueIsActiveForBusinessLimit)
+        let availableIds = activeManaged.compactMap(\.id)
+        let availableIdLog = availableIds.map { $0.uuidString.lowercased() }.sorted().joined(separator: ",")
+        let currentId = ownerVenueDatabaseId
+
+        if let currentId, availableIds.contains(currentId) {
+            return true
+        }
+
+        if let replacementId = sortedManagedVenues(activeManaged).first?.id {
+#if DEBUG
+            print("[BusinessVenuePickerDebug] invalidSelectionPrevented selection=\(currentId?.uuidString.lowercased() ?? "nil") availableIds=\(availableIdLog.isEmpty ? "none" : availableIdLog)")
+#endif
+            ownerVenueDatabaseId = replacementId
+            persistSelectedVenueId(replacementId)
+            return true
+        }
+
+#if DEBUG
+        print("[BusinessVenuePickerDebug] invalidSelectionPrevented selection=\(currentId?.uuidString.lowercased() ?? "nil") availableIds=\(availableIdLog.isEmpty ? "none" : availableIdLog)")
+#endif
+        ownerVenueDatabaseId = nil
+        persistSelectedVenueId(nil)
+        clearStaleBusinessProfileVenueHeaderState()
+        return false
     }
 
     /// Splits a stored `venues.phone` / claim phone string into ``ownerVenuePhoneDialISO`` + national ``ownerVenuePhone`` for editing.
@@ -3729,30 +3785,57 @@ extension MapViewModel {
     }
 
     /// Business self-service release/delete for one managed venue. The RPC does the database work transactionally;
-    /// local UI is removed optimistically and restored if the RPC fails.
+    /// local UI is only removed after the RPC succeeds and verification shows the venue no longer belongs to the business.
     func releaseOrDeleteBusinessVenue(venueId: UUID) async throws -> BusinessVenueReleaseOrDeleteResult {
-        guard hasAuthenticatedVenueOwnerSession else {
-            throw BusinessVenueDeletionError.notSignedIn
-        }
-        if await businessBanGuardBlocks(path: "businessVenue", action: "releaseOrDeleteBusinessVenue") {
-            throw BusinessVenueDeletionError.serverRejected
-        }
-
-        let modeDebug = await MainActor.run {
-            let rawOrigin = (ownedBusinessVenues + legacyOwnerVenuesForEmailFallback)
-                .first { $0.id == venueId }?
-                .origin_type?
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-                .lowercased()
+        let deleteContext = await MainActor.run {
+            let managed = (ownedBusinessVenues + legacyOwnerVenuesForEmailFallback)
+                .first { $0.id == venueId }
+            let rawOrigin = managed?.origin_type?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
             let originType = rawOrigin == "community" ? "community" : "business"
+            let business = managed?.business_id.flatMap { businessId in
+                ownedBusinesses.first { $0.id == businessId }
+            }
+            let currentAuthId = currentUserAuthId
+            let ownerEmail = OwnerBusinessEmail.normalized(venueOwnerEmail)
             return (
                 originType: originType,
-                action: originType == "community" ? "release" : "hardDelete"
+                action: originType == "community" ? "release" : "hardDelete",
+                venueName: managed?.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
+                businessId: managed?.business_id,
+                ownerEmail: managed?.owner_email?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
+                adminStatus: Self.venueAdminStatus(managed?.admin_status).isEmpty ? "active" : Self.venueAdminStatus(managed?.admin_status),
+                businessOwnerEmail: business?.owner_email?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
+                businessOwnerUserId: business?.owner_user_id,
+                currentAuthId: currentAuthId,
+                signedInOwnerEmail: ownerEmail,
+                ownsBusiness: business.map {
+                    ($0.owner_user_id != nil && $0.owner_user_id == currentAuthId)
+                        || OwnerBusinessEmail.normalized($0.owner_email ?? "") == ownerEmail
+                } ?? false
             )
         }
 #if DEBUG
-        print("[VenueDeleteModeDebug] originType=\(modeDebug.originType) action=\(modeDebug.action)")
+        print("[VenueDeleteModeDebug] originType=\(deleteContext.originType) action=\(deleteContext.action)")
+        print("[BusinessVenueDeleteDebug] ownershipCheck venueId=\(venueId.uuidString.lowercased()) venueName=\(deleteContext.venueName.isEmpty ? "nil" : deleteContext.venueName) businessId=\(deleteContext.businessId?.uuidString.lowercased() ?? "nil") adminStatus=\(deleteContext.adminStatus) rowOwnerEmail=\(deleteContext.ownerEmail.isEmpty ? "nil" : deleteContext.ownerEmail) businessOwnerEmail=\(deleteContext.businessOwnerEmail.isEmpty ? "nil" : deleteContext.businessOwnerEmail) businessOwnerUserId=\(deleteContext.businessOwnerUserId?.uuidString.lowercased() ?? "nil") currentAuthId=\(deleteContext.currentAuthId?.uuidString.lowercased() ?? "nil") signedInOwnerEmail=\(deleteContext.signedInOwnerEmail.isEmpty ? "nil" : deleteContext.signedInOwnerEmail) ownsBusiness=\(deleteContext.ownsBusiness)")
 #endif
+
+        let authLogBusinessEmail = deleteContext.businessOwnerEmail.isEmpty
+            ? deleteContext.signedInOwnerEmail
+            : deleteContext.businessOwnerEmail
+        let authSession = await resolveBusinessVenueDeleteAuthSession(businessEmail: authLogBusinessEmail)
+        guard authSession != nil else {
+            throw BusinessVenueDeletionError.missingAuthSession
+        }
+        let banOwnerEmail = authLogBusinessEmail
+        if await businessBanGuardBlocks(
+            path: "businessVenue",
+            action: "releaseOrDeleteBusinessVenue",
+            businessId: deleteContext.businessId,
+            ownerEmail: banOwnerEmail,
+            ownerUserId: deleteContext.businessOwnerUserId
+        ) {
+            throw BusinessVenueDeletionError.serverRejected
+        }
 
         let eventIDsBeforeRPC = await MainActor.run {
             Set(venueEventRows.compactMap { row -> UUID? in
@@ -3761,18 +3844,9 @@ extension MapViewModel {
             })
         }
 
-        await stopVenueOwnerAnalyticsRealtime()
-        await removeAllVenueEventCommentsRealtimeListeners()
-        for eventID in eventIDsBeforeRPC {
-            await stopVenueEventPredictionRealtime(for: eventID)
-        }
-
-        let snapshot = await MainActor.run {
-            applyOptimisticBusinessVenueDeletion(venueId: venueId, deletedEventIDs: eventIDsBeforeRPC)
-        }
-
         let response: BusinessVenueReleaseOrDeleteResult
         do {
+            print("[BusinessVenueDeleteDebug] rpcStarted venueId=\(venueId.uuidString.lowercased())")
             response = try await supabase
                 .rpc(
                     "release_or_delete_business_venue",
@@ -3781,16 +3855,17 @@ extension MapViewModel {
                 .execute()
                 .value
         } catch {
-            await MainActor.run {
-                restoreBusinessVenueDeletionSnapshot(snapshot)
-            }
+            Self.logBusinessVenueDeleteRpcRawError(error)
             throw error
         }
 
         guard response.ok else {
-            await MainActor.run {
-                restoreBusinessVenueDeletionSnapshot(snapshot)
-            }
+            throw BusinessVenueDeletionError.serverRejected
+        }
+
+        print("[BusinessVenueDeleteDebug] rpcSucceeded venueId=\(venueId.uuidString.lowercased())")
+        let verification = try await verifyBusinessVenueDeletePersisted(venueId: venueId, previousBusinessId: deleteContext.businessId ?? response.business_id)
+        guard !verification.stillBelongsToBusiness else {
             throw BusinessVenueDeletionError.serverRejected
         }
 
@@ -3803,6 +3878,8 @@ extension MapViewModel {
         }
 #endif
 
+        await stopVenueOwnerAnalyticsRealtime()
+        await removeAllVenueEventCommentsRealtimeListeners()
         await deleteBusinessVenueStorageObjectsBestEffort(paths: response.deleted_storage_paths ?? [])
 
         let deletedEventIDs = eventIDsBeforeRPC.union(Set(response.deleted_event_ids ?? []))
@@ -3820,6 +3897,84 @@ extension MapViewModel {
         await refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
         await loadVenuesFromSupabase(forceRefresh: true)
         return response
+    }
+
+    private func resolveBusinessVenueDeleteAuthSession(businessEmail: String) async -> Session? {
+        let normalizedBusinessEmail = businessEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? "nil"
+            : businessEmail.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+        func logAuthContext(_ session: Session?) {
+            let userId = session?.user.id.uuidString.lowercased() ?? "nil"
+            let email = OwnerBusinessEmail.normalized(session?.user.email ?? "")
+            print("[BusinessVenueDeleteDebug] authContext userId=\(userId) email=\(email.isEmpty ? "nil" : email) businessEmail=\(normalizedBusinessEmail)")
+        }
+
+        func applyAuthSession(_ session: Session) async {
+            await MainActor.run {
+                currentUserAuthId = session.user.id
+            }
+        }
+
+        func attemptRefresh() async -> Session? {
+            do {
+                let refreshed = try await supabase.auth.refreshSession()
+                print("[BusinessVenueDeleteDebug] authSessionRefreshAttempted result=success")
+                await applyAuthSession(refreshed)
+                _ = await ensureBusinessOwnerSessionFlagsIfPossible(context: "businessVenueDeleteAuthRefresh")
+                logAuthContext(refreshed)
+                return refreshed
+            } catch {
+                print("[BusinessVenueDeleteDebug] authSessionRefreshAttempted result=failure")
+                logAuthContext(nil)
+                return nil
+            }
+        }
+
+        do {
+            let session = try await supabase.auth.session
+            guard session.isExpired else {
+                await applyAuthSession(session)
+                _ = await ensureBusinessOwnerSessionFlagsIfPossible(context: "businessVenueDeleteAuthActive")
+                logAuthContext(session)
+                return session
+            }
+
+            return await attemptRefresh()
+        } catch {
+            print("[BusinessVenueDeleteDebug] authSessionMissingBeforeDelete")
+            return await attemptRefresh()
+        }
+    }
+
+    private func verifyBusinessVenueDeletePersisted(
+        venueId: UUID,
+        previousBusinessId: UUID?
+    ) async throws -> (exists: Bool, stillBelongsToBusiness: Bool) {
+        let rows: [BusinessVenueDeleteVerificationRow] = try await supabase
+            .from("venues")
+            .select("id,venue_name,business_id,owner_email,admin_status,origin_type")
+            .eq("id", value: venueId.uuidString.lowercased())
+            .limit(1)
+            .execute()
+            .value
+        let row = rows.first
+        let exists = row != nil
+        let stillBelongsToBusiness = row?.business_id != nil && row?.business_id == previousBusinessId
+        print("[BusinessVenueDeleteDebug] postDeleteVenueStillExists venueId=\(venueId.uuidString.lowercased()) exists=\(exists)")
+        if let row {
+            print("[BusinessVenueDeleteDebug] postDeleteVenueStillExistsDetails venueId=\(venueId.uuidString.lowercased()) venueName=\(row.venue_name ?? "nil") businessId=\(row.business_id?.uuidString.lowercased() ?? "nil") ownerEmail=\(row.owner_email ?? "nil") adminStatus=\(row.admin_status ?? "nil") originType=\(row.origin_type ?? "nil") stillBelongsToBusiness=\(stillBelongsToBusiness)")
+        }
+        return (exists, stillBelongsToBusiness)
+    }
+
+    private static func logBusinessVenueDeleteRpcRawError(_ error: Error) {
+        if let postgrestError = error as? PostgrestError {
+            print("[BusinessVenueDeleteDebug] rpcRawError code=\(postgrestError.code ?? "nil") message=\(postgrestError.message) details=\(postgrestError.detail ?? "nil") hint=\(postgrestError.hint ?? "nil")")
+            return
+        }
+        let nsError = error as NSError
+        print("[BusinessVenueDeleteDebug] rpcRawError code=\(nsError.code) message=\(error.localizedDescription) details=\(String(describing: nsError.userInfo)) hint=nil")
     }
 
     private func deleteBusinessVenueStorageObjectsBestEffort(paths: [String]) async {
@@ -3949,10 +4104,14 @@ extension MapViewModel {
         venueId: UUID,
         deletedEventIDs: Set<UUID>
     ) -> [URL] {
+        let oldVenueId = ownerVenueDatabaseId
         let deletedURLs = deletedVenueImageURLs(venueId: venueId)
         removeVenueFromLocalCollections(venueId: venueId, deletedEventIDs: deletedEventIDs)
         removeLocalVenueRating(venueID: venueId)
         applySelectedVenueAfterBusinessLoad()
+#if DEBUG
+        print("[BusinessVenueDeleteDebug] selectedVenueAfterDelete oldVenueId=\(oldVenueId?.uuidString.lowercased() ?? "nil") newVenueId=\(ownerVenueDatabaseId?.uuidString.lowercased() ?? "nil")")
+#endif
         if ownerVenueDatabaseId == nil {
             clearStaleBusinessProfileVenueHeaderState()
         }
@@ -4142,7 +4301,20 @@ extension MapViewModel {
 
     /// User picked a venue from the switcher; persists selection and reloads profile + games lists (DEBUG logs).
     func selectManagedVenue(id: UUID) async {
-        let selectedBusinessId = managedVenuesForOwner().first(where: { $0.id == id })?.business_id
+        guard let selectedRow = managedVenuesForOwner().first(where: { $0.id == id }),
+              Self.venueIsActiveForBusinessLimit(selectedRow) else {
+#if DEBUG
+            let availableIds = managedVenuesForOwner()
+                .filter(Self.venueIsActiveForBusinessLimit)
+                .compactMap(\.id)
+                .map { $0.uuidString.lowercased() }
+                .sorted()
+                .joined(separator: ",")
+            print("[BusinessVenuePickerDebug] invalidSelectionPrevented selection=\(id.uuidString.lowercased()) availableIds=\(availableIds.isEmpty ? "none" : availableIds)")
+#endif
+            return
+        }
+        let selectedBusinessId = selectedRow.business_id
         if await businessBanGuardBlocks(
             path: "businessSwitcher",
             action: "selectManagedVenue",

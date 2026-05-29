@@ -162,12 +162,6 @@ enum BusinessVenueDashboardGameDateTimeFormatter {
 struct BusinessVenueDashboardOverviewView: View {
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
-    @State private var pendingVenueToCancel: BusinessVenueDashboardPendingVenueItem?
-    @State private var showCancelVenueAlert = false
-    @State private var cancellingPendingVenueId: UUID?
-    @State private var refreshingPendingVenueId: UUID?
-    @State private var resendingPendingVenueId: UUID?
-    @State private var pendingVenueCancelNotice: String?
 
     let data: BusinessVenueDashboardData
     let businessId: UUID?
@@ -194,9 +188,15 @@ struct BusinessVenueDashboardOverviewView: View {
     let isStatisticsProActive: Bool
     let isAddVenueAllowed: Bool
     let isHostedGameAllowed: Bool
+    var isVenueHydrationReady: Bool = true
+    var venueHydrationReason: String = "ready"
 
     private var hasManagedVenues: Bool {
         data.managedVenueCount > 0
+    }
+
+    private var venueActionLoadingSubtitle: String? {
+        isVenueHydrationReady ? nil : "Loading"
     }
 
     private var statisticsAccessGranted: Bool {
@@ -239,23 +239,6 @@ struct BusinessVenueDashboardOverviewView: View {
         .onChange(of: businessId) { _, _ in
             logBusinessUsageStatusDebug()
         }
-        .alert("Cancel venue request?", isPresented: $showCancelVenueAlert) {
-            Button("Keep Request", role: .cancel) {
-                pendingVenueToCancel = nil
-            }
-            Button("Cancel Request", role: .destructive) {
-                if let venue = pendingVenueToCancel {
-                    Task {
-                        await cancelPendingVenueRequest(venue)
-                        await MainActor.run {
-                            pendingVenueToCancel = nil
-                        }
-                    }
-                }
-            }
-        } message: {
-            Text("This will withdraw your pending venue request before FanGeo reviews it.")
-        }
     }
 
     private var quickActions: some View {
@@ -296,16 +279,27 @@ struct BusinessVenueDashboardOverviewView: View {
                         action: handleAddVenueTapped
                     )
                     if hasManagedVenues {
-                        BusinessVenueDashboardActionCard(title: L10n.t("venue_details", languageCode: appLanguageRaw), systemImage: "photo.on.rectangle.angled", tint: FGColor.accentBlue, action: onAddGame)
+                        BusinessVenueDashboardActionCard(
+                            title: L10n.t("venue_details", languageCode: appLanguageRaw),
+                            subtitle: venueActionLoadingSubtitle,
+                            systemImage: isVenueHydrationReady ? "photo.on.rectangle.angled" : "hourglass",
+                            tint: isVenueHydrationReady ? FGColor.accentBlue : Color.gray,
+                            isLimited: !isVenueHydrationReady,
+                            action: { performHydratedVenueAction("venueDetails", action: onAddGame) }
+                        )
                         BusinessVenueDashboardActionCard(
                             title: L10n.t("manage_games", languageCode: appLanguageRaw),
-                            subtitle: isHostedGameAllowed ? nil : "Limit/locked",
-                            systemImage: isHostedGameAllowed ? "sportscourt" : "lock.fill",
-                            tint: isHostedGameAllowed ? FGColor.accentGreen : Color.gray,
+                            subtitle: isVenueHydrationReady ? (isHostedGameAllowed ? nil : "Limit/locked") : "Loading",
+                            systemImage: isVenueHydrationReady && isHostedGameAllowed ? "sportscourt" : (isVenueHydrationReady ? "lock.fill" : "hourglass"),
+                            tint: isVenueHydrationReady && isHostedGameAllowed ? FGColor.accentGreen : Color.gray,
                             badgeText: nil,
                             isPremium: false,
-                            isLimited: !isHostedGameAllowed,
-                            action: isHostedGameAllowed ? onTonightGames : onUsage
+                            isLimited: !isVenueHydrationReady || !isHostedGameAllowed,
+                            action: {
+                                performHydratedVenueAction("manageGames") {
+                                    isHostedGameAllowed ? onTonightGames() : onUsage()
+                                }
+                            }
                         )
                         BusinessVenueDashboardActionCard(
                             title: L10n.t("statistics", languageCode: appLanguageRaw),
@@ -364,6 +358,16 @@ struct BusinessVenueDashboardOverviewView: View {
         onAddVenue()
     }
 
+    private func performHydratedVenueAction(_ actionName: String, action: () -> Void) {
+        guard isVenueHydrationReady else {
+#if DEBUG
+            print("[BusinessProfileHydrationDebug] blockedEarlyTap action=\(actionName) reason=\(venueHydrationReason)")
+#endif
+            return
+        }
+        action()
+    }
+
     private func logBusinessUsageStatusDebug() {
 #if DEBUG
         let state = usageQuickActionState
@@ -389,9 +393,13 @@ struct BusinessVenueDashboardOverviewView: View {
                     .lineLimit(2)
                 Spacer()
                 if hasManagedVenues {
-                    Button(L10n.t("view_all", languageCode: appLanguageRaw), action: onViewAllGames)
+                    Button {
+                        performHydratedVenueAction("manageGames", action: onViewAllGames)
+                    } label: {
+                        Text(L10n.t("view_all", languageCode: appLanguageRaw))
+                    }
                         .font(FGTypography.caption.weight(.bold))
-                        .foregroundStyle(FGColor.accentBlue)
+                        .foregroundStyle(isVenueHydrationReady ? FGColor.accentBlue : Color.gray)
                 }
             }
 
@@ -434,28 +442,6 @@ struct BusinessVenueDashboardOverviewView: View {
                     .background(FGColor.secondaryText(colorScheme).opacity(colorScheme == .dark ? 0.16 : 0.08))
                     .clipShape(Capsule(style: .continuous))
                 Spacer(minLength: 0)
-                Button(action: onRefreshVenues) {
-                    Label("Refresh", systemImage: "arrow.clockwise")
-                        .font(FGTypography.caption.weight(.bold))
-                        .foregroundStyle(FGColor.accentBlue)
-                }
-                .buttonStyle(.plain)
-            }
-
-            if let pendingVenueCancelNotice {
-                HStack(spacing: 8) {
-                    Image(systemName: pendingVenueNoticeIsSuccess(pendingVenueCancelNotice) ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(pendingVenueNoticeIsSuccess(pendingVenueCancelNotice) ? FGColor.accentGreen : FGColor.dangerRed)
-                    Text(pendingVenueCancelNotice)
-                        .font(FGTypography.caption.weight(.semibold))
-                        .foregroundStyle(FGColor.secondaryText(colorScheme))
-                    Spacer(minLength: 0)
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 8)
-                .background((pendingVenueNoticeIsSuccess(pendingVenueCancelNotice) ? FGColor.accentGreen : FGColor.dangerRed).opacity(colorScheme == .dark ? 0.16 : 0.10))
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
 
             VStack(alignment: .leading, spacing: 14) {
@@ -491,12 +477,53 @@ struct BusinessVenueDashboardOverviewView: View {
             }
             .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.20 : 0.05), radius: 12, y: 6)
         }
+        .opacity(isVenueHydrationReady ? 1 : 0.58)
+        .overlay {
+            if !isVenueHydrationReady {
+                HStack(spacing: 10) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Loading venues...")
+                        .font(FGTypography.caption.weight(.bold))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(FGColor.cardBackground(colorScheme).opacity(colorScheme == .dark ? 0.94 : 0.98))
+                .clipShape(Capsule(style: .continuous))
+                .overlay {
+                    Capsule(style: .continuous)
+                        .strokeBorder(FGColor.divider(colorScheme).opacity(0.65), lineWidth: 1)
+                }
+            }
+        }
+        .overlay {
+            Rectangle()
+                .fill(Color.black.opacity(0.001))
+                .contentShape(Rectangle())
+                .onTapGesture { }
+        }
+        .onAppear {
+            logBusinessManagedVenuesSectionRendered()
+        }
+        .onChange(of: managedVenuesHitTestingDebugToken) { _, _ in
+            logBusinessManagedVenuesSectionRendered()
+        }
     }
 
-    private func pendingVenueNoticeIsSuccess(_ notice: String) -> Bool {
-        !notice.localizedCaseInsensitiveContains("couldn")
-            && !notice.localizedCaseInsensitiveContains("failed")
-            && !notice.localizedCaseInsensitiveContains("error")
+    private var managedVenuesHitTestingDebugToken: String {
+        let activeCount = data.approvedVenues.filter { !$0.isPlanLocked }.count
+        let lockedCount = data.approvedVenues.filter(\.isPlanLocked).count
+        return "\(data.approvedVenues.count)|\(activeCount)|\(lockedCount)"
+    }
+
+    private func logBusinessManagedVenuesSectionRendered() {
+#if DEBUG
+        let count = data.approvedVenues.count
+        let activeCount = data.approvedVenues.filter { !$0.isPlanLocked }.count
+        let lockedCount = data.approvedVenues.filter(\.isPlanLocked).count
+        print("[BusinessManagedVenuesDebug] sectionRendered count=\(count) activeCount=\(activeCount) lockedCount=\(lockedCount) tapShield=true")
+#endif
     }
 
     @ViewBuilder
@@ -602,14 +629,7 @@ struct BusinessVenueDashboardOverviewView: View {
     }
 
     private func pendingVenueRow(_ venue: BusinessVenueDashboardPendingVenueItem) -> some View {
-        let rowBusy = cancellingPendingVenueId == venue.id
-            || refreshingPendingVenueId == venue.id
-            || resendingPendingVenueId == venue.id
-        let anyPendingActionBusy = cancellingPendingVenueId != nil
-            || refreshingPendingVenueId != nil
-            || resendingPendingVenueId != nil
-
-        return HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: 10) {
             statusIcon(systemName: "hourglass.circle.fill", tint: .orange)
             VStack(alignment: .leading, spacing: 3) {
                 Text(venue.name)
@@ -622,106 +642,9 @@ struct BusinessVenueDashboardOverviewView: View {
                     .lineLimit(2)
             }
             Spacer(minLength: 0)
-            VStack(alignment: .trailing, spacing: 6) {
-                Button {
-                    pendingVenueToCancel = venue
-                    showCancelVenueAlert = true
-                } label: {
-                    Text(cancellingPendingVenueId == venue.id ? "Cancelling..." : "Cancel request")
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(FGColor.dangerRed)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
-                        .background(FGColor.dangerRed.opacity(colorScheme == .dark ? 0.16 : 0.10))
-                        .clipShape(Capsule(style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .disabled(anyPendingActionBusy)
-                .accessibilityLabel("Cancel pending venue request")
-
-                Button {
-                    Task { await resendPendingVenueRequest(venue) }
-                } label: {
-                    Text(resendingPendingVenueId == venue.id ? "Sending..." : "Resend request")
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(FGColor.accentBlue)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
-                        .background(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.18 : 0.10))
-                        .clipShape(Capsule(style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .disabled(anyPendingActionBusy)
-                .accessibilityLabel("Resend pending venue request")
-
-                Button {
-                    Task { await refreshPendingVenueRequest(venue) }
-                } label: {
-                    Group {
-                        if refreshingPendingVenueId == venue.id {
-                            ProgressView()
-                                .controlSize(.mini)
-                        } else {
-                            Image(systemName: "arrow.clockwise")
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(FGColor.accentBlue)
-                        }
-                    }
-                    .frame(width: 28, height: 28)
-                    .background(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.18 : 0.10))
-                    .clipShape(Circle())
-                }
-                .buttonStyle(.plain)
-                .disabled(anyPendingActionBusy && !rowBusy)
-                .accessibilityLabel("Refresh venue status")
-            }
+            statusPill("Pending", tint: .orange)
         }
         .padding(.vertical, 4)
-    }
-
-    private func refreshPendingVenueRequest(_ venue: BusinessVenueDashboardPendingVenueItem) async {
-        guard refreshingPendingVenueId == nil else { return }
-        await MainActor.run {
-            refreshingPendingVenueId = venue.id
-            pendingVenueCancelNotice = nil
-        }
-        let removed = await onRefreshPendingVenue(venue)
-        await MainActor.run {
-            refreshingPendingVenueId = nil
-            pendingVenueCancelNotice = removed
-                ? "Venue approved. Approved venues refreshed."
-                : "Venue status refreshed."
-        }
-    }
-
-    private func resendPendingVenueRequest(_ venue: BusinessVenueDashboardPendingVenueItem) async {
-        guard resendingPendingVenueId == nil else { return }
-        await MainActor.run {
-            resendingPendingVenueId = venue.id
-            pendingVenueCancelNotice = nil
-        }
-        let sent = await onResendPendingVenue(venue)
-        await MainActor.run {
-            resendingPendingVenueId = nil
-            pendingVenueCancelNotice = sent
-                ? "Venue request resent."
-                : "Couldn’t resend venue request. Please try again."
-        }
-    }
-
-    private func cancelPendingVenueRequest(_ venue: BusinessVenueDashboardPendingVenueItem) async {
-        guard cancellingPendingVenueId == nil else { return }
-        await MainActor.run {
-            cancellingPendingVenueId = venue.id
-            pendingVenueCancelNotice = nil
-        }
-        let cancelled = await onCancelPendingVenue(venue)
-        await MainActor.run {
-            cancellingPendingVenueId = nil
-            pendingVenueCancelNotice = cancelled
-                ? "Venue request cancelled."
-                : "Couldn’t cancel venue request. Please try again."
-        }
     }
 
     private func statusIcon(systemName: String, tint: Color) -> some View {
@@ -750,10 +673,16 @@ struct BusinessVenueDashboardOverviewView: View {
             Text(hasManagedVenues ? "Add a game to turn this dashboard into a live fan hub." : "Add your first venue to manage details and games.")
                 .font(FGTypography.caption)
                 .foregroundStyle(FGColor.secondaryText(colorScheme))
-            Button(action: hasManagedVenues ? onTonightGames : handleAddVenueTapped) {
+            Button {
+                if hasManagedVenues {
+                    performHydratedVenueAction("manageGames", action: onTonightGames)
+                } else {
+                    handleAddVenueTapped()
+                }
+            } label: {
                 Label(
                     hasManagedVenues ? L10n.t("manage_games", languageCode: appLanguageRaw) : L10n.t("add_venue", languageCode: appLanguageRaw),
-                    systemImage: hasManagedVenues ? "sportscourt" : "plus.circle.fill"
+                    systemImage: hasManagedVenues && !isVenueHydrationReady ? "hourglass" : (hasManagedVenues ? "sportscourt" : "plus.circle.fill")
                 )
                     .font(FGTypography.caption.weight(.bold))
                     .foregroundStyle(.white)

@@ -1,6 +1,86 @@
 import CoreLocation
 import Foundation
 
+nonisolated enum VenueGameCompetitorDisplay {
+    enum Mode: String {
+        case none
+        case team
+        case player
+    }
+
+    static func competitorMode(for sport: String) -> Mode {
+        switch normalizedSportKey(sport) {
+        case "soccer", "basketball", "football", "hockey", "baseball", "softball",
+             "volleyball", "rugby", "cricket", "lacrosse", "water_polo", "handball":
+            return .team
+        case "mma", "ufc", "boxing", "tennis", "pickleball", "table_tennis",
+             "badminton", "racquetball", "squash":
+            return .player
+        default:
+            return .none
+        }
+    }
+
+    static func requiresCompetitors(for sport: String) -> Bool {
+        competitorMode(for: sport) != .none
+    }
+
+    static func competitorLabels(for sport: String) -> (String, String) {
+        competitorMode(for: sport) == .player ? ("Player 1", "Player 2") : ("Team 1", "Team 2")
+    }
+
+    static func publicTitle(eventTitle: String?, sport: String?, homeTeam: String?, awayTeam: String?) -> String {
+        let home = trimmed(homeTeam)
+        let away = trimmed(awayTeam)
+        if !home.isEmpty,
+           !away.isEmpty,
+           !equivalent(home, away),
+           requiresCompetitors(for: sport ?? "") {
+            return "\(home) vs \(away)"
+        }
+        return trimmed(eventTitle)
+    }
+
+    static func normalizedSportKey(_ sport: String) -> String {
+        let lowered = sport.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if lowered.contains("soccer") { return "soccer" }
+        if lowered.contains("basketball") || lowered == "nba" { return "basketball" }
+        if lowered.contains("football") || lowered == "nfl" { return "football" }
+        if lowered.contains("hockey") || lowered == "nhl" { return "hockey" }
+        if lowered.contains("baseball") || lowered == "mlb" { return "baseball" }
+        if lowered.contains("softball") { return "softball" }
+        if lowered.contains("volleyball") { return "volleyball" }
+        if lowered.contains("rugby") { return "rugby" }
+        if lowered.contains("cricket") { return "cricket" }
+        if lowered.contains("lacrosse") { return "lacrosse" }
+        if lowered.contains("water polo") { return "water_polo" }
+        if lowered.contains("handball") { return "handball" }
+        if lowered.contains("mma") || lowered.contains("mixed martial") { return "mma" }
+        if lowered.contains("ufc") { return "ufc" }
+        if lowered.contains("boxing") { return "boxing" }
+        if lowered.contains("pickleball") { return "pickleball" }
+        if lowered.contains("table tennis") || lowered.contains("ping pong") { return "table_tennis" }
+        if lowered.contains("badminton") { return "badminton" }
+        if lowered.contains("racquetball") { return "racquetball" }
+        if lowered.contains("squash") { return "squash" }
+        if lowered.contains("tennis") { return "tennis" }
+        return lowered
+    }
+
+    private static func trimmed(_ value: String?) -> String {
+        value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+
+    private static func equivalent(_ lhs: String, _ rhs: String) -> Bool {
+        normalized(lhs) == normalized(rhs)
+    }
+
+    private static func normalized(_ value: String) -> String {
+        let scalars = value.lowercased().unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) }
+        return String(String.UnicodeScalarView(scalars))
+    }
+}
+
 /// CPU-only assembly for Discover venue pins (keeps heavy grouping off the ``MapViewModel`` actor when used from a detached task).
 enum DiscoverVenueLoadAssembler {
 
@@ -17,14 +97,34 @@ enum DiscoverVenueLoadAssembler {
         guard let id = row.id, let title = row.event_title else { return }
         let trimmed = normalizedVenueGameTitle(title)
         guard !trimmed.isEmpty else { return }
+        let publicTitle = normalizedVenueGameTitle(
+            VenueGameCompetitorDisplay.publicTitle(
+                eventTitle: row.event_title,
+                sport: row.sport,
+                homeTeam: row.home_team,
+                awayTeam: row.away_team
+            )
+        )
+
+        func registerTitle(_ candidate: String) {
+            guard !candidate.isEmpty else { return }
+            if let venueId = row.venue_id {
+                idsByKey["\(venueId.uuidString)-\(candidate)"] = id
+            }
+            if let venueName = row.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines), !venueName.isEmpty {
+                idsByKey["\(venueName)-\(candidate)"] = id
+            }
+        }
+
+        registerTitle(trimmed)
+        registerTitle(publicTitle)
+
         if let venueId = row.venue_id {
-            idsByKey["\(venueId.uuidString)-\(trimmed)"] = id
             if trimmed != title {
                 idsByKey["\(venueId.uuidString)-\(title)"] = id
             }
         }
         if let venueName = row.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines), !venueName.isEmpty {
-            idsByKey["\(venueName)-\(trimmed)"] = id
             if trimmed != title {
                 idsByKey["\(venueName)-\(title)"] = id
             }
@@ -138,16 +238,19 @@ enum DiscoverVenueLoadAssembler {
             var titleSet = Set<String>()
             if let venueUuid = row.id {
                 for ev in eventsByVenueId[venueUuid] ?? [] {
-                    if let t = ev.event_title { titleSet.insert(t) }
+                    let t = VenueGameCompetitorDisplay.publicTitle(eventTitle: ev.event_title, sport: ev.sport, homeTeam: ev.home_team, awayTeam: ev.away_team)
+                    if !t.isEmpty { titleSet.insert(t) }
                 }
             }
             if let k = mergedPublicOwnerEmail(for: row) {
                 for ev in eventsByOwner[k] ?? [] where ev.venue_id == nil {
-                    if let t = ev.event_title { titleSet.insert(t) }
+                    let t = VenueGameCompetitorDisplay.publicTitle(eventTitle: ev.event_title, sport: ev.sport, homeTeam: ev.home_team, awayTeam: ev.away_team)
+                    if !t.isEmpty { titleSet.insert(t) }
                 }
             }
             for ev in eventsByVenueName[name] ?? [] where ev.venue_id == nil {
-                if let t = ev.event_title { titleSet.insert(t) }
+                let t = VenueGameCompetitorDisplay.publicTitle(eventTitle: ev.event_title, sport: ev.sport, homeTeam: ev.home_team, awayTeam: ev.away_team)
+                if !t.isEmpty { titleSet.insert(t) }
             }
             let gamesForThisVenue = Array(titleSet).sorted()
 
@@ -254,7 +357,12 @@ enum DiscoverVenueLoadAssembler {
             }
             return SportsEvent(
                 id: row.id ?? UUID(),
-                title: title,
+                title: VenueGameCompetitorDisplay.publicTitle(
+                    eventTitle: title,
+                    sport: sport,
+                    homeTeam: row.home_team,
+                    awayTeam: row.away_team
+                ),
                 sport: sport,
                 league: "Venue Event",
                 date: date,

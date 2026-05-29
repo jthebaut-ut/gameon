@@ -1935,7 +1935,7 @@ struct DiscoverScreen: View {
     private func logMapDepthMarker(id: String, scale: CGFloat, selected: Bool) {
 #if DEBUG
         print("[MapDepthDebug] selectedMarker=\(selected ? id : "nil")")
-        print("[MapDepthDebug] markerScale=\(String(format: "%.2f", scale))")
+        print("[MapDepthDebug] markerScale=\(String(format: "%.2f", Double(scale)))")
         print("[MapDepthDebug] markerShadowApplied=true")
 #endif
     }

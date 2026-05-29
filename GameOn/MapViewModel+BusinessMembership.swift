@@ -28,6 +28,11 @@ extension MapViewModel {
                 businessId: businessId,
                 venuesUsed: activeVenueCount
             )
+            logBusinessVenueAddGate(
+                businessId: businessId,
+                status: fallback,
+                activeApprovedCount: activeVenueCount
+            )
             logBusinessEntitlementDebug(
                 businessId: businessId,
                 source: "rpcFallbackFree",
@@ -36,7 +41,16 @@ extension MapViewModel {
             return fallback
         }
 
-        let status = BusinessVenueGamePostingStatus.fromServer(entitlement)
+        let activeVenueCount = activeManagedVenueListingCount(businessId: businessId)
+        let status = BusinessVenueGamePostingStatus.fromServer(
+            entitlement,
+            activeVenueCount: activeVenueCount
+        )
+        logBusinessVenueAddGate(
+            businessId: businessId,
+            status: status,
+            activeApprovedCount: activeVenueCount
+        )
         logBusinessEntitlementDebug(
             businessId: businessId,
             source: "get_business_entitlements",
@@ -65,11 +79,47 @@ extension MapViewModel {
 
     private func activeManagedVenueListingCount(businessId: UUID) -> Int {
         let ids = managedVenuesForOwner().compactMap { row -> UUID? in
-            guard row.business_id == businessId else { return nil }
+            guard venueRowBelongsToBusiness(row, businessId: businessId) else { return nil }
             guard Self.venueIsActiveForBusinessLimit(row) else { return nil }
             return row.id
         }
         return Set(ids).count
+    }
+
+    private func venueRowBelongsToBusiness(_ row: VenueProfileRow, businessId: UUID) -> Bool {
+        if row.business_id == businessId { return true }
+        if let id = row.id,
+           approvedVenueClaimMetadataByVenueID[id]?.businessId == businessId {
+            return true
+        }
+        return row.business_id == nil && ownedBusinesses.count == 1
+    }
+
+    private func managedVenueStatusCount(
+        businessId: UUID,
+        matching isMatch: (String) -> Bool
+    ) -> Int {
+        let ids = managedVenuesForOwner().compactMap { row -> UUID? in
+            guard venueRowBelongsToBusiness(row, businessId: businessId) else { return nil }
+            guard isMatch(Self.venueAdminStatus(row.admin_status)) else { return nil }
+            return row.id
+        }
+        return Set(ids).count
+    }
+
+    private func logBusinessVenueAddGate(
+        businessId: UUID,
+        status: BusinessVenueGamePostingStatus,
+        activeApprovedCount: Int
+    ) {
+#if DEBUG
+        let effectiveVenueLimit = status.activeVenueLimit.map(String.init) ?? "unlimited"
+        let archivedCount = managedVenueStatusCount(businessId: businessId) { $0 == "archived" }
+        let deletedCount = managedVenueStatusCount(businessId: businessId) {
+            $0 == "deleted" || $0 == "removed" || $0 == "hard_deleted"
+        }
+        print("[BusinessVenueLimitDebug] addVenueGate businessId=\(businessId.uuidString.lowercased()) activeApprovedCount=\(activeApprovedCount) effectiveVenueLimit=\(effectiveVenueLimit) archivedCount=\(archivedCount) deletedCount=\(deletedCount) isLocked=\(!status.canAddVenue)")
+#endif
     }
 
     func canBusinessCreateVenueServerSide(businessId: UUID) async -> Bool {
