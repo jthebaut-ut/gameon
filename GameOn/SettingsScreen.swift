@@ -173,6 +173,7 @@ struct SettingsScreen: View {
     @State private var showBusinessUsageSheet = false
     @State private var showSponsorInquirySheet = false
     @State private var showBusinessActiveVenueSelectionSheet = false
+    @State private var activeVenueSelectionQuickActionNotice: String?
     @State private var settingsBusinessMembershipStatus: BusinessVenueGamePostingStatus?
     @State private var profileSettingsPath = NavigationPath()
     @State private var showUserAuthSheet = false
@@ -284,6 +285,7 @@ struct SettingsScreen: View {
                     if isBusinessAccountProfileContext {
                         SettingsProfileHero(
                             viewModel: viewModel,
+                            businessMembershipStatus: settingsBusinessMembershipStatus,
                             venueOwnerOnNotifications: { showReportedCommentsSheet = true },
                             venueOwnerOnResetPassword: {
                                 guard viewModel.canPresentPasswordResetRequestSheet() else {
@@ -357,6 +359,14 @@ struct SettingsScreen: View {
 
                 if shouldShowInlineBusinessDashboard {
                     Section {
+                        BusinessLocationVenuePicker(
+                            viewModel: viewModel,
+                            chrome: .dashboard,
+                            onRequestAddNewLocation: { openAddLocationFromPicker() }
+                        )
+                        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                        .listRowBackground(Color.clear)
+
                         settingsBusinessProRow
                             .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 6, trailing: 16))
                             .listRowBackground(Color.clear)
@@ -817,6 +827,7 @@ struct SettingsScreen: View {
                 venues: settingsBusinessActiveVenueSelectionRows,
                 approvedDateText: { row in settingsApprovedVenueDateInfo(for: row).displayText },
                 onSaved: {
+                    activeVenueSelectionQuickActionNotice = nil
                     Task { await refreshSettingsBusinessProfile(trigger: "activeVenueSelectionSaved", refreshBusinessData: true, debounce: false) }
                 }
             )
@@ -1415,6 +1426,56 @@ struct SettingsScreen: View {
         return value
     }
 
+    private var settingsCanOpenBusinessActiveVenueSelection: Bool {
+        guard let status = settingsBusinessMembershipStatus,
+              !status.computedIsPro,
+              let business = settingsBusinessActiveVenueSelectionBusiness else {
+            return false
+        }
+        return settingsBusinessActiveVenueSelectionRows(for: business).count > settingsBusinessActiveVenueSelectionLimit
+            && settingsNormalizedFreeActiveVenuesSelectedAt(for: business) == nil
+    }
+
+    private var settingsActiveVenueSelectionQuickActionSubtitle: String? {
+        if settingsBusinessMembershipStatus?.computedIsPro == true {
+            return "All active"
+        }
+        if settingsCanOpenBusinessActiveVenueSelection {
+            return "Choose \(settingsBusinessActiveVenueSelectionLimit)"
+        }
+        if let business = settingsBusinessActiveVenueSelectionBusiness,
+           settingsNormalizedFreeActiveVenuesSelectedAt(for: business) != nil {
+            return "Selection used"
+        }
+        return "Within limit"
+    }
+
+    private var settingsActiveVenueSelectionQuickActionFootnote: String? {
+        guard settingsBusinessMembershipStatus?.computedIsPro != true else { return nil }
+        return "Regular businesses can choose active venues once after moving from Pro to Regular."
+    }
+
+    private func handleActiveVenueSelectionQuickAction() {
+        if settingsCanOpenBusinessActiveVenueSelection {
+            activeVenueSelectionQuickActionNotice = nil
+            showBusinessActiveVenueSelectionSheet = true
+            return
+        }
+
+        if settingsBusinessMembershipStatus?.computedIsPro == true {
+            activeVenueSelectionQuickActionNotice = "All approved venues are active on Business Pro."
+            return
+        }
+
+        if let business = settingsBusinessActiveVenueSelectionBusiness,
+           settingsNormalizedFreeActiveVenuesSelectedAt(for: business) != nil {
+            activeVenueSelectionQuickActionNotice = "Your one-time active venue choice has already been saved. Contact FanGeo or upgrade to Pro to change it."
+            return
+        }
+
+        activeVenueSelectionQuickActionNotice = "Active venue selection appears when a Regular business has more approved venues than its plan limit."
+    }
+
     private var settingsSponsorInquiryCard: some View {
         Button {
             let businessId = viewModel.currentBusinessIdForAddLocation()
@@ -1423,32 +1484,44 @@ struct SettingsScreen: View {
 #endif
             showSponsorInquirySheet = true
         } label: {
-            HStack(alignment: .top, spacing: FGSpacing.md) {
+            HStack(alignment: .center, spacing: FGSpacing.md) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(SettingsPremiumChrome.proGold(colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.12))
+                    Circle()
+                        .fill(SettingsPremiumChrome.proGold(colorScheme).opacity(colorScheme == .dark ? 0.20 : 0.13))
+                    Circle()
+                        .strokeBorder(SettingsPremiumChrome.proGold(colorScheme).opacity(0.26), lineWidth: 1)
                     Image(systemName: "megaphone.fill")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(size: 18, weight: .semibold))
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(SettingsPremiumChrome.proGold(colorScheme))
                 }
-                .frame(width: SettingsPremiumChrome.rowIconSize, height: SettingsPremiumChrome.rowIconSize)
+                .frame(width: 48, height: 48)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Advertise with FanGeo")
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundStyle(SettingsPremiumChrome.primaryText(colorScheme))
-                    Text("Promote your bar, venue, or watch party to local fans.")
+                    Text("Reach more local fans and grow your venue.")
                         .font(.system(size: 12, weight: .regular, design: .rounded))
                         .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text("Contact FanGeo about sponsorship")
+                    Text("Learn About Sponsorships")
                         .font(.system(size: 11, weight: .heavy, design: .rounded))
-                        .foregroundStyle(SettingsPremiumChrome.proGold(colorScheme))
-                        .padding(.horizontal, 9)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 10)
                         .padding(.vertical, 5)
-                        .background(SettingsPremiumChrome.proGold(colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.10), in: Capsule(style: .continuous))
+                        .background(
+                            LinearGradient(
+                                colors: [
+                                    SettingsPremiumChrome.proGold(colorScheme),
+                                    Color(red: 0.62, green: 0.39, blue: 0.08)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            in: Capsule(style: .continuous)
+                        )
                         .padding(.top, 2)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -2161,6 +2234,9 @@ struct SettingsScreen: View {
             data: settingsBusinessDashboardData,
             businessId: viewModel.currentBusinessIdForAddLocation(),
             businessUsageStatus: settingsBusinessMembershipStatus,
+            activeVenueSelectionSubtitle: settingsActiveVenueSelectionQuickActionSubtitle,
+            activeVenueSelectionNotice: activeVenueSelectionQuickActionNotice,
+            activeVenueSelectionFootnote: settingsActiveVenueSelectionQuickActionFootnote,
             onNotifications: {
                 showReportedCommentsSheet = true
             },
@@ -2184,6 +2260,9 @@ struct SettingsScreen: View {
             },
             onUsage: {
                 showBusinessUsageSheet = true
+            },
+            onActiveVenueSelection: {
+                handleActiveVenueSelectionQuickAction()
             },
             onCommentsReports: {
                 showReportedCommentsSheet = true
@@ -2244,41 +2323,8 @@ struct SettingsScreen: View {
         guard status.computedIsPro else {
             return "\(status.venueLimit) active venues • \(status.monthlyHostLimit) hosted games/month"
         }
-        if let days = status.daysRemaining, days <= 14 {
-            return days == 1 ? "Expires in 1 day" : "Expires in \(days) days"
-        }
-        if let formattedDate = formattedSettingsBusinessProExpiry(status.proExpiresAt) {
-            return "Included through \(formattedDate)"
-        }
-        return "Active server-controlled access"
+        return "Unlimited venues • Unlimited hosting"
     }
-
-    private func formattedSettingsBusinessProExpiry(_ raw: String?) -> String? {
-        guard let raw else { return nil }
-        let date = Self.settingsBusinessProExpiryParserWithFractions.date(from: raw)
-            ?? Self.settingsBusinessProExpiryParser.date(from: raw)
-        guard let date else { return nil }
-        return Self.settingsBusinessProExpiryDisplayFormatter.string(from: date)
-    }
-
-    private static let settingsBusinessProExpiryParserWithFractions: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter
-    }()
-
-    private static let settingsBusinessProExpiryParser: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter
-    }()
-
-    private static let settingsBusinessProExpiryDisplayFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "MMM d, yyyy"
-        return formatter
-    }()
 
     private static let settingsApprovedVenueDateDisplayFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -2293,8 +2339,8 @@ struct SettingsScreen: View {
             locationLine: settingsBusinessDashboardLocationLine,
             isVerified: viewModel.venueCoreIdentityLockedForSelectedVenue() || viewModel.venueIsApproved,
             managedVenueCount: viewModel.managedVenuesForOwner().count,
-            venuePhotoURL: nil,
-            venuePhotoThumbnailURL: nil,
+            venuePhotoURL: settingsBusinessDashboardVenuePhotoURL,
+            venuePhotoThumbnailURL: settingsBusinessDashboardVenuePhotoThumbnailURL,
             fansGoing: settingsBusinessDashboardFansGoing,
             activeChats: settingsBusinessDashboardActiveChats,
             predictions: settingsBusinessDashboardPredictions,
@@ -2330,6 +2376,8 @@ struct SettingsScreen: View {
                         name: name.isEmpty ? "Approved venue" : name,
                         locationLine: [city, state].filter { !$0.isEmpty }.joined(separator: ", "),
                         approvedDateText: approvedDate.displayText,
+                        venuePhotoURL: row.cover_photo_url?.trimmingCharacters(in: .whitespacesAndNewlines),
+                        venuePhotoThumbnailURL: row.cover_photo_thumbnail_url?.trimmingCharacters(in: .whitespacesAndNewlines),
                         isPlanLocked: MapViewModel.venueIsPlanLocked(row)
                     ),
                     approvedDate.sortDate,
@@ -4088,6 +4136,7 @@ private struct SettingsVenueAuthSheet: View {
 
 private struct SettingsProfileHero: View {
     @ObservedObject var viewModel: MapViewModel
+    var businessMembershipStatus: BusinessVenueGamePostingStatus?
     var venueOwnerOnNotifications: () -> Void
     var venueOwnerOnResetPassword: () -> Void
     var venueOwnerOnDismissSheetsAfterLogout: () -> Void
@@ -4106,6 +4155,70 @@ private struct SettingsProfileHero: View {
     private var businessHasManagedVenues: Bool {
         managedVenueCount > 0
     }
+
+    private var currentBusinessRow: BusinessRow? {
+        if let businessId = viewModel.currentBusinessIdForAddLocation(),
+           let business = viewModel.ownedBusinesses.first(where: { $0.id == businessId }) {
+            return business
+        }
+        return viewModel.ownedBusinesses.first
+    }
+
+    private var businessHeaderName: String {
+        if let name = trimmedNonEmpty(currentBusinessRow?.display_name) {
+            return name
+        }
+        return venueOwnerBusinessHeroTitle
+    }
+
+    private var businessHeaderLocation: String {
+        businessLocationLine ?? "Business dashboard"
+    }
+
+    private var businessHeaderMemberSince: String {
+        guard let raw = trimmedNonEmpty(currentBusinessRow?.created_at),
+              let date = SupabaseTimestampParsing.parseTimestamptz(raw) else {
+            return "Member since FanGeo"
+        }
+        return "Member since \(Self.businessHeaderMemberSinceFormatter.string(from: date))"
+    }
+
+    private var businessHeaderIsPro: Bool {
+        businessMembershipStatus?.computedIsPro == true
+    }
+
+    private var businessHeaderActiveVenueCount: Int {
+        if let businessMembershipStatus {
+            return businessMembershipStatus.activeVenueCount
+        }
+        var seen = Set<UUID>()
+        return viewModel.managedVenuesForOwner().reduce(0) { count, row in
+            guard let id = row.id, seen.insert(id).inserted else { return count }
+            return MapViewModel.venueIsActiveForBusinessLimit(row) ? count + 1 : count
+        }
+    }
+
+    private var businessHeaderActiveVenueValue: String {
+        let total = max(managedVenueCount, businessHeaderActiveVenueCount)
+        if total > businessHeaderActiveVenueCount {
+            return "\(businessHeaderActiveVenueCount) / \(total)"
+        }
+        return "\(businessHeaderActiveVenueCount)"
+    }
+
+    private var businessHeaderHostedGamesValue: String {
+        if let businessMembershipStatus {
+            return "\(businessMembershipStatus.monthlyHostedGameCount)"
+        }
+        return "0"
+    }
+
+    private static let businessHeaderMemberSinceFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "MMM yyyy"
+        return formatter
+    }()
 
     private var selectedVenueForHero: VenueProfileRow? {
         let managed = viewModel.managedVenuesForOwner()
@@ -4368,6 +4481,171 @@ private struct SettingsProfileHero: View {
         .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.08 : 0.04), radius: 12, y: 2)
     }
 
+    private var businessDashboardHeaderCard: some View {
+        ZStack(alignment: .bottomTrailing) {
+            heroBackgroundGradient
+            heroBlueHighlight
+
+            VStack(alignment: .leading, spacing: FGSpacing.md) {
+                HStack(alignment: .top, spacing: FGSpacing.md) {
+                    businessHeaderAvatar
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 8) {
+                            businessHeaderBadge(title: "Verified Business", systemImage: "shield.checkered", tint: FGColor.accentGreen)
+                            if businessHeaderIsPro {
+                                businessHeaderBadge(title: "Pro Business", systemImage: "crown.fill", tint: SettingsPremiumChrome.proGold(colorScheme))
+                            }
+                        }
+
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text(businessHeaderName.isEmpty ? "Business profile" : businessHeaderName)
+                                .font(.system(size: 26, weight: .black, design: .rounded))
+                                .foregroundStyle(.white)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.82)
+
+                            Image(systemName: "checkmark.seal.fill")
+                                .font(.system(size: 15, weight: .bold))
+                                .symbolRenderingMode(.hierarchical)
+                                .foregroundStyle(FGColor.accentGreen)
+                        }
+
+                        Text("Business Account")
+                            .font(FGTypography.caption.weight(.bold))
+                            .foregroundStyle(FGColor.accentGreen)
+
+                        Text("We bring fans together with the best sports atmosphere.")
+                            .font(FGTypography.caption)
+                            .foregroundStyle(.white.opacity(0.82))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                HStack(alignment: .top, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label(businessHeaderLocation, systemImage: "mappin.and.ellipse")
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Label(businessHeaderMemberSince, systemImage: "calendar")
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .font(FGTypography.caption.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.82))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    VStack(alignment: .leading, spacing: 9) {
+                        businessHeaderMetric(
+                            title: "Active Venues",
+                            value: businessHeaderActiveVenueValue,
+                            systemImage: "checkmark.seal.fill"
+                        )
+                        businessHeaderMetric(
+                            title: "Hosted Games This Month",
+                            value: businessHeaderHostedGamesValue,
+                            systemImage: "sportscourt.fill"
+                        )
+                    }
+                    .padding(.leading, FGSpacing.md)
+                    .frame(minWidth: 118, alignment: .leading)
+                    .overlay(alignment: .leading) {
+                        Rectangle()
+                            .fill(Color.white.opacity(0.10))
+                            .frame(width: 1)
+                    }
+                }
+            }
+            .padding(.horizontal, FGSpacing.lg)
+            .padding(.vertical, FGSpacing.lg)
+
+            FanGeoLogoWatermark(variant: .white, width: 54, opacity: 0.045)
+                .padding(.trailing, 12)
+                .padding(.bottom, 10)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: FGRadius.sheet, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: FGRadius.sheet, style: .continuous)
+                .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.11 : 0.14), lineWidth: 1)
+        }
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.24 : 0.14), radius: 16, y: 9)
+        .shadow(color: FGColor.accentGreen.opacity(colorScheme == .dark ? 0.10 : 0.06), radius: 14, y: 2)
+    }
+
+    private var businessHeaderAvatar: some View {
+        ZStack(alignment: .bottomTrailing) {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            FGColor.accentGreen.opacity(0.98),
+                            FGColor.businessGreen.opacity(0.82)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+
+            Image(systemName: "building.2.fill")
+                .font(.system(size: 34, weight: .black))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(.white)
+
+            Image(systemName: "shield.checkered")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 28, height: 28)
+                .background(FGColor.accentGreen)
+                .clipShape(Circle())
+                .overlay {
+                    Circle()
+                        .strokeBorder(Color.white.opacity(0.86), lineWidth: 1.5)
+                }
+                .offset(x: 5, y: 5)
+        }
+        .frame(width: 72, height: 72)
+        .shadow(color: FGColor.accentGreen.opacity(0.25), radius: 12, y: 6)
+    }
+
+    private func businessHeaderBadge(title: String, systemImage: String, tint: Color) -> some View {
+        Label(title.uppercased(), systemImage: systemImage)
+            .font(.system(size: 9, weight: .heavy, design: .rounded))
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 6)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(tint.opacity(colorScheme == .dark ? 0.32 : 0.26))
+                    .overlay {
+                        Capsule(style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
+                    }
+            )
+    }
+
+    private func businessHeaderMetric(title: String, value: String, systemImage: String) -> some View {
+        HStack(alignment: .center, spacing: 8) {
+            Image(systemName: systemImage)
+                .font(.system(size: 13, weight: .bold))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(FGColor.accentGreen)
+                .frame(width: 18)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.70))
+                    .lineLimit(1)
+                Text(value)
+                    .font(.system(size: 15, weight: .black, design: .rounded))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+            }
+        }
+    }
+
     @ViewBuilder
     private var heroAvatar: some View {
         if isBusinessProfile {
@@ -4442,7 +4720,13 @@ private struct SettingsProfileHero: View {
     }
 
     var body: some View {
-        heroCard
+        Group {
+            if isBusinessProfile {
+                businessDashboardHeaderCard
+            } else {
+                heroCard
+            }
+        }
             .onAppear {
 #if DEBUG
                 if isBusinessProfile {
@@ -7494,7 +7778,7 @@ struct BusinessLocationVenuePicker: View {
                 .frame(width: 46, height: 46)
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Managing location")
+                    Text("Viewing venue")
                         .font(FGTypography.metadata.weight(.bold))
                         .foregroundStyle(FGColor.secondaryText(colorScheme))
                         .textCase(.uppercase)

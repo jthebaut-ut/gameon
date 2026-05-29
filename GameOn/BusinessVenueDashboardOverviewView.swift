@@ -93,6 +93,8 @@ struct BusinessVenueDashboardApprovedVenueItem: Identifiable, Equatable {
     let name: String
     let locationLine: String
     let approvedDateText: String
+    let venuePhotoURL: String?
+    let venuePhotoThumbnailURL: String?
     let isPlanLocked: Bool
 }
 
@@ -170,6 +172,9 @@ struct BusinessVenueDashboardOverviewView: View {
     let data: BusinessVenueDashboardData
     let businessId: UUID?
     let businessUsageStatus: BusinessVenueGamePostingStatus?
+    var activeVenueSelectionSubtitle: String? = nil
+    var activeVenueSelectionNotice: String? = nil
+    var activeVenueSelectionFootnote: String? = nil
     let onNotifications: () -> Void
     let onMenu: () -> Void
     let onAddGame: () -> Void
@@ -178,6 +183,7 @@ struct BusinessVenueDashboardOverviewView: View {
     let onPredictions: () -> Void
     let onAnalytics: () -> Void
     let onUsage: () -> Void
+    var onActiveVenueSelection: (() -> Void)?
     let onCommentsReports: () -> Void
     let onViewAllGames: () -> Void
     let onRefreshVenues: () -> Void
@@ -203,6 +209,12 @@ struct BusinessVenueDashboardOverviewView: View {
 
     private var usageQuickActionState: BusinessUsageQuickActionState {
         BusinessUsageQuickActionState(status: businessUsageStatus)
+    }
+
+    private var upcomingGamesTitle: String {
+        let venueName = data.venueName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !venueName.isEmpty else { return "Upcoming games" }
+        return "Upcoming games at \(venueName)"
     }
 
     var body: some View {
@@ -261,6 +273,18 @@ struct BusinessVenueDashboardOverviewView: View {
                         badgeText: usageQuickActionState.badgeText,
                         action: onUsage
                     )
+                    if let activeVenueSelectionSubtitle {
+                        BusinessVenueDashboardActionCard(
+                            title: "Active Venues",
+                            subtitle: activeVenueSelectionSubtitle,
+                            systemImage: "checkmark.seal",
+                            tint: FGColor.accentGreen,
+                            badgeText: nil,
+                            isPremium: false,
+                            isLimited: false,
+                            action: { onActiveVenueSelection?() }
+                        )
+                    }
                     BusinessVenueDashboardActionCard(
                         title: L10n.t("add_venue", languageCode: appLanguageRaw),
                         subtitle: isAddVenueAllowed ? nil : "Limit reached",
@@ -307,7 +331,30 @@ struct BusinessVenueDashboardOverviewView: View {
                 }
                 .padding(.vertical, 3)
             }
+
+            if let activeVenueSelectionNotice {
+                activeVenueSelectionInfoBanner(activeVenueSelectionNotice, tint: FGColor.accentBlue)
+            } else if let activeVenueSelectionFootnote {
+                activeVenueSelectionInfoBanner(activeVenueSelectionFootnote, tint: FGColor.accentGreen)
+            }
         }
+    }
+
+    private func activeVenueSelectionInfoBanner(_ message: String, tint: Color) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "info.circle.fill")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(tint)
+            Text(message)
+                .font(FGTypography.caption.weight(.semibold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(tint.opacity(colorScheme == .dark ? 0.15 : 0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     private func handleAddVenueTapped() {
@@ -336,9 +383,10 @@ struct BusinessVenueDashboardOverviewView: View {
     private var tonightSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(data.gameSectionContext.label.title(languageCode: appLanguageRaw))
+                Text(upcomingGamesTitle)
                     .font(FGTypography.cardTitle.weight(.bold))
                     .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .lineLimit(2)
                 Spacer()
                 if hasManagedVenues {
                     Button(L10n.t("view_all", languageCode: appLanguageRaw), action: onViewAllGames)
@@ -365,8 +413,9 @@ struct BusinessVenueDashboardOverviewView: View {
             .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+                    .strokeBorder(FGColor.divider(colorScheme).opacity(0.78), lineWidth: 1)
             }
+            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.20 : 0.05), radius: 12, y: 6)
         }
         .onAppear(perform: logUpcomingLabelDebug)
     }
@@ -377,6 +426,13 @@ struct BusinessVenueDashboardOverviewView: View {
                 Text("Managed venues")
                     .font(FGTypography.cardTitle.weight(.bold))
                     .foregroundStyle(FGColor.primaryText(colorScheme))
+                Text("\(data.approvedVenues.count) total")
+                    .font(FGTypography.metadata.weight(.bold))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(FGColor.secondaryText(colorScheme).opacity(colorScheme == .dark ? 0.16 : 0.08))
+                    .clipShape(Capsule(style: .continuous))
                 Spacer(minLength: 0)
                 Button(action: onRefreshVenues) {
                     Label("Refresh", systemImage: "arrow.clockwise")
@@ -431,8 +487,9 @@ struct BusinessVenueDashboardOverviewView: View {
             .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+                    .strokeBorder(FGColor.divider(colorScheme).opacity(0.78), lineWidth: 1)
             }
+            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.20 : 0.05), radius: 12, y: 6)
         }
     }
 
@@ -474,23 +531,74 @@ struct BusinessVenueDashboardOverviewView: View {
 
     private func approvedVenueRow(_ venue: BusinessVenueDashboardApprovedVenueItem) -> some View {
         let tint = venue.isPlanLocked ? Color.gray : FGColor.accentGreen
-        return HStack(alignment: .top, spacing: 10) {
-            statusIcon(systemName: venue.isPlanLocked ? "lock.fill" : "checkmark.seal.fill", tint: tint)
-            VStack(alignment: .leading, spacing: 3) {
+        return HStack(alignment: .center, spacing: 12) {
+            venueThumbnail(venue)
+                .opacity(venue.isPlanLocked ? 0.45 : 1)
+
+            VStack(alignment: .leading, spacing: 5) {
                 Text(venue.name)
-                    .font(FGTypography.caption.weight(.semibold))
+                    .font(FGTypography.caption.weight(.bold))
                     .foregroundStyle(venue.isPlanLocked ? FGColor.secondaryText(colorScheme) : FGColor.primaryText(colorScheme))
                     .lineLimit(1)
-                Text(venue.locationLine.isEmpty ? venue.approvedDateText : "\(venue.locationLine) • \(venue.approvedDateText)")
+                Text(venue.locationLine.isEmpty ? venue.approvedDateText : venue.locationLine)
                     .font(FGTypography.caption)
                     .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .lineLimit(1)
+                Text(venue.isPlanLocked ? BusinessLimitCopy.planLockedVenueSubtitle : venue.approvedDateText)
+                    .font(FGTypography.metadata.weight(.semibold))
+                    .foregroundStyle(venue.isPlanLocked ? Color.gray : FGColor.secondaryText(colorScheme))
                     .lineLimit(2)
             }
             Spacer(minLength: 0)
-            statusPill(venue.isPlanLocked ? BusinessLimitCopy.planLockedVenueBadge : "Active", tint: tint)
+            statusPill(venue.isPlanLocked ? "Inactive" : "Active", tint: tint)
         }
-        .padding(.vertical, 4)
+        .padding(10)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(venue.isPlanLocked ? Color.gray.opacity(colorScheme == .dark ? 0.12 : 0.08) : FGAdaptiveSurface.cardElevated)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(tint.opacity(venue.isPlanLocked ? 0.22 : 0.28), lineWidth: 1)
+        }
         .opacity(venue.isPlanLocked ? 0.72 : 1)
+    }
+
+    private func venueThumbnail(_ venue: BusinessVenueDashboardApprovedVenueItem) -> some View {
+        let rawURL = (venue.venuePhotoThumbnailURL?.trimmingCharacters(in: .whitespacesAndNewlines)).flatMap { $0.isEmpty ? nil : $0 }
+            ?? (venue.venuePhotoURL?.trimmingCharacters(in: .whitespacesAndNewlines)).flatMap { $0.isEmpty ? nil : $0 }
+        return ZStack {
+            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                .fill(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.18 : 0.10))
+
+            if let rawURL, let url = URL(string: rawURL) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case let .success(image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    case .failure:
+                        Image(systemName: "building.2.fill")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundStyle(FGColor.accentBlue)
+                    case .empty:
+                        ProgressView()
+                            .tint(FGColor.accentBlue)
+                    @unknown default:
+                        Image(systemName: "building.2.fill")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundStyle(FGColor.accentBlue)
+                    }
+                }
+            } else {
+                Image(systemName: venue.isPlanLocked ? "lock.fill" : "building.2.fill")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(venue.isPlanLocked ? Color.gray : FGColor.accentBlue)
+            }
+        }
+        .frame(width: 54, height: 54)
+        .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
     }
 
     private func pendingVenueRow(_ venue: BusinessVenueDashboardPendingVenueItem) -> some View {
@@ -636,7 +744,7 @@ struct BusinessVenueDashboardOverviewView: View {
 
     private var emptyTonightState: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(hasManagedVenues ? data.gameSectionContext.label.title(languageCode: appLanguageRaw) : "No venue yet")
+            Text(hasManagedVenues ? "No upcoming games at \(data.venueName)" : "No venue yet")
                 .font(FGTypography.cardTitle)
                 .foregroundStyle(FGColor.primaryText(colorScheme))
             Text(hasManagedVenues ? "Add a game to turn this dashboard into a live fan hub." : "Add your first venue to manage details and games.")
