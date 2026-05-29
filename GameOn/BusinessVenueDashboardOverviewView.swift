@@ -289,16 +289,14 @@ struct BusinessVenueDashboardOverviewView: View {
                         )
                         BusinessVenueDashboardActionCard(
                             title: L10n.t("manage_games", languageCode: appLanguageRaw),
-                            subtitle: isVenueHydrationReady ? (isHostedGameAllowed ? nil : "Limit/locked") : "Loading",
-                            systemImage: isVenueHydrationReady && isHostedGameAllowed ? "sportscourt" : (isVenueHydrationReady ? "lock.fill" : "hourglass"),
-                            tint: isVenueHydrationReady && isHostedGameAllowed ? FGColor.accentGreen : Color.gray,
+                            subtitle: isVenueHydrationReady ? "Scheduled games" : "Loading",
+                            systemImage: isVenueHydrationReady ? "sportscourt" : "hourglass",
+                            tint: isVenueHydrationReady ? FGColor.accentGreen : Color.gray,
                             badgeText: nil,
                             isPremium: false,
-                            isLimited: !isVenueHydrationReady || !isHostedGameAllowed,
+                            isLimited: !isVenueHydrationReady,
                             action: {
-                                performHydratedVenueAction("manageGames") {
-                                    isHostedGameAllowed ? onTonightGames() : onUsage()
-                                }
+                                performHydratedVenueAction("manageGames", action: onTonightGames)
                             }
                         )
                         BusinessVenueDashboardActionCard(
@@ -429,6 +427,22 @@ struct BusinessVenueDashboardOverviewView: View {
     }
 
     private var managedVenuesSection: some View {
+        Group {
+            if isVenueHydrationReady {
+                managedVenuesReadySection
+            } else {
+                managedVenuesLoadingPlaceholder
+            }
+        }
+        .onAppear {
+            logBusinessManagedVenuesSectionRendered()
+        }
+        .onChange(of: managedVenuesHitTestingDebugToken) { _, _ in
+            logBusinessManagedVenuesSectionRendered()
+        }
+    }
+
+    private var managedVenuesReadySection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
                 Text("Managed venues")
@@ -477,38 +491,32 @@ struct BusinessVenueDashboardOverviewView: View {
             }
             .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.20 : 0.05), radius: 12, y: 6)
         }
-        .opacity(isVenueHydrationReady ? 1 : 0.58)
-        .overlay {
-            if !isVenueHydrationReady {
-                HStack(spacing: 10) {
-                    ProgressView()
-                        .controlSize(.small)
-                    Text("Loading venues...")
-                        .font(FGTypography.caption.weight(.bold))
-                        .foregroundStyle(FGColor.secondaryText(colorScheme))
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(FGColor.cardBackground(colorScheme).opacity(colorScheme == .dark ? 0.94 : 0.98))
-                .clipShape(Capsule(style: .continuous))
-                .overlay {
-                    Capsule(style: .continuous)
-                        .strokeBorder(FGColor.divider(colorScheme).opacity(0.65), lineWidth: 1)
-                }
+        .allowsHitTesting(false)
+    }
+
+    private var managedVenuesLoadingPlaceholder: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Managed venues")
+                .font(FGTypography.cardTitle.weight(.bold))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+
+            HStack(spacing: 10) {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Loading venues...")
+                    .font(FGTypography.caption.weight(.bold))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                Spacer(minLength: 0)
+            }
+            .padding(14)
+            .background(FGColor.cardBackground(colorScheme))
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(FGColor.divider(colorScheme).opacity(0.65), lineWidth: 1)
             }
         }
-        .overlay {
-            Rectangle()
-                .fill(Color.black.opacity(0.001))
-                .contentShape(Rectangle())
-                .onTapGesture { }
-        }
-        .onAppear {
-            logBusinessManagedVenuesSectionRendered()
-        }
-        .onChange(of: managedVenuesHitTestingDebugToken) { _, _ in
-            logBusinessManagedVenuesSectionRendered()
-        }
+        .allowsHitTesting(false)
     }
 
     private var managedVenuesHitTestingDebugToken: String {
@@ -522,7 +530,7 @@ struct BusinessVenueDashboardOverviewView: View {
         let count = data.approvedVenues.count
         let activeCount = data.approvedVenues.filter { !$0.isPlanLocked }.count
         let lockedCount = data.approvedVenues.filter(\.isPlanLocked).count
-        print("[BusinessManagedVenuesDebug] sectionRendered count=\(count) activeCount=\(activeCount) lockedCount=\(lockedCount) tapShield=true")
+        print("[BusinessManagedVenuesDebug] sectionRendered count=\(count) activeCount=\(activeCount) lockedCount=\(lockedCount) hydrationReady=\(isVenueHydrationReady)")
 #endif
     }
 
@@ -680,18 +688,23 @@ struct BusinessVenueDashboardOverviewView: View {
                     handleAddVenueTapped()
                 }
             } label: {
-                Label(
-                    hasManagedVenues ? L10n.t("manage_games", languageCode: appLanguageRaw) : L10n.t("add_venue", languageCode: appLanguageRaw),
-                    systemImage: hasManagedVenues && !isVenueHydrationReady ? "hourglass" : (hasManagedVenues ? "sportscourt" : "plus.circle.fill")
-                )
+                HStack(spacing: 7) {
+                    Image(systemName: hasManagedVenues && !isVenueHydrationReady ? "hourglass" : (hasManagedVenues ? "sportscourt" : "plus.circle.fill"))
+                        .font(.caption.weight(.bold))
+                        .imageScale(.medium)
+                    Text(hasManagedVenues ? L10n.t("manage_games", languageCode: appLanguageRaw) : L10n.t("add_venue", languageCode: appLanguageRaw))
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
+                }
                     .font(FGTypography.caption.weight(.bold))
                     .foregroundStyle(.white)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 9)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
                     .background(FGColor.brandGradient)
                     .clipShape(Capsule())
             }
             .buttonStyle(.plain)
+            .fixedSize(horizontal: true, vertical: true)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -780,7 +793,9 @@ private struct BusinessVenueDashboardActionCard: View {
     }
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            action()
+        } label: {
             ZStack(alignment: .topTrailing) {
                 VStack(spacing: subtitle == nil ? 10 : 7) {
                     Image(systemName: systemImage)

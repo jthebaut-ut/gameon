@@ -747,7 +747,7 @@ struct VenueOwnerDashboardView: View {
     @State private var didPickInitialManageGamesTab = false
     @State private var myVenueGamesForManage: [VenueEventRow] = []
     @State private var manageGamesListLoading = false
-    /// Prevents stacked ``refreshManageGamesList`` runs (e.g. profile `.task` + games `.task` churn) from freezing UI.
+    /// Prevents stacked ``refreshManageGamesList`` runs from freezing UI during lifecycle refreshes.
     @State private var manageGamesRefreshInFlight = false
     @State private var manageGamesFeedback = ""
     @State private var manageGamesError = ""
@@ -885,9 +885,116 @@ struct VenueOwnerDashboardView: View {
         )
     }
 
+    @ViewBuilder
     var body: some View {
         let _: Void = logFanUpdatesStoreMigrationDebug()
 
+        if entryPoint == .gamesManager {
+            manageGamesSheetExperience
+        } else {
+            venueOwnerDashboardBody
+        }
+    }
+
+    private var manageGamesSheetExperience: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 8) {
+                    manageGamesSheetTabButton(title: "Scheduled", tab: .scheduled)
+                    manageGamesSheetTabButton(title: "Add Game", tab: .add)
+                }
+
+                manageGamesStatusBanners
+
+                if manageGamesListTab == .scheduled {
+                    manageGamesListPane
+                } else {
+                    addGamePane
+                }
+            }
+            .padding()
+            .background(FGAdaptiveSurface.cardElevated)
+            .clipShape(RoundedRectangle(cornerRadius: 24))
+            .overlay(
+                RoundedRectangle(cornerRadius: 24)
+                    .strokeBorder(Color(.separator).opacity(0.45), lineWidth: 1)
+            )
+            .padding(.horizontal)
+            .padding(.top, 40)
+            .padding(.bottom, 32)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
+        .background(FGAdaptiveSurface.sheetRoot)
+        .onAppear {
+#if DEBUG
+            print("[ManageGamesDebug] manageGames onAppear ownerVenueId=\(viewModel.ownerVenueDatabaseId?.uuidString ?? "nil")")
+#endif
+            startManageGamesListRefresh()
+            startAddGamePaneEntitlementRefreshIfNeeded()
+        }
+        .onChange(of: viewModel.ownerVenueDatabaseId) { _, _ in
+            startManageGamesListRefresh()
+        }
+        .onChange(of: manageGamesListTab) { _, _ in
+            startAddGamePaneEntitlementRefreshIfNeeded()
+        }
+        .confirmationDialog(
+            "Cancel this game?",
+            isPresented: $showCancelGameDialog,
+            titleVisibility: .visible
+        ) {
+            Button("Remove Game", role: .destructive) {
+                guard let snap = cancelGameRowSnapshot else { return }
+                cancelGameRowSnapshot = nil
+                Task {
+                    await performManageGameCancel(rowSnapshot: snap)
+                }
+            }
+            Button("Keep Game", role: .cancel) {
+                cancelGameRowSnapshot = nil
+            }
+        } message: {
+            Text("This will remove the game from your venue schedule and FanGeo discovery.")
+        }
+        .sheet(item: $titleEditTarget) { target in
+            titleEditSheet(for: target)
+        }
+        .sheet(isPresented: $showSchedulePicker) {
+            VenueOwnerSchedulePickerSheet(
+                matches: viewModel.liveMatches,
+                isLoading: viewModel.isLoadingLiveMatches,
+                selectedDate: $schedulePickerDate,
+                onSelect: { choice in
+                    applyScheduledGameChoice(choice)
+                }
+            )
+        }
+    }
+
+    private func manageGamesSheetTabButton(title: String, tab: ManageGamesListTab) -> some View {
+        let isSelected = manageGamesListTab == tab
+        return Button {
+            manageGamesListTab = tab
+            if tab == .add {
+                gameCreationMode = .manual
+            }
+        } label: {
+            Text(title)
+                .font(.caption.weight(.bold))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 9)
+                .background(
+                    isSelected
+                        ? AnyShapeStyle(Color.accentColor)
+                        : AnyShapeStyle(FGAdaptiveSurface.capsuleUnselected)
+                )
+                .foregroundStyle(isSelected ? Color.white : FGColor.primaryText(colorScheme))
+                .clipShape(Capsule(style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var venueOwnerDashboardBody: some View {
         ScrollViewReader { scrollProxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
@@ -1724,6 +1831,21 @@ struct VenueOwnerDashboardView: View {
     private var businessCanHostGameFromServer: Bool {
         guard let status = businessMembershipStatus else { return true }
         return status.canHostBusinessGames
+    }
+
+    private var monthlyHostedGameLimitReachedForRegularBusiness: Bool {
+        guard let status = businessMembershipStatus else { return false }
+        guard !status.computedIsPro && !status.unlimitedHosting else { return false }
+        let limit = max(1, status.monthlyHostedGameLimit ?? status.monthlyHostLimit)
+        return status.monthlyHostedGameCount >= limit
+    }
+
+    private var monthlyHostedGameUsageContextText: String {
+        guard let status = businessMembershipStatus else {
+            return "Checking hosted games usage..."
+        }
+        let limit = max(1, status.monthlyHostedGameLimit ?? status.monthlyHostLimit)
+        return "You’ve used \(status.monthlyHostedGameCount) of \(limit) hosted games this month."
     }
 
     private var businessStatisticsProRefreshToken: String {
@@ -6218,55 +6340,63 @@ struct VenueOwnerDashboardView: View {
     }
 
     private var manageGamesTabbedExperience: some View {
+        manageGamesTabbedCard
+            .onAppear {
+#if DEBUG
+                print("[ManageGamesDebug] manageGames onAppear ownerVenueId=\(viewModel.ownerVenueDatabaseId?.uuidString ?? "nil")")
+#endif
+                startManageGamesListRefresh()
+                startAddGamePaneEntitlementRefreshIfNeeded()
+            }
+            .onChange(of: viewModel.ownerVenueDatabaseId) { _, _ in
+                startManageGamesListRefresh()
+            }
+            .onChange(of: manageGamesListTab) { _, _ in
+                startAddGamePaneEntitlementRefreshIfNeeded()
+            }
+            .confirmationDialog(
+                "Cancel this game?",
+                isPresented: $showCancelGameDialog,
+                titleVisibility: .visible
+            ) {
+                Button("Remove Game", role: .destructive) {
+                    guard let snap = cancelGameRowSnapshot else { return }
+                    cancelGameRowSnapshot = nil
+                    Task {
+                        await performManageGameCancel(rowSnapshot: snap)
+                    }
+                }
+                Button("Keep Game", role: .cancel) {
+                    cancelGameRowSnapshot = nil
+                }
+            } message: {
+                Text("This will remove the game from your venue schedule and FanGeo discovery.")
+            }
+            .sheet(item: $titleEditTarget) { target in
+                titleEditSheet(for: target)
+            }
+            .sheet(isPresented: $showSchedulePicker) {
+                VenueOwnerSchedulePickerSheet(
+                    matches: viewModel.liveMatches,
+                    isLoading: viewModel.isLoadingLiveMatches,
+                    selectedDate: $schedulePickerDate,
+                    onSelect: { choice in
+                        applyScheduledGameChoice(choice)
+                    }
+                )
+            }
+    }
+
+    private var manageGamesTabbedCard: some View {
         VStack(alignment: .leading, spacing: 14) {
             if selectedVenuePlanLocked {
                 venuePlanLockedExplainerCard()
             }
 
-            HStack(spacing: 8) {
-                manageGamesTabButton(title: "Scheduled", tab: .scheduled, isLocked: false)
-                manageGamesTabButton(
-                    title: "Add Game",
-                    tab: .add,
-                    isLocked: !selectedVenueCanHostGames
-                )
-            }
+            manageGamesTabStrip
+            manageGamesStatusBanners
 
-            if !manageGamesFeedback.isEmpty {
-                Text(manageGamesFeedback)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.green)
-            }
-            if !manageGamesError.isEmpty {
-                Text(manageGamesError)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.red)
-#if DEBUG
-                if !manageGamesDebugErrorDetails.isEmpty {
-                    Text(manageGamesDebugErrorDetails)
-                        .font(.caption2.monospaced())
-                        .foregroundStyle(FGColor.secondaryText(colorScheme))
-                        .textSelection(.enabled)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(10)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(FGAdaptiveSurface.controlFill, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .strokeBorder(FGColor.divider(colorScheme).opacity(0.45), lineWidth: 1)
-                        }
-                }
-#endif
-            }
-
-            switch manageGamesListTab {
-            case .scheduled:
-                manageGamesListPane
-            case .add:
-                addGamePane
-            }
+            manageGamesSelectedPane
         }
         .padding()
         .background(FGAdaptiveSurface.cardElevated)
@@ -6275,42 +6405,58 @@ struct VenueOwnerDashboardView: View {
             RoundedRectangle(cornerRadius: 24)
                 .strokeBorder(Color(.separator).opacity(0.45), lineWidth: 1)
         )
-        .task(id: viewModel.ownerVenueDatabaseId) {
-#if DEBUG
-            print("[ManageGamesDebug] manageGames .task fired ownerVenueId=\(viewModel.ownerVenueDatabaseId?.uuidString ?? "nil")")
-#endif
-            await refreshManageGamesList(isInitialPick: !didPickInitialManageGamesTab)
-        }
-        .confirmationDialog(
-            "Cancel this game?",
-            isPresented: $showCancelGameDialog,
-            titleVisibility: .visible
-        ) {
-            Button("Remove Game", role: .destructive) {
-                guard let snap = cancelGameRowSnapshot else { return }
-                cancelGameRowSnapshot = nil
-                Task {
-                    await performManageGameCancel(rowSnapshot: snap)
-                }
-            }
-            Button("Keep Game", role: .cancel) {
-                cancelGameRowSnapshot = nil
-            }
-        } message: {
-            Text("This will remove the game from your venue schedule and FanGeo discovery.")
-        }
-        .sheet(item: $titleEditTarget) { target in
-            titleEditSheet(for: target)
-        }
-        .sheet(isPresented: $showSchedulePicker) {
-            VenueOwnerSchedulePickerSheet(
-                matches: viewModel.liveMatches,
-                isLoading: viewModel.isLoadingLiveMatches,
-                selectedDate: $schedulePickerDate,
-                onSelect: { choice in
-                    applyScheduledGameChoice(choice)
-                }
+    }
+
+    private var manageGamesTabStrip: some View {
+        HStack(spacing: 8) {
+            manageGamesTabButton(title: "Scheduled", tab: .scheduled, isLocked: false)
+            manageGamesTabButton(
+                title: "Add Game",
+                tab: .add,
+                isLocked: false
             )
+        }
+    }
+
+    @ViewBuilder
+    private var manageGamesStatusBanners: some View {
+        if !manageGamesFeedback.isEmpty {
+            Text(manageGamesFeedback)
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(.green)
+        }
+        if !manageGamesError.isEmpty {
+            Text(manageGamesError)
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(.red)
+#if DEBUG
+            if !manageGamesDebugErrorDetails.isEmpty {
+                Text(manageGamesDebugErrorDetails)
+                    .font(.caption2.monospaced())
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(FGAdaptiveSurface.controlFill, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(FGColor.divider(colorScheme).opacity(0.45), lineWidth: 1)
+                    }
+            }
+#endif
+        }
+    }
+
+    @ViewBuilder
+    private var manageGamesSelectedPane: some View {
+        switch manageGamesListTab {
+        case .scheduled:
+            manageGamesListPane
+        case .add:
+            addGamePane
         }
     }
 
@@ -6467,6 +6613,20 @@ struct VenueOwnerDashboardView: View {
     }
 
     private var manageGamesListPane: some View {
+        manageGamesListPaneContent
+            .onAppear {
+#if DEBUG
+                print("[ManageGamesDebug] scheduled games list pane appear rows=\(myVenueGamesForManage.count) loading=\(manageGamesListLoading)")
+#endif
+            }
+            .onDisappear {
+#if DEBUG
+                print("[ManageGamesDebug] scheduled games list pane disappear")
+#endif
+            }
+    }
+
+    private var manageGamesListPaneContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Scheduled games")
                 .font(.title2)
@@ -6561,19 +6721,31 @@ struct VenueOwnerDashboardView: View {
                 }
             }
         }
-        .onAppear {
-#if DEBUG
-            print("[ManageGamesDebug] scheduled games list pane appear rows=\(myVenueGamesForManage.count) loading=\(manageGamesListLoading)")
-#endif
-        }
-        .onDisappear {
-#if DEBUG
-            print("[ManageGamesDebug] scheduled games list pane disappear")
-#endif
-        }
     }
 
     private var addGamePane: some View {
+        addGamePaneContent(showsCreationModeControls: true)
+            .onAppear {
+                clearManageGamesErrorIfAddGameScheduleIsFutureValid()
+                if Calendar.current.startOfDay(for: importGamesDate) != Calendar.current.startOfDay(for: gameDate) {
+                    importGamesDate = gameDate
+                }
+#if DEBUG
+                print("[ManageGamesAddPane] render")
+                print("[BusinessGameImportDebug] selectedMode=\(gameCreationMode.rawValue)")
+#endif
+            }
+            .onDisappear {
+#if DEBUG
+                print("[ManageGamesAddPane] disappear")
+#endif
+            }
+    }
+
+    private func addGamePaneContent(
+        showsCreationModeControls: Bool,
+        importPaneUsesLifecycle: Bool = true
+    ) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Add Game")
                 .font(.title2)
@@ -6583,10 +6755,16 @@ struct VenueOwnerDashboardView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            gameCreationModePicker
+            if showsCreationModeControls {
+                gameCreationModePicker
 
-            if gameCreationMode == .importLive {
-                importFromLiveGamesPane
+                if gameCreationMode == .importLive {
+                    if importPaneUsesLifecycle {
+                        importFromLiveGamesPane
+                    } else {
+                        importFromLiveGamesPaneContent
+                    }
+                }
             }
 
             if !selectedVenueCanHostGames {
@@ -6600,27 +6778,27 @@ struct VenueOwnerDashboardView: View {
 
             addGameFormFields
         }
-        .onAppear {
-            clearManageGamesErrorIfAddGameScheduleIsFutureValid()
-            if Calendar.current.startOfDay(for: importGamesDate) != Calendar.current.startOfDay(for: gameDate) {
-                importGamesDate = gameDate
-            }
-#if DEBUG
-            print("[ManageGamesAddPane] render")
-            print("[BusinessGameImportDebug] selectedMode=\(gameCreationMode.rawValue)")
-#endif
+    }
+
+    private func startManageGamesListRefresh() {
+        Task {
+            await refreshManageGamesList(isInitialPick: !didPickInitialManageGamesTab)
         }
-        .task {
-            await businessProEntitlement.prepare()
-            businessMembershipStatus = await viewModel.businessVenueGamePostingStatus(
-                storeKitBusinessProActive: businessProEntitlement.businessProActive
-            )
+    }
+
+    private func startAddGamePaneEntitlementRefreshIfNeeded() {
+        guard manageGamesListTab == .add else { return }
+        Task {
+            await prepareAddGamePaneEntitlementsIfNeeded()
         }
-        .onDisappear {
-#if DEBUG
-            print("[ManageGamesAddPane] disappear")
-#endif
-        }
+    }
+
+    private func prepareAddGamePaneEntitlementsIfNeeded() async {
+        guard manageGamesListTab == .add else { return }
+        await businessProEntitlement.prepare()
+        businessMembershipStatus = await viewModel.businessVenueGamePostingStatus(
+            storeKitBusinessProActive: businessProEntitlement.businessProActive
+        )
     }
 
     private var manualGameRequiresStructuredTeams: Bool {
@@ -6723,6 +6901,17 @@ struct VenueOwnerDashboardView: View {
     }
 
     private var importFromLiveGamesPane: some View {
+        importFromLiveGamesPaneContent
+            .onAppear {
+                if importGamesBrowserExpanded {
+                    Task {
+                        await fetchImportGames(forceRefresh: false)
+                    }
+                }
+            }
+    }
+
+    private var importFromLiveGamesPaneContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 10) {
                 Image(systemName: "bolt.horizontal.circle.fill")
@@ -6754,11 +6943,6 @@ struct VenueOwnerDashboardView: View {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .strokeBorder(Color.orange.opacity(0.20), lineWidth: 1)
         )
-        .task {
-            if importGamesBrowserExpanded {
-                await fetchImportGames(forceRefresh: false)
-            }
-        }
     }
 
     private var importLiveGamesBrowser: some View {
@@ -7301,25 +7485,74 @@ struct VenueOwnerDashboardView: View {
 
             addGameCleanupDelayCard
 
-            Button {
+            if monthlyHostedGameLimitReachedForRegularBusiness {
+                hostedGameLimitUpgradeCTA
+            } else {
+                Button {
 #if DEBUG
-                print("[ManageGamesAddPane] save tapped")
+                    print("[ManageGamesAddPane] save tapped")
 #endif
-                Task {
-                    await saveNewVenueGameFromForm()
+                    Task {
+                        await saveNewVenueGameFromForm()
+                    }
+                } label: {
+                    primaryButtonText("Save Game Listing")
                 }
+                .overlay {
+                    if isSavingNewGame {
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(FGAdaptiveSurface.sheetRoot.opacity(0.55))
+                        ProgressView()
+                            .tint(.primary)
+                    }
+                }
+                .disabled(saveGameListingDisabled)
+            }
+        }
+    }
+
+    private var hostedGameLimitUpgradeCTA: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(monthlyHostedGameUsageContextText)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Button {
+                manageGamesFeedback = ""
+                manageGamesError = BusinessLimitCopy.hostedGameLimitReached
+                showBusinessProSubscriptionSheet = true
             } label: {
-                primaryButtonText("Save Game Listing")
-            }
-            .overlay {
-                if isSavingNewGame {
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(FGAdaptiveSurface.sheetRoot.opacity(0.55))
-                    ProgressView()
-                        .tint(.primary)
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("🔒 Upgrade to FanGeo Pro")
+                            .font(.headline.weight(.black))
+                        Text("Unlimited hosted games")
+                            .font(.caption.weight(.bold))
+                            .opacity(0.88)
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "crown.fill")
+                        .font(.headline.weight(.black))
                 }
+                .foregroundStyle(colorScheme == .dark ? Color(red: 0.10, green: 0.07, blue: 0.02) : .white)
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    LinearGradient(
+                        colors: [businessProGold, businessProGoldDeep],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.24 : 0.42), lineWidth: 1)
+                }
+                .shadow(color: businessProGold.opacity(colorScheme == .dark ? 0.20 : 0.14), radius: 14, y: 6)
             }
-            .disabled(saveGameListingDisabled)
+            .buttonStyle(.plain)
         }
     }
 
