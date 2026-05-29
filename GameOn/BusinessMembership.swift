@@ -17,7 +17,7 @@ enum BusinessMembershipPolicy {
 
 enum BusinessLimitCopy {
     static let venueLimitReached = "You’ve reached your active venue limit. Upgrade to FanGeo Pro for unlimited locations."
-    static let hostedGameLimitReached = "You’ve reached your monthly hosted game limit. Upgrade to FanGeo Pro for unlimited hosted games, or wait until your next monthly cycle."
+    static let hostedGameLimitReached = "You’ve reached your hosted game cycle limit. Upgrade to FanGeo Pro for unlimited hosted games, or wait until your next reset."
     static let planLockedVenueBanner = "Some of your venues are locked because your business exceeds the free plan limit. Upgrade to FanGeo Pro to reactivate all locations."
     static let planLockedVenueBadge = "Inactive on Regular plan"
     static let planLockedVenueSubtitle = "Not visible on Discover and cannot host games on the Regular plan."
@@ -39,7 +39,10 @@ struct BusinessEntitlementSnapshot: Decodable, Equatable {
     let venue_limit: Int?
     let monthly_host_limit: Int?
     let venues_used: Int
-    let hosted_games_this_month: Int
+    let hosted_games_this_month: Int?
+    let hosted_games_used_this_cycle: Int?
+    let hosted_game_cycle_end_at: String?
+    let next_reset_at: String?
     let entitlement_updated_at: String?
 }
 
@@ -62,6 +65,9 @@ struct BusinessVenueGamePostingStatus: Equatable {
     let unlimitedHosting: Bool
     let venueLimit: Int
     let monthlyHostLimit: Int
+    let hostedGamesUsedThisCycle: Int?
+    let hostedGameCycleEndAt: String?
+    let nextResetAt: String?
     let entitlementUpdatedAt: String?
 
     var computedIsPro: Bool { businessProActive }
@@ -73,6 +79,8 @@ struct BusinessVenueGamePostingStatus: Equatable {
     var activeVenueLimit: Int? { unlimitedVenues || isBusinessPro ? nil : venueLimit }
     var monthlyHostedGameLimit: Int? { unlimitedHosting || isBusinessPro ? nil : monthlyHostLimit }
     var currentMonthHostedGameCount: Int { monthlyHostedGameCount }
+    var hostedGamesUsedForDisplay: Int { hostedGamesUsedThisCycle ?? monthlyHostedGameCount }
+    var hostedGamesCycleLimit: Int { monthlyHostLimit }
     var hostedGameLimit: Int { monthlyHostLimit }
     var monthlyPostCount: Int { monthlyHostedGameCount }
     var freeLimitReached: Bool { freeMonthlyVenueGameLimitReached }
@@ -143,6 +151,9 @@ struct BusinessVenueGamePostingStatus: Equatable {
             unlimitedHosting: false,
             venueLimit: BusinessMembershipPolicy.freeVenueListingLimit,
             monthlyHostLimit: BusinessMembershipPolicy.freeMonthlyVenueGameLimit,
+            hostedGamesUsedThisCycle: nil,
+            hostedGameCycleEndAt: nil,
+            nextResetAt: nil,
             entitlementUpdatedAt: nil
         )
     }
@@ -209,12 +220,16 @@ struct BusinessVenueGamePostingStatus: Equatable {
         }
         let isPromo = normalizedBusinessProActive && planType == "pro_promo"
         let venueCount = activeVenueCount ?? entitlement.venues_used
+        let legacyHostedGameCount = entitlement.hosted_games_this_month
+            ?? entitlement.hosted_games_used_this_cycle
+            ?? 0
+        let hostedGameDisplayCount = entitlement.hosted_games_used_this_cycle ?? legacyHostedGameCount
         return BusinessVenueGamePostingStatus(
             promoActive: isPromo,
             businessVenueCount: venueCount,
-            monthlyHostedGameCount: entitlement.hosted_games_this_month,
+            monthlyHostedGameCount: legacyHostedGameCount,
             freeVenueListingLimitReached: !normalizedUnlimitedVenues && venueCount >= normalizedVenueLimit,
-            freeMonthlyVenueGameLimitReached: !normalizedUnlimitedHosting && entitlement.hosted_games_this_month >= normalizedMonthlyHostLimit,
+            freeMonthlyVenueGameLimitReached: !normalizedUnlimitedHosting && hostedGameDisplayCount >= normalizedMonthlyHostLimit,
             limitsOverriddenBySummerPromo: isPromo,
             businessProActive: normalizedBusinessProActive,
             businessId: entitlement.business_id,
@@ -228,6 +243,9 @@ struct BusinessVenueGamePostingStatus: Equatable {
             unlimitedHosting: normalizedUnlimitedHosting,
             venueLimit: normalizedVenueLimit,
             monthlyHostLimit: normalizedMonthlyHostLimit,
+            hostedGamesUsedThisCycle: entitlement.hosted_games_used_this_cycle,
+            hostedGameCycleEndAt: entitlement.hosted_game_cycle_end_at,
+            nextResetAt: entitlement.next_reset_at,
             entitlementUpdatedAt: entitlement.entitlement_updated_at
         )
     }

@@ -179,6 +179,24 @@ private struct BusinessInsightsSparkline: View {
     }
 }
 
+private enum BusinessHostedGameCycleDisplay {
+    private static let resetFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "MMM d"
+        return formatter
+    }()
+
+    static func resetText(from raw: String?) -> String? {
+        guard let raw = raw?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !raw.isEmpty,
+              let date = SupabaseTimestampParsing.parseTimestamptz(raw) else {
+            return nil
+        }
+        return "Resets \(resetFormatter.string(from: date))"
+    }
+}
+
 struct BusinessUsageCenterView: View {
     @Environment(\.colorScheme) private var colorScheme
     let status: BusinessVenueGamePostingStatus?
@@ -355,10 +373,10 @@ struct BusinessUsageCenterView: View {
             unit = value == 1 ? "active venue" : "active venues"
             unlimited = status.unlimitedVenues || status.isBusinessPro
         case .hostedGames:
-            value = status.monthlyHostedGameCount
+            value = status.hostedGamesUsedForDisplay
             limit = status.monthlyHostedGameLimit
             title = "Hosted games"
-            unit = value == 1 ? "hosted game this month" : "hosted games this month"
+            unit = value == 1 ? "hosted game this cycle" : "hosted games this cycle"
             unlimited = status.unlimitedHosting || status.isBusinessPro
         }
 
@@ -366,7 +384,7 @@ struct BusinessUsageCenterView: View {
             return AnyView(
                 usageStatusRow(
                     title: title,
-                    detail: "\(value) \(unit) • Unlimited",
+                    detail: kind == .hostedGames ? "Unlimited hosted games" : "\(value) \(unit) • Unlimited",
                     rightValue: "∞ Unlimited",
                     systemImage: "checkmark.seal.fill",
                     tint: FGColor.accentGreen
@@ -378,7 +396,13 @@ struct BusinessUsageCenterView: View {
             ? BusinessMembershipPolicy.freeVenueListingLimit
             : BusinessMembershipPolicy.freeMonthlyVenueGameLimit))
         let remaining = max(0, resolvedLimit - value)
-        let rightValue = remaining == 0 ? "Limit reached" : "\(remaining) left"
+        let resetText = kind == .hostedGames ? BusinessHostedGameCycleDisplay.resetText(from: status.nextResetAt) : nil
+        let rightValue: String
+        if kind == .hostedGames, let resetText {
+            rightValue = remaining == 0 ? "Limit reached • \(resetText)" : resetText
+        } else {
+            rightValue = remaining == 0 ? "Limit reached" : "\(remaining) left"
+        }
         return AnyView(
             usageMetricRow(
                 title: title,
@@ -531,7 +555,7 @@ struct BusinessUsageCenterView: View {
         if venueLimitReached {
             return "Active venue limit reached"
         }
-        return "Monthly hosted game limit reached"
+        return "Hosted game cycle limit reached"
     }
 
     private var limitReachedMessage: String {
@@ -562,7 +586,9 @@ struct BusinessUsageCenterView: View {
         print("[BusinessUsageScreenDebug] activeVenueCount=\(status.map { String($0.activeVenueCount) } ?? "unknown")")
         print("[BusinessUsageScreenDebug] activeVenueLimit=\(activeVenueLimit)")
         print("[BusinessUsageScreenDebug] hostedGamesThisMonth=\(status.map { String($0.monthlyHostedGameCount) } ?? "unknown")")
+        print("[BusinessUsageScreenDebug] hostedGamesUsedThisCycle=\(status.flatMap { $0.hostedGamesUsedThisCycle }.map(String.init) ?? "unknown")")
         print("[BusinessUsageScreenDebug] monthlyHostedGameLimit=\(monthlyHostedGameLimit)")
+        print("[BusinessUsageScreenDebug] nextResetAt=\(status?.nextResetAt ?? "unknown")")
 #endif
     }
 
@@ -1627,12 +1653,18 @@ struct VenueOwnerDashboardView: View {
     private func businessProStatusSubtitle(for status: BusinessVenueGamePostingStatus?) -> String {
         guard let status else { return "Checking plan status…" }
         guard status.computedIsPro else {
-            return "5 active venues • 5 hosted games/month"
+            let activeVenueLimit = max(1, status.activeVenueLimit ?? status.venueLimit)
+            let hostedGameLimit = max(1, status.monthlyHostedGameLimit ?? status.monthlyHostLimit)
+            var parts = [
+                "\(activeVenueLimit) active venues",
+                "\(hostedGameLimit) hosted games/cycle"
+            ]
+            if let resetText = BusinessHostedGameCycleDisplay.resetText(from: status.nextResetAt) {
+                parts.append(resetText)
+            }
+            return parts.joined(separator: " • ")
         }
-        if let formattedDate = formattedBusinessProExpiry(status.proExpiresAt) {
-            return "Included through \(formattedDate)"
-        }
-        return "Included with your active Business Pro entitlement."
+        return "Unlimited venues • Unlimited hosted games"
     }
 
     private func formattedBusinessProExpiry(_ raw: String?) -> String? {
@@ -1833,19 +1865,23 @@ struct VenueOwnerDashboardView: View {
         return status.canHostBusinessGames
     }
 
-    private var monthlyHostedGameLimitReachedForRegularBusiness: Bool {
+    private var hostedGameCycleLimitReachedForRegularBusiness: Bool {
         guard let status = businessMembershipStatus else { return false }
         guard !status.computedIsPro && !status.unlimitedHosting else { return false }
         let limit = max(1, status.monthlyHostedGameLimit ?? status.monthlyHostLimit)
-        return status.monthlyHostedGameCount >= limit
+        return status.hostedGamesUsedForDisplay >= limit
     }
 
-    private var monthlyHostedGameUsageContextText: String {
+    private var hostedGameCycleUsageContextText: String {
         guard let status = businessMembershipStatus else {
             return "Checking hosted games usage..."
         }
         let limit = max(1, status.monthlyHostedGameLimit ?? status.monthlyHostLimit)
-        return "You’ve used \(status.monthlyHostedGameCount) of \(limit) hosted games this month."
+        let base = "You’ve used \(status.hostedGamesUsedForDisplay) of \(limit) hosted games this cycle."
+        guard let resetText = BusinessHostedGameCycleDisplay.resetText(from: status.nextResetAt) else {
+            return base
+        }
+        return "\(base) \(resetText)."
     }
 
     private var businessStatisticsProRefreshToken: String {
@@ -7485,7 +7521,7 @@ struct VenueOwnerDashboardView: View {
 
             addGameCleanupDelayCard
 
-            if monthlyHostedGameLimitReachedForRegularBusiness {
+            if hostedGameCycleLimitReachedForRegularBusiness {
                 hostedGameLimitUpgradeCTA
             } else {
                 Button {
@@ -7513,7 +7549,7 @@ struct VenueOwnerDashboardView: View {
 
     private var hostedGameLimitUpgradeCTA: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(monthlyHostedGameUsageContextText)
+            Text(hostedGameCycleUsageContextText)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(FGColor.secondaryText(colorScheme))
                 .frame(maxWidth: .infinity, alignment: .leading)

@@ -376,7 +376,9 @@ struct BusinessVenueDashboardOverviewView: View {
         print("[BusinessUsageStatusDebug] activeVenueCount=\(businessUsageStatus.map { String($0.activeVenueCount) } ?? "unknown")")
         print("[BusinessUsageStatusDebug] activeVenueLimit=\(activeVenueLimit)")
         print("[BusinessUsageStatusDebug] hostedGamesThisMonth=\(businessUsageStatus.map { String($0.monthlyHostedGameCount) } ?? "unknown")")
+        print("[BusinessUsageStatusDebug] hostedGamesUsedThisCycle=\(businessUsageStatus.flatMap { $0.hostedGamesUsedThisCycle }.map(String.init) ?? "unknown")")
         print("[BusinessUsageStatusDebug] monthlyHostedGameLimit=\(monthlyHostedGameLimit)")
+        print("[BusinessUsageStatusDebug] nextResetAt=\(businessUsageStatus?.nextResetAt ?? "unknown")")
         print("[BusinessUsageStatusDebug] usageStatusColor=\(state.usageStatusColor)")
         print("[BusinessUsageStatusDebug] reason=\(state.reason)")
 #endif
@@ -747,7 +749,7 @@ private struct BusinessUsageQuickActionState {
         let activeVenueLimit = max(1, status.activeVenueLimit ?? status.venueLimit)
         let monthlyHostedGameLimit = max(1, status.monthlyHostedGameLimit ?? status.monthlyHostLimit)
         let venueLimitReached = status.activeVenueCount >= activeVenueLimit
-        let hostedGameLimitReached = status.monthlyHostedGameCount >= monthlyHostedGameLimit
+        let hostedGameLimitReached = status.hostedGamesUsedForDisplay >= monthlyHostedGameLimit
 
         if venueLimitReached || hostedGameLimitReached {
             tint = FGColor.dangerRed
