@@ -11,6 +11,8 @@ nonisolated enum LiveSportVisualType: String, Codable, CaseIterable, Equatable {
     case badminton
     case golf
     case formula1
+    case breakdance
+    case ballet
     case other
 
     var displayLabel: String {
@@ -33,6 +35,10 @@ nonisolated enum LiveSportVisualType: String, Codable, CaseIterable, Equatable {
             return "Golf"
         case .formula1:
             return "Formula 1"
+        case .breakdance:
+            return "Break Dance"
+        case .ballet:
+            return "Ballet"
         case .other:
             return "Sports"
         }
@@ -59,6 +65,10 @@ nonisolated enum LiveSportVisualType: String, Codable, CaseIterable, Equatable {
             return .golf
         case "formula 1", "formula1", "formula one", "f1", "racing", "motorsport", "motor sport":
             return .formula1
+        case "break dance", "breakdance", "break dancing", "breakdancing", "breaking":
+            return .breakdance
+        case "ballet":
+            return .ballet
         default:
             return .other
         }

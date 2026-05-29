@@ -350,13 +350,28 @@ enum PickupBulkImportValidator {
     private static func canonicalSport(from raw: String) -> String? {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
+        let normalized = normalizeToken(trimmed)
         for sport in AppSportCatalog.formPickerSportsOrdered {
             if sport.localizedCaseInsensitiveCompare(trimmed) == .orderedSame
-                || AppSportCatalog.displayLabel(forSportToken: sport).localizedCaseInsensitiveCompare(trimmed) == .orderedSame {
+                || AppSportCatalog.displayLabel(forSportToken: sport).localizedCaseInsensitiveCompare(trimmed) == .orderedSame
+                || normalizeToken(sport) == normalized
+                || normalizeToken(AppSportCatalog.displayLabel(forSportToken: sport)) == normalized
+                || sportImportAliases(for: sport).contains(normalized) {
                 return sport
             }
         }
         return nil
+    }
+
+    private static func sportImportAliases(for sport: String) -> Set<String> {
+        switch normalizeToken(sport) {
+        case "breakdance":
+            return ["breakdance", "breaking", "breakdancing", "urbandance", "dance"]
+        case "ballet":
+            return ["ballet", "classicalballet", "performingarts", "dance"]
+        default:
+            return []
+        }
     }
 
     private static func canonicalSkillLevel(from raw: String) -> String? {

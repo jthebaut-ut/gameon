@@ -151,6 +151,7 @@ final class MapViewModel: ObservableObject {
 #endif
     /// From ``refreshVenueClaimStatusLineFromDatabase()`` scan of recent ``venue_claims`` by owner email: any row is rejected and ``rejection_acknowledged_at`` is unset.
     @Published var hasUnackedRejectedVenueClaimForOwnerEmail: Bool = false
+    @Published var approvedVenueClaimMetadataByVenueID: [UUID: BusinessApprovedVenueClaimMetadata] = [:]
     /// Per-venue approved ownership resolved from `venue_claims.venue_id` for Venue Detail claim visibility.
     @Published var approvedVenueOwnershipByVenueID: [UUID: ApprovedVenueOwnershipSummary] = [:]
 
@@ -185,6 +186,9 @@ final class MapViewModel: ObservableObject {
     @Published var isAdminLoggedIn: Bool = false
     @Published var adminEmail: String = ""
     @Published var venueClaims: [VenueClaim] = []
+    @Published var adminBusinessVenueOverrideSummaries: [AdminBusinessVenueOverrideSummary] = []
+    @Published var isLoadingAdminBusinessVenueOverrides = false
+    @Published var adminBusinessVenueOverrideMessage = ""
     @Published var liveOperationsPresenceMetrics: LiveOperationsPresenceMetrics = .empty
     @Published var venueIsApproved: Bool = false
     @Published var authErrorMessage = ""

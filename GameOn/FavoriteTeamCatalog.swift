@@ -13,6 +13,7 @@ enum FavoriteTeamSport: String, CaseIterable, Identifiable, Codable, Hashable {
     case golf = "Golf"
     case combat = "Combat Sports"
     case racing = "Racing"
+    case dance = "Dance"
     case ncaa = "NCAA"
 
     var id: String { rawValue }
@@ -38,6 +39,7 @@ enum FavoriteTeamSport: String, CaseIterable, Identifiable, Codable, Hashable {
         case .golf: return "figure.golf"
         case .combat: return "figure.boxing"
         case .racing: return "flag.checkered.2.crossed.fill"
+        case .dance: return "figure.dance"
         case .ncaa: return "building.columns.fill"
         }
     }
@@ -54,6 +56,7 @@ enum FavoriteTeamSport: String, CaseIterable, Identifiable, Codable, Hashable {
         case .golf: return Color(red: 0.18, green: 0.62, blue: 0.32)
         case .combat: return Color(red: 0.62, green: 0.18, blue: 0.18)
         case .racing: return Color(red: 0.88, green: 0.12, blue: 0.16)
+        case .dance: return Color(red: 0.72, green: 0.28, blue: 0.78)
         case .ncaa: return Color(red: 0.52, green: 0.14, blue: 0.22)
         }
     }
@@ -66,6 +69,7 @@ enum FavoriteTeamSport: String, CaseIterable, Identifiable, Codable, Hashable {
         case .combat: return "UFC"
         case .racing: return "Formula 1"
         case .badminton: return "badminton"
+        case .dance: return "Break Dance"
         default: return chipTitle
         }
     }
@@ -122,6 +126,12 @@ func sportIcon(for sportName: String) -> String {
     if normalized.contains("racing") || normalized.contains("formula") || normalized.contains("f1") {
         return "🏎️"
     }
+    if normalized.contains("ballet") {
+        return "🩰"
+    }
+    if normalized.contains("dance") || normalized.contains("breakdance") || normalized.contains("breaking") {
+        return "💃"
+    }
     if normalized.contains("volleyball") {
         return "🏐"
     }
@@ -166,6 +176,12 @@ func sportAccentColor(for sportName: String) -> Color {
     if normalized.contains("racing") || normalized.contains("formula") || normalized.contains("f1") {
         return Color(red: 0.92, green: 0.10, blue: 0.14)
     }
+    if normalized.contains("ballet") {
+        return Color(red: 0.86, green: 0.42, blue: 0.72)
+    }
+    if normalized.contains("dance") || normalized.contains("breakdance") || normalized.contains("breaking") {
+        return Color(red: 0.72, green: 0.28, blue: 0.78)
+    }
     if normalized.contains("volleyball") {
         return Color(red: 0.94, green: 0.34, blue: 0.28)
     }
@@ -185,6 +201,7 @@ enum FavoriteTeamKind: String, CaseIterable, Identifiable, Codable, Hashable {
     case tournament = "tournament"
     case driver = "driver"
     case fighter = "fighter"
+    case interest = "interest"
 
     var id: String { rawValue }
 
@@ -196,6 +213,7 @@ enum FavoriteTeamKind: String, CaseIterable, Identifiable, Codable, Hashable {
         case .tournament: return "League/Tournament"
         case .driver: return "Driver"
         case .fighter: return "Fighter"
+        case .interest: return "Interest"
         }
     }
 }
@@ -245,7 +263,7 @@ struct FavoriteTeam: Identifiable, Hashable, Codable {
 
 enum FavoriteTeamCatalog {
     private static let localCatalog: [FavoriteTeam] =
-        soccer + basketball + football + baseball + hockey + golf + racing + tennis + badminton + combat + ncaa + favoritePlayers + favoriteTournaments
+        soccer + basketball + football + baseball + hockey + golf + racing + tennis + badminton + combat + dance + ncaa + favoritePlayers + favoriteTournaments
     private static let businessGameManagementCatalog = businessGameManagementFavorites(excluding: localCatalog)
 
     /// Favorite Teams uses the same country/team source as business game management, then layers in
@@ -262,7 +280,8 @@ enum FavoriteTeamCatalog {
         .hockey,
         .golf,
         .combat,
-        .racing
+        .racing,
+        .dance
     ]
 
     static var defaultSport: FavoriteTeamSport {
@@ -451,6 +470,11 @@ enum FavoriteTeamCatalog {
                 FavoriteTeamCategory(id: "racing-drivers", title: "Drivers"),
                 FavoriteTeamCategory(id: "racing-series", title: "Series")
             ]
+        case .dance:
+            return [
+                FavoriteTeamCategory(id: "dance-urban", title: "Dance / Urban Sports"),
+                FavoriteTeamCategory(id: "dance-performing", title: "Dance / Performing Arts")
+            ]
         case .ncaa:
             return [
                 FavoriteTeamCategory(id: "basketball-ncaa", title: "NCAA")
@@ -530,6 +554,10 @@ enum FavoriteTeamCatalog {
             return team.sport == .racing && team.kind == .driver
         case "racing-series":
             return team.sport == .racing && team.kind == .tournament
+        case "dance-urban":
+            return team.sport == .dance && team.region == "Dance / Urban Sports"
+        case "dance-performing":
+            return team.sport == .dance && team.region == "Dance / Performing Arts"
         default:
             return false
         }
@@ -570,7 +598,7 @@ enum FavoriteTeamCatalog {
             return team.league
         case .tournament:
             return team.region == "Leagues & Tournaments" ? "Tournaments" : team.region
-        case .player, .driver, .fighter:
+        case .player, .driver, .fighter, .interest:
             return team.region
         }
     }
@@ -605,6 +633,8 @@ enum FavoriteTeamCatalog {
         "NFL",
         "College Football",
         "Badminton",
+        "Dance / Urban Sports",
+        "Dance / Performing Arts",
         "Favorite Players",
         "Drivers",
         "Fighters",
@@ -681,6 +711,7 @@ enum FavoriteTeamCatalog {
         case .golf: return (0.16, 0.56, 0.28)
         case .combat: return (0.62, 0.16, 0.16)
         case .racing: return (0.84, 0.12, 0.16)
+        case .dance: return (0.72, 0.28, 0.78)
         case .ncaa: return (0.48, 0.16, 0.52)
         }
     }
@@ -897,6 +928,13 @@ enum FavoriteTeamCatalog {
         team("fighter-alex-pereira", "Alex Pereira", .combat, "Combat Sports", "figure.boxing", 0.72, 0.18, 0.18, region: "Fighters", kind: .fighter, shortCode: "AP"),
         team("fighter-katie-taylor", "Katie Taylor", .combat, "Combat Sports", "figure.boxing", 0.12, 0.48, 0.36, region: "Fighters", kind: .fighter, shortCode: "KT"),
         team("fighter-claressa-shields", "Claressa Shields", .combat, "Combat Sports", "figure.boxing", 0.42, 0.18, 0.62, region: "Fighters", kind: .fighter, shortCode: "CS")
+    ]
+
+    // MARK: Dance (interests; text-only identities)
+
+    private static let dance: [FavoriteTeam] = [
+        team("dance-break-dance", "Break Dance", .dance, "Dance / Urban Sports", "figure.dance", 0.58, 0.28, 0.90, region: "Dance / Urban Sports", kind: .interest, shortCode: "BD", aliases: ["breakdance", "breaking", "break dancing", "urban dance", "dance"]),
+        team("dance-ballet", "Ballet", .dance, "Dance / Performing Arts", "figure.dance", 0.86, 0.42, 0.72, region: "Dance / Performing Arts", kind: .interest, shortCode: "BAL", aliases: ["classical ballet", "performing arts", "dance"])
     ]
 
     // MARK: Favorite Players / Drivers (text-only identities)

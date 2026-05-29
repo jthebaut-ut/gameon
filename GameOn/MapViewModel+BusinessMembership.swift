@@ -121,10 +121,10 @@ extension MapViewModel {
     ) {
 #if DEBUG
         print("[BusinessEntitlementDebug] source=\(source) businessId=\(businessId?.uuidString.lowercased() ?? "nil")")
-        print("[BusinessEntitlementDebug] planType=\(status.planType) planStatus=\(status.planStatus) proExpiresAt=\(status.proExpiresAt ?? "nil") isProActive=\(status.businessProActive)")
+        print("[BusinessEntitlementDebug] planType=\(status.planType) planStatus=\(status.planStatus) proExpiresAt=\(status.proExpiresAt ?? "nil") isProActive=\(status.computedIsPro)")
         print("[BusinessEntitlementDebug] activeVenueCount=\(status.activeVenueCount) activeVenueLimit=\(status.activeVenueLimit.map(String.init) ?? "unlimited") unlimitedVenues=\(status.unlimitedVenues)")
         print("[BusinessEntitlementDebug] hostedGamesThisMonth=\(status.monthlyHostedGameCount) monthlyHostLimit=\(status.monthlyHostLimit) unlimitedHosting=\(status.unlimitedHosting)")
-        print("[BusinessEntitlementDebug] statisticsAccess=\(status.statisticsEnabled) sponsoredAccess=\(status.sponsoredEnabled)")
+        print("[BusinessEntitlementDebug] statisticsAccess=\(status.statisticsAccessGranted) sponsoredAccess=\(status.sponsoredPlacementAllowed)")
         print("[BusinessEntitlementDebug] businessId=\(businessId?.uuidString.lowercased() ?? "nil") plan_type=\(status.planType) plan_status=\(status.planStatus) pro_expires_at=\(status.proExpiresAt ?? "nil") unlimited_venues=\(status.unlimitedVenues) unlimited_hosting=\(status.unlimitedHosting) activeVenueCount=\(status.activeVenueCount) activeVenueLimit=\(status.activeVenueLimit.map(String.init) ?? "unlimited") currentMonthHostedGameCount=\(status.currentMonthHostedGameCount) monthlyHostedGameLimit=\(status.monthlyHostedGameLimit.map(String.init) ?? "unlimited") canAddVenue=\(status.canAddVenue) canAddHostedGame=\(status.canAddHostedGame) venueLimitReason=\(status.venueLimitReason) hostedGameLimitReason=\(status.hostedGameLimitReason)")
 #endif
     }

@@ -554,6 +554,9 @@ private enum FavoriteTeamsPickerShelves {
         if team.kind == .player || team.kind == .driver || team.kind == .fighter {
             return "Players"
         }
+        if team.kind == .interest {
+            return team.region
+        }
         if team.kind == .tournament {
             return "Tournaments"
         }
@@ -577,6 +580,8 @@ private enum FavoriteTeamsPickerShelves {
         if lowered.contains("nfl") || lowered.contains("football") { return "🏈" }
         if lowered.contains("mlb") { return "⚾️" }
         if lowered.contains("nhl") { return "🏒" }
+        if lowered.contains("performing") || lowered.contains("ballet") { return "🩰" }
+        if lowered.contains("dance") { return "💃" }
         if lowered.contains("national") { return "🏆" }
         if lowered.contains("player") { return "⭐️" }
         if lowered.contains("tournament") { return "🏆" }
@@ -608,6 +613,8 @@ private enum FavoriteTeamsPickerShelves {
             return ["MLB", "National Teams", "Players", "Tournaments"]
         case .hockey:
             return ["NHL", "National Teams", "Players", "Tournaments"]
+        case .dance:
+            return ["Dance / Urban Sports", "Dance / Performing Arts"]
         default:
             return ["Players", "Tournaments"]
         }

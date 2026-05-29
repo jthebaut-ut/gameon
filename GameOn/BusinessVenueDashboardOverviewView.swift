@@ -92,6 +92,8 @@ struct BusinessVenueDashboardApprovedVenueItem: Identifiable, Equatable {
     let id: UUID
     let name: String
     let locationLine: String
+    let approvedDateText: String
+    let isPlanLocked: Bool
 }
 
 struct BusinessVenueDashboardPendingVenueItem: Identifiable, Equatable {
@@ -191,6 +193,10 @@ struct BusinessVenueDashboardOverviewView: View {
         data.managedVenueCount > 0
     }
 
+    private var statisticsAccessGranted: Bool {
+        businessUsageStatus?.statisticsAccessGranted ?? isStatisticsProActive
+    }
+
     private var proGold: Color {
         Color(red: 0.86, green: 0.63, blue: 0.22)
     }
@@ -279,12 +285,12 @@ struct BusinessVenueDashboardOverviewView: View {
                         )
                         BusinessVenueDashboardActionCard(
                             title: L10n.t("statistics", languageCode: appLanguageRaw),
-                            subtitle: isStatisticsProActive ? nil : "Pro",
-                            systemImage: isStatisticsProActive ? "chart.bar.xaxis" : "lock.fill",
+                            subtitle: statisticsAccessGranted ? nil : "Pro",
+                            systemImage: statisticsAccessGranted ? "chart.bar.xaxis" : "lock.fill",
                             tint: proGold,
                             badgeText: "PRO",
                             isPremium: true,
-                            isLimited: !isStatisticsProActive,
+                            isLimited: !statisticsAccessGranted,
                             action: onAnalytics
                         )
                     }
@@ -467,22 +473,24 @@ struct BusinessVenueDashboardOverviewView: View {
     }
 
     private func approvedVenueRow(_ venue: BusinessVenueDashboardApprovedVenueItem) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            statusIcon(systemName: "checkmark.seal.fill", tint: FGColor.accentGreen)
+        let tint = venue.isPlanLocked ? Color.gray : FGColor.accentGreen
+        return HStack(alignment: .top, spacing: 10) {
+            statusIcon(systemName: venue.isPlanLocked ? "lock.fill" : "checkmark.seal.fill", tint: tint)
             VStack(alignment: .leading, spacing: 3) {
                 Text(venue.name)
                     .font(FGTypography.caption.weight(.semibold))
-                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .foregroundStyle(venue.isPlanLocked ? FGColor.secondaryText(colorScheme) : FGColor.primaryText(colorScheme))
                     .lineLimit(1)
-                Text(venue.locationLine.isEmpty ? "Approved" : "\(venue.locationLine) • Approved")
+                Text(venue.locationLine.isEmpty ? venue.approvedDateText : "\(venue.locationLine) • \(venue.approvedDateText)")
                     .font(FGTypography.caption)
                     .foregroundStyle(FGColor.secondaryText(colorScheme))
                     .lineLimit(2)
             }
             Spacer(minLength: 0)
-            statusPill("Approved", tint: FGColor.accentGreen)
+            statusPill(venue.isPlanLocked ? BusinessLimitCopy.planLockedVenueBadge : "Active", tint: tint)
         }
         .padding(.vertical, 4)
+        .opacity(venue.isPlanLocked ? 0.72 : 1)
     }
 
     private func pendingVenueRow(_ venue: BusinessVenueDashboardPendingVenueItem) -> some View {

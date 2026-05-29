@@ -384,6 +384,7 @@ private struct PickupPlaceClusterSheetView: View {
         if text.contains("baseball") || text.contains("softball") { return "baseball.fill" }
         if text.contains("tennis") || text.contains("pickleball") || text.contains("badminton") { return "figure.tennis" }
         if text.contains("volleyball") { return "volleyball.fill" }
+        if text.contains("dance") || text.contains("breakdance") || text.contains("breaking") || text.contains("ballet") { return "figure.dance" }
         return "sportscourt.fill"
     }
 }
@@ -4155,6 +4156,7 @@ struct DiscoverScreen: View {
         if text.contains("baseball") || text.contains("softball") { return "baseball.fill" }
         if text.contains("tennis") || text.contains("pickleball") || text.contains("badminton") { return "figure.tennis" }
         if text.contains("volleyball") { return "volleyball.fill" }
+        if text.contains("dance") || text.contains("breakdance") || text.contains("breaking") || text.contains("ballet") { return "figure.dance" }
         return "sportscourt.fill"
     }
 

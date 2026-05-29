@@ -804,12 +804,15 @@ extension MapViewModel {
         Task {
             await persistAccountModeForActiveAuthSession(.admin)
             await refreshLiveOperationsPresenceMetrics()
+            await refreshAdminBusinessVenueOverrides()
         }
     }
 
     func adminDashboardLogoutTapped() {
         isAdminLoggedIn = false
         liveOperationsPresenceMetrics = .empty
+        adminBusinessVenueOverrideSummaries = []
+        adminBusinessVenueOverrideMessage = ""
         Task {
             await persistAccountModeForActiveAuthSession(.fanUser)
         }
@@ -832,6 +835,151 @@ extension MapViewModel {
 #if DEBUG
             print("[PresenceDebug] liveOpsMetricsFailed=\(error.localizedDescription)")
 #endif
+        }
+    }
+
+    func refreshAdminBusinessVenueOverrides() async {
+        guard isAdminLoggedIn else { return }
+        await MainActor.run {
+            isLoadingAdminBusinessVenueOverrides = true
+            adminBusinessVenueOverrideMessage = ""
+        }
+        do {
+            struct Params: Encodable {
+                let p_admin_email: String
+            }
+            let rows: [AdminBusinessVenueOverrideSummary] = try await supabase
+                .rpc("admin_business_venue_override_summaries", params: Params(p_admin_email: adminEmail))
+                .execute()
+                .value
+            await MainActor.run {
+                adminBusinessVenueOverrideSummaries = rows
+                isLoadingAdminBusinessVenueOverrides = false
+            }
+#if DEBUG
+            print("[AdminVenueOverrideDebug] summariesLoaded count=\(rows.count)")
+#endif
+        } catch {
+            await MainActor.run {
+                isLoadingAdminBusinessVenueOverrides = false
+                adminBusinessVenueOverrideMessage = "Could not load business venue overrides."
+            }
+#if DEBUG
+            print("[AdminVenueOverrideDebug] summariesFailed error=\(error.localizedDescription) reflected=\(String(reflecting: error))")
+#endif
+        }
+    }
+
+    func loadAdminBusinessOverrideVenues(businessId: UUID) async -> [AdminBusinessVenueOverrideVenue] {
+        guard isAdminLoggedIn else { return [] }
+        do {
+            struct Params: Encodable {
+                let p_business_id: UUID
+                let p_admin_email: String
+            }
+            let rows: [AdminBusinessVenueOverrideVenue] = try await supabase
+                .rpc("admin_business_venue_override_venues", params: Params(
+                    p_business_id: businessId,
+                    p_admin_email: adminEmail
+                ))
+                .execute()
+                .value
+#if DEBUG
+            print("[AdminVenueOverrideDebug] venuesLoaded businessId=\(businessId.uuidString.lowercased()) count=\(rows.count)")
+#endif
+            return rows
+        } catch {
+#if DEBUG
+            print("[AdminVenueOverrideDebug] venuesFailed businessId=\(businessId.uuidString.lowercased()) error=\(error.localizedDescription) reflected=\(String(reflecting: error))")
+#endif
+            return []
+        }
+    }
+
+    @discardableResult
+    func setAdminBusinessActiveVenueLimitOverride(businessId: UUID, override: Int) async -> Bool {
+        guard isAdminLoggedIn else { return false }
+        do {
+            struct Params: Encodable {
+                let p_business_id: UUID
+                let p_admin_email: String
+                let p_override: Int
+            }
+            try await supabase
+                .rpc("admin_set_business_active_venue_limit_override", params: Params(
+                    p_business_id: businessId,
+                    p_admin_email: adminEmail,
+                    p_override: override
+                ))
+                .execute()
+            await refreshAdminBusinessVenueOverrides()
+#if DEBUG
+            print("[AdminVenueOverrideDebug] setOverride businessId=\(businessId.uuidString.lowercased()) override=\(override) saved=true")
+#endif
+            return true
+        } catch {
+#if DEBUG
+            print("[AdminVenueOverrideDebug] setOverride businessId=\(businessId.uuidString.lowercased()) override=\(override) saved=false error=\(error.localizedDescription) reflected=\(String(reflecting: error))")
+#endif
+            return false
+        }
+    }
+
+    @discardableResult
+    func clearAdminBusinessActiveVenueLimitOverride(businessId: UUID) async -> Bool {
+        guard isAdminLoggedIn else { return false }
+        do {
+            struct Params: Encodable {
+                let p_business_id: UUID
+                let p_admin_email: String
+            }
+            try await supabase
+                .rpc("admin_clear_business_active_venue_limit_override", params: Params(
+                    p_business_id: businessId,
+                    p_admin_email: adminEmail
+                ))
+                .execute()
+            await refreshAdminBusinessVenueOverrides()
+#if DEBUG
+            print("[AdminVenueOverrideDebug] clearOverride businessId=\(businessId.uuidString.lowercased()) saved=true")
+#endif
+            return true
+        } catch {
+#if DEBUG
+            print("[AdminVenueOverrideDebug] clearOverride businessId=\(businessId.uuidString.lowercased()) saved=false error=\(error.localizedDescription) reflected=\(String(reflecting: error))")
+#endif
+            return false
+        }
+    }
+
+    @discardableResult
+    func setAdminBusinessVenueActivation(businessId: UUID, venueId: UUID, active: Bool) async -> Bool {
+        guard isAdminLoggedIn else { return false }
+        do {
+            struct Params: Encodable {
+                let p_business_id: UUID
+                let p_venue_id: UUID
+                let p_admin_email: String
+                let p_active: Bool
+            }
+            try await supabase
+                .rpc("admin_set_business_venue_activation", params: Params(
+                    p_business_id: businessId,
+                    p_venue_id: venueId,
+                    p_admin_email: adminEmail,
+                    p_active: active
+                ))
+                .execute()
+            await refreshAdminBusinessVenueOverrides()
+#if DEBUG
+            print("[AdminVenueActivationDebug] businessId=\(businessId.uuidString.lowercased()) venueId=\(venueId.uuidString.lowercased()) active=\(active) saved=true")
+#endif
+            return true
+        } catch {
+#if DEBUG
+            print("[AdminVenueActivationDebug] businessId=\(businessId.uuidString.lowercased()) venueId=\(venueId.uuidString.lowercased()) active=\(active) saved=false error=\(error.localizedDescription) reflected=\(String(reflecting: error))")
+#endif
+            return false
         }
     }
 

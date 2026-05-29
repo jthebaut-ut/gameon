@@ -162,6 +162,10 @@ final class SportsAPIService {
             return "UFC"
         case "Badminton":
             return "badminton"
+        case "Breakdancing", "Breaking":
+            return "Break Dance"
+        case "Ballet":
+            return "Ballet"
         default:
             return sport
         }

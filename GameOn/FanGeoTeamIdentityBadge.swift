@@ -12,7 +12,7 @@ enum FanGeoTeamIdentityStyle: String, Codable, Hashable {
         case .hockey: return .hockeyIce
         case .racing: return .racingStripes
         case .ncaa: return .collegiateShield
-        case .soccer, .basketball, .football, .baseball, .tennis, .badminton, .golf, .combat: return .standard
+        case .soccer, .basketball, .football, .baseball, .tennis, .badminton, .golf, .combat, .dance: return .standard
         }
     }
 }

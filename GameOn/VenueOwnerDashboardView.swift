@@ -163,7 +163,11 @@ struct BusinessUsageCenterView: View {
     let status: BusinessVenueGamePostingStatus?
 
     private var isProActive: Bool {
-        status?.businessProActive == true
+        status?.computedIsPro == true
+    }
+
+    private var statisticsUnlocked: Bool {
+        status?.statisticsAccessGranted == true
     }
 
     private var accent: Color {
@@ -263,7 +267,7 @@ struct BusinessUsageCenterView: View {
                 proFeatureRow(title: "Unlimited active venues", value: "Business Pro", enabled: false)
                 proFeatureRow(title: "Unlimited hosted games", value: "Business Pro", enabled: false)
                 proFeatureRow(title: "Statistics", value: "Business Pro", enabled: false)
-                proFeatureRow(title: "Sponsored visibility", value: "Business Pro", enabled: false)
+                proFeatureRow(title: "Sponsored visibility", value: "Included", enabled: status?.sponsoredPlacementAllowed == true)
             }
         }
     }
@@ -292,10 +296,10 @@ struct BusinessUsageCenterView: View {
     private var statisticsUsageRow: some View {
         usageStatusRow(
             title: "Statistics",
-            detail: status == nil ? "Checking usage…" : (status?.statisticsEnabled == true ? "Enabled" : "Upgrade to Pro"),
-            rightValue: status == nil ? nil : (status?.statisticsEnabled == true ? "Enabled" : "Upgrade to Pro"),
-            systemImage: status?.statisticsEnabled == true ? "chart.bar.xaxis" : "lock.fill",
-            tint: status?.statisticsEnabled == true ? FGColor.accentGreen : FGColor.secondaryText(colorScheme)
+            detail: status == nil ? "Checking usage…" : (statisticsUnlocked ? "Enabled" : "Upgrade to Pro"),
+            rightValue: status == nil ? nil : (statisticsUnlocked ? "Enabled" : "Upgrade to Pro"),
+            systemImage: statisticsUnlocked ? "chart.bar.xaxis" : "lock.fill",
+            tint: statisticsUnlocked ? FGColor.accentGreen : FGColor.secondaryText(colorScheme)
         )
     }
 
@@ -452,7 +456,7 @@ struct BusinessUsageCenterView: View {
 
     private var planStateText: String {
         guard let status else { return "Checking access" }
-        if status.businessProActive { return normalizedPlanStatus(status.planStatus) }
+        if status.computedIsPro { return normalizedPlanStatus(status.planStatus) }
         if status.planType != "free" { return "expired" }
         return normalizedPlanStatus(status.planStatus)
     }
@@ -472,7 +476,7 @@ struct BusinessUsageCenterView: View {
 
     private var planDetailText: String? {
         guard let status else { return nil }
-        if status.businessProActive {
+        if status.computedIsPro {
             if status.planType == "pro_promo" {
                 return "Business Pro included through Nov 30, 2026."
             }
@@ -1323,9 +1327,9 @@ struct VenueOwnerDashboardView: View {
 
     private var businessProAccessSection: some View {
         let status = businessMembershipStatus
-        let isProActive = status?.businessProActive == true
-        let accent = isProActive ? FGColor.accentGreen : Color.orange
-        let iconName = isProActive ? "sparkles.rectangle.stack.fill" : "lock.shield.fill"
+        let isProActive = status?.computedIsPro == true
+        let accent = isProActive ? businessProGold : Color.orange
+        let iconName = isProActive ? "crown.fill" : "lock.shield.fill"
 
         return HStack(alignment: .center, spacing: 12) {
             Button {
@@ -1348,7 +1352,9 @@ struct VenueOwnerDashboardView: View {
                             .foregroundStyle(FGColor.secondaryText(colorScheme))
                             .fixedSize(horizontal: false, vertical: true)
 
-                        if !isProActive {
+                        if isProActive {
+                            businessProBadgePill
+                        } else {
                             Text("Upgrade")
                                 .font(.system(size: 10, weight: .heavy, design: .rounded))
                                 .foregroundStyle(accent)
@@ -1379,8 +1385,8 @@ struct VenueOwnerDashboardView: View {
         .background(
             LinearGradient(
                 colors: [
-                    accent.opacity(colorScheme == .dark ? 0.18 : 0.10),
-                    FGColor.accentBlue.opacity(colorScheme == .dark ? 0.12 : 0.07),
+                    accent.opacity(colorScheme == .dark ? 0.24 : 0.14),
+                    (isProActive ? businessProGoldDeep : FGColor.accentBlue).opacity(colorScheme == .dark ? 0.12 : 0.07),
                     FGAdaptiveSurface.controlFill.opacity(0.96)
                 ],
                 startPoint: .topLeading,
@@ -1390,12 +1396,51 @@ struct VenueOwnerDashboardView: View {
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(accent.opacity(colorScheme == .dark ? 0.32 : 0.20), lineWidth: 1)
+                .strokeBorder(accent.opacity(isProActive ? (colorScheme == .dark ? 0.54 : 0.38) : (colorScheme == .dark ? 0.32 : 0.20)), lineWidth: 1)
         }
+        .shadow(color: isProActive ? businessProGold.opacity(colorScheme == .dark ? 0.14 : 0.10) : .clear, radius: 14, y: 6)
+        .animation(.easeInOut(duration: 0.24), value: isProActive)
         .onAppear {
             logBusinessProVisibilityDebug(dashboardVisible: true, rowRendered: true)
             logBusinessProRefreshButtonDebug(isProActive: isProActive)
+            logBusinessEntitlementStyleDebug(computedIsPro: isProActive, appliedStyle: isProActive ? "premiumGold" : "regularNeutral")
         }
+        .onChange(of: isProActive) { _, newValue in
+            logBusinessEntitlementStyleDebug(computedIsPro: newValue, appliedStyle: newValue ? "premiumGold" : "regularNeutral")
+        }
+    }
+
+    private var businessProGold: Color {
+        colorScheme == .dark
+            ? Color(red: 0.94, green: 0.73, blue: 0.34)
+            : Color(red: 0.72, green: 0.50, blue: 0.16)
+    }
+
+    private var businessProGoldDeep: Color {
+        colorScheme == .dark
+            ? Color(red: 0.62, green: 0.42, blue: 0.14)
+            : Color(red: 0.50, green: 0.33, blue: 0.10)
+    }
+
+    private var businessProBadgePill: some View {
+        Text("PRO")
+            .font(.system(size: 10, weight: .heavy, design: .rounded))
+            .tracking(0.6)
+            .foregroundStyle(colorScheme == .dark ? Color(red: 0.10, green: 0.07, blue: 0.02) : .white)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(
+                LinearGradient(
+                    colors: [businessProGold, businessProGoldDeep],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                in: Capsule(style: .continuous)
+            )
+            .overlay {
+                Capsule(style: .continuous)
+                    .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.20 : 0.46), lineWidth: 0.75)
+            }
     }
 
     private func businessPlanRefreshButton(accent: Color) -> some View {
@@ -1439,12 +1484,12 @@ struct VenueOwnerDashboardView: View {
 
     private func businessProStatusTitle(for status: BusinessVenueGamePostingStatus?) -> String {
         guard let status else { return "Checking plan status…" }
-        return status.businessProActive ? "Business Pro active" : "Business Regular"
+        return status.computedIsPro ? "Business Pro active" : "Business Regular"
     }
 
     private func businessProStatusSubtitle(for status: BusinessVenueGamePostingStatus?) -> String {
         guard let status else { return "Checking plan status…" }
-        guard status.businessProActive else {
+        guard status.computedIsPro else {
             return "5 active venues • 5 hosted games/month"
         }
         if let formattedDate = formattedBusinessProExpiry(status.proExpiresAt) {
@@ -1638,7 +1683,7 @@ struct VenueOwnerDashboardView: View {
     }
 
     private var businessStatisticsAccessGranted: Bool {
-        businessMembershipStatus?.statisticsEnabled == true
+        businessMembershipStatus?.statisticsAccessGranted == true
     }
 
     private var businessCanCreateVenueFromServer: Bool {
@@ -1878,16 +1923,18 @@ struct VenueOwnerDashboardView: View {
     }
 
     private func refreshBusinessStatisticsProStatus(reason: String) async {
+        await viewModel.refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
         await businessProEntitlement.prepare()
         let status = await viewModel.businessVenueGamePostingStatus(
             storeKitBusinessProActive: businessProEntitlement.businessProActive
         )
         businessMembershipStatus = status
         logBusinessStatisticsProGate(
-            isPro: status.businessProActive,
-            accessGranted: status.statisticsEnabled,
+            isPro: status.computedIsPro,
+            accessGranted: status.statisticsAccessGranted,
             source: reason
         )
+        logBusinessStatisticsGateDebug(status)
     }
 
     private func logBusinessStatisticsProGate(isPro: Bool, accessGranted: Bool, source: String) {
@@ -1903,6 +1950,12 @@ struct VenueOwnerDashboardView: View {
 #endif
     }
 
+    private func logBusinessStatisticsGateDebug(_ status: BusinessVenueGamePostingStatus) {
+#if DEBUG
+        print("[BusinessStatisticsGateDebug] businessId=\(status.businessId?.uuidString.lowercased() ?? "nil") planType=\(status.planType) planStatus=\(status.planStatus) statisticsEnabled=\(status.statisticsEnabled) computedIsPro=\(status.computedIsPro) isStatisticsLocked=\(status.isStatisticsLocked)")
+#endif
+    }
+
     private static let businessPlanAutoRefreshTTL: TimeInterval = 60
 
     private func refreshBusinessPlanStatus(
@@ -1910,6 +1963,10 @@ struct VenueOwnerDashboardView: View {
         force: Bool = false,
         refreshOwnedVenues: Bool = false
     ) async {
+        if refreshOwnedVenues || force || source == "onAppear" || source == "foreground" {
+            await viewModel.refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
+        }
+
         let businessId = viewModel.currentBusinessIdForAddLocation()
         let previousPlanState = businessPlanStateDescription(businessMembershipStatus)
         let isManualRefresh = source == "manualRefresh"
@@ -1921,7 +1978,7 @@ struct VenueOwnerDashboardView: View {
                 skippedReason: "missingBusinessId",
                 previousPlanState: previousPlanState,
                 newPlanState: previousPlanState,
-                isBusinessPro: businessMembershipStatus?.businessProActive == true
+                isBusinessPro: businessMembershipStatus?.computedIsPro == true
             )
             return
         }
@@ -1933,7 +1990,7 @@ struct VenueOwnerDashboardView: View {
                 skippedReason: "inFlight",
                 previousPlanState: previousPlanState,
                 newPlanState: previousPlanState,
-                isBusinessPro: businessMembershipStatus?.businessProActive == true
+                isBusinessPro: businessMembershipStatus?.computedIsPro == true
             )
             return
         }
@@ -1948,7 +2005,7 @@ struct VenueOwnerDashboardView: View {
                 skippedReason: "fresh",
                 previousPlanState: previousPlanState,
                 newPlanState: previousPlanState,
-                isBusinessPro: businessMembershipStatus?.businessProActive == true
+                isBusinessPro: businessMembershipStatus?.computedIsPro == true
             )
             return
         }
@@ -1963,10 +2020,6 @@ struct VenueOwnerDashboardView: View {
             if isManualRefresh {
                 manualBusinessPlanRefreshInFlight = false
             }
-        }
-
-        if refreshOwnedVenues {
-            await viewModel.refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
         }
 
         if force {
@@ -1985,6 +2038,7 @@ struct VenueOwnerDashboardView: View {
         if isManualRefresh {
             logBusinessProRefreshCompleted(businessId: businessId, status: status)
         }
+        logBusinessStatisticsGateDebug(status)
 
         logBusinessPlanRefresh(
             source: source,
@@ -1992,13 +2046,13 @@ struct VenueOwnerDashboardView: View {
             skippedReason: nil,
             previousPlanState: previousPlanState,
             newPlanState: businessPlanStateDescription(status),
-            isBusinessPro: status.businessProActive
+            isBusinessPro: status.computedIsPro
         )
     }
 
     private func businessPlanStateDescription(_ status: BusinessVenueGamePostingStatus?) -> String {
         guard let status else { return "loading" }
-        return status.businessProActive ? "pro" : "regular"
+        return status.computedIsPro ? "pro" : "regular"
     }
 
     private func logBusinessProRefreshStarted(
@@ -2008,7 +2062,7 @@ struct VenueOwnerDashboardView: View {
 #if DEBUG
         print("[BusinessProRefresh] refreshStarted=true")
         print("[BusinessProRefresh] businessId=\(businessId.uuidString.lowercased())")
-        print("[BusinessProRefresh] isPro=\(status?.businessProActive == true)")
+        print("[BusinessProRefresh] isPro=\(status?.computedIsPro == true)")
         print("[BusinessProRefresh] planType=\(status?.planType ?? "loading")")
         print("[BusinessProRefresh] planStatus=\(status?.planStatus ?? "loading")")
 #endif
@@ -2021,7 +2075,7 @@ struct VenueOwnerDashboardView: View {
 #if DEBUG
         print("[BusinessProRefresh] refreshCompleted=true")
         print("[BusinessProRefresh] businessId=\(businessId.uuidString.lowercased())")
-        print("[BusinessProRefresh] isPro=\(status.businessProActive)")
+        print("[BusinessProRefresh] isPro=\(status.computedIsPro)")
         print("[BusinessProRefresh] planType=\(status.planType)")
         print("[BusinessProRefresh] planStatus=\(status.planStatus)")
 #endif
@@ -2110,6 +2164,12 @@ struct VenueOwnerDashboardView: View {
         if let rowRendered {
             print("[BusinessProVisibilityDebug] rowRendered=\(rowRendered)")
         }
+#endif
+    }
+
+    private func logBusinessEntitlementStyleDebug(computedIsPro: Bool, appliedStyle: String) {
+#if DEBUG
+        print("[BusinessEntitlementStyleDebug] computedIsPro=\(computedIsPro) appliedStyle=\(appliedStyle)")
 #endif
     }
 
@@ -7334,6 +7394,10 @@ struct VenueOwnerDashboardView: View {
             return "Golf"
         case .formula1:
             return "Formula 1"
+        case .breakdance:
+            return "Break Dance"
+        case .ballet:
+            return "Ballet"
         case .other:
             return direct.isEmpty ? "Sports" : direct
         }

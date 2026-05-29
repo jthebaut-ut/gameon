@@ -534,6 +534,10 @@ private struct PickupBulkImportPreviewRowView: View {
             return "⚾️"
         case "football":
             return "🏈"
+        case "break dance":
+            return "🕺"
+        case "ballet":
+            return "🩰"
         default:
             return "🏟"
         }

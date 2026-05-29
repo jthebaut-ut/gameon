@@ -340,6 +340,17 @@ extension MapViewModel {
         case "badminton":
             add("badminton")
             add("shuttlecock")
+        case "break_dance", "breakdance", "break_dancing", "breakdancing", "breaking":
+            add("break_dance")
+            add("breakdance")
+            add("break_dancing")
+            add("breaking")
+            add("dance")
+        case "ballet":
+            add("ballet")
+            add("classical_ballet")
+            add("performing_arts")
+            add("dance")
         default:
             break
         }

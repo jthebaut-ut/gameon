@@ -81,6 +81,10 @@ nonisolated enum SportFilterCatalog {
             return ChipVisual(emoji: "🎮", systemImage: "gamecontroller.fill", accent: Color(red: 0.55, green: 0.28, blue: 0.92))
         case "handball":
             return ChipVisual(emoji: "🤾", systemImage: "figure.handball", accent: Color(red: 0.88, green: 0.42, blue: 0.18))
+        case "breakdance":
+            return ChipVisual(emoji: "🕺", systemImage: "figure.dance", accent: Color(red: 0.58, green: 0.32, blue: 0.92))
+        case "ballet":
+            return ChipVisual(emoji: "🩰", systemImage: "figure.dance", accent: Color(red: 0.86, green: 0.42, blue: 0.72))
         case "more":
             return ChipVisual(emoji: "", systemImage: "ellipsis.circle.fill", accent: Color(red: 0.38, green: 0.4, blue: 0.48))
         default:
@@ -179,6 +183,14 @@ nonisolated enum SportFilterCatalog {
         if normalized.contains("skiing") { return "skiing" }
         if normalized.contains("esports") || normalized.contains("e sports") || normalized.contains("gaming") { return "esports" }
         if normalized.contains("handball") { return "handball" }
+        if normalized.contains("break dance")
+            || normalized.contains("breakdance")
+            || normalized.contains("break dancing")
+            || normalized.contains("breakdancing")
+            || normalized == "breaking" {
+            return "breakdance"
+        }
+        if normalized.contains("ballet") { return "ballet" }
         if normalized == "more" { return "more" }
 
         return nil
@@ -236,6 +248,8 @@ nonisolated enum SportFilterCatalog {
         case "skiing": return ["skiing", "alpine skiing"]
         case "esports": return ["esports", "e sports", "gaming"]
         case "handball": return ["handball"]
+        case "breakdance": return ["break dance", "breakdance", "breaking", "break dancing", "breakdancing", "urban dance", "dance"]
+        case "ballet": return ["ballet", "classical ballet", "performing arts", "dance"]
         case "more": return ["more"]
         default: return []
         }
@@ -266,6 +280,10 @@ extension LiveSportVisualType {
             return "Golf"
         case .formula1:
             return "Formula 1"
+        case .breakdance:
+            return "Break Dance"
+        case .ballet:
+            return "Ballet"
         case .other:
             return "Sports"
         }

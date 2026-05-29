@@ -59,6 +59,22 @@ private enum SettingsPremiumChrome {
         scheme == .dark ? Color.white.opacity(0.36) : Color(red: 0.58, green: 0.62, blue: 0.68)
     }
 
+    static func proGold(_ scheme: ColorScheme) -> Color {
+        scheme == .dark
+            ? Color(red: 0.94, green: 0.73, blue: 0.34)
+            : Color(red: 0.72, green: 0.50, blue: 0.16)
+    }
+
+    static func proGoldDeep(_ scheme: ColorScheme) -> Color {
+        scheme == .dark
+            ? Color(red: 0.62, green: 0.42, blue: 0.14)
+            : Color(red: 0.50, green: 0.33, blue: 0.10)
+    }
+
+    static func proBadgeText(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color(red: 0.10, green: 0.07, blue: 0.02) : .white
+    }
+
     static func iconSurface(_ scheme: ColorScheme) -> Color {
         scheme == .dark ? Color.white.opacity(0.055) : Color.black.opacity(0.045)
     }
@@ -134,9 +150,9 @@ private enum ProfileSettingsRoute: Hashable {
 struct SettingsScreen: View {
     @ObservedObject var viewModel: MapViewModel
     @ObservedObject private var notificationSettingsStore: NotificationSettingsStore
-    @ObservedObject private var businessProEntitlement = BusinessProEntitlementManager.shared
     @EnvironmentObject private var chatViewModel: ChatViewModel
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.scenePhase) private var scenePhase
     /// False while Account tab is preserved off-screen (avoids Pokes / Suggested Fans network on launch).
     var isAccountTabSelected: Bool = true
 
@@ -155,6 +171,8 @@ struct SettingsScreen: View {
     @State private var showProfileSettingsSheet = false
     @State private var showBusinessProSubscriptionSheet = false
     @State private var showBusinessUsageSheet = false
+    @State private var showSponsorInquirySheet = false
+    @State private var showBusinessActiveVenueSelectionSheet = false
     @State private var settingsBusinessMembershipStatus: BusinessVenueGamePostingStatus?
     @State private var profileSettingsPath = NavigationPath()
     @State private var showUserAuthSheet = false
@@ -167,6 +185,9 @@ struct SettingsScreen: View {
     @State private var showAddLocationSheet = false
     @State private var inlineBusinessDashboardGames: [VenueEventRow] = []
     @State private var addLocationSubmitBanner: String?
+    @State private var settingsBusinessProfileRefreshSequence = 0
+    @State private var settingsBusinessProfileLatestRequestId = 0
+    @State private var settingsBusinessProfileLastEntitlementSignature = ""
     /// Holds Add-location draft fields across ``MapViewModel`` publishes (e.g. after photo upload) so the sheet does not reset.
     @StateObject private var addLocationSheetFormState = AddLocationSheetFormState()
     /// Which pending claim row is running ``performPendingClaimRefresh(claimId:)`` (nil = idle).
@@ -323,6 +344,14 @@ struct SettingsScreen: View {
                         settingsBusinessProRow
                             .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
                             .listRowBackground(Color.clear)
+
+                        settingsBusinessActiveVenueSelectionCard
+                            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 10, trailing: 16))
+                            .listRowBackground(Color.clear)
+
+                        settingsSponsorInquiryCard
+                            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 10, trailing: 16))
+                            .listRowBackground(Color.clear)
                     }
                 }
 
@@ -330,6 +359,14 @@ struct SettingsScreen: View {
                     Section {
                         settingsBusinessProRow
                             .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 6, trailing: 16))
+                            .listRowBackground(Color.clear)
+
+                        settingsBusinessActiveVenueSelectionCard
+                            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 6, trailing: 16))
+                            .listRowBackground(Color.clear)
+
+                        settingsSponsorInquiryCard
+                            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 6, trailing: 16))
                             .listRowBackground(Color.clear)
 
                         settingsInlineBusinessDashboard
@@ -600,6 +637,9 @@ struct SettingsScreen: View {
                 print("[SponsoredPlacementDebug] accountScreenAppeared=true isAccountTabSelected=\(isAccountTabSelected) isLoggedIn=\(viewModel.isLoggedIn) authId=\(viewModel.currentUserAuthId?.uuidString.lowercased() ?? "nil") businessContext=\(isBusinessAccountProfileContext)")
                 if isAccountTabSelected {
                     UIPerformanceDiagnostics.signpost("Profile tab open", "source=onAppear")
+                    Task {
+                        await refreshSettingsBusinessProfile(trigger: "accountTabAppears", refreshBusinessData: true, debounce: true)
+                    }
                 }
                 print("[FaceIDSettingsDebug] defaultPrivateChatFaceID=false")
                 logSettingsBusinessVenueSectionVisibilityForFanAccount()
@@ -615,6 +655,23 @@ struct SettingsScreen: View {
             print("[SponsoredPlacementDebug] accountTabSelectionChanged isSelected=\(isSelected) isLoggedIn=\(viewModel.isLoggedIn) authId=\(viewModel.currentUserAuthId?.uuidString.lowercased() ?? "nil") businessContext=\(isBusinessAccountProfileContext)")
             if isSelected {
                 UIPerformanceDiagnostics.signpost("Profile tab open", "source=tabSelected")
+                Task {
+                    await refreshSettingsBusinessProfile(trigger: "accountTabAppears", refreshBusinessData: true, debounce: true)
+                }
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active, isAccountTabSelected else { return }
+            Task {
+                await refreshSettingsBusinessProfile(trigger: "foreground", refreshBusinessData: true, debounce: true)
+            }
+        }
+        .onChange(of: settingsBusinessEntitlementSignature) { _, newValue in
+            guard isAccountTabSelected, isBusinessAccountProfileContext else { return }
+            guard !settingsBusinessProfileLastEntitlementSignature.isEmpty else { return }
+            guard newValue != settingsBusinessProfileLastEntitlementSignature else { return }
+            Task {
+                await refreshSettingsBusinessProfile(trigger: "businessRowEntitlementChanged", refreshBusinessData: false, debounce: true)
             }
         }
         .overlay(alignment: .top) {
@@ -739,9 +796,33 @@ struct SettingsScreen: View {
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
                 .presentationBackground(FGAdaptiveSurface.sheetRoot)
-                .task {
-                    await refreshSettingsBusinessProStatus()
+        }
+        .sheet(isPresented: $showSponsorInquirySheet) {
+            BusinessSponsorInquirySheet(
+                viewModel: viewModel,
+                businessId: viewModel.currentBusinessIdForAddLocation(),
+                businessName: settingsSponsorInquiryBusinessName,
+                ownerEmail: OwnerBusinessEmail.normalized(viewModel.venueOwnerEmail),
+                selectedVenue: settingsSponsorInquirySelectedVenueLine
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(FGAdaptiveSurface.sheetRoot)
+        }
+        .sheet(isPresented: $showBusinessActiveVenueSelectionSheet) {
+            BusinessActiveVenueSelectionSheet(
+                viewModel: viewModel,
+                businessId: settingsBusinessActiveVenueSelectionBusinessId,
+                venueLimit: settingsBusinessActiveVenueSelectionLimit,
+                venues: settingsBusinessActiveVenueSelectionRows,
+                approvedDateText: { row in settingsApprovedVenueDateInfo(for: row).displayText },
+                onSaved: {
+                    Task { await refreshSettingsBusinessProfile(trigger: "activeVenueSelectionSaved", refreshBusinessData: true, debounce: false) }
                 }
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(FGAdaptiveSurface.sheetRoot)
         }
         .sheet(isPresented: Binding(
             get: { showLiveSharingModeDialog && canShowLiveActivitySharing },
@@ -1055,16 +1136,28 @@ struct SettingsScreen: View {
     }
 
     private var settingsBusinessProRow: some View {
-        settingsSectionCard {
-            settingsBusinessProButton()
+        let isPro = settingsBusinessMembershipStatus?.computedIsPro == true
+
+        return settingsBusinessEntitlementCard(isPro: isPro) {
+            settingsBusinessProButton(isProOverride: isPro)
         }
         .onAppear {
             logBusinessProVisibilityInBusinessSettings(rowRendered: true)
+            logBusinessEntitlementStyleDebug(computedIsPro: isPro, appliedStyle: isPro ? "premiumGold" : "regularNeutral")
         }
+        .onChange(of: isPro) { _, newValue in
+            logBusinessEntitlementStyleDebug(computedIsPro: newValue, appliedStyle: newValue ? "premiumGold" : "regularNeutral")
+        }
+        .animation(.easeInOut(duration: 0.24), value: isPro)
     }
 
-    private func settingsBusinessProButton(presentingFromProfileSettings: Bool = false) -> some View {
-        Button {
+    private func settingsBusinessProButton(
+        presentingFromProfileSettings: Bool = false,
+        isProOverride: Bool? = nil
+    ) -> some View {
+        let isPro = isProOverride ?? (settingsBusinessMembershipStatus?.computedIsPro == true)
+
+        return Button {
             logBusinessProVisibilityInBusinessSettings(rowRendered: true)
             if presentingFromProfileSettings {
                 presentFromProfileSettings { showBusinessProSubscriptionSheet = true }
@@ -1073,10 +1166,15 @@ struct SettingsScreen: View {
             }
         } label: {
             settingsRow(
-                title: settingsBusinessMembershipStatus?.businessProActive == true ? "Business Pro active" : "Business Regular",
+                title: isPro ? "Business Pro active" : "Business Regular",
                 subtitle: settingsBusinessProRowSubtitle,
-                systemImage: settingsBusinessMembershipStatus?.businessProActive == true ? "sparkles.rectangle.stack.fill" : "lock.shield.fill"
-            )
+                systemImage: isPro ? "crown.fill" : "lock.shield.fill",
+                tint: isPro ? SettingsPremiumChrome.proGold(colorScheme) : FGColor.accentGreen
+            ) {
+                if isPro {
+                    settingsBusinessProBadge()
+                }
+            }
         }
         .buttonStyle(.plain)
         .onAppear {
@@ -1084,10 +1182,336 @@ struct SettingsScreen: View {
         }
     }
 
+    @ViewBuilder
+    private func settingsBusinessEntitlementCard<Content: View>(
+        isPro: Bool,
+        @ViewBuilder content: @escaping () -> Content
+    ) -> some View {
+        if isPro {
+            SettingsBusinessProEntitlementCardContainer(content: content)
+        } else {
+            settingsSectionCard(content: content)
+        }
+    }
+
+    private struct SettingsBusinessProEntitlementCardContainer<Content: View>: View {
+        let content: () -> Content
+        @Environment(\.colorScheme) private var colorScheme
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 0) {
+                content()
+            }
+            .background {
+                ZStack {
+                    RoundedRectangle(cornerRadius: SettingsPremiumChrome.cardRadius, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                    RoundedRectangle(cornerRadius: SettingsPremiumChrome.cardRadius, style: .continuous)
+                        .fill(SettingsPremiumChrome.cardFill(colorScheme))
+                    RoundedRectangle(cornerRadius: SettingsPremiumChrome.cardRadius, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    SettingsPremiumChrome.proGold(colorScheme).opacity(colorScheme == .dark ? 0.24 : 0.18),
+                                    SettingsPremiumChrome.proGoldDeep(colorScheme).opacity(colorScheme == .dark ? 0.12 : 0.08),
+                                    SettingsPremiumChrome.cardHighlight(colorScheme)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                }
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: SettingsPremiumChrome.cardRadius, style: .continuous)
+                    .strokeBorder(SettingsPremiumChrome.proGold(colorScheme).opacity(colorScheme == .dark ? 0.52 : 0.42), lineWidth: 1)
+            }
+            .shadow(color: SettingsPremiumChrome.proGold(colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.14), radius: 18, y: 8)
+            .shadow(color: .black.opacity(colorScheme == .dark ? 0.18 : 0.06), radius: 12, y: 6)
+        }
+    }
+
+    private func settingsBusinessProBadge() -> some View {
+        Text("PRO")
+            .font(.system(size: 10, weight: .heavy, design: .rounded))
+            .tracking(0.6)
+            .foregroundStyle(SettingsPremiumChrome.proBadgeText(colorScheme))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(
+                LinearGradient(
+                    colors: [
+                        SettingsPremiumChrome.proGold(colorScheme),
+                        SettingsPremiumChrome.proGoldDeep(colorScheme)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                in: Capsule(style: .continuous)
+            )
+            .overlay {
+                Capsule(style: .continuous)
+                    .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.20 : 0.46), lineWidth: 0.75)
+            }
+            .shadow(color: SettingsPremiumChrome.proGold(colorScheme).opacity(colorScheme == .dark ? 0.16 : 0.12), radius: 6, y: 2)
+    }
+
     private func logBusinessProVisibilityInBusinessSettings(rowRendered: Bool) {
 #if DEBUG
         print("[BusinessProVisibilityDebug] rowRenderedInBusinessSettings=\(rowRendered)")
 #endif
+    }
+
+    private func logBusinessEntitlementStyleDebug(computedIsPro: Bool, appliedStyle: String) {
+#if DEBUG
+        print("[BusinessEntitlementStyleDebug] computedIsPro=\(computedIsPro) appliedStyle=\(appliedStyle)")
+#endif
+    }
+
+    @ViewBuilder
+    private var settingsBusinessActiveVenueSelectionCard: some View {
+        if settingsShouldShowBusinessActiveVenueSelection {
+            Button {
+                showBusinessActiveVenueSelectionSheet = true
+            } label: {
+                settingsBusinessActiveVenueSelectionCardBody
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var settingsBusinessActiveVenueSelectionCardBody: some View {
+        HStack(alignment: .center, spacing: FGSpacing.md) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(SettingsPremiumChrome.proGold(colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.12))
+                Image(systemName: "checklist.checked")
+                    .font(.system(size: 15, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(SettingsPremiumChrome.proGold(colorScheme))
+            }
+            .frame(width: SettingsPremiumChrome.rowIconSize, height: SettingsPremiumChrome.rowIconSize)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Choose active venues")
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .foregroundStyle(SettingsPremiumChrome.primaryText(colorScheme))
+                Text("Pick which \(settingsBusinessActiveVenueSelectionLimit) approved venues stay visible and can host games on Regular.")
+                    .font(.system(size: 12, weight: .regular, design: .rounded))
+                    .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("1 opportunity remaining")
+                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .foregroundStyle(SettingsPremiumChrome.proGold(colorScheme))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(SettingsPremiumChrome.mutedText(colorScheme))
+        }
+        .padding(.horizontal, FGSpacing.md)
+        .padding(.vertical, 12)
+        .background(SettingsPremiumChrome.cardFill(colorScheme), in: RoundedRectangle(cornerRadius: SettingsPremiumChrome.cardRadius, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: SettingsPremiumChrome.cardRadius, style: .continuous)
+                .strokeBorder(SettingsPremiumChrome.proGold(colorScheme).opacity(colorScheme == .dark ? 0.30 : 0.22), lineWidth: 0.75)
+        }
+        .contentShape(RoundedRectangle(cornerRadius: SettingsPremiumChrome.cardRadius, style: .continuous))
+    }
+
+    private var settingsShouldShowBusinessActiveVenueSelection: Bool {
+        guard let business = settingsBusinessActiveVenueSelectionBusiness else {
+#if DEBUG
+            print("[BusinessActiveVenueSelectionDebug] ctaEligibility businessId=nil computedIsPro=unknown approvedCount=0 activeCount=0 lockedCount=0 venueLimit=\(settingsBusinessActiveVenueSelectionLimit) freeActiveVenuesSelectedAt=nil shouldShowCTA=false")
+#endif
+            return false
+        }
+        let status = settingsBusinessMembershipStatus
+        let rows = settingsBusinessActiveVenueSelectionRows(for: business)
+        let approvedCount = rows.count
+        let activeCount = rows.filter { MapViewModel.venueIsActiveForBusinessLimit($0) }.compactMap(\.id).count
+        let lockedCount = rows.filter { MapViewModel.venueIsPlanLocked($0) }.compactMap(\.id).count
+        let venueLimit = settingsBusinessActiveVenueSelectionLimit
+        let selectedAt = settingsNormalizedFreeActiveVenuesSelectedAt(for: business)
+        let computedIsPro = status?.computedIsPro == true
+        let shouldShow = !computedIsPro
+            && approvedCount > venueLimit
+            && selectedAt == nil
+#if DEBUG
+        print("[BusinessActiveVenueSelectionDebug] ctaEligibility businessId=\(business.id.uuidString.lowercased()) computedIsPro=\(computedIsPro) approvedCount=\(approvedCount) activeCount=\(activeCount) lockedCount=\(lockedCount) venueLimit=\(venueLimit) freeActiveVenuesSelectedAt=\(selectedAt ?? "nil") shouldShowCTA=\(shouldShow)")
+#endif
+        return shouldShow
+    }
+
+    private var settingsBusinessActiveVenueSelectionBusiness: BusinessRow? {
+        if let businessId = viewModel.currentBusinessIdForAddLocation(),
+           let business = viewModel.ownedBusinesses.first(where: { $0.id == businessId }) {
+            return business
+        }
+        return viewModel.ownedBusinesses.first
+    }
+
+    private var settingsBusinessActiveVenueSelectionBusinessId: UUID {
+        settingsBusinessActiveVenueSelectionBusiness?.id
+            ?? viewModel.currentBusinessIdForAddLocation()
+            ?? UUID()
+    }
+
+    private var settingsBusinessActiveVenueSelectionLimit: Int {
+        max(1, settingsBusinessMembershipStatus?.venueLimit ?? BusinessMembershipPolicy.freeVenueListingLimit)
+    }
+
+    private var settingsBusinessActiveVenueSelectionRows: [VenueProfileRow] {
+        guard let business = settingsBusinessActiveVenueSelectionBusiness else { return [] }
+        return settingsBusinessActiveVenueSelectionRows(for: business)
+    }
+
+    private func settingsBusinessActiveVenueSelectionRows(for business: BusinessRow) -> [VenueProfileRow] {
+        var seenVenueIDs = Set<UUID>()
+        return viewModel.managedVenuesForOwner()
+            .compactMap { row -> VenueProfileRow? in
+                guard let id = row.id, seenVenueIDs.insert(id).inserted else { return nil }
+                guard MapViewModel.venueIsOwnerVisibleManagedStatus(row) else { return nil }
+                if row.business_id == business.id { return row }
+                if let metadata = viewModel.approvedVenueClaimMetadataByVenueID[id] {
+                    if metadata.businessId == business.id { return row }
+                    let metadataOwner = OwnerBusinessEmail.normalized(metadata.ownerEmail ?? "")
+                    let businessOwner = OwnerBusinessEmail.normalized(business.owner_email ?? "")
+                    if metadata.businessId == nil,
+                       !metadataOwner.isEmpty,
+                       metadataOwner == businessOwner {
+                        return row
+                    }
+                }
+                if row.business_id == nil {
+                    let rowOwner = OwnerBusinessEmail.normalized(row.owner_email ?? "")
+                    let businessOwner = OwnerBusinessEmail.normalized(business.owner_email ?? "")
+                    if !rowOwner.isEmpty, rowOwner == businessOwner { return row }
+                    if viewModel.ownedBusinesses.count == 1 { return row }
+                }
+                return nil
+            }
+            .sorted {
+                let lhsDate = settingsApprovedVenueDateInfo(for: $0).sortDate
+                let rhsDate = settingsApprovedVenueDateInfo(for: $1).sortDate
+                switch (lhsDate, rhsDate) {
+                case let (left?, right?):
+                    if left != right { return left > right }
+                case (_?, nil):
+                    return true
+                case (nil, _?):
+                    return false
+                case (nil, nil):
+                    break
+                }
+                return ($0.venue_name ?? "").localizedCaseInsensitiveCompare($1.venue_name ?? "") == .orderedAscending
+            }
+    }
+
+    private func settingsNormalizedFreeActiveVenuesSelectedAt(for business: BusinessRow) -> String? {
+        let value = business.free_active_venues_selected_at?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if value.isEmpty || value.lowercased() == "null" { return nil }
+        return value
+    }
+
+    private var settingsSponsorInquiryCard: some View {
+        Button {
+            let businessId = viewModel.currentBusinessIdForAddLocation()
+#if DEBUG
+            print("[SponsorInquiryDebug] opened=true businessId=\(businessId?.uuidString.lowercased() ?? "nil")")
+#endif
+            showSponsorInquirySheet = true
+        } label: {
+            HStack(alignment: .top, spacing: FGSpacing.md) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(SettingsPremiumChrome.proGold(colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.12))
+                    Image(systemName: "megaphone.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(SettingsPremiumChrome.proGold(colorScheme))
+                }
+                .frame(width: SettingsPremiumChrome.rowIconSize, height: SettingsPremiumChrome.rowIconSize)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Advertise with FanGeo")
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundStyle(SettingsPremiumChrome.primaryText(colorScheme))
+                    Text("Promote your bar, venue, or watch party to local fans.")
+                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                        .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("Contact FanGeo about sponsorship")
+                        .font(.system(size: 11, weight: .heavy, design: .rounded))
+                        .foregroundStyle(SettingsPremiumChrome.proGold(colorScheme))
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 5)
+                        .background(SettingsPremiumChrome.proGold(colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.10), in: Capsule(style: .continuous))
+                        .padding(.top, 2)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(SettingsPremiumChrome.mutedText(colorScheme))
+                    .frame(width: 14, height: 34, alignment: .center)
+            }
+            .padding(.horizontal, FGSpacing.md)
+            .padding(.vertical, 12)
+            .background {
+                ZStack {
+                    RoundedRectangle(cornerRadius: SettingsPremiumChrome.cardRadius, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                    RoundedRectangle(cornerRadius: SettingsPremiumChrome.cardRadius, style: .continuous)
+                        .fill(SettingsPremiumChrome.cardFill(colorScheme))
+                    RoundedRectangle(cornerRadius: SettingsPremiumChrome.cardRadius, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    SettingsPremiumChrome.proGold(colorScheme).opacity(colorScheme == .dark ? 0.12 : 0.08),
+                                    SettingsPremiumChrome.cardHighlight(colorScheme),
+                                    Color.clear
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                }
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: SettingsPremiumChrome.cardRadius, style: .continuous)
+                    .strokeBorder(SettingsPremiumChrome.proGold(colorScheme).opacity(colorScheme == .dark ? 0.28 : 0.20), lineWidth: 0.75)
+            }
+            .shadow(color: .black.opacity(colorScheme == .dark ? 0.16 : 0.06), radius: 12, y: 6)
+            .contentShape(RoundedRectangle(cornerRadius: SettingsPremiumChrome.cardRadius, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var settingsSponsorInquiryBusinessName: String {
+        if let businessId = viewModel.currentBusinessIdForAddLocation(),
+           let business = viewModel.ownedBusinesses.first(where: { $0.id == businessId }) {
+            let name = business.display_name.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !name.isEmpty { return name }
+        }
+        let ownedName = viewModel.ownedBusinesses.first?.display_name.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !ownedName.isEmpty { return ownedName }
+        let venueName = settingsBusinessDashboardVenueName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return venueName.isEmpty ? "My business" : venueName
+    }
+
+    private var settingsSponsorInquirySelectedVenueLine: String {
+        guard let venue = settingsBusinessDashboardSelectedVenue else {
+            return "Not selected"
+        }
+        let name = venue.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let city = venue.city?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let state = venue.state?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let location = [city, state].filter { !$0.isEmpty }.joined(separator: ", ")
+        if name.isEmpty { return location.isEmpty ? "Selected venue unavailable" : location }
+        return location.isEmpty ? name : "\(name) • \(location)"
     }
 
     @ViewBuilder
@@ -1759,10 +2183,7 @@ struct SettingsScreen: View {
                 openBusinessVenueToolRoute(.statistics)
             },
             onUsage: {
-                Task {
-                    await refreshSettingsBusinessProStatus()
-                    showBusinessUsageSheet = true
-                }
+                showBusinessUsageSheet = true
             },
             onCommentsReports: {
                 showReportedCommentsSheet = true
@@ -1792,7 +2213,6 @@ struct SettingsScreen: View {
         }
         .task(id: settingsInlineBusinessDashboardLoadToken) {
             await refreshSettingsInlineBusinessDashboard()
-            await refreshSettingsBusinessProStatus()
         }
     }
 
@@ -1804,7 +2224,7 @@ struct SettingsScreen: View {
     }
 
     private var settingsBusinessStatisticsAccessGranted: Bool {
-        settingsBusinessMembershipStatus?.statisticsEnabled == true
+        settingsBusinessMembershipStatus?.statisticsAccessGranted == true
     }
 
     private var settingsBusinessCanCreateVenueFromServer: Bool {
@@ -1821,8 +2241,8 @@ struct SettingsScreen: View {
         guard let status = settingsBusinessMembershipStatus else {
             return "Checking server-controlled access..."
         }
-        guard status.businessProActive else {
-            return "5 active venues • 5 hosted games/month"
+        guard status.computedIsPro else {
+            return "\(status.venueLimit) active venues • \(status.monthlyHostLimit) hosted games/month"
         }
         if let days = status.daysRemaining, days <= 14 {
             return days == 1 ? "Expires in 1 day" : "Expires in \(days) days"
@@ -1860,6 +2280,13 @@ struct SettingsScreen: View {
         return formatter
     }()
 
+    private static let settingsApprovedVenueDateDisplayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "MMMM d, yyyy"
+        return formatter
+    }()
+
     private var settingsBusinessDashboardData: BusinessVenueDashboardData {
         BusinessVenueDashboardData(
             venueName: settingsBusinessDashboardVenueName,
@@ -1890,19 +2317,75 @@ struct SettingsScreen: View {
 
     private var settingsBusinessDashboardApprovedVenueItems: [BusinessVenueDashboardApprovedVenueItem] {
         let pendingVenueIDs = Set(viewModel.pendingVenueClaimsForSettings.compactMap(\.venue_id))
-        return viewModel.managedVenuesForOwner()
-            .compactMap { row -> BusinessVenueDashboardApprovedVenueItem? in
+        let rows = viewModel.managedVenuesForOwner()
+            .compactMap { row -> (item: BusinessVenueDashboardApprovedVenueItem, approvedAt: Date?, approvedAtDebug: String)? in
                 guard let id = row.id, !pendingVenueIDs.contains(id) else { return nil }
                 let name = row.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                 let city = row.city?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                 let state = row.state?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                return BusinessVenueDashboardApprovedVenueItem(
-                    id: id,
-                    name: name.isEmpty ? "Approved venue" : name,
-                    locationLine: [city, state].filter { !$0.isEmpty }.joined(separator: ", ")
+                let approvedDate = settingsApprovedVenueDateInfo(for: row)
+                return (
+                    BusinessVenueDashboardApprovedVenueItem(
+                        id: id,
+                        name: name.isEmpty ? "Approved venue" : name,
+                        locationLine: [city, state].filter { !$0.isEmpty }.joined(separator: ", "),
+                        approvedDateText: approvedDate.displayText,
+                        isPlanLocked: MapViewModel.venueIsPlanLocked(row)
+                    ),
+                    approvedDate.sortDate,
+                    approvedDate.debugRaw
                 )
             }
-            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            .sorted { lhs, rhs in
+                switch (lhs.approvedAt, rhs.approvedAt) {
+                case let (left?, right?):
+                    if left != right { return left > right }
+                case (_?, nil):
+                    return true
+                case (nil, _?):
+                    return false
+                case (nil, nil):
+                    break
+                }
+                return lhs.item.name.localizedCaseInsensitiveCompare(rhs.item.name) == .orderedAscending
+            }
+
+        return rows.enumerated().map { index, row in
+#if DEBUG
+            print("[BusinessApprovedVenuesDebug] venueId=\(row.item.id.uuidString.lowercased()) venueName=\(row.item.name) approvedAt=\(row.approvedAtDebug) sortIndex=\(index)")
+#endif
+            return row.item
+        }
+    }
+
+    private func settingsApprovedVenueDateInfo(for row: VenueProfileRow) -> (displayText: String, sortDate: Date?, debugRaw: String) {
+        let claimApprovedRaw = row.id.flatMap { venueId -> String? in
+            guard let metadata = viewModel.approvedVenueClaimMetadataByVenueID[venueId] else { return nil }
+            return metadata.approvedAtRaw ?? metadata.createdAtRaw
+        }?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !claimApprovedRaw.isEmpty {
+            return settingsApprovedVenueDateInfo(raw: claimApprovedRaw)
+        }
+
+        let venueCreatedRaw = row.created_at?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !venueCreatedRaw.isEmpty {
+            return settingsApprovedVenueDateInfo(raw: venueCreatedRaw)
+        }
+
+        return ("Approved date unavailable", nil, "nil")
+    }
+
+    private func settingsApprovedVenueDateInfo(raw: String) -> (displayText: String, sortDate: Date?, debugRaw: String) {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let date = SupabaseTimestampParsing.parseTimestamptz(trimmed) ?? settingsParseSupabaseTimestamptz(trimmed) else {
+            return ("Approved \(String(trimmed.prefix(10)))", nil, trimmed)
+        }
+        return (
+            "Approved \(Self.settingsApprovedVenueDateDisplayFormatter.string(from: date))",
+            date,
+            trimmed
+        )
     }
 
     private var settingsBusinessDashboardPendingVenueItems: [BusinessVenueDashboardPendingVenueItem] {
@@ -2105,28 +2588,125 @@ struct SettingsScreen: View {
         }
     }
 
-    private func refreshSettingsBusinessProStatus() async {
-        guard shouldShowInlineBusinessDashboard else { return }
-        await businessProEntitlement.prepare()
-        let status = await viewModel.businessVenueGamePostingStatus(
-            storeKitBusinessProActive: businessProEntitlement.businessProActive
+    private func refreshSettingsBusinessProfile(
+        trigger: String,
+        refreshBusinessData: Bool,
+        debounce: Bool = false
+    ) async {
+        guard isBusinessAccountProfileContext || viewModel.isVenueOwnerLoggedIn else { return }
+        let requestId = nextSettingsBusinessProfileRefreshRequestId()
+        if debounce {
+            try? await Task.sleep(nanoseconds: 250_000_000)
+        }
+        guard !Task.isCancelled else { return }
+
+        if refreshBusinessData {
+            await viewModel.refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
+        }
+
+        if shouldShowInlineBusinessDashboard {
+            await refreshSettingsInlineBusinessDashboard()
+        }
+
+        await refreshSettingsBusinessProStatus(trigger: trigger, requestId: requestId)
+    }
+
+    private func nextSettingsBusinessProfileRefreshRequestId() -> Int {
+        settingsBusinessProfileRefreshSequence += 1
+        settingsBusinessProfileLatestRequestId = settingsBusinessProfileRefreshSequence
+        return settingsBusinessProfileLatestRequestId
+    }
+
+    private var settingsBusinessEntitlementSignature: String {
+        let businessId = viewModel.currentBusinessIdForAddLocation()?.uuidString.lowercased() ?? "nil"
+        let ownerEmail = OwnerBusinessEmail.normalized(viewModel.venueOwnerEmail)
+        let entitlementUpdatedAt = settingsBusinessEntitlementUpdatedAt(for: viewModel.currentBusinessIdForAddLocation()) ?? "nil"
+        return "\(businessId)|\(ownerEmail)|\(entitlementUpdatedAt)"
+    }
+
+    private func settingsBusinessEntitlementUpdatedAt(for businessId: UUID?) -> String? {
+        let rows = viewModel.ownedBusinesses
+        guard let businessId else {
+            return rows
+                .compactMap { $0.entitlement_updated_at?.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+                .sorted()
+                .last
+        }
+        return rows
+            .first(where: { $0.id == businessId })?
+            .entitlement_updated_at?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func refreshSettingsBusinessProStatus(trigger: String, requestId: Int) async {
+        guard viewModel.hasBusinessAccountForOwner() || viewModel.currentBusinessIdForAddLocation() != nil else { return }
+        let ownerEmail = OwnerBusinessEmail.normalized(viewModel.venueOwnerEmail)
+        let businessId = viewModel.currentBusinessIdForAddLocation()
+        let entitlementUpdatedAt = settingsBusinessEntitlementUpdatedAt(for: businessId)
+        let status = await viewModel.businessVenueGamePostingStatus(storeKitBusinessProActive: false)
+        let ignoredStaleResponse = requestId != settingsBusinessProfileLatestRequestId
+        logBusinessEntitlementRefreshDebug(
+            trigger: trigger,
+            businessId: businessId ?? status.businessId,
+            ownerEmail: ownerEmail,
+            entitlementUpdatedAt: entitlementUpdatedAt,
+            status: status,
+            requestId: requestId,
+            ignoredStaleResponse: ignoredStaleResponse
         )
-        await MainActor.run {
+        guard !ignoredStaleResponse else { return }
+
+        let previousComputedIsPro = settingsBusinessMembershipStatus?.computedIsPro
+        if settingsBusinessMembershipStatus != status {
             settingsBusinessMembershipStatus = status
         }
+        settingsBusinessProfileLastEntitlementSignature = settingsBusinessEntitlementSignature
+        logBusinessProfileFlickerDebug(
+            previousComputedIsPro: previousComputedIsPro,
+            newComputedIsPro: status.computedIsPro,
+            source: trigger
+        )
+        logBusinessStatisticsGateDebug(status)
+    }
+
+    private func logBusinessEntitlementRefreshDebug(
+        trigger: String,
+        businessId: UUID?,
+        ownerEmail: String,
+        entitlementUpdatedAt: String?,
+        status: BusinessVenueGamePostingStatus,
+        requestId: Int,
+        ignoredStaleResponse: Bool
+    ) {
+#if DEBUG
+        print("[BusinessEntitlementRefreshDebug] trigger=\(trigger) businessId=\(businessId?.uuidString.lowercased() ?? "nil") ownerEmail=\(ownerEmail.isEmpty ? "nil" : ownerEmail) entitlementUpdatedAt=\(entitlementUpdatedAt ?? status.entitlementUpdatedAt ?? "nil") planType=\(status.planType) computedIsPro=\(status.computedIsPro) requestId=\(requestId) ignoredStaleResponse=\(ignoredStaleResponse)")
+#endif
+    }
+
+    private func logBusinessProfileFlickerDebug(
+        previousComputedIsPro: Bool?,
+        newComputedIsPro: Bool,
+        source: String
+    ) {
+#if DEBUG
+        print("[BusinessProfileFlickerDebug] previousComputedIsPro=\(previousComputedIsPro.map(String.init) ?? "nil") newComputedIsPro=\(newComputedIsPro) source=\(source)")
+#endif
+    }
+
+    private func logBusinessStatisticsGateDebug(_ status: BusinessVenueGamePostingStatus) {
+#if DEBUG
+        print("[BusinessStatisticsGateDebug] businessId=\(status.businessId?.uuidString.lowercased() ?? "nil") planType=\(status.planType) planStatus=\(status.planStatus) statisticsEnabled=\(status.statisticsEnabled) computedIsPro=\(status.computedIsPro) isStatisticsLocked=\(status.isStatisticsLocked)")
+#endif
     }
 
     private func refreshSettingsManagedVenuesSection() async {
-        await viewModel.refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
-        await viewModel.refreshPendingVenueClaimsForSettings()
-        await refreshSettingsInlineBusinessDashboard()
-        await refreshSettingsBusinessProStatus()
+        await refreshSettingsBusinessProfile(trigger: "manualRefresh", refreshBusinessData: true)
     }
 
     private func refreshPendingVenueClaimFromDashboard(_ venue: BusinessVenueDashboardPendingVenueItem) async -> Bool {
         let removed = await viewModel.refreshPendingVenueClaimDirectly(claimId: venue.id)
         await refreshSettingsInlineBusinessDashboard()
-        await refreshSettingsBusinessProStatus()
         return removed
     }
 
@@ -2178,6 +2758,18 @@ struct SettingsScreen: View {
     private func settingsApprovedVenueRows() -> [VenueProfileRow] {
         viewModel.managedVenuesForOwner()
             .sorted {
+                let lhsDate = settingsApprovedVenueDateInfo(for: $0).sortDate
+                let rhsDate = settingsApprovedVenueDateInfo(for: $1).sortDate
+                switch (lhsDate, rhsDate) {
+                case let (left?, right?):
+                    if left != right { return left > right }
+                case (_?, nil):
+                    return true
+                case (nil, _?):
+                    return false
+                case (nil, nil):
+                    break
+                }
                 let lhs = $0.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                 let rhs = $1.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                 return lhs.localizedCaseInsensitiveCompare(rhs) == .orderedAscending
@@ -2463,7 +3055,6 @@ struct SettingsScreen: View {
                 return
             }
 
-            await refreshSettingsBusinessProStatus()
             await MainActor.run {
                 guard settingsBusinessCanCreateVenueFromServer else {
                     addLocationSubmitBanner = BusinessLimitCopy.venueLimitReached

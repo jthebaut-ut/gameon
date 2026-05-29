@@ -547,6 +547,8 @@ function normalizeSportsDBSport(raw: unknown): string {
   if (sport === "Basketball") return "NBA"
   if (sport === "American Football") return "NFL"
   if (sport === "Baseball") return "MLB"
+  if (sport === "Breakdancing" || sport === "Breaking") return "Break Dance"
+  if (sport === "Ballet") return "Ballet"
   return sport || "Sports"
 }
 

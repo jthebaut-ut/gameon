@@ -7,6 +7,10 @@ private struct VenueEventAdminArchivePatch: Encodable {
     let admin_status: String
 }
 
+private struct VenueAdminStatusPatch: Encodable {
+    let admin_status: String
+}
+
 private struct ReleaseOrDeleteBusinessVenueParams: Encodable {
     let p_venue_id: UUID
 }
@@ -1589,6 +1593,7 @@ extension MapViewModel {
         isVenueOwnerBusinessDataLoading = false
         pendingVenueClaimsForSettings = []
         rejectedVenueClaimsForSettings = []
+        approvedVenueClaimMetadataByVenueID = [:]
         hasUnackedRejectedVenueClaimForOwnerEmail = false
         venueOwnerJustCompletedRegistration = false
     }
@@ -2078,7 +2083,7 @@ extension MapViewModel {
 
         return try await supabase
             .from("businesses")
-            .select("id,display_name,owner_email,owner_user_id,admin_status,created_at")
+            .select("id,display_name,owner_email,owner_user_id,admin_status,created_at,entitlement_updated_at,free_active_venues_selected_at")
             .in("id", values: businessIds.map(\.uuidString))
             .eq("admin_status", value: "active")
             .execute()
@@ -2130,6 +2135,88 @@ extension MapViewModel {
             .in("admin_status", values: ["active", "plan_locked"])
             .execute()
             .value
+    }
+
+    private func loadApprovedVenueClaimMetadata(
+        ownerEmail: String,
+        businessIds: [UUID],
+        managedVenueRows: [VenueProfileRow]
+    ) async -> [UUID: BusinessApprovedVenueClaimMetadata] {
+        let ownerEmailNorm = OwnerBusinessEmail.normalized(ownerEmail)
+        let managedVenueIds = Set(managedVenueRows.compactMap(\.id))
+        let businessIdSet = Set(businessIds)
+        guard !managedVenueIds.isEmpty else { return [:] }
+
+        do {
+            var rows: [BusinessApprovedVenueClaimMetadata] = []
+            if OwnerBusinessEmail.isValidStrict(ownerEmailNorm) {
+                let ownerRows: [BusinessApprovedVenueClaimMetadata] = try await supabase
+                    .from("venue_claims")
+                    .select()
+                    .eq("owner_email", value: ownerEmailNorm)
+                    .eq("approval_status", value: "approved")
+                    .limit(160)
+                    .execute()
+                    .value
+                rows.append(contentsOf: ownerRows)
+            }
+
+            if !businessIds.isEmpty {
+                let businessRows: [BusinessApprovedVenueClaimMetadata] = try await supabase
+                    .from("venue_claims")
+                    .select()
+                    .in("business_id", values: businessIds.map(\.uuidString))
+                    .eq("approval_status", value: "approved")
+                    .limit(160)
+                    .execute()
+                    .value
+                rows.append(contentsOf: businessRows)
+            }
+
+            let venueRows: [BusinessApprovedVenueClaimMetadata] = try await supabase
+                .from("venue_claims")
+                .select()
+                .in("venue_id", values: managedVenueIds.map(\.uuidString))
+                .eq("approval_status", value: "approved")
+                .limit(160)
+                .execute()
+                .value
+            rows.append(contentsOf: venueRows)
+
+            let uniqueRows = Dictionary(rows.map { ($0.claimId, $0) }, uniquingKeysWith: { first, _ in first })
+                .values
+            var bestByVenueID: [UUID: BusinessApprovedVenueClaimMetadata] = [:]
+            for row in uniqueRows {
+                guard let venueId = row.venueId, managedVenueIds.contains(venueId) else { continue }
+                let claimOwnerEmail = OwnerBusinessEmail.normalized(row.ownerEmail ?? "")
+                let matchesOwner = OwnerBusinessEmail.isValidStrict(ownerEmailNorm)
+                    && claimOwnerEmail == ownerEmailNorm
+                let matchesBusiness = row.businessId.map { businessIdSet.contains($0) } ?? false
+                guard matchesOwner || matchesBusiness else { continue }
+
+                if let existing = bestByVenueID[venueId],
+                   approvedVenueClaimMetadataSortDate(existing) >= approvedVenueClaimMetadataSortDate(row) {
+                    continue
+                }
+                bestByVenueID[venueId] = row
+            }
+
+            return bestByVenueID
+        } catch {
+#if DEBUG
+            print("[BusinessApprovedVenuesDebug] metadataLoadError=\(error.localizedDescription)")
+#endif
+            return [:]
+        }
+    }
+
+    private func approvedVenueClaimMetadataSortDate(_ metadata: BusinessApprovedVenueClaimMetadata) -> Date {
+        let raw = (metadata.approvedAtRaw ?? metadata.createdAtRaw)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !raw.isEmpty else {
+            return .distantPast
+        }
+        return SupabaseTimestampParsing.parseTimestamptz(raw) ?? .distantPast
     }
 
     private static func pendingClaimMatchesOwnerBusinesses(
@@ -3038,6 +3125,263 @@ extension MapViewModel {
         }
     }
 
+    private func reconcileBusinessVenueLimitState(
+        businesses: [BusinessRow],
+        venueRows: [VenueProfileRow],
+        approvedMetadata: [UUID: BusinessApprovedVenueClaimMetadata],
+        entitlementsByBusinessID: [UUID: BusinessEntitlementSnapshot]
+    ) async -> [VenueProfileRow] {
+        guard !businesses.isEmpty, !venueRows.isEmpty else { return venueRows }
+        var changedVenueIds = Set<UUID>()
+
+        for business in businesses {
+            let relatedRows = businessVenueLimitRows(
+                for: business,
+                allRows: venueRows,
+                singleBusinessContext: businesses.count == 1
+            )
+            let uniqueRows = Self.dedupeVenueProfileRowsPreservingOrder(relatedRows)
+            let approvedCount = uniqueRows.compactMap(\.id).count
+            guard approvedCount > 0 else { continue }
+
+            let activeCountBefore = uniqueRows.filter(Self.venueIsActiveForBusinessLimit).compactMap(\.id).count
+            let status = entitlementsByBusinessID[business.id].map {
+                BusinessVenueGamePostingStatus.fromServer($0, activeVenueCount: activeCountBefore)
+            } ?? BusinessVenueGamePostingStatus.freeFallback(
+                businessId: business.id,
+                venuesUsed: activeCountBefore
+            )
+            let venueLimit = max(0, status.venueLimit)
+            let sortedRows = businessVenueLimitSortedRows(uniqueRows, approvedMetadata: approvedMetadata)
+            let targetActiveIds: Set<UUID>
+            let reason: String
+
+            if status.computedIsPro || status.unlimitedVenues {
+                targetActiveIds = Set(sortedRows.compactMap(\.id))
+                reason = "pro_reactivation"
+            } else if approvedCount > venueLimit {
+                if business.free_active_venues_selected_at?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
+                    let currentlyActive = sortedRows.filter(Self.venueIsActiveForBusinessLimit)
+                    var selected = Array(currentlyActive.prefix(venueLimit).compactMap(\.id))
+                    if selected.count < venueLimit {
+                        let selectedSet = Set(selected)
+                        let fill = sortedRows
+                            .compactMap(\.id)
+                            .filter { !selectedSet.contains($0) }
+                            .prefix(venueLimit - selected.count)
+                        selected.append(contentsOf: fill)
+                    }
+                    targetActiveIds = Set(selected)
+                    reason = "free_selection_persisted"
+                } else {
+                    targetActiveIds = Set(sortedRows.prefix(venueLimit).compactMap(\.id))
+                    reason = "free_downgrade_default_latest"
+                }
+            } else {
+                targetActiveIds = Set(sortedRows.compactMap(\.id))
+                reason = "free_within_limit"
+            }
+
+            let lockedCount = max(0, approvedCount - targetActiveIds.count)
+#if DEBUG
+            print("[BusinessVenueLimitDebug] businessId=\(business.id.uuidString.lowercased()) planType=\(status.planType) computedIsPro=\(status.computedIsPro) venueLimit=\(venueLimit) approvedCount=\(approvedCount) activeCount=\(targetActiveIds.count) lockedCount=\(lockedCount)")
+#endif
+
+            for row in sortedRows {
+                guard let venueId = row.id else { continue }
+                let previousStatus = Self.venueAdminStatus(row.admin_status).isEmpty ? "active" : Self.venueAdminStatus(row.admin_status)
+                let newStatus = targetActiveIds.contains(venueId) ? "active" : "plan_locked"
+                guard previousStatus != newStatus else { continue }
+                do {
+                    try await supabase
+                        .from("venues")
+                        .update(VenueAdminStatusPatch(admin_status: newStatus))
+                        .eq("id", value: venueId.uuidString.lowercased())
+                        .execute()
+                    changedVenueIds.insert(venueId)
+#if DEBUG
+                    let venueName = row.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Venue"
+                    print("[BusinessVenueLockDebug] venueId=\(venueId.uuidString.lowercased()) venueName=\(venueName) previousStatus=\(previousStatus) newStatus=\(newStatus) reason=\(reason)")
+#endif
+                } catch {
+#if DEBUG
+                    let venueName = row.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Venue"
+                    print("[BusinessVenueLockDebug] venueId=\(venueId.uuidString.lowercased()) venueName=\(venueName) previousStatus=\(previousStatus) newStatus=\(newStatus) reason=\(reason) error=\(error.localizedDescription)")
+#endif
+                }
+            }
+        }
+
+        guard !changedVenueIds.isEmpty,
+              let refreshed = await reloadManagedVenueRowsByIDs(venueRows.compactMap(\.id)) else {
+            return venueRows
+        }
+        return refreshed
+    }
+
+    private func businessVenueLimitRows(
+        for business: BusinessRow,
+        allRows: [VenueProfileRow],
+        singleBusinessContext: Bool
+    ) -> [VenueProfileRow] {
+        allRows.filter { row in
+            if row.business_id == business.id { return true }
+            guard singleBusinessContext else { return false }
+            let rowBusinessIdMissing = row.business_id == nil
+            if rowBusinessIdMissing, row.owner_email == nil { return true }
+            let rowOwner = OwnerBusinessEmail.normalized(row.owner_email ?? "")
+            let businessOwner = OwnerBusinessEmail.normalized(business.owner_email ?? "")
+            return rowBusinessIdMissing && !rowOwner.isEmpty && rowOwner == businessOwner
+        }
+    }
+
+    private func businessVenueLimitSortedRows(
+        _ rows: [VenueProfileRow],
+        approvedMetadata: [UUID: BusinessApprovedVenueClaimMetadata]
+    ) -> [VenueProfileRow] {
+        rows.sorted { lhs, rhs in
+            let leftDate = businessVenueLimitSortDate(for: lhs, approvedMetadata: approvedMetadata)
+            let rightDate = businessVenueLimitSortDate(for: rhs, approvedMetadata: approvedMetadata)
+            switch (leftDate, rightDate) {
+            case let (left?, right?):
+                if left != right { return left > right }
+            case (_?, nil):
+                return true
+            case (nil, _?):
+                return false
+            case (nil, nil):
+                break
+            }
+            let leftName = lhs.venue_name ?? ""
+            let rightName = rhs.venue_name ?? ""
+            if leftName != rightName {
+                return leftName.localizedCaseInsensitiveCompare(rightName) == .orderedAscending
+            }
+            return (lhs.id?.uuidString ?? "") < (rhs.id?.uuidString ?? "")
+        }
+    }
+
+    private func businessVenueLimitSortDate(
+        for row: VenueProfileRow,
+        approvedMetadata: [UUID: BusinessApprovedVenueClaimMetadata]
+    ) -> Date? {
+        let metadataRaw = row.id.flatMap { id in
+            approvedMetadata[id]?.approvedAtRaw ?? approvedMetadata[id]?.createdAtRaw
+        }?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !metadataRaw.isEmpty,
+           let date = SupabaseTimestampParsing.parseTimestamptz(metadataRaw) {
+            return date
+        }
+        let createdRaw = row.created_at?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !createdRaw.isEmpty {
+            return SupabaseTimestampParsing.parseTimestamptz(createdRaw)
+        }
+        return nil
+    }
+
+    private func reloadManagedVenueRowsByIDs(_ ids: [UUID]) async -> [VenueProfileRow]? {
+        let unique = Array(Set(ids))
+        guard !unique.isEmpty else { return [] }
+        do {
+            return try await supabase
+                .from("venues")
+                .select()
+                .in("id", values: unique.map(\.uuidString))
+                .in("admin_status", values: ["active", "plan_locked"])
+                .execute()
+                .value
+        } catch {
+#if DEBUG
+            print("[BusinessVenueLimitDebug] reloadFailed venueCount=\(unique.count) error=\(error.localizedDescription)")
+#endif
+            return nil
+        }
+    }
+
+    func saveFreeActiveVenueSelection(
+        businessId: UUID,
+        selectedVenueIds: [UUID],
+        venueLimit: Int
+    ) async -> Bool {
+        var seenSelectedVenueIds = Set<UUID>()
+        let selected = selectedVenueIds.filter { seenSelectedVenueIds.insert($0).inserted }
+        guard !selected.isEmpty, selected.count <= max(0, venueLimit) else { return false }
+#if DEBUG
+        print("[BusinessActiveVenueSelectionDebug] saveStarted businessId=\(businessId.uuidString.lowercased()) selectedCount=\(selected.count) selectedIds=\(Self.businessActiveVenueSelectionDebugIdList(selected))")
+        print("[BusinessActiveVenueSelectionDebug] rpcPayloadVenueIds count=\(selected.count) ids=\(Self.businessActiveVenueSelectionDebugIdList(selected))")
+#endif
+
+        struct SaveFreeActiveBusinessVenuesParams: Encodable {
+            let p_business_id: UUID
+            let p_active_venue_ids: [UUID]
+        }
+        struct SaveFreeActiveBusinessVenuesResult: Decodable {
+            let success: Bool?
+            let active_count: Int?
+            let locked_count: Int?
+        }
+
+        do {
+            let rows: [SaveFreeActiveBusinessVenuesResult] = try await supabase
+                .rpc(
+                    "save_free_active_business_venues",
+                    params: SaveFreeActiveBusinessVenuesParams(
+                        p_business_id: businessId,
+                        p_active_venue_ids: selected
+                    )
+                )
+                .execute()
+                .value
+            let result = rows.first
+            let succeeded = result?.success == true
+            if succeeded {
+                await refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
+                let verifiedCounts = await MainActor.run {
+                    businessActiveVenueSelectionCountsAfterRefresh(businessId: businessId)
+                }
+#if DEBUG
+                print("[BusinessActiveVenueSelectionDebug] saveSucceeded activeCount=\(result?.active_count ?? selected.count) lockedCount=\(result?.locked_count ?? 0) verifiedActiveCount=\(verifiedCounts.active) verifiedLockedCount=\(verifiedCounts.locked)")
+#endif
+                return true
+            } else {
+#if DEBUG
+                print("[BusinessActiveVenueSelectionDebug] saveFailed error=rpc_returned_success_false")
+#endif
+                return false
+            }
+        } catch let error as FunctionsError {
+#if DEBUG
+            if case let .httpError(status, data) = error {
+                let body = String(data: data, encoding: .utf8) ?? ""
+                print("[BusinessActiveVenueSelectionDebug] saveFailed error=httpError status=\(status) body=\(body)")
+            } else {
+                print("[BusinessActiveVenueSelectionDebug] saveFailed error=\(String(reflecting: error))")
+            }
+#endif
+            return false
+        } catch {
+#if DEBUG
+            let nsError = error as NSError
+            print("[BusinessActiveVenueSelectionDebug] saveFailed error=\(error.localizedDescription) domain=\(nsError.domain) code=\(nsError.code) reflected=\(String(reflecting: error))")
+#endif
+            return false
+        }
+    }
+
+    private func businessActiveVenueSelectionCountsAfterRefresh(businessId: UUID) -> (active: Int, locked: Int) {
+        let rows = managedVenuesForOwner().filter { row in
+            row.business_id == businessId
+                || (row.business_id == nil && ownedBusinesses.count == 1)
+        }
+        let active = Set(rows.filter(Self.venueIsActiveForBusinessLimit).compactMap(\.id)).count
+        let locked = Set(rows.filter(Self.venueIsPlanLocked).compactMap(\.id)).count
+        return (active, locked)
+    }
+
+    private static func businessActiveVenueSelectionDebugIdList(_ ids: [UUID]) -> String {
+        ids.map { $0.uuidString.lowercased() }.joined(separator: ",")
+    }
+
 #if DEBUG
     private static func logBusinessPlanLockTransitions(
         previousStatusByVenueID: [UUID: String],
@@ -3926,7 +4270,7 @@ extension MapViewModel {
             if OwnerBusinessEmail.isValidStrict(emailTrimmed) {
                 businessesFromEmail = try await supabase
                     .from("businesses")
-                    .select("id,display_name,owner_email,owner_user_id,admin_status,created_at")
+                    .select("id,display_name,owner_email,owner_user_id,admin_status,created_at,entitlement_updated_at,free_active_venues_selected_at")
                     .eq("owner_email", value: emailTrimmed)
                     .eq("admin_status", value: "active")
                     .execute()
@@ -3937,7 +4281,7 @@ extension MapViewModel {
             if let authUid {
                 businessesFromUser = try await supabase
                     .from("businesses")
-                    .select("id,display_name,owner_email,owner_user_id,admin_status,created_at")
+                    .select("id,display_name,owner_email,owner_user_id,admin_status,created_at,entitlement_updated_at,free_active_venues_selected_at")
                     .eq("owner_user_id", value: authUid)
                     .eq("admin_status", value: "active")
                     .execute()
@@ -3948,18 +4292,12 @@ extension MapViewModel {
             let businesses = Self.dedupeBusinessRowsPreservingOrder(
                 businessesFromEmail + businessesFromUser + claimLinkedBusinesses
             )
-            let planLockEntitlement: BusinessEntitlementSnapshot?
-            if let business = businesses.first {
-                planLockEntitlement = await loadBusinessEntitlements(businessId: business.id)
-            } else {
-                planLockEntitlement = nil
-            }
 
             var archivedFromEmail: [BusinessRow] = []
             if OwnerBusinessEmail.isValidStrict(emailTrimmed) {
                 archivedFromEmail = try await supabase
                     .from("businesses")
-                    .select("id,display_name,owner_email,owner_user_id,admin_status,created_at")
+                    .select("id,display_name,owner_email,owner_user_id,admin_status,created_at,entitlement_updated_at,free_active_venues_selected_at")
                     .eq("owner_email", value: emailTrimmed)
                     .eq("admin_status", value: "archived")
                     .execute()
@@ -3970,7 +4308,7 @@ extension MapViewModel {
             if let authUid {
                 archivedFromUser = try await supabase
                     .from("businesses")
-                    .select("id,display_name,owner_email,owner_user_id,admin_status,created_at")
+                    .select("id,display_name,owner_email,owner_user_id,admin_status,created_at,entitlement_updated_at,free_active_venues_selected_at")
                     .eq("owner_user_id", value: authUid)
                     .eq("admin_status", value: "archived")
                     .execute()
@@ -4013,7 +4351,7 @@ extension MapViewModel {
                     let idStrings = bids.map(\.uuidString)
                     let fromVenueLinks: [BusinessRow] = try await supabase
                         .from("businesses")
-                        .select("id,display_name,owner_email,owner_user_id,admin_status,created_at")
+                        .select("id,display_name,owner_email,owner_user_id,admin_status,created_at,entitlement_updated_at,free_active_venues_selected_at")
                         .in("id", values: idStrings)
                         .eq("admin_status", value: "active")
                         .execute()
@@ -4056,31 +4394,50 @@ extension MapViewModel {
             let mergedVenues = Self.dedupeVenueProfileRowsPreservingOrder(
                 venueRowsByBusiness + emailVenueRows + venueRowsByOwnerUser + claimLinkedVenues
             )
-            let approvedManagedVenueIds = Set(mergedVenues.compactMap(\.id))
+            let approvedVenueClaimMetadata = await loadApprovedVenueClaimMetadata(
+                ownerEmail: emailTrimmed,
+                businessIds: resolvedBusinesses.map(\.id),
+                managedVenueRows: mergedVenues
+            )
+            var entitlementsByBusinessID: [UUID: BusinessEntitlementSnapshot] = [:]
+            for business in resolvedBusinesses {
+                if let entitlement = await loadBusinessEntitlements(businessId: business.id) {
+                    entitlementsByBusinessID[business.id] = entitlement
+                }
+            }
+            let reconciledVenues = await reconcileBusinessVenueLimitState(
+                businesses: resolvedBusinesses,
+                venueRows: mergedVenues,
+                approvedMetadata: approvedVenueClaimMetadata,
+                entitlementsByBusinessID: entitlementsByBusinessID
+            )
+            let approvedManagedVenueIds = Set(reconciledVenues.compactMap(\.id))
             let newlyApprovedManagedVenueIds = approvedManagedVenueIds.subtracting(previousApprovedVenueIds)
-            let coordinateBackfilledVenueIds = await backfillApprovedManagedVenueCoordinatesIfNeeded(mergedVenues)
+            let coordinateBackfilledVenueIds = await backfillApprovedManagedVenueCoordinatesIfNeeded(reconciledVenues)
 #if DEBUG
+            let firstBusinessId = resolvedBusinesses.first?.id
             Self.logBusinessPlanLockTransitions(
                 previousStatusByVenueID: previousStatusByVenueID,
-                currentRows: mergedVenues,
-                fallbackBusinessId: planLockEntitlement?.business_id,
-                planType: planLockEntitlement?.plan_type ?? "unknown",
-                planStatus: planLockEntitlement?.plan_status ?? "unknown"
+                currentRows: reconciledVenues,
+                fallbackBusinessId: firstBusinessId,
+                planType: firstBusinessId.flatMap { entitlementsByBusinessID[$0]?.plan_type } ?? "unknown",
+                planStatus: firstBusinessId.flatMap { entitlementsByBusinessID[$0]?.plan_status } ?? "unknown"
             )
 #endif
 
             await MainActor.run {
                 ownedBusinesses = resolvedBusinesses
                 archivedOwnedBusinesses = archivedBusinesses
-                ownedBusinessVenues = mergedVenues
+                ownedBusinessVenues = reconciledVenues
                 legacyOwnerVenuesForEmailFallback = emailVenueRows
+                approvedVenueClaimMetadataByVenueID = approvedVenueClaimMetadata
 #if DEBUG
                 print("[BusinessPhaseB1] loaded businesses count=\(resolvedBusinesses.count)")
                 print("[BusinessPhaseB1] loaded archived businesses count=\(archivedBusinesses.count)")
                 let bizIds = resolvedBusinesses.map(\.id.uuidString).sorted().joined(separator: ",")
                 print("[BusinessRefresh] ownedBusinesses ids=\(bizIds.isEmpty ? "(none)" : bizIds)")
-                print("[BusinessPhaseB1] loaded venues count=\(mergedVenues.count)")
-                for v in mergedVenues {
+                print("[BusinessPhaseB1] loaded venues count=\(reconciledVenues.count)")
+                for v in reconciledVenues {
                     let vid = v.id?.uuidString ?? "nil"
                     let name = v.venue_name ?? ""
                     let bid = v.business_id?.uuidString ?? "nil"
@@ -4092,7 +4449,7 @@ extension MapViewModel {
                 let sel = ownerVenueDatabaseId?.uuidString ?? "nil"
                 print("[ManagedVenuesDebug] businessIds=\(bizIds.isEmpty ? "(none)" : bizIds)")
                 print("[ManagedVenuesDebug] ownerEmail=\(emailTrimmed)")
-                print("[ManagedVenuesDebug] rowsReturned=\(mergedVenues.count)")
+                print("[ManagedVenuesDebug] rowsReturned=\(reconciledVenues.count)")
                 print("[ManagedVenuesDebug] venueIds=\(managedIds.isEmpty ? "(none)" : managedIds)")
                 print("[ManagedVenuesDebug] selectedVenueId=\(sel)")
                 for id in approvedManagedVenueIds {
@@ -4103,7 +4460,7 @@ extension MapViewModel {
             }
 
             let loadedProfileExists: Bool
-            if mergedVenues.isEmpty {
+            if reconciledVenues.isEmpty {
                 await MainActor.run {
 #if DEBUG
                     print("[VenueOwnerEmptyStateDebug] noManagedVenues=true")
@@ -4123,7 +4480,7 @@ extension MapViewModel {
 #if DEBUG
             print("[BusinessPhaseB2] loaded selected venue profile=\(loadedProfileExists)")
 #endif
-            let games: [VenueEventRow] = mergedVenues.isEmpty ? [] : await loadMyVenueGames()
+            let games: [VenueEventRow] = reconciledVenues.isEmpty ? [] : await loadMyVenueGames()
 #if DEBUG
             print("[BusinessPhaseB2] loaded games for selected venue count=\(games.count)")
 #endif
@@ -5309,7 +5666,7 @@ extension MapViewModel {
     private static func businessHostedGameEntitlementDebugSummary(_ status: BusinessVenueGamePostingStatus) -> String {
         [
             "businessId=\(status.businessId?.uuidString.lowercased() ?? "nil")",
-            "businessProActive=\(status.businessProActive)",
+            "businessProActive=\(status.computedIsPro)",
             "isBusinessPro=\(status.isBusinessPro)",
             "planType=\(status.planType)",
             "planStatus=\(status.planStatus)",
@@ -5325,7 +5682,7 @@ extension MapViewModel {
     private static func businessLocationEntitlementDebugSummary(_ status: BusinessVenueGamePostingStatus) -> String {
         [
             "businessId=\(status.businessId?.uuidString.lowercased() ?? "nil")",
-            "businessProActive=\(status.businessProActive)",
+            "businessProActive=\(status.computedIsPro)",
             "isBusinessPro=\(status.isBusinessPro)",
             "planType=\(status.planType)",
             "planStatus=\(status.planStatus)",

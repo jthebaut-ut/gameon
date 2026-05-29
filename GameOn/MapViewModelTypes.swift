@@ -302,6 +302,37 @@ struct BusinessRow: Decodable, Equatable, Identifiable {
     let owner_user_id: UUID?
     let admin_status: String
     let created_at: String?
+    let entitlement_updated_at: String?
+    let free_active_venues_selected_at: String?
+}
+
+struct AdminBusinessVenueOverrideSummary: Decodable, Identifiable, Equatable {
+    let business_id: UUID
+    let display_name: String?
+    let owner_email: String?
+    let plan_type: String?
+    let plan_status: String?
+    let computed_is_pro: Bool
+    let venue_limit: Int
+    let effective_venue_limit: Int?
+    let admin_active_venue_limit_override: Int?
+    let approved_count: Int
+    let active_count: Int
+    let locked_count: Int
+
+    var id: UUID { business_id }
+}
+
+struct AdminBusinessVenueOverrideVenue: Decodable, Identifiable, Equatable {
+    let venue_id: UUID
+    let business_id: UUID
+    let venue_name: String?
+    let city: String?
+    let state: String?
+    let admin_status: String?
+    let created_at: String?
+
+    var id: UUID { venue_id }
 }
 
 /// Client insert for `public.businesses` during business-owner signup (no `venues` row yet).
@@ -838,6 +869,24 @@ struct VenueClaimPendingSettingsRow: Decodable, Identifiable, Equatable {
 struct ApprovedVenueOwnershipSummary: Equatable {
     let businessId: UUID?
     let ownerEmail: String?
+}
+
+struct BusinessApprovedVenueClaimMetadata: Decodable, Equatable {
+    let claimId: UUID
+    let venueId: UUID?
+    let businessId: UUID?
+    let ownerEmail: String?
+    let approvedAtRaw: String?
+    let createdAtRaw: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case claimId = "id"
+        case venueId = "venue_id"
+        case businessId = "business_id"
+        case ownerEmail = "owner_email"
+        case approvedAtRaw = "approved_at"
+        case createdAtRaw = "created_at"
+    }
 }
 
 enum VenueOwnershipClaimStatus: Equatable {

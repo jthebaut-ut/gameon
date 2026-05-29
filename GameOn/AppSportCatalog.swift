@@ -38,6 +38,12 @@ public enum AppSportCatalog {
                 ("MMA / UFC", "UFC"),
                 ("Wrestling", "Wrestling"),
             ]),
+            Category(id: "dance_urban", title: "Dance / Urban Sports", rows: [
+                ("Break Dance", "Break Dance"),
+            ]),
+            Category(id: "dance_performing", title: "Dance / Performing Arts", rows: [
+                ("Ballet", "Ballet"),
+            ]),
             Category(id: "indoor", title: "Indoor", rows: [
                 ("Badminton", "badminton"),
                 ("Bowling", "Bowling"),
@@ -88,16 +94,51 @@ public enum AppSportCatalog {
         public static func filteredCategories(query raw: String) -> [Category] {
             let q = raw.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !q.isEmpty else { return groupedCategories }
+            let normalizedQuery = normalizedCatalogSearchText(q)
             return groupedCategories.compactMap { category in
-                if category.title.localizedCaseInsensitiveContains(q) {
+                if categoryMatchesSearch(category.title, query: q, normalizedQuery: normalizedQuery) {
                     return category
                 }
                 let rows = category.rows.filter { row in
-                    row.label.localizedCaseInsensitiveContains(q)
-                        || row.selection.localizedCaseInsensitiveContains(q)
+                    rowMatchesSearch(row, query: q, normalizedQuery: normalizedQuery)
                 }
                 if rows.isEmpty { return nil }
                 return Category(id: category.id, title: category.title, rows: rows)
+            }
+        }
+
+        private static func rowMatchesSearch(
+            _ row: (label: String, selection: String),
+            query: String,
+            normalizedQuery: String
+        ) -> Bool {
+            let fields = [row.label, row.selection] + searchAliases(forSelection: row.selection)
+            return fields.contains { field in
+                categoryMatchesSearch(field, query: query, normalizedQuery: normalizedQuery)
+            }
+        }
+
+        private static func categoryMatchesSearch(_ value: String, query: String, normalizedQuery: String) -> Bool {
+            value.localizedCaseInsensitiveContains(query)
+                || normalizedCatalogSearchText(value).contains(normalizedQuery)
+        }
+
+        private static func normalizedCatalogSearchText(_ raw: String) -> String {
+            raw.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en_US_POSIX"))
+                .components(separatedBy: CharacterSet.alphanumerics.inverted)
+                .filter { !$0.isEmpty }
+                .joined()
+                .lowercased()
+        }
+
+        private static func searchAliases(forSelection selection: String) -> [String] {
+            switch selection.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+            case "break dance":
+                return ["breakdance", "breaking", "urban dance", "dance"]
+            case "ballet":
+                return ["performing arts", "classical ballet", "dance"]
+            default:
+                return []
             }
         }
     }

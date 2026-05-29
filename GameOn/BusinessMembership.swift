@@ -19,8 +19,8 @@ enum BusinessLimitCopy {
     static let venueLimitReached = "You’ve reached your active venue limit. Upgrade to FanGeo Pro for unlimited locations."
     static let hostedGameLimitReached = "You’ve reached your monthly hosted game limit. Upgrade to FanGeo Pro for unlimited hosted games, or wait until your next monthly cycle."
     static let planLockedVenueBanner = "Some of your venues are locked because your business exceeds the free plan limit. Upgrade to FanGeo Pro to reactivate all locations."
-    static let planLockedVenueBadge = "Locked"
-    static let planLockedVenueSubtitle = "Upgrade to FanGeo Pro to reactivate."
+    static let planLockedVenueBadge = "Inactive on Regular plan"
+    static let planLockedVenueSubtitle = "Not visible on Discover and cannot host games on the Regular plan."
     static let planLockedVenueHostedGameBlocked = "This venue is locked under the current business plan. Upgrade to FanGeo Pro to host games here."
     static let backendCompatibilityRequired = "FanGeo needs a quick update before this business feature can be used. Please update the app and try again."
 }
@@ -40,6 +40,7 @@ struct BusinessEntitlementSnapshot: Decodable, Equatable {
     let monthly_host_limit: Int?
     let venues_used: Int
     let hosted_games_this_month: Int
+    let entitlement_updated_at: String?
 }
 
 struct BusinessVenueGamePostingStatus: Equatable {
@@ -61,8 +62,13 @@ struct BusinessVenueGamePostingStatus: Equatable {
     let unlimitedHosting: Bool
     let venueLimit: Int
     let monthlyHostLimit: Int
+    let entitlementUpdatedAt: String?
 
-    var isBusinessPro: Bool { businessProActive }
+    var computedIsPro: Bool { businessProActive }
+    var isBusinessPro: Bool { computedIsPro }
+    var isStatisticsLocked: Bool { !(computedIsPro || statisticsEnabled) }
+    var statisticsAccessGranted: Bool { !isStatisticsLocked }
+    var sponsoredPlacementAllowed: Bool { sponsoredEnabled || computedIsPro || planType.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "free" }
     var activeVenueCount: Int { businessVenueCount }
     var activeVenueLimit: Int? { unlimitedVenues || isBusinessPro ? nil : venueLimit }
     var monthlyHostedGameLimit: Int? { unlimitedHosting || isBusinessPro ? nil : monthlyHostLimit }
@@ -132,11 +138,12 @@ struct BusinessVenueGamePostingStatus: Equatable {
             proExpiresAt: nil,
             daysRemaining: nil,
             statisticsEnabled: false,
-            sponsoredEnabled: false,
+            sponsoredEnabled: true,
             unlimitedVenues: false,
             unlimitedHosting: false,
             venueLimit: BusinessMembershipPolicy.freeVenueListingLimit,
-            monthlyHostLimit: BusinessMembershipPolicy.freeMonthlyVenueGameLimit
+            monthlyHostLimit: BusinessMembershipPolicy.freeMonthlyVenueGameLimit,
+            entitlementUpdatedAt: nil
         )
     }
 
@@ -216,11 +223,12 @@ struct BusinessVenueGamePostingStatus: Equatable {
             proExpiresAt: entitlement.pro_expires_at,
             daysRemaining: entitlement.days_remaining,
             statisticsEnabled: entitlement.statistics_enabled,
-            sponsoredEnabled: entitlement.sponsored_enabled,
+            sponsoredEnabled: entitlement.sponsored_enabled || normalizedBusinessProActive || planType == "free",
             unlimitedVenues: normalizedUnlimitedVenues,
             unlimitedHosting: normalizedUnlimitedHosting,
             venueLimit: normalizedVenueLimit,
-            monthlyHostLimit: normalizedMonthlyHostLimit
+            monthlyHostLimit: normalizedMonthlyHostLimit,
+            entitlementUpdatedAt: entitlement.entitlement_updated_at
         )
     }
 }

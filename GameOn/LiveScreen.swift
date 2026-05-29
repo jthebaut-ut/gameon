@@ -1260,6 +1260,10 @@ struct LiveScreen: View {
             return "Find Badminton Venues"
         case .golf:
             return "Find Golf Bars"
+        case .breakdance:
+            return "Find Break Dance Venues"
+        case .ballet:
+            return "Find Ballet Venues"
         case .formula1, .other:
             return "Open Map"
         }
@@ -1283,6 +1287,10 @@ struct LiveScreen: View {
             return "badminton"
         case .golf:
             return "Golf"
+        case .breakdance:
+            return "Break Dance"
+        case .ballet:
+            return "Ballet"
         case .formula1, .other:
             return nil
         }
