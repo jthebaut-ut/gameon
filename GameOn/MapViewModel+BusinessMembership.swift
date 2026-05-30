@@ -30,12 +30,13 @@ private enum BusinessHostedGameCycleAuditError: Error {
 extension MapViewModel {
     func businessVenueGamePostingStatus(
         storeKitBusinessProActive: Bool,
+        businessId explicitBusinessId: UUID? = nil,
         now: Date = Date(),
         calendar: Calendar = .current
     ) async -> BusinessVenueGamePostingStatus {
         _ = storeKitBusinessProActive
 
-        guard let businessId = currentBusinessIdForAddLocation() else {
+        guard let businessId = explicitBusinessId ?? currentBusinessIdForAddLocation() else {
             logBusinessEntitlementDebug(
                 businessId: nil,
                 source: "missingBusinessId",
@@ -263,7 +264,7 @@ extension MapViewModel {
     ) {
 #if DEBUG
         print("[BusinessEntitlementDebug] source=\(source) businessId=\(businessId?.uuidString.lowercased() ?? "nil")")
-        print("[BusinessEntitlementDebug] planType=\(status.planType) planStatus=\(status.planStatus) proExpiresAt=\(status.proExpiresAt ?? "nil") isProActive=\(status.computedIsPro)")
+        print("[BusinessEntitlementDebug] planType=\(status.planType) planStatus=\(status.planStatus) entitlementSource=\(status.entitlementSource ?? "nil") proExpiresAt=\(status.proExpiresAt ?? "nil") isProActive=\(status.computedIsPro) loadedFromServer=\(status.loadedFromServer)")
         print("[BusinessEntitlementDebug] activeVenueCount=\(status.activeVenueCount) activeVenueLimit=\(status.activeVenueLimit.map(String.init) ?? "unlimited") unlimitedVenues=\(status.unlimitedVenues)")
         print("[BusinessEntitlementDebug] hostedGamesThisMonth=\(status.monthlyHostedGameCount) hostedGamesUsedThisCycle=\(status.hostedGamesUsedThisCycle.map(String.init) ?? "nil") monthlyHostLimit=\(status.monthlyHostLimit) nextResetAt=\(status.nextResetAt ?? "nil") unlimitedHosting=\(status.unlimitedHosting)")
         print("[BusinessEntitlementDebug] statisticsAccess=\(status.statisticsAccessGranted) sponsoredAccess=\(status.sponsoredPlacementAllowed)")

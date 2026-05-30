@@ -201,6 +201,7 @@ struct SettingsScreen: View {
     @State private var settingsBusinessProfileLatestRequestId = 0
     @State private var settingsBusinessProfileLastEntitlementSignature = ""
     @State private var settingsBusinessProfileHydrationInFlight = false
+    @State private var settingsBusinessProfileLastPassiveRefreshAt: Date?
     /// Holds Add-location draft fields across ``MapViewModel`` publishes (e.g. after photo upload) so the sheet does not reset.
     @StateObject private var addLocationSheetFormState = AddLocationSheetFormState()
     /// Which pending claim row is running ``performPendingClaimRefresh(claimId:)`` (nil = idle).
@@ -264,6 +265,13 @@ struct SettingsScreen: View {
 
     private var isBusinessAccountProfileContext: Bool {
         viewModel.venueOwnerMode || viewModel.isVenueOwnerLoggedIn || viewModel.currentUserIsBusinessAccount
+    }
+
+    private var settingsBusinessProfileHasCachedData: Bool {
+        settingsBusinessMembershipStatus != nil
+            && viewModel.hasBusinessAccountForOwner()
+            && !viewModel.hasArchivedBusinessAccountForOwner()
+            && !viewModel.managedVenuesForOwner().isEmpty
     }
 
     private var canShowLiveActivitySharing: Bool {
@@ -411,7 +419,7 @@ struct SettingsScreen: View {
 
                                 settingsRowDivider()
 
-                                if viewModel.isVenueOwnerBusinessDataLoading {
+                                if viewModel.isVenueOwnerBusinessDataLoading && !settingsBusinessProfileHasCachedData {
                                     HStack(spacing: 10) {
                                         ProgressView()
                                         Text("Loading business data…")
@@ -668,6 +676,7 @@ struct SettingsScreen: View {
                 print("[SponsoredPlacementDebug] accountScreenAppeared=true isAccountTabSelected=\(isAccountTabSelected) isLoggedIn=\(viewModel.isLoggedIn) authId=\(viewModel.currentUserAuthId?.uuidString.lowercased() ?? "nil") businessContext=\(isBusinessAccountProfileContext)")
                 if isAccountTabSelected {
                     UIPerformanceDiagnostics.signpost("Profile tab open", "source=onAppear")
+                    logBusinessProfilePerformance(event: "profileTabAppeared source=onAppear")
                     Task {
                         await refreshSettingsBusinessProfile(trigger: "accountTabAppears", refreshBusinessData: true, debounce: true)
                     }
@@ -686,6 +695,7 @@ struct SettingsScreen: View {
             print("[SponsoredPlacementDebug] accountTabSelectionChanged isSelected=\(isSelected) isLoggedIn=\(viewModel.isLoggedIn) authId=\(viewModel.currentUserAuthId?.uuidString.lowercased() ?? "nil") businessContext=\(isBusinessAccountProfileContext)")
             if isSelected {
                 UIPerformanceDiagnostics.signpost("Profile tab open", "source=tabSelected")
+                logBusinessProfilePerformance(event: "profileTabAppeared source=tabSelected")
                 Task {
                     await refreshSettingsBusinessProfile(trigger: "accountTabAppears", refreshBusinessData: true, debounce: true)
                 }
@@ -1765,14 +1775,14 @@ struct SettingsScreen: View {
 
     @ViewBuilder
     private func profileSettingsPrivacySection() -> some View {
-        if canShowPrivateChatFaceIDSetting || canShowLiveActivitySharing {
+        if canShowPrivateChatFaceIDSetting || canShowLiveActivitySharing || canShowPrivacyAdChoices {
             Section {
                 settingsSectionCard {
                     if canShowPrivateChatFaceIDSetting {
                         privateChatFaceIDSettingsRow
                     }
 
-                    if canShowPrivateChatFaceIDSetting && canShowLiveActivitySharing {
+                    if canShowPrivateChatFaceIDSetting && (canShowLiveActivitySharing || canShowPrivacyAdChoices) {
                         settingsRowDivider()
                     }
 
@@ -1795,6 +1805,14 @@ struct SettingsScreen: View {
                         }
                         .buttonStyle(.plain)
                     }
+
+                    if canShowLiveActivitySharing && canShowPrivacyAdChoices {
+                        settingsRowDivider()
+                    }
+
+                    if canShowPrivacyAdChoices {
+                        privacyAdChoicesSettingsRow
+                    }
                 }
                 .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 12, trailing: 16))
                 .listRowBackground(Color.clear)
@@ -1802,6 +1820,27 @@ struct SettingsScreen: View {
                 settingsSectionHeader("Privacy & Security")
             }
         }
+    }
+
+    private var canShowPrivacyAdChoices: Bool {
+        GoogleMobileAdsBootstrap.privacyOptionsRequired
+    }
+
+    private var privacyAdChoicesSettingsRow: some View {
+        Button {
+            Task {
+                await GoogleMobileAdsBootstrap.presentPrivacyOptionsIfRequired()
+            }
+        } label: {
+            settingsRow(
+                title: "Privacy & Ad Choices",
+                subtitle: "Manage ad consent choices.",
+                systemImage: "hand.raised.fill",
+                tint: FGColor.accentBlue,
+                showsChevron: true
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     private var privateChatFaceIDSettingsRow: some View {
@@ -1906,6 +1945,23 @@ struct SettingsScreen: View {
                 settingsRowDivider()
 
                 Button {
+                    openFanGeoInstagram()
+                } label: {
+                    settingsRow(
+                        title: "Follow FanGeo on Instagram",
+                        subtitle: "@fangeosports",
+                        systemImage: "camera.fill",
+                        showsChevron: true
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Follow FanGeo on Instagram")
+                .accessibilityValue("@fangeosports")
+                .accessibilityHint("Opens the FanGeo Sports Instagram profile.")
+
+                settingsRowDivider()
+
+                Button {
                     profileSettingsPath.append(ProfileSettingsRoute.communityGuidelines)
                 } label: {
                     settingsRow(
@@ -1935,6 +1991,18 @@ struct SettingsScreen: View {
             .listRowBackground(Color.clear)
         } header: {
             settingsSectionHeader("Help & Safety")
+        }
+    }
+
+    private func openFanGeoInstagram() {
+        guard let appURL = URL(string: "instagram://user?username=fangeosports"),
+              let webURL = URL(string: "https://www.instagram.com/fangeosports") else {
+            return
+        }
+
+        UIApplication.shared.open(appURL, options: [:]) { opened in
+            guard !opened else { return }
+            UIApplication.shared.open(webURL)
         }
     }
 
@@ -2279,7 +2347,6 @@ struct SettingsScreen: View {
 
     private var shouldShowInlineBusinessDashboard: Bool {
         viewModel.isVenueOwnerLoggedIn
-            && !viewModel.isVenueOwnerBusinessDataLoading
             && viewModel.hasBusinessAccountForOwner()
             && !viewModel.hasArchivedBusinessAccountForOwner()
             && !viewModel.managedVenuesForOwner().isEmpty
@@ -2290,10 +2357,10 @@ struct SettingsScreen: View {
         let managedCount = managedVenues.count
         let selectedVenueId = viewModel.ownerVenueDatabaseId
 
-        if viewModel.isVenueOwnerBusinessDataLoading {
+        if viewModel.isVenueOwnerBusinessDataLoading && !settingsBusinessProfileHasCachedData {
             return BusinessProfileVenueHydrationState(isReady: false, reason: "businessDataLoading", selectedVenueId: selectedVenueId, managedCount: managedCount)
         }
-        if settingsBusinessProfileHydrationInFlight {
+        if settingsBusinessProfileHydrationInFlight && !settingsBusinessProfileHasCachedData {
             return BusinessProfileVenueHydrationState(isReady: false, reason: "businessProfileHydrationInFlight", selectedVenueId: selectedVenueId, managedCount: managedCount)
         }
         if settingsBusinessMembershipStatus == nil {
@@ -2817,13 +2884,42 @@ struct SettingsScreen: View {
         debounce: Bool = false
     ) async {
         guard isBusinessAccountProfileContext || viewModel.isVenueOwnerLoggedIn else { return }
+        let startedAt = Date()
+        let cachedDataAvailableAtStart = settingsBusinessProfileHasCachedData
+        let passiveRefresh = isPassiveSettingsBusinessProfileRefresh(trigger: trigger)
+        if passiveRefresh {
+            if settingsBusinessProfileHydrationInFlight {
+                logBusinessProfilePerformance(
+                    event: "refreshSkipped trigger=\(trigger) reason=inFlight cachedDataAvailable=\(cachedDataAvailableAtStart)"
+                )
+                return
+            }
+            if let lastRefresh = settingsBusinessProfileLastPassiveRefreshAt,
+               startedAt.timeIntervalSince(lastRefresh) < settingsBusinessProfilePassiveRefreshTTL {
+                let ageMs = Int(startedAt.timeIntervalSince(lastRefresh) * 1000)
+                logBusinessProfilePerformance(
+                    event: "refreshSkipped trigger=\(trigger) reason=ttl ageMs=\(ageMs) cachedDataAvailable=\(cachedDataAvailableAtStart)"
+                )
+                return
+            }
+            settingsBusinessProfileLastPassiveRefreshAt = startedAt
+        }
         let requestId = nextSettingsBusinessProfileRefreshRequestId()
         settingsBusinessProfileHydrationInFlight = true
+        logBusinessProfilePerformance(
+            event: "refreshStarted trigger=\(trigger) requestId=\(requestId) cachedDataAvailable=\(cachedDataAvailableAtStart) refreshBusinessData=\(refreshBusinessData)"
+        )
         logBusinessProfileHydrationState()
         defer {
             Task { @MainActor in
                 guard requestId == settingsBusinessProfileLatestRequestId else { return }
                 settingsBusinessProfileHydrationInFlight = false
+                let finishedAt = Date()
+                let durationMs = Int(finishedAt.timeIntervalSince(startedAt) * 1000)
+                let didUIClearCachedState = cachedDataAvailableAtStart && !settingsBusinessProfileHasCachedData
+                logBusinessProfilePerformance(
+                    event: "refreshFinished trigger=\(trigger) requestId=\(requestId) durationMs=\(durationMs) cachedDataAvailable=\(settingsBusinessProfileHasCachedData) didUIClearCachedState=\(didUIClearCachedState)"
+                )
                 logBusinessProfileHydrationState()
             }
         }
@@ -2841,6 +2937,18 @@ struct SettingsScreen: View {
         }
 
         await refreshSettingsBusinessProStatus(trigger: trigger, requestId: requestId)
+    }
+
+    private var settingsBusinessProfilePassiveRefreshTTL: TimeInterval { 30 }
+
+    private func isPassiveSettingsBusinessProfileRefresh(trigger: String) -> Bool {
+        trigger == "accountTabAppears" || trigger == "foreground"
+    }
+
+    private func logBusinessProfilePerformance(event: String) {
+#if DEBUG
+        print("[BusinessProfilePerf] \(event) cachedDataAvailable=\(settingsBusinessProfileHasCachedData) businessDataLoading=\(viewModel.isVenueOwnerBusinessDataLoading) hydrationInFlight=\(settingsBusinessProfileHydrationInFlight)")
+#endif
     }
 
     private func nextSettingsBusinessProfileRefreshRequestId() -> Int {
@@ -2873,57 +2981,27 @@ struct SettingsScreen: View {
 
     private func refreshSettingsBusinessProStatus(trigger: String, requestId: Int) async {
         guard viewModel.hasBusinessAccountForOwner() || viewModel.currentBusinessIdForAddLocation() != nil else { return }
-        let ownerEmail = OwnerBusinessEmail.normalized(viewModel.venueOwnerEmail)
-        let businessId = viewModel.currentBusinessIdForAddLocation()
-        let entitlementUpdatedAt = settingsBusinessEntitlementUpdatedAt(for: businessId)
-        let status = await viewModel.businessVenueGamePostingStatus(storeKitBusinessProActive: false)
-        let ignoredStaleResponse = requestId != settingsBusinessProfileLatestRequestId
-        logBusinessEntitlementRefreshDebug(
-            trigger: trigger,
-            businessId: businessId ?? status.businessId,
-            ownerEmail: ownerEmail,
-            entitlementUpdatedAt: entitlementUpdatedAt,
-            status: status,
-            requestId: requestId,
-            ignoredStaleResponse: ignoredStaleResponse
+        let previousStatus = settingsBusinessMembershipStatus
+        let currentBusinessId = viewModel.currentBusinessIdForAddLocation()
+        let businessId = trigger == "businessProSheet"
+            ? (previousStatus?.businessId ?? currentBusinessId)
+            : currentBusinessId
+        let status = await viewModel.businessVenueGamePostingStatus(
+            storeKitBusinessProActive: false,
+            businessId: businessId
         )
+        let ignoredStaleResponse = requestId != settingsBusinessProfileLatestRequestId
         guard !ignoredStaleResponse else { return }
 
-        let previousComputedIsPro = settingsBusinessMembershipStatus?.computedIsPro
+        if previousStatus?.computedIsPro == true && !status.loadedFromServer {
+            return
+        }
+
         if settingsBusinessMembershipStatus != status {
             settingsBusinessMembershipStatus = status
         }
         settingsBusinessProfileLastEntitlementSignature = settingsBusinessEntitlementSignature
-        logBusinessProfileFlickerDebug(
-            previousComputedIsPro: previousComputedIsPro,
-            newComputedIsPro: status.computedIsPro,
-            source: trigger
-        )
         logBusinessStatisticsGateDebug(status)
-    }
-
-    private func logBusinessEntitlementRefreshDebug(
-        trigger: String,
-        businessId: UUID?,
-        ownerEmail: String,
-        entitlementUpdatedAt: String?,
-        status: BusinessVenueGamePostingStatus,
-        requestId: Int,
-        ignoredStaleResponse: Bool
-    ) {
-#if DEBUG
-        print("[BusinessEntitlementRefreshDebug] trigger=\(trigger) businessId=\(businessId?.uuidString.lowercased() ?? "nil") ownerEmail=\(ownerEmail.isEmpty ? "nil" : ownerEmail) entitlementUpdatedAt=\(entitlementUpdatedAt ?? status.entitlementUpdatedAt ?? "nil") planType=\(status.planType) computedIsPro=\(status.computedIsPro) requestId=\(requestId) ignoredStaleResponse=\(ignoredStaleResponse)")
-#endif
-    }
-
-    private func logBusinessProfileFlickerDebug(
-        previousComputedIsPro: Bool?,
-        newComputedIsPro: Bool,
-        source: String
-    ) {
-#if DEBUG
-        print("[BusinessProfileFlickerDebug] previousComputedIsPro=\(previousComputedIsPro.map(String.init) ?? "nil") newComputedIsPro=\(newComputedIsPro) source=\(source)")
-#endif
     }
 
     private func logBusinessStatisticsGateDebug(_ status: BusinessVenueGamePostingStatus) {

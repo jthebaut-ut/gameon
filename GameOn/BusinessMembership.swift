@@ -72,6 +72,7 @@ struct BusinessEntitlementSnapshot: Decodable, Equatable {
     let hosted_game_cycle_start_at: String?
     let hosted_game_cycle_end_at: String?
     let next_reset_at: String?
+    let entitlement_source: String?
     let entitlement_updated_at: String?
 }
 
@@ -100,7 +101,9 @@ struct BusinessVenueGamePostingStatus: Equatable {
     let hostedGameCycleStartAt: String?
     let hostedGameCycleEndAt: String?
     let nextResetAt: String?
+    let entitlementSource: String?
     let entitlementUpdatedAt: String?
+    let loadedFromServer: Bool
 
     var computedIsPro: Bool { businessProActive }
     var isBusinessPro: Bool { computedIsPro }
@@ -120,11 +123,20 @@ struct BusinessVenueGamePostingStatus: Equatable {
     var hostedGameLimit: Int { monthlyHostLimit }
     var monthlyPostCount: Int { monthlyHostedGameCount }
     var freeLimitReached: Bool { freeMonthlyVenueGameLimitReached }
+    var normalizedEntitlementSource: String {
+        entitlementSource?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+    }
     var isBusinessProPromo: Bool {
-        computedIsPro && planType.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "pro_promo"
+        guard computedIsPro else { return false }
+        let source = normalizedEntitlementSource
+        if source == "subscription_pro" || source == "pro_paid" { return false }
+        if source == "free_user_promo" || source == "global_business_pro" || source == "admin_pro_promo" { return true }
+        return source.isEmpty && planType.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "pro_promo"
     }
     var isBusinessSubscriptionPro: Bool {
-        computedIsPro && !isBusinessProPromo
+        guard computedIsPro else { return false }
+        let source = normalizedEntitlementSource
+        return source == "subscription_pro" || source == "pro_paid" || !isBusinessProPromo
     }
     var businessPlanDisplayTitle: String {
         if isBusinessProPromo { return "Free User Promotion" }
@@ -163,7 +175,7 @@ struct BusinessVenueGamePostingStatus: Equatable {
         return value.isEmpty ? "active" : value
     }
 
-    private static let proPlanTypes: Set<String> = ["pro_promo", "pro_paid", "manual_pro"]
+    private static let proPlanTypes: Set<String> = ["pro_promo", "pro_paid", "manual_pro", "subscription_pro"]
     private static let effectivelyUnlimitedMonthlyHostLimit = 10_000
     private static let effectivelyUnlimitedVenueLimit = 10_000
 
@@ -235,7 +247,9 @@ struct BusinessVenueGamePostingStatus: Equatable {
             hostedGameCycleStartAt: nil,
             hostedGameCycleEndAt: nil,
             nextResetAt: nil,
-            entitlementUpdatedAt: nil
+            entitlementSource: nil,
+            entitlementUpdatedAt: nil,
+            loadedFromServer: false
         )
     }
 
@@ -299,7 +313,16 @@ struct BusinessVenueGamePostingStatus: Equatable {
         } else {
             normalizedMonthlyHostLimit = entitlement.monthly_host_limit ?? BusinessMembershipPolicy.freeMonthlyVenueGameLimit
         }
-        let isPromo = normalizedBusinessProActive && planType == "pro_promo"
+        let entitlementSource = entitlement.entitlement_source?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased() ?? ""
+        let isPromo = normalizedBusinessProActive
+            && (
+                entitlementSource == "free_user_promo"
+                || entitlementSource == "global_business_pro"
+                || entitlementSource == "admin_pro_promo"
+                || (entitlementSource.isEmpty && planType == "pro_promo")
+            )
         let venueCount = activeVenueCount ?? entitlement.venues_used
         let legacyHostedGameCount = entitlement.hosted_games_this_month
             ?? entitlement.hosted_games_used_this_cycle
@@ -330,7 +353,9 @@ struct BusinessVenueGamePostingStatus: Equatable {
             hostedGameCycleStartAt: entitlement.hosted_game_cycle_start_at,
             hostedGameCycleEndAt: entitlement.hosted_game_cycle_end_at ?? entitlement.next_reset_at,
             nextResetAt: entitlement.next_reset_at,
-            entitlementUpdatedAt: entitlement.entitlement_updated_at
+            entitlementSource: entitlement.entitlement_source,
+            entitlementUpdatedAt: entitlement.entitlement_updated_at,
+            loadedFromServer: true
         )
     }
 }

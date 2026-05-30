@@ -141,6 +141,18 @@ enum AdRuntimeDevice {
     }
 }
 
+private enum FanGeoAdConsentPrePromptStore {
+    private static let acknowledgedKey = "FanGeoAdConsentPrePromptAcknowledged"
+
+    static var hasAcknowledged: Bool {
+        UserDefaults.standard.bool(forKey: acknowledgedKey)
+    }
+
+    static func markAcknowledged() {
+        UserDefaults.standard.set(true, forKey: acknowledgedKey)
+    }
+}
+
 /// Backward-compatible name used by older call sites.
 enum AdMobTestConfiguration {
     static var testBannerAdUnitID: String { AdMobConfiguration.testBannerAdUnitID }
@@ -179,6 +191,7 @@ enum GoogleMobileAdsBootstrap {
     private static var didFinishConsentFlow = false
     private static var adsCanBeRequested = false
     private static var didStartMobileAds = false
+    private static var isWaitingForPreConsentPrompt = false
     private static var pendingReadyHandlers: [() -> Void] = []
 
     static var canRequestAds: Bool {
@@ -189,6 +202,10 @@ enum GoogleMobileAdsBootstrap {
         ConsentInformation.shared.privacyOptionsRequirementStatus == .required
     }
 
+    static var shouldPresentPreConsentPrompt: Bool {
+        isWaitingForPreConsentPrompt && !FanGeoAdConsentPrePromptStore.hasAcknowledged
+    }
+
     static func startIfNeeded() {
         guard !didStart else { return }
         didStart = true
@@ -196,6 +213,23 @@ enum GoogleMobileAdsBootstrap {
         AdDiagnostics.logStartupTestDeviceConfigurationIfNeeded()
         AdMobDiagnostics.logBootstrap()
         AdDebugDiagnostics.logConsent("attStatus=\(AdDebugDiagnostics.currentATTStatusLabel())")
+        guard FanGeoAdConsentPrePromptStore.hasAcknowledged else {
+            isWaitingForPreConsentPrompt = true
+            AdDebugDiagnostics.logConsent("preConsentPromptRequired=true")
+            return
+        }
+        continueConsentFlowAfterPrePrompt()
+    }
+
+    static func acknowledgePreConsentPromptAndContinue() {
+        FanGeoAdConsentPrePromptStore.markAcknowledged()
+        guard isWaitingForPreConsentPrompt || !didFinishConsentFlow else { return }
+        isWaitingForPreConsentPrompt = false
+        AdDebugDiagnostics.logConsent("preConsentPromptAcknowledged=true")
+        continueConsentFlowAfterPrePrompt()
+    }
+
+    private static func continueConsentFlowAfterPrePrompt() {
         Task {
             await resolveConsentAndStartAdsIfAllowed()
         }
