@@ -25,6 +25,32 @@ enum BusinessLimitCopy {
     static let backendCompatibilityRequired = "FanGeo needs a quick update before this business feature can be used. Please update the app and try again."
 }
 
+enum BusinessProPromoDisplay {
+    private static let expiryFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "MMM d, yyyy"
+        return formatter
+    }()
+
+    static func formattedExpiry(from raw: String?) -> String? {
+        guard let raw = raw?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !raw.isEmpty,
+              let date = SupabaseTimestampParsing.parseTimestamptz(raw) else {
+            return nil
+        }
+        return expiryFormatter.string(from: date)
+    }
+
+    static func includedThroughText(from raw: String?) -> String? {
+        formattedExpiry(from: raw).map { "Business Pro included through \($0)." }
+    }
+
+    static func activeUntilText(from raw: String?) -> String? {
+        formattedExpiry(from: raw).map { "Business Pro promo active until \($0)" }
+    }
+}
+
 struct BusinessEntitlementSnapshot: Decodable, Equatable {
     let business_id: UUID
     let plan_type: String?
@@ -94,6 +120,48 @@ struct BusinessVenueGamePostingStatus: Equatable {
     var hostedGameLimit: Int { monthlyHostLimit }
     var monthlyPostCount: Int { monthlyHostedGameCount }
     var freeLimitReached: Bool { freeMonthlyVenueGameLimitReached }
+    var isBusinessProPromo: Bool {
+        computedIsPro && planType.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "pro_promo"
+    }
+    var isBusinessSubscriptionPro: Bool {
+        computedIsPro && !isBusinessProPromo
+    }
+    var businessPlanDisplayTitle: String {
+        if isBusinessProPromo { return "Free User Promotion" }
+        if isBusinessSubscriptionPro { return "Business Pro active" }
+        return "Business Regular"
+    }
+    var businessPlanDisplaySubtitle: String {
+        if isBusinessProPromo { return "Promotion access" }
+        if isBusinessSubscriptionPro { return "Subscription Pro" }
+        return normalizedPlanStatusForDisplay
+    }
+    var businessProPromoIncludedThroughText: String? {
+        guard isBusinessProPromo else { return nil }
+        return BusinessProPromoDisplay.includedThroughText(from: proExpiresAt)
+    }
+    var businessProPromoEndDateText: String? {
+        guard isBusinessProPromo,
+              let formatted = BusinessProPromoDisplay.formattedExpiry(from: proExpiresAt) else {
+            return nil
+        }
+        return "Promotion ends \(formatted)"
+    }
+    var businessProPromoActiveUntilText: String? {
+        guard isBusinessProPromo else { return nil }
+        return BusinessProPromoDisplay.activeUntilText(from: proExpiresAt)
+    }
+    var businessProSubscriptionExpiryText: String? {
+        guard isBusinessSubscriptionPro,
+              let formatted = BusinessProPromoDisplay.formattedExpiry(from: proExpiresAt) else {
+            return nil
+        }
+        return "Expires \(formatted)"
+    }
+    private var normalizedPlanStatusForDisplay: String {
+        let value = planStatus.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return value.isEmpty ? "active" : value
+    }
 
     private static let proPlanTypes: Set<String> = ["pro_promo", "pro_paid", "manual_pro"]
     private static let effectivelyUnlimitedMonthlyHostLimit = 10_000

@@ -811,10 +811,16 @@ struct SettingsScreen: View {
                 .presentationBackground(FGAdaptiveSurface.sheetRoot)
         }
         .sheet(isPresented: $showBusinessProSubscriptionSheet) {
-            BusinessProSubscriptionView()
+            BusinessProSubscriptionView(businessStatus: settingsBusinessMembershipStatus)
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
                 .presentationBackground(FGAdaptiveSurface.sheetRoot)
+                .task {
+                    await refreshSettingsBusinessProfile(
+                        trigger: "businessProSheet",
+                        refreshBusinessData: true
+                    )
+                }
         }
         .sheet(isPresented: $showBusinessUsageSheet) {
             BusinessUsageCenterView(
@@ -1200,7 +1206,7 @@ struct SettingsScreen: View {
             }
         } label: {
             settingsRow(
-                title: isPro ? "Business Pro active" : "Business Regular",
+                title: settingsBusinessMembershipStatus?.businessPlanDisplayTitle ?? (isPro ? "Business Pro active" : "Business Regular"),
                 subtitle: settingsBusinessProRowSubtitle,
                 systemImage: isPro ? "crown.fill" : "lock.shield.fill",
                 tint: isPro ? SettingsPremiumChrome.proGold(colorScheme) : FGColor.accentGreen
@@ -2417,6 +2423,17 @@ struct SettingsScreen: View {
         }
         guard status.computedIsPro else {
             return "\(status.venueLimit) active venues • \(status.monthlyHostLimit) hosted games/month"
+        }
+        if let promoText = status.businessProPromoEndDateText {
+            return promoText
+        }
+        if status.isBusinessSubscriptionPro {
+            return [
+                "Subscription Pro",
+                status.businessProSubscriptionExpiryText
+            ]
+            .compactMap { $0 }
+            .joined(separator: " • ")
         }
         return "Unlimited venues • Unlimited hosting"
     }

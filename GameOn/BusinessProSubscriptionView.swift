@@ -6,14 +6,36 @@ struct BusinessProSubscriptionView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openURL) private var openURL
     @ObservedObject private var purchaseService = BusinessProPurchaseService.shared
+    let businessStatus: BusinessVenueGamePostingStatus?
 
-    private let proFeatures = [
-        "Unlimited locations",
+    init(businessStatus: BusinessVenueGamePostingStatus? = nil) {
+        self.businessStatus = businessStatus
+    }
+
+    private let proFeatureListItems = [
+        "Unlimited venues",
         "Unlimited hosted games",
         "Analytics access"
     ]
 
-    private let freeFeatures = [
+    private var regularFeatureListItems: [String] {
+        [
+            "\(currentActiveVenueLimit) active venues",
+            "\(currentHostedGameLimit) hosted games/month"
+        ]
+    }
+
+    private var currentActiveVenueLimit: Int {
+        guard let businessStatus else { return BusinessMembershipPolicy.freeVenueListingLimit }
+        return max(1, businessStatus.activeVenueLimit ?? businessStatus.venueLimit)
+    }
+
+    private var currentHostedGameLimit: Int {
+        guard let businessStatus else { return BusinessMembershipPolicy.freeMonthlyVenueGameLimit }
+        return max(1, businessStatus.hostedGamesEffectiveMonthlyHostLimitForDisplay ?? businessStatus.monthlyHostLimit)
+    }
+
+    private let fallbackRegularFeatures = [
         "5 active venues",
         "5 hosted games/month"
     ]
@@ -22,9 +44,11 @@ struct BusinessProSubscriptionView: View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 18) {
                 header
-                proPlanCard
-                freePlanCard
-                promoExplanation
+                entitlementPlanCard
+                if !isCurrentBusinessRegular {
+                    regularReferenceCard
+                }
+                entitlementExplanation
                 actionButtons
             }
             .padding(20)
@@ -58,16 +82,16 @@ struct BusinessProSubscriptionView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var proPlanCard: some View {
+    private var entitlementPlanCard: some View {
         VStack(alignment: .leading, spacing: 14) {
             planHeader(
-                title: "Business Pro",
-                subtitle: "Launch Promotion",
-                badge: "PROMO",
-                badgeColor: FGColor.accentYellow
+                title: entitlementTitle,
+                subtitle: entitlementSubtitle,
+                badge: entitlementBadge,
+                badgeColor: entitlementBadgeColor
             )
 
-            Text("Business Pro included through Nov 30, 2026.")
+            Text(entitlementDetailText)
                 .font(.title3.weight(.bold))
                 .foregroundStyle(FGColor.primaryText(colorScheme))
                 .fixedSize(horizontal: false, vertical: true)
@@ -77,7 +101,7 @@ struct BusinessProSubscriptionView: View {
                 .foregroundStyle(FGColor.secondaryText(colorScheme))
                 .fixedSize(horizontal: false, vertical: true)
 
-            planFeatureList(proFeatures, tint: FGColor.accentGreen)
+            planFeatureList(entitlementFeatures, tint: entitlementFeatureTint)
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -102,7 +126,7 @@ struct BusinessProSubscriptionView: View {
         }
     }
 
-    private var freePlanCard: some View {
+    private var regularReferenceCard: some View {
         VStack(alignment: .leading, spacing: 14) {
             planHeader(
                 title: "FanGeo Business",
@@ -115,7 +139,7 @@ struct BusinessProSubscriptionView: View {
                 .font(.caption.weight(.heavy))
                 .foregroundStyle(FGColor.secondaryText(colorScheme))
 
-            planFeatureList(freeFeatures, tint: FGColor.accentBlue)
+            planFeatureList(fallbackRegularFeatures, tint: FGColor.accentBlue)
         }
         .padding(18)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
@@ -170,8 +194,8 @@ struct BusinessProSubscriptionView: View {
         }
     }
 
-    private var promoExplanation: some View {
-        Text("All business accounts start free during the Launch Promotion.")
+    private var entitlementExplanation: some View {
+        Text(entitlementExplanationText)
             .font(.caption.weight(.semibold))
             .foregroundStyle(FGColor.secondaryText(colorScheme))
             .fixedSize(horizontal: false, vertical: true)
@@ -250,24 +274,26 @@ struct BusinessProSubscriptionView: View {
                 .buttonStyle(.plain)
             }
 
-            Button {
-                dismiss()
-            } label: {
-                Text("Continue Free Promo Access")
-                    .font(.headline.weight(.bold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 15)
-                    .foregroundStyle(.white)
-                    .background(
-                        LinearGradient(
-                            colors: [FGColor.accentGreen, FGColor.businessGreen],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        ),
-                        in: RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    )
+            if isCurrentBusinessFreePromo {
+                Button {
+                    dismiss()
+                } label: {
+                    Text("Continue Free Promo Access")
+                        .font(.headline.weight(.bold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 15)
+                        .foregroundStyle(.white)
+                        .background(
+                            LinearGradient(
+                                colors: [FGColor.accentGreen, FGColor.businessGreen],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            ),
+                            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        )
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
         }
     }
 
@@ -276,6 +302,81 @@ struct BusinessProSubscriptionView: View {
             return purchaseService.billingUnavailableMessage
         }
         return "Future Apple subscription: \(product.displayPrice) / month"
+    }
+
+    private var entitlementTitle: String {
+        guard businessStatus != nil else { return "Checking plan status" }
+        if isCurrentBusinessFreePromo { return "Free User Promotion" }
+        if isCurrentBusinessSubscriptionPro { return "Business Pro Active" }
+        return "Business Regular"
+    }
+
+    private var entitlementSubtitle: String {
+        guard businessStatus != nil else { return "Refreshing entitlement" }
+        if isCurrentBusinessFreePromo { return "Promotion access" }
+        if isCurrentBusinessSubscriptionPro { return "Subscription Pro" }
+        return "Free plan"
+    }
+
+    private var entitlementBadge: String {
+        guard businessStatus != nil else { return "CHECKING" }
+        if isCurrentBusinessFreePromo { return "FREE" }
+        if isCurrentBusinessSubscriptionPro { return "ACTIVE" }
+        return "REGULAR"
+    }
+
+    private var entitlementBadgeColor: Color {
+        if isCurrentBusinessFreePromo { return FGColor.accentYellow }
+        if isCurrentBusinessSubscriptionPro { return FGColor.accentGreen }
+        return FGColor.accentBlue
+    }
+
+    private var entitlementFeatureTint: Color {
+        isCurrentBusinessRegular ? FGColor.accentBlue : FGColor.accentGreen
+    }
+
+    private var entitlementFeatures: [String] {
+        guard businessStatus != nil else { return fallbackRegularFeatures }
+        return isCurrentBusinessRegular ? regularFeatureListItems : proFeatureListItems
+    }
+
+    private var entitlementDetailText: String {
+        guard businessStatus != nil else {
+            return "Business Pro details are refreshing from your business account."
+        }
+        if isCurrentBusinessFreePromo {
+            return businessStatus?.businessProPromoEndDateText
+                ?? "Promotion end date refreshes from your business account."
+        }
+        if isCurrentBusinessSubscriptionPro {
+            return businessStatus?.businessProSubscriptionExpiryText ?? "No scheduled expiration."
+        }
+        return "Upgrade to Business Pro for unlimited venues and hosted games."
+    }
+
+    private var entitlementExplanationText: String {
+        guard businessStatus != nil else {
+            return "FanGeo is checking this business’s current entitlement before showing plan details."
+        }
+        if isCurrentBusinessFreePromo {
+            return "This business has temporary Business Pro access through the Free User Promotion."
+        }
+        if isCurrentBusinessSubscriptionPro {
+            return "This business currently has Business Pro access from its subscription entitlement."
+        }
+        return "This business is on the Regular plan. Free plan limits are enforced by your business entitlement."
+    }
+
+    private var isCurrentBusinessFreePromo: Bool {
+        businessStatus?.isBusinessProPromo == true
+    }
+
+    private var isCurrentBusinessSubscriptionPro: Bool {
+        businessStatus?.isBusinessSubscriptionPro == true
+    }
+
+    private var isCurrentBusinessRegular: Bool {
+        businessStatus != nil && !isCurrentBusinessFreePromo && !isCurrentBusinessSubscriptionPro
     }
 
     private var purchaseButtonTitle: String {

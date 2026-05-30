@@ -298,7 +298,7 @@ struct BusinessUsageCenterView: View {
                 .frame(width: 44, height: 44)
 
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(isProActive ? "Business Pro active" : "Business Regular")
+                    Text(status?.businessPlanDisplayTitle ?? "Checking plan status…")
                         .font(.headline.weight(.black))
                         .foregroundStyle(FGColor.primaryText(colorScheme))
                     Text(planStateText)
@@ -729,7 +729,9 @@ struct BusinessUsageCenterView: View {
 
     private var planStateText: String {
         guard let status else { return "Checking access" }
-        if status.computedIsPro { return normalizedPlanStatus(status.planStatus) }
+        if status.computedIsPro {
+            return status.businessPlanDisplaySubtitle
+        }
         if status.planType != "free" { return "expired" }
         return normalizedPlanStatus(status.planStatus)
     }
@@ -750,8 +752,11 @@ struct BusinessUsageCenterView: View {
     private var planDetailText: String? {
         guard let status else { return nil }
         if status.computedIsPro {
-            if status.planType == "pro_promo" {
-                return "Business Pro included through Nov 30, 2026."
+            if let promoText = status.businessProPromoEndDateText {
+                return promoText
+            }
+            if let subscriptionText = status.businessProSubscriptionExpiryText {
+                return subscriptionText
             }
             if let formatted = formattedBusinessProExpiry(status.proExpiresAt) {
                 return "Expires \(formatted)"
@@ -1595,10 +1600,13 @@ struct VenueOwnerDashboardView: View {
             }
         }
         .sheet(isPresented: $showBusinessProSubscriptionSheet) {
-            BusinessProSubscriptionView()
+            BusinessProSubscriptionView(businessStatus: businessMembershipStatus)
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
             .presentationBackground(FGAdaptiveSurface.sheetRoot)
+            .task {
+                await refreshBusinessPlanStatus(source: "businessProSheet", force: true)
+            }
             .onAppear {
                 logBusinessProVisibilityDebug(dashboardVisible: true)
             }
@@ -1880,7 +1888,7 @@ struct VenueOwnerDashboardView: View {
 
     private func businessProStatusTitle(for status: BusinessVenueGamePostingStatus?) -> String {
         guard let status else { return "Checking plan status…" }
-        return status.computedIsPro ? "Business Pro active" : "Business Regular"
+        return status.businessPlanDisplayTitle
     }
 
     private func businessProStatusSubtitle(for status: BusinessVenueGamePostingStatus?) -> String {
@@ -1896,6 +1904,17 @@ struct VenueOwnerDashboardView: View {
                 parts.append(resetText)
             }
             return parts.joined(separator: " • ")
+        }
+        if let promoText = status.businessProPromoEndDateText {
+            return promoText
+        }
+        if status.isBusinessSubscriptionPro {
+            return [
+                "Subscription Pro",
+                status.businessProSubscriptionExpiryText
+            ]
+            .compactMap { $0 }
+            .joined(separator: " • ")
         }
         return "Unlimited venues • Unlimited hosted games"
     }
