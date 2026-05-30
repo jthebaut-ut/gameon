@@ -187,6 +187,13 @@ private enum BusinessHostedGameCycleDisplay {
         return formatter
     }()
 
+    private static let rangeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "MMM d, yyyy"
+        return formatter
+    }()
+
     static func resetText(from raw: String?) -> String? {
         guard let raw = raw?.trimmingCharacters(in: .whitespacesAndNewlines),
               !raw.isEmpty,
@@ -195,11 +202,42 @@ private enum BusinessHostedGameCycleDisplay {
         }
         return "Resets \(resetFormatter.string(from: date))"
     }
+
+    static func cycleRangeText(startRaw: String?, endRaw: String?) -> String? {
+        guard let start = parseDate(startRaw),
+              let end = parseDate(endRaw) else {
+            return nil
+        }
+        return "\(rangeFormatter.string(from: start)) – \(rangeFormatter.string(from: end))"
+    }
+
+    static func gameDateText(scheduledStartAt: String?, eventDate: String?, eventTime: String?) -> String {
+        if let start = parseDate(scheduledStartAt) {
+            return rangeFormatter.string(from: start)
+        }
+        if let date = parseDate(eventDate) {
+            let day = rangeFormatter.string(from: date)
+            let time = eventTime?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return time.isEmpty ? day : "\(day) • \(time)"
+        }
+        return "Date unavailable"
+    }
+
+    private static func parseDate(_ raw: String?) -> Date? {
+        guard let raw = raw?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !raw.isEmpty else {
+            return nil
+        }
+        return SupabaseTimestampParsing.parseTimestamptz(raw)
+    }
 }
 
 struct BusinessUsageCenterView: View {
     @Environment(\.colorScheme) private var colorScheme
     let status: BusinessVenueGamePostingStatus?
+    var hostedGameCycleAudit: BusinessHostedGameCycleAudit? = nil
+    var isHostedGameCycleLoading = false
+    var hostedGameCycleAuditUnavailable = false
 
     private var isProActive: Bool {
         status?.computedIsPro == true
@@ -219,6 +257,7 @@ struct BusinessUsageCenterView: View {
                 header
                 currentPlanSection
                 usageMetricsSection
+                hostedGamesThisCycleSection
                 if status != nil && !isProActive {
                     proFeaturesPreviewSection
                 }
@@ -300,6 +339,163 @@ struct BusinessUsageCenterView: View {
         }
     }
 
+    private var hostedGamesThisCycleSection: some View {
+        usageSection(title: "Hosted Games This Cycle", systemImage: "sportscourt") {
+            VStack(alignment: .leading, spacing: 12) {
+                if isHostedGameCycleLoading && hostedGameCycleAudit == nil {
+                    HStack(spacing: 8) {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text("Loading hosted game details…")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    if let rangeText = hostedGameCycleRangeText {
+                        Text(rangeText)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    }
+
+                    Text(hostedGameCycleSummaryText)
+                        .font(.caption.weight(.black))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+
+                    let games = hostedGameCycleAudit?.games ?? []
+                    if hostedGameCycleAuditUnavailable && hostedGameCycleAudit == nil {
+                        Text("Couldn’t load cycle games. Your usage count is still available above.")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(10)
+                            .background(FGAdaptiveSurface.sheetRoot.opacity(colorScheme == .dark ? 0.75 : 0.65), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    } else if games.isEmpty && hostedGameCycleUsedCount == 0 {
+                        Text("No hosted games counted in this cycle yet.")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(10)
+                            .background(FGAdaptiveSurface.sheetRoot.opacity(colorScheme == .dark ? 0.75 : 0.65), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    } else if games.isEmpty {
+                        Text("Couldn’t load cycle games. Your usage count is still available above.")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(10)
+                            .background(FGAdaptiveSurface.sheetRoot.opacity(colorScheme == .dark ? 0.75 : 0.65), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    } else {
+                        VStack(spacing: 8) {
+                            ForEach(games) { game in
+                                hostedGameCycleAuditRow(game)
+                            }
+                        }
+
+                        Text("\(games.count) \(games.count == 1 ? "game" : "games") counted this cycle")
+                            .font(.caption2.weight(.heavy))
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 4)
+                    }
+                }
+            }
+        }
+    }
+
+    private var hostedGameCycleRangeText: String? {
+        BusinessHostedGameCycleDisplay.cycleRangeText(
+            startRaw: hostedGameCycleAudit?.cycleStartAt ?? status?.hostedGameCycleStartAt,
+            endRaw: hostedGameCycleAudit?.cycleEndAt ?? status?.hostedGameCycleEndAt ?? status?.nextResetAt
+        )
+    }
+
+    private var hostedGameCycleUsedCount: Int {
+        hostedGameCycleAudit?.hostedGamesUsedThisCycle ?? status?.hostedGamesUsedForDisplay ?? 0
+    }
+
+    private var hostedGameCycleSummaryText: String {
+        let used = hostedGameCycleUsedCount
+        let unlimited = hostedGameCycleAudit?.isUnlimitedHosting ?? status.map { $0.unlimitedHosting || $0.isBusinessPro } ?? false
+        if unlimited {
+            return "\(used) hosted games • Unlimited"
+        }
+        let limit = status?.hostedGamesEffectiveMonthlyHostLimitForDisplay
+            ?? hostedGameCycleAudit?.monthlyHostLimit
+            ?? status.map { max(1, $0.monthlyHostedGameLimit ?? $0.monthlyHostLimit) }
+            ?? BusinessMembershipPolicy.freeMonthlyVenueGameLimit
+        return "\(used) / \(limit) used"
+    }
+
+    private func hostedGameCycleAuditRow(_ game: BusinessHostedGameCycleGame) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(game.title)
+                    .font(.caption.weight(.black))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .lineLimit(2)
+
+                Text(BusinessHostedGameCycleDisplay.gameDateText(
+                    scheduledStartAt: game.scheduledStartAt,
+                    eventDate: game.eventDate,
+                    eventTime: game.eventTime
+                ))
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+
+                if let venueName = game.venueName?.trimmingCharacters(in: .whitespacesAndNewlines),
+                   !venueName.isEmpty {
+                    Text(venueName)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer(minLength: 8)
+
+            VStack(alignment: .trailing, spacing: 5) {
+                hostedGameStatusBadge(game.status)
+                Text("Counted")
+                    .font(.system(size: 9, weight: .heavy, design: .rounded))
+                    .foregroundStyle(FGColor.accentGreen)
+            }
+        }
+        .padding(10)
+        .background(FGAdaptiveSurface.sheetRoot.opacity(colorScheme == .dark ? 0.75 : 0.65), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private func hostedGameStatusBadge(_ rawStatus: String?) -> some View {
+        let label = hostedGameStatusLabel(rawStatus)
+        let tint = hostedGameStatusTint(label)
+        return Text(label)
+            .font(.system(size: 9, weight: .heavy, design: .rounded))
+            .foregroundStyle(tint)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 4)
+            .background(tint.opacity(colorScheme == .dark ? 0.20 : 0.12), in: Capsule(style: .continuous))
+    }
+
+    private func hostedGameStatusLabel(_ rawStatus: String?) -> String {
+        let status = rawStatus?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+        if status.contains("cancel") || status == "archived" || status == "deleted" { return "Cancelled" }
+        if status.contains("complete") || status.contains("final") || status.contains("history") { return "Completed" }
+        if status.contains("live") || status.contains("active") { return "Live" }
+        return "Scheduled"
+    }
+
+    private func hostedGameStatusTint(_ label: String) -> Color {
+        switch label {
+        case "Live":
+            return FGColor.dangerRed
+        case "Completed":
+            return FGColor.accentGreen
+        case "Cancelled":
+            return Color.gray
+        default:
+            return Color.orange
+        }
+    }
+
     private var proFeaturesPreviewSection: some View {
         usageSection(title: "Pro Features", systemImage: "sparkles") {
             VStack(spacing: 10) {
@@ -374,7 +570,7 @@ struct BusinessUsageCenterView: View {
             unlimited = status.unlimitedVenues || status.isBusinessPro
         case .hostedGames:
             value = status.hostedGamesUsedForDisplay
-            limit = status.monthlyHostedGameLimit
+            limit = status.hostedGamesEffectiveMonthlyHostLimitForDisplay
             title = "Hosted games"
             unit = value == 1 ? "hosted game this cycle" : "hosted games this cycle"
             unlimited = status.unlimitedHosting || status.isBusinessPro
@@ -407,6 +603,7 @@ struct BusinessUsageCenterView: View {
             usageMetricRow(
                 title: title,
                 detail: "\(value) / \(resolvedLimit) \(unit)",
+                supplementalDetail: usageMetricSupplementalDetail(kind: kind, status: status, effectiveLimit: resolvedLimit),
                 value: value,
                 total: resolvedLimit,
                 rightValue: rightValue,
@@ -415,7 +612,32 @@ struct BusinessUsageCenterView: View {
         )
     }
 
-    private func usageMetricRow(title: String, detail: String, value: Int, total: Int, rightValue: String, isUnlimited: Bool = false) -> some View {
+    private func usageMetricSupplementalDetail(
+        kind: UsageMetricKind,
+        status: BusinessVenueGamePostingStatus,
+        effectiveLimit: Int
+    ) -> String? {
+        guard kind == .hostedGames,
+              !status.isBusinessPro,
+              !status.unlimitedHosting else {
+            return nil
+        }
+        let bonus = max(0, status.hostedGameCycleBonusGames ?? 0)
+        guard bonus > 0 || effectiveLimit != status.monthlyHostLimit else {
+            return nil
+        }
+        return "Base limit: \(status.monthlyHostLimit)\nBonus this cycle: +\(bonus)\nEffective limit: \(effectiveLimit)"
+    }
+
+    private func usageMetricRow(
+        title: String,
+        detail: String,
+        supplementalDetail: String? = nil,
+        value: Int,
+        total: Int,
+        rightValue: String,
+        isUnlimited: Bool = false
+    ) -> some View {
         let clampedTotal = max(1, total)
         let ratio = isUnlimited ? 1.0 : min(1, Double(value) / Double(clampedTotal))
         let tint = isUnlimited ? FGColor.accentGreen : usageTint(value: value, total: clampedTotal)
@@ -429,6 +651,12 @@ struct BusinessUsageCenterView: View {
                     Text(detail)
                         .font(.caption.weight(.black))
                         .foregroundStyle(FGColor.primaryText(colorScheme))
+                    if let supplementalDetail {
+                        Text(supplementalDetail)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
                 Spacer(minLength: 8)
                 Text(rightValue)
@@ -788,6 +1016,9 @@ struct VenueOwnerDashboardView: View {
     @State private var lastBusinessPlanRefreshBusinessID: UUID?
     @State private var showBusinessProSubscriptionSheet = false
     @State private var showBusinessUsageSheet = false
+    @State private var businessHostedGameCycleAudit: BusinessHostedGameCycleAudit?
+    @State private var businessHostedGameCycleAuditLoading = false
+    @State private var businessHostedGameCycleAuditUnavailable = false
     @State private var titleEditTarget: VenueOwnerGameTitleEditTarget?
     @State private var titleEditDraft = ""
     @State private var titleEditTeam1Draft = ""
@@ -1373,15 +1604,17 @@ struct VenueOwnerDashboardView: View {
             }
         }
         .sheet(isPresented: $showBusinessUsageSheet) {
-            BusinessUsageCenterView(status: businessMembershipStatus)
+            BusinessUsageCenterView(
+                status: businessMembershipStatus,
+                hostedGameCycleAudit: businessHostedGameCycleAudit,
+                isHostedGameCycleLoading: businessHostedGameCycleAuditLoading,
+                hostedGameCycleAuditUnavailable: businessHostedGameCycleAuditUnavailable
+            )
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
                 .presentationBackground(FGAdaptiveSurface.sheetRoot)
                 .task {
-                    await businessProEntitlement.prepare()
-                    businessMembershipStatus = await viewModel.businessVenueGamePostingStatus(
-                        storeKitBusinessProActive: businessProEntitlement.businessProActive
-                    )
+                    await refreshBusinessUsageSheetData()
                 }
         }
         .sheet(item: $businessGameChatTarget) { target in
@@ -2123,6 +2356,32 @@ struct VenueOwnerDashboardView: View {
             source: reason
         )
         logBusinessStatisticsGateDebug(status)
+    }
+
+    private func refreshBusinessUsageSheetData() async {
+        await businessProEntitlement.prepare()
+        let status = await viewModel.businessVenueGamePostingStatus(
+            storeKitBusinessProActive: businessProEntitlement.businessProActive
+        )
+        businessMembershipStatus = status
+
+        guard let businessId = status.businessId ?? viewModel.currentBusinessIdForAddLocation() else {
+            businessHostedGameCycleAudit = nil
+            businessHostedGameCycleAuditLoading = false
+            return
+        }
+
+        businessHostedGameCycleAudit = nil
+        businessHostedGameCycleAuditUnavailable = false
+        businessHostedGameCycleAuditLoading = true
+        do {
+            let audit = try await viewModel.loadBusinessHostedGamesThisCycle(businessId: businessId)
+            businessHostedGameCycleAudit = audit
+        } catch {
+            businessHostedGameCycleAudit = nil
+            businessHostedGameCycleAuditUnavailable = true
+        }
+        businessHostedGameCycleAuditLoading = false
     }
 
     private func logBusinessStatisticsProGate(isPro: Bool, accessGranted: Bool, source: String) {

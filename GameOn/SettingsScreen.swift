@@ -182,6 +182,9 @@ struct SettingsScreen: View {
     @State private var showBusinessActiveVenueSelectionSheet = false
     @State private var activeVenueSelectionQuickActionNotice: String?
     @State private var settingsBusinessMembershipStatus: BusinessVenueGamePostingStatus?
+    @State private var settingsBusinessHostedGameCycleAudit: BusinessHostedGameCycleAudit?
+    @State private var settingsBusinessHostedGameCycleAuditLoading = false
+    @State private var settingsBusinessHostedGameCycleAuditUnavailable = false
     @State private var profileSettingsPath = NavigationPath()
     @State private var showUserAuthSheet = false
     @State private var showVenueAuthSheet = false
@@ -814,10 +817,18 @@ struct SettingsScreen: View {
                 .presentationBackground(FGAdaptiveSurface.sheetRoot)
         }
         .sheet(isPresented: $showBusinessUsageSheet) {
-            BusinessUsageCenterView(status: settingsBusinessMembershipStatus)
+            BusinessUsageCenterView(
+                status: settingsBusinessMembershipStatus,
+                hostedGameCycleAudit: settingsBusinessHostedGameCycleAudit,
+                isHostedGameCycleLoading: settingsBusinessHostedGameCycleAuditLoading,
+                hostedGameCycleAuditUnavailable: settingsBusinessHostedGameCycleAuditUnavailable
+            )
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
                 .presentationBackground(FGAdaptiveSurface.sheetRoot)
+                .task {
+                    await refreshSettingsBusinessHostedGameCycleAudit()
+                }
         }
         .sheet(isPresented: $showSponsorInquirySheet) {
             BusinessSponsorInquirySheet(
@@ -2408,6 +2419,26 @@ struct SettingsScreen: View {
             return "\(status.venueLimit) active venues • \(status.monthlyHostLimit) hosted games/month"
         }
         return "Unlimited venues • Unlimited hosting"
+    }
+
+    private func refreshSettingsBusinessHostedGameCycleAudit() async {
+        guard let businessId = settingsBusinessMembershipStatus?.businessId ?? viewModel.currentBusinessIdForAddLocation() else {
+            settingsBusinessHostedGameCycleAudit = nil
+            settingsBusinessHostedGameCycleAuditLoading = false
+            return
+        }
+
+        settingsBusinessHostedGameCycleAudit = nil
+        settingsBusinessHostedGameCycleAuditUnavailable = false
+        settingsBusinessHostedGameCycleAuditLoading = true
+        do {
+            let audit = try await viewModel.loadBusinessHostedGamesThisCycle(businessId: businessId)
+            settingsBusinessHostedGameCycleAudit = audit
+        } catch {
+            settingsBusinessHostedGameCycleAudit = nil
+            settingsBusinessHostedGameCycleAuditUnavailable = true
+        }
+        settingsBusinessHostedGameCycleAuditLoading = false
     }
 
     private static let settingsApprovedVenueDateDisplayFormatter: DateFormatter = {

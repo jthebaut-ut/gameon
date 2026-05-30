@@ -5,6 +5,28 @@ private struct BusinessEntitlementRpcParams: Encodable {
     let p_business_id: String
 }
 
+private struct BusinessHostedGameCycleAuditRPCRow: Decodable {
+    let business_id: UUID
+    let cycle_start_at: String?
+    let cycle_end_at: String?
+    let next_reset_at: String?
+    let hosted_games_used_this_cycle: Int?
+    let monthly_host_limit: Int?
+    let is_unlimited_hosting: Bool?
+    let venue_event_id: UUID?
+    let title: String?
+    let sport: String?
+    let scheduled_start_at: String?
+    let event_date: String?
+    let event_time: String?
+    let status: String?
+    let venue_name: String?
+}
+
+private enum BusinessHostedGameCycleAuditError: Error {
+    case emptyResponse
+}
+
 extension MapViewModel {
     func businessVenueGamePostingStatus(
         storeKitBusinessProActive: Bool,
@@ -90,6 +112,60 @@ extension MapViewModel {
             print("[BusinessEntitlementDebug] rpc=\(rpcName) businessId=\(businessId.uuidString.lowercased()) error=\(error.localizedDescription)")
 #endif
             return nil
+        }
+    }
+
+    func loadBusinessHostedGamesThisCycle(businessId: UUID) async throws -> BusinessHostedGameCycleAudit {
+        do {
+            let rows: [BusinessHostedGameCycleAuditRPCRow] = try await supabase
+                .rpc(
+                    "get_business_hosted_games_this_cycle",
+                    params: BusinessEntitlementRpcParams(p_business_id: businessId.uuidString.lowercased())
+                )
+                .execute()
+                .value
+
+            guard let summary = rows.first else {
+#if DEBUG
+                print("[BusinessUsageCycleDebug] business_id=\(businessId.uuidString.lowercased()) cycle_start=nil cycle_end=nil returned_row_count=0 hosted_games_used_this_cycle=0 limit=0 unlimited=false")
+#endif
+                throw BusinessHostedGameCycleAuditError.emptyResponse
+            }
+
+            let games = rows.compactMap { row -> BusinessHostedGameCycleGame? in
+                guard let id = row.venue_event_id else { return nil }
+                let title = row.title?.trimmingCharacters(in: .whitespacesAndNewlines)
+                return BusinessHostedGameCycleGame(
+                    id: id,
+                    title: title?.isEmpty == false ? (title ?? "Hosted game") : "Hosted game",
+                    sport: row.sport,
+                    scheduledStartAt: row.scheduled_start_at,
+                    eventDate: row.event_date,
+                    eventTime: row.event_time,
+                    status: row.status,
+                    venueName: row.venue_name
+                )
+            }
+
+            let audit = BusinessHostedGameCycleAudit(
+                businessId: summary.business_id,
+                cycleStartAt: summary.cycle_start_at,
+                cycleEndAt: summary.cycle_end_at,
+                nextResetAt: summary.next_reset_at,
+                hostedGamesUsedThisCycle: summary.hosted_games_used_this_cycle ?? games.count,
+                monthlyHostLimit: summary.monthly_host_limit ?? BusinessMembershipPolicy.freeMonthlyVenueGameLimit,
+                isUnlimitedHosting: summary.is_unlimited_hosting ?? false,
+                games: games
+            )
+#if DEBUG
+            print("[BusinessUsageCycleDebug] business_id=\(audit.businessId.uuidString.lowercased()) cycle_start=\(audit.cycleStartAt ?? "nil") cycle_end=\(audit.cycleEndAt ?? audit.nextResetAt ?? "nil") returned_row_count=\(audit.games.count) hosted_games_used_this_cycle=\(audit.hostedGamesUsedThisCycle) limit=\(audit.monthlyHostLimit) unlimited=\(audit.isUnlimitedHosting)")
+#endif
+            return audit
+        } catch {
+#if DEBUG
+            print("[BusinessUsageCycleDebug] business_id=\(businessId.uuidString.lowercased()) error=\(error.localizedDescription)")
+#endif
+            throw error
         }
     }
 

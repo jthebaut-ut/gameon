@@ -38,9 +38,12 @@ struct BusinessEntitlementSnapshot: Decodable, Equatable {
     let unlimited_hosting: Bool
     let venue_limit: Int?
     let monthly_host_limit: Int?
+    let hosted_game_cycle_bonus_games: Int?
+    let effective_monthly_host_limit: Int?
     let venues_used: Int
     let hosted_games_this_month: Int?
     let hosted_games_used_this_cycle: Int?
+    let hosted_game_cycle_start_at: String?
     let hosted_game_cycle_end_at: String?
     let next_reset_at: String?
     let entitlement_updated_at: String?
@@ -65,7 +68,10 @@ struct BusinessVenueGamePostingStatus: Equatable {
     let unlimitedHosting: Bool
     let venueLimit: Int
     let monthlyHostLimit: Int
+    let hostedGameCycleBonusGames: Int?
+    let effectiveMonthlyHostLimit: Int?
     let hostedGamesUsedThisCycle: Int?
+    let hostedGameCycleStartAt: String?
     let hostedGameCycleEndAt: String?
     let nextResetAt: String?
     let entitlementUpdatedAt: String?
@@ -80,6 +86,10 @@ struct BusinessVenueGamePostingStatus: Equatable {
     var monthlyHostedGameLimit: Int? { unlimitedHosting || isBusinessPro ? nil : monthlyHostLimit }
     var currentMonthHostedGameCount: Int { monthlyHostedGameCount }
     var hostedGamesUsedForDisplay: Int { hostedGamesUsedThisCycle ?? monthlyHostedGameCount }
+    var hostedGamesEffectiveMonthlyHostLimitForDisplay: Int? {
+        guard !(unlimitedHosting || isBusinessPro) else { return nil }
+        return effectiveMonthlyHostLimit ?? monthlyHostLimit
+    }
     var hostedGamesCycleLimit: Int { monthlyHostLimit }
     var hostedGameLimit: Int { monthlyHostLimit }
     var monthlyPostCount: Int { monthlyHostedGameCount }
@@ -151,7 +161,10 @@ struct BusinessVenueGamePostingStatus: Equatable {
             unlimitedHosting: false,
             venueLimit: BusinessMembershipPolicy.freeVenueListingLimit,
             monthlyHostLimit: BusinessMembershipPolicy.freeMonthlyVenueGameLimit,
+            hostedGameCycleBonusGames: nil,
+            effectiveMonthlyHostLimit: nil,
             hostedGamesUsedThisCycle: nil,
+            hostedGameCycleStartAt: nil,
             hostedGameCycleEndAt: nil,
             nextResetAt: nil,
             entitlementUpdatedAt: nil
@@ -243,12 +256,37 @@ struct BusinessVenueGamePostingStatus: Equatable {
             unlimitedHosting: normalizedUnlimitedHosting,
             venueLimit: normalizedVenueLimit,
             monthlyHostLimit: normalizedMonthlyHostLimit,
+            hostedGameCycleBonusGames: entitlement.hosted_game_cycle_bonus_games,
+            effectiveMonthlyHostLimit: entitlement.effective_monthly_host_limit,
             hostedGamesUsedThisCycle: entitlement.hosted_games_used_this_cycle,
-            hostedGameCycleEndAt: entitlement.hosted_game_cycle_end_at,
+            hostedGameCycleStartAt: entitlement.hosted_game_cycle_start_at,
+            hostedGameCycleEndAt: entitlement.hosted_game_cycle_end_at ?? entitlement.next_reset_at,
             nextResetAt: entitlement.next_reset_at,
             entitlementUpdatedAt: entitlement.entitlement_updated_at
         )
     }
+}
+
+struct BusinessHostedGameCycleAudit: Equatable {
+    let businessId: UUID
+    let cycleStartAt: String?
+    let cycleEndAt: String?
+    let nextResetAt: String?
+    let hostedGamesUsedThisCycle: Int
+    let monthlyHostLimit: Int
+    let isUnlimitedHosting: Bool
+    let games: [BusinessHostedGameCycleGame]
+}
+
+struct BusinessHostedGameCycleGame: Identifiable, Equatable {
+    let id: UUID
+    let title: String
+    let sport: String?
+    let scheduledStartAt: String?
+    let eventDate: String?
+    let eventTime: String?
+    let status: String?
+    let venueName: String?
 }
 
 @MainActor
