@@ -902,6 +902,7 @@ struct VenueOwnerDashboardView: View {
     @State private var hasCocktails = false
     @State private var hasCraftBeer = false
     @State private var totalScreens = 1
+    @State private var businessDashboardQuickActionNotice: String?
     @State private var profileSaveMessage = ""
     @State private var venueStreetAddress = ""
     @State private var venueAddressLine2 = ""
@@ -1483,16 +1484,27 @@ struct VenueOwnerDashboardView: View {
                     return
                 }
                 print("[VenuePhotoSaveDebug] pickedImage=true")
-                if let data = try? await newItem.loadTransferable(type: Data.self),
-                   let url = await viewModel.uploadVenuePhoto(data: data, fileName: "cover.jpg") {
+                guard let data = try? await newItem.loadTransferable(type: Data.self) else {
+                    await MainActor.run {
+                        selectedCoverPhoto = nil
+                        profileSaveMessage = VenueOwnerPhotoPickerCopy.pickFailureUserHint()
+                    }
+                    return
+                }
+                if let url = await viewModel.uploadVenuePhoto(data: data, fileName: "cover.jpg") {
                     await MainActor.run {
                         viewModel.venueCoverPhotoURL = url
-                        displayedCoverPhotoURL = VenueOwnerPhotoPickerCopy.urlWithCacheBust(url)
+                        displayedCoverPhotoURL = ImageDisplayURL.displayVersionedURLString(
+                            ImageDisplayURL.canonicalStorageURLString(url),
+                            refreshToken: UUID()
+                        )
+                        selectedCoverPhoto = nil
                         profileSaveMessage = "Cover photo uploaded. Tap Save Profile to save changes."
                     }
                 } else {
                     await MainActor.run {
-                        profileSaveMessage = VenueOwnerPhotoPickerCopy.pickFailureUserHint()
+                        selectedCoverPhoto = nil
+                        profileSaveMessage = "Business Photo upload failed. Try again, or check your connection."
                     }
                 }
             }
@@ -2032,6 +2044,7 @@ struct VenueOwnerDashboardView: View {
             data: businessDashboardData,
             businessId: viewModel.currentBusinessIdForAddLocation(),
             businessUsageStatus: businessMembershipStatus,
+            activeVenueSelectionNotice: businessDashboardQuickActionNotice,
             onNotifications: {
                 withAnimation(.spring()) {
                     selectedSection = .analytics
@@ -2298,6 +2311,10 @@ struct VenueOwnerDashboardView: View {
             return
         }
         guard !venueOwnerGamesAndAnalyticsLocked else { return }
+        guard viewModel.ensureValidSelectedManagedVenueForPresentation(source: "businessDashboardGames") else {
+            openAddLocationFromBusinessDashboard()
+            return
+        }
         clearManageGamesBanners()
         guard tab != .add || !selectedVenuePlanLocked else {
             manageGamesFeedback = ""
@@ -2328,16 +2345,58 @@ struct VenueOwnerDashboardView: View {
     }
 
     private func openBusinessDashboardVenueDetailsOrAddVenue() {
-        guard !viewModel.managedVenuesForOwner().isEmpty else {
+        Task {
+            guard await prepareBusinessDashboardVenueDetailsPresentation() else {
+                return
+            }
+            await MainActor.run {
+                businessDashboardQuickActionNotice = nil
+                withAnimation(.spring()) {
+                    selectedSection = .profile
+                }
+            }
+        }
+    }
+
+    private func prepareBusinessDashboardVenueDetailsPresentation() async -> Bool {
+        let hasValidatedSelection = await MainActor.run {
+            viewModel.ensureValidSelectedManagedVenueForPresentation(source: "businessDashboardVenueDetails")
+        }
+        guard hasValidatedSelection else {
+            showBusinessDashboardVenueDetailsUnavailable(reason: "noValidSelectedVenue")
+            return false
+        }
+
+        guard let selectedVenueId = await MainActor.run(body: { viewModel.ownerVenueDatabaseId }) else {
+            showBusinessDashboardVenueDetailsUnavailable(reason: "missingSelectedVenueId")
+            return false
+        }
+
+        guard let row = await viewModel.loadVenueProfile(),
+              row.id == selectedVenueId,
+              venueDetailsRowIsActiveForPresentation(row) else {
+            showBusinessDashboardVenueDetailsUnavailable(reason: "profileLoadFailedOrInactive")
+            return false
+        }
+
+        await MainActor.run {
+            viewModel.applyVenueProfileRowToOwnerState(row)
+            applyVenueProfileToLocalEditorFields(row)
+        }
+        return true
+    }
+
+    @MainActor
+    private func showBusinessDashboardVenueDetailsUnavailable(reason: String) {
+        businessDashboardQuickActionNotice = "Venue Details are unavailable until an active managed venue is ready."
 #if DEBUG
-            print("[VenueOwnerEmptyStateDebug] noManagedVenues=true")
+        print("[BusinessProfileHydrationDebug] blockedEarlyTap action=venueDetails reason=\(reason)")
 #endif
-            openAddLocationFromBusinessDashboard()
-            return
-        }
-        withAnimation(.spring()) {
-            selectedSection = .profile
-        }
+    }
+
+    private func venueDetailsRowIsActiveForPresentation(_ row: VenueProfileRow) -> Bool {
+        let status = row.admin_status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+        return status.isEmpty || status == "active"
     }
 
     private func handleBusinessStatisticsEntryTapped(source: String) {
@@ -2703,16 +2762,30 @@ struct VenueOwnerDashboardView: View {
     
     private var profileSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-
             dashboardCard(
-            title: entryPoint == .profileEditor ? "Venue listing" : "Location profile",
-            subtitle: entryPoint == .profileEditor
-                ? "Editable items save to the venue selected above."
-                : "Basic listing information"
-        ) {
-            if shouldShowVenueDetailsEmptyState {
-                noVenueYetEmptyState
-            } else {
+                title: entryPoint == .profileEditor ? "Venue listing" : "Location profile",
+                subtitle: entryPoint == .profileEditor
+                    ? "Editable items save to the venue selected above."
+                    : "Basic listing information"
+            ) {
+                profileSectionCardContent
+            }
+
+            if shouldShowVenueDeleteDangerZone {
+                deleteVenueDangerZone
+            }
+        }
+    }
+
+    private var profileSectionCardContent: AnyView {
+        if shouldShowVenueDetailsEmptyState {
+            return AnyView(noVenueYetEmptyState)
+        }
+        return AnyView(profileEditorContent)
+    }
+
+    private var profileEditorContent: some View {
+        VStack(alignment: .leading, spacing: 14) {
             if selectedVenuePlanLocked {
                 venuePlanLockedExplainerCard()
             }
@@ -2762,145 +2835,125 @@ struct VenueOwnerDashboardView: View {
                 .disabled(selectedVenuePlanLocked)
                 .opacity(selectedVenuePlanLocked ? 0.78 : 1)
 
-            VStack(alignment: .leading, spacing: 28) {
-                venueOwnerVenueFeaturesCard()
-                    .disabled(selectedVenuePlanLocked)
-                    .opacity(selectedVenuePlanLocked ? 0.78 : 1)
+            profilePhotoAndSaveSection
+            profileStatusMessages
+        }
+    }
 
-                venueProfilePhotoEditor(
-                    title: "Business Photo",
-                    subtitle: "Main photo of your business",
-                    fullImageURL: displayedCoverPhotoURL,
-                    thumbnailURL: VenueOwnerPhotoPickerCopy.thumbnailURLAlignedWithDisplay(
-                        storageURL: viewModel.venueCoverPhotoThumbnailURL,
-                        displayTemplateURL: displayedCoverPhotoURL
-                    ),
-                    selection: $selectedCoverPhoto
-                )
+    private var profilePhotoAndSaveSection: some View {
+        VStack(alignment: .leading, spacing: 28) {
+            venueOwnerVenueFeaturesCard()
                 .disabled(selectedVenuePlanLocked)
                 .opacity(selectedVenuePlanLocked ? 0.78 : 1)
 
-                venueProfilePhotoEditor(
-                    title: "Others",
-                    subtitle: "Examples: menu, gym, patio, bar, seating, entrance",
-                    fullImageURL: displayedMenuPhotoURL,
-                    thumbnailURL: VenueOwnerPhotoPickerCopy.thumbnailURLAlignedWithDisplay(
-                        storageURL: viewModel.venueMenuPhotoThumbnailURL,
-                        displayTemplateURL: displayedMenuPhotoURL
-                    ),
-                    selection: $selectedMenuPhoto
-                )
-                .disabled(selectedVenuePlanLocked)
-                .opacity(selectedVenuePlanLocked ? 0.78 : 1)
+            businessVenueProfilePhotoEditor(
+                title: "Business Photo",
+                subtitle: "Main photo of your business",
+                fullImageURL: displayedCoverPhotoURL,
+                thumbnailURL: VenueOwnerPhotoPickerCopy.thumbnailURLAlignedWithDisplay(
+                    storageURL: viewModel.venueCoverPhotoThumbnailURL,
+                    displayTemplateURL: displayedCoverPhotoURL
+                ),
+                selection: $selectedCoverPhoto
+            )
+            .disabled(selectedVenuePlanLocked)
+            .opacity(selectedVenuePlanLocked ? 0.78 : 1)
 
-                Button {
-                    guard !isDeletingVenue else { return }
-                    guard !selectedVenuePlanLocked else {
-                        profileSaveMessage = BusinessLimitCopy.planLockedVenueSubtitle
-                        return
-                    }
-                    let nameBad = ModerationService.containsProfanity(viewModel.ownerVenueName)
-                    let descBad = ModerationService.containsProfanity(viewModel.ownerVenueDescription)
-                    if descBad || (!venueCoreIdentityLocked && nameBad) {
-                        profileSaveMessage = ModerationService.profanityRejectionUserMessage()
-                        return
-                    }
+            venueProfilePhotoEditor(
+                title: "Others",
+                subtitle: "Examples: menu, gym, patio, bar, seating, entrance",
+                fullImageURL: displayedMenuPhotoURL,
+                thumbnailURL: VenueOwnerPhotoPickerCopy.thumbnailURLAlignedWithDisplay(
+                    storageURL: viewModel.venueMenuPhotoThumbnailURL,
+                    displayTemplateURL: displayedMenuPhotoURL
+                ),
+                selection: $selectedMenuPhoto
+            )
+            .disabled(selectedVenuePlanLocked)
+            .opacity(selectedVenuePlanLocked ? 0.78 : 1)
 
-                    profileSaveMessage = "Saving..."
+            Button {
+                saveVenueProfileFromEditor()
+            } label: {
+                primaryButtonText("Save Profile")
+            }
+            .disabled(selectedVenuePlanLocked || isDeletingVenue)
+            .opacity(selectedVenuePlanLocked || isDeletingVenue ? 0.55 : 1)
+        }
+    }
 
-                    viewModel.ownerVenueAddress = venueStreetAddress
-                    viewModel.ownerVenueAddressLine2 = venueAddressLine2
-                    viewModel.ownerVenueCountry = venueCountry
-                    viewModel.ownerVenueFeatures = selectedVenueFeaturesLine()
+    @ViewBuilder
+    private var profileStatusMessages: some View {
+        if !profileSaveMessage.isEmpty {
+            Text(profileSaveMessage)
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundStyle(profileSaveMessage == BusinessLimitCopy.planLockedVenueSubtitle ? .orange : .green)
+                .frame(maxWidth: .infinity, alignment: .center)
+        }
+
+        if !venueDeleteError.isEmpty {
+            Text(venueDeleteError)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(FGColor.dangerRed)
+                .frame(maxWidth: .infinity, alignment: .center)
+        }
+    }
+
+    private var shouldShowVenueDeleteDangerZone: Bool {
+        !shouldShowVenueDetailsEmptyState && selectedManagedVenueForRemoval != nil
+    }
+
+    private func saveVenueProfileFromEditor() {
+        guard !isDeletingVenue else { return }
+        guard !selectedVenuePlanLocked else {
+            profileSaveMessage = BusinessLimitCopy.planLockedVenueSubtitle
+            return
+        }
+        let nameBad = ModerationService.containsProfanity(viewModel.ownerVenueName)
+        let descBad = ModerationService.containsProfanity(viewModel.ownerVenueDescription)
+        if descBad || (!venueCoreIdentityLocked && nameBad) {
+            profileSaveMessage = ModerationService.profanityRejectionUserMessage()
+            return
+        }
+
+        profileSaveMessage = "Saving..."
+
+        viewModel.ownerVenueAddress = venueStreetAddress
+        viewModel.ownerVenueAddressLine2 = venueAddressLine2
+        viewModel.ownerVenueCountry = venueCountry
+        viewModel.ownerVenueFeatures = selectedVenueFeaturesLine()
 #if DEBUG
-                    print("[VenueFeatureDebug] selectedFeatures=\(viewModel.ownerVenueFeatures)")
+        print("[VenueFeatureDebug] selectedFeatures=\(viewModel.ownerVenueFeatures)")
 #endif
-                    Task {
-                        let success = await viewModel.saveVenueProfile(
-                            streetAddress: venueStreetAddress,
-                            addressLine2: venueAddressLine2,
-                            city: venueCity,
-                            state: venueState,
-                            zipCode: venueZipCode,
-                            country: venueCountry,
-                            pinnedLatitude: venueLatitude,
-                            pinnedLongitude: venueLongitude,
-                            pinnedFormattedAddress: venueFormattedAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : venueFormattedAddress,
-                            screenCount: totalScreens,
-                            servesFood: hasFood,
-                            hasWifi: hasWifi,
-                            hasGarden: hasGarden,
-                            hasProjector: hasProjector,
-                            petFriendly: isPetFriendly
-                        )
+        Task {
+            let success = await viewModel.saveVenueProfile(
+                streetAddress: venueStreetAddress,
+                addressLine2: venueAddressLine2,
+                city: venueCity,
+                state: venueState,
+                zipCode: venueZipCode,
+                country: venueCountry,
+                pinnedLatitude: venueLatitude,
+                pinnedLongitude: venueLongitude,
+                pinnedFormattedAddress: venueFormattedAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : venueFormattedAddress,
+                screenCount: totalScreens,
+                servesFood: hasFood,
+                hasWifi: hasWifi,
+                hasGarden: hasGarden,
+                hasProjector: hasProjector,
+                petFriendly: isPetFriendly
+            )
 
-                        if success, let saved = await viewModel.loadVenueProfile() {
-                            await MainActor.run {
-                                viewModel.applyVenueProfileRowToOwnerState(saved)
-                                venueStreetAddress = saved.address ?? ""
-                                venueAddressLine2 = saved.address_line2 ?? ""
-                                venueCity = saved.city ?? ""
-                                venueState = saved.state ?? ""
-                                venueZipCode = saved.zip_code ?? ""
-                                venueCountry = saved.country ?? BusinessLocationCountryPolicy.defaultCountryCode
-                                venueLatitude = saved.latitude
-                                venueLongitude = saved.longitude
-                                venueFormattedAddress = saved.formatted_address ?? ""
-                                totalScreens = saved.screen_count ?? 1
-                                hasFood = saved.serves_food ?? false
-                                hasWifi = saved.has_wifi ?? false
-                                hasGarden = saved.has_garden ?? false
-                                hasProjector = saved.has_projector ?? false
-                                isPetFriendly = saved.pet_friendly ?? false
-                                syncModernFeatureToggles(from: saved.features ?? "")
-                                syncDisplayedVenuePhotoURLsFromViewModel()
-                            }
-                        }
-
-                        await MainActor.run {
-                            profileSaveMessage = success ? "Profile saved successfully" : "Unable to save profile"
-                        }
-                    }
-                } label: {
-                    primaryButtonText("Save Profile")
+            if success, let saved = await viewModel.loadVenueProfile() {
+                await MainActor.run {
+                    viewModel.applyVenueProfileRowToOwnerState(saved)
+                    applyVenueProfileToLocalEditorFields(saved)
                 }
-                .disabled(selectedVenuePlanLocked || isDeletingVenue)
-                .opacity(selectedVenuePlanLocked || isDeletingVenue ? 0.55 : 1)
             }
 
-                if !profileSaveMessage.isEmpty {
-
-                               Text(profileSaveMessage)
-
-                                   .font(.caption)
-
-                                   .fontWeight(.bold)
-
-                                   .foregroundStyle(profileSaveMessage == BusinessLimitCopy.planLockedVenueSubtitle ? .orange : .green)
-
-                                   .frame(maxWidth: .infinity, alignment: .center)
-
-                           }
-
-                           if !venueDeleteError.isEmpty {
-
-                               Text(venueDeleteError)
-
-                                   .font(.caption.weight(.bold))
-
-                                   .foregroundStyle(FGColor.dangerRed)
-
-                                   .frame(maxWidth: .infinity, alignment: .center)
-
-                           }
-
-                           }
-
-                       }
-
-            if !shouldShowVenueDetailsEmptyState,
-               selectedManagedVenueForRemoval != nil {
-                deleteVenueDangerZone
+            await MainActor.run {
+                profileSaveMessage = success ? "Profile saved successfully" : "Unable to save profile"
             }
         }
     }
@@ -8791,6 +8844,24 @@ struct VenueOwnerDashboardView: View {
     private func syncDisplayedVenuePhotoURLsFromViewModel() {
         displayedCoverPhotoURL = viewModel.venueCoverPhotoURL.trimmingCharacters(in: .whitespacesAndNewlines)
         displayedMenuPhotoURL = viewModel.venueMenuPhotoURL.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func businessVenueProfilePhotoEditor(
+        title: String,
+        subtitle: String,
+        fullImageURL: String,
+        thumbnailURL: String,
+        selection: Binding<PhotosPickerItem?>
+    ) -> some View {
+        let full = fullImageURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        let thumb = thumbnailURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        let previewURL = !full.isEmpty ? full : thumb
+        return VenueOwnerBusinessPhotoPickerCard(
+            title: title,
+            subtitle: subtitle,
+            pickerSelection: selection,
+            remotePreviewURL: previewURL
+        )
     }
 
     private func venueProfilePhotoEditor(

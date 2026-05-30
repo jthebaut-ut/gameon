@@ -180,6 +180,7 @@ struct SettingsScreen: View {
     @State private var showBusinessUsageSheet = false
     @State private var showSponsorInquirySheet = false
     @State private var showBusinessActiveVenueSelectionSheet = false
+    @State private var businessDashboardQuickActionNotice: String?
     @State private var activeVenueSelectionQuickActionNotice: String?
     @State private var settingsBusinessMembershipStatus: BusinessVenueGamePostingStatus?
     @State private var settingsBusinessHostedGameCycleAudit: BusinessHostedGameCycleAudit?
@@ -1175,6 +1176,24 @@ struct SettingsScreen: View {
         }
     }
 
+    @MainActor
+    private func presentBusinessDashboardQuickAction(
+        source: String,
+        keepsVenueOwnerRoute: Bool = false,
+        _ present: () -> Void
+    ) {
+        if !keepsVenueOwnerRoute {
+            venueOwnerDashboardSheet = nil
+        }
+        showAddLocationSheet = false
+        showBusinessProSubscriptionSheet = false
+        showBusinessUsageSheet = false
+        showBusinessActiveVenueSelectionSheet = false
+        showReportedCommentsSheet = false
+        businessDashboardQuickActionNotice = nil
+        present()
+    }
+
     private var settingsBusinessProRow: some View {
         let isPro = settingsBusinessMembershipStatus?.computedIsPro == true
 
@@ -1200,9 +1219,15 @@ struct SettingsScreen: View {
         return Button {
             logBusinessProVisibilityInBusinessSettings(rowRendered: true)
             if presentingFromProfileSettings {
-                presentFromProfileSettings { showBusinessProSubscriptionSheet = true }
+                presentFromProfileSettings {
+                    presentBusinessDashboardQuickAction(source: "businessPro") {
+                        showBusinessProSubscriptionSheet = true
+                    }
+                }
             } else {
-                showBusinessProSubscriptionSheet = true
+                presentBusinessDashboardQuickAction(source: "businessPro") {
+                    showBusinessProSubscriptionSheet = true
+                }
             }
         } label: {
             settingsRow(
@@ -1487,7 +1512,9 @@ struct SettingsScreen: View {
     private func handleActiveVenueSelectionQuickAction() {
         if settingsCanOpenBusinessActiveVenueSelection {
             activeVenueSelectionQuickActionNotice = nil
-            showBusinessActiveVenueSelectionSheet = true
+            presentBusinessDashboardQuickAction(source: "activeVenueSelectionQuickAction") {
+                showBusinessActiveVenueSelectionSheet = true
+            }
             return
         }
 
@@ -2330,10 +2357,12 @@ struct SettingsScreen: View {
             businessId: viewModel.currentBusinessIdForAddLocation(),
             businessUsageStatus: settingsBusinessMembershipStatus,
             activeVenueSelectionSubtitle: settingsActiveVenueSelectionQuickActionSubtitle,
-            activeVenueSelectionNotice: activeVenueSelectionQuickActionNotice,
+            activeVenueSelectionNotice: businessDashboardQuickActionNotice ?? activeVenueSelectionQuickActionNotice,
             activeVenueSelectionFootnote: settingsActiveVenueSelectionQuickActionFootnote,
             onNotifications: {
-                showReportedCommentsSheet = true
+                presentBusinessDashboardQuickAction(source: "notifications") {
+                    showReportedCommentsSheet = true
+                }
             },
             onMenu: {
                 openBusinessVenueToolRoute(.manageVenue)
@@ -2354,13 +2383,17 @@ struct SettingsScreen: View {
                 openBusinessVenueToolRoute(.statistics)
             },
             onUsage: {
-                showBusinessUsageSheet = true
+                presentBusinessDashboardQuickAction(source: "usageQuickAction") {
+                    showBusinessUsageSheet = true
+                }
             },
             onActiveVenueSelection: {
                 handleActiveVenueSelectionQuickAction()
             },
             onCommentsReports: {
-                showReportedCommentsSheet = true
+                presentBusinessDashboardQuickAction(source: "commentsReportsQuickAction") {
+                    showReportedCommentsSheet = true
+                }
             },
             onViewAllGames: {
                 openBusinessVenueToolRoute(.manageGames)
@@ -3236,9 +3269,17 @@ struct SettingsScreen: View {
                 return
             }
 
+            if route == .manageVenue {
+                guard await prepareVenueDetailsPresentationFromSettings(source: route.rawValue) else {
+                    return
+                }
+            }
+
             await MainActor.run {
                 switch route {
-                case .manageVenue, .manageGames:
+                case .manageVenue:
+                    setVenueOwnerDashboardRoute(route, source: "openBusinessVenueToolRoute")
+                case .manageGames:
                     guard viewModel.ensureValidSelectedManagedVenueForPresentation(source: route.rawValue) else {
 #if DEBUG
                         print("[VenueOwnerEmptyStateDebug] noManagedVenues=true")
@@ -3253,6 +3294,46 @@ struct SettingsScreen: View {
                 }
             }
         }
+    }
+
+    private func prepareVenueDetailsPresentationFromSettings(source: String) async -> Bool {
+        let hasValidatedSelection = await MainActor.run {
+            viewModel.ensureValidSelectedManagedVenueForPresentation(source: source)
+        }
+        guard hasValidatedSelection else {
+            showVenueDetailsUnavailableNotice(source: source, reason: "noValidSelectedVenue")
+            return false
+        }
+
+        guard let selectedVenueId = await MainActor.run(body: { viewModel.ownerVenueDatabaseId }) else {
+            showVenueDetailsUnavailableNotice(source: source, reason: "missingSelectedVenueId")
+            return false
+        }
+
+        guard let row = await viewModel.loadVenueProfile(),
+              row.id == selectedVenueId,
+              venueDetailsRowIsActiveForPresentation(row) else {
+            showVenueDetailsUnavailableNotice(source: source, reason: "profileLoadFailedOrInactive")
+            return false
+        }
+
+        await MainActor.run {
+            viewModel.applyVenueProfileRowToOwnerState(row)
+            businessDashboardQuickActionNotice = nil
+        }
+        return true
+    }
+
+    @MainActor
+    private func showVenueDetailsUnavailableNotice(source: String, reason: String) {
+        venueOwnerDashboardSheet = nil
+        businessDashboardQuickActionNotice = "Venue Details are unavailable until an active managed venue is ready."
+        logBusinessProfileHydrationBlockedEarlyTap(action: source, reason: reason)
+    }
+
+    private func venueDetailsRowIsActiveForPresentation(_ row: VenueProfileRow) -> Bool {
+        let status = row.admin_status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+        return status.isEmpty || status == "active"
     }
 
     @MainActor
@@ -3270,7 +3351,9 @@ struct SettingsScreen: View {
 #if DEBUG
         print("[BusinessDashboardRouteDebug] routeSet source=\(source) oldRoute=\(oldRoute?.rawValue ?? "nil") newRoute=\(route.rawValue) selectedVenueId=\(viewModel.ownerVenueDatabaseId?.uuidString.lowercased() ?? "nil")")
 #endif
-        venueOwnerDashboardSheet = route
+        presentBusinessDashboardQuickAction(source: source, keepsVenueOwnerRoute: true) {
+            venueOwnerDashboardSheet = route
+        }
     }
 
     private func openAddLocationFromBusinessDashboard() {
@@ -3286,7 +3369,9 @@ struct SettingsScreen: View {
             await MainActor.run {
                 guard settingsBusinessCanCreateVenueFromServer else {
                     addLocationSubmitBanner = BusinessLimitCopy.venueLimitReached
-                    showBusinessUsageSheet = true
+                    presentBusinessDashboardQuickAction(source: "\(action)LimitReached") {
+                        showBusinessUsageSheet = true
+                    }
                     return
                 }
                 presentAddLocationSheet(reason: action)
@@ -3301,7 +3386,9 @@ struct SettingsScreen: View {
 #endif
         addLocationSubmitBanner = nil
         addLocationSheetFormState.reset(reason: reason == "picker" ? "open" : reason)
-        showAddLocationSheet = true
+        presentBusinessDashboardQuickAction(source: "addLocation.\(reason)") {
+            showAddLocationSheet = true
+        }
     }
 
     private func addLocationSubmitBannerForegroundStyle() -> Color {

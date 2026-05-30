@@ -60,6 +60,7 @@ struct VenueOwnerListingPhotoPickerCard: View {
     var emptySelectionButtonTitle: String = "Tap to add photo"
     var replaceSelectionButtonTitle: String = "Tap to replace photo"
     var usesFanGeoSheetChrome: Bool = false
+    var remoteLoadFailureMessage: String? = nil
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -106,15 +107,20 @@ struct VenueOwnerListingPhotoPickerCard: View {
                                     Image(uiImage: ui)
                                         .resizable()
                                         .scaledToFill()
-                                } else if let url = URL(string: trimmedRemote), !trimmedRemote.isEmpty {
-                                    AsyncImage(url: url) { image in
-                                        image
-                                            .resizable()
-                                            .scaledToFill()
-                                    } placeholder: {
-                                        ProgressView()
+                                } else if !trimmedRemote.isEmpty {
+                                    if let url = URL(string: trimmedRemote) {
+                                        remotePreview(url)
+                                    } else if let remoteLoadFailureMessage {
+                                        remoteLoadFailureView(remoteLoadFailureMessage)
+                                    } else {
+                                        Image(systemName: "photo")
+                                            .font(.largeTitle)
+                                            .foregroundStyle(
+                                                usesFanGeoSheetChrome
+                                                    ? FGColor.mutedText(colorScheme)
+                                                    : Color.secondary
+                                            )
                                     }
-                                    .id(trimmedRemote)
                                 } else {
                                     Image(systemName: "photo")
                                         .font(.largeTitle)
@@ -173,5 +179,70 @@ struct VenueOwnerListingPhotoPickerCard: View {
                     .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
             }
         }
+    }
+
+    @ViewBuilder
+    private func remotePreview(_ url: URL) -> some View {
+        if let remoteLoadFailureMessage {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                case .failure:
+                    remoteLoadFailureView(remoteLoadFailureMessage)
+                case .empty:
+                    ProgressView()
+                @unknown default:
+                    remoteLoadFailureView(remoteLoadFailureMessage)
+                }
+            }
+            .id(trimmedRemote)
+        } else {
+            AsyncImage(url: url) { image in
+                image
+                    .resizable()
+                    .scaledToFill()
+            } placeholder: {
+                ProgressView()
+            }
+            .id(trimmedRemote)
+        }
+    }
+
+    private func remoteLoadFailureView(_ message: String) -> some View {
+        VStack(spacing: 8) {
+            Image(systemName: "photo.badge.exclamationmark")
+                .font(.title2.weight(.semibold))
+            Text(message)
+                .font(FGTypography.caption.weight(.semibold))
+                .multilineTextAlignment(.center)
+        }
+        .foregroundStyle(
+            usesFanGeoSheetChrome
+                ? FGColor.mutedText(colorScheme)
+                : Color.secondary
+        )
+        .padding(.horizontal, 12)
+    }
+}
+
+/// Business photo picker variant with explicit failed-load fallback for stale `cover_photo_url` values.
+struct VenueOwnerBusinessPhotoPickerCard: View {
+    let title: String
+    let subtitle: String
+    @Binding var pickerSelection: PhotosPickerItem?
+    let remotePreviewURL: String
+
+    var body: some View {
+        VenueOwnerListingPhotoPickerCard(
+            title: title,
+            subtitle: subtitle,
+            pickerSelection: $pickerSelection,
+            remotePreviewURL: remotePreviewURL,
+            localPreviewData: nil,
+            remoteLoadFailureMessage: "Photo could not load"
+        )
     }
 }
