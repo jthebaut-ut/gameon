@@ -540,10 +540,14 @@ struct PublicProfileGridOpenToCard: View {
                 LazyVGrid(columns: gridColumns, spacing: 6) {
                     ForEach(items) { item in
                         VStack(spacing: 5) {
-                            Image(systemName: item.systemImage)
-                                .font(.system(size: 30, weight: .semibold))
-                                .foregroundStyle(item.tint)
-                                .frame(height: 34)
+                            if item.isSocial {
+                                Image(systemName: item.systemImage)
+                                    .font(.system(size: 28, weight: .semibold))
+                                    .foregroundStyle(item.tint)
+                                    .frame(height: 40)
+                            } else {
+                                FanGeoSportBadgeView(sport: item.id, size: 40, style: .profile)
+                            }
 
                             Text(item.openToGridLabel)
                                 .font(.system(size: 9, weight: .bold, design: .rounded))

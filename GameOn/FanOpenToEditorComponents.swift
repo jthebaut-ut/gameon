@@ -19,10 +19,14 @@ struct FanOpenToActivityCard: View {
         Button(action: onTap) {
             ZStack(alignment: .topTrailing) {
                 VStack(spacing: 6) {
-                    Image(systemName: activity.systemImage)
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundStyle(tint)
-                        .frame(height: 26)
+                    if activity.isSocial {
+                        Image(systemName: activity.systemImage)
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundStyle(tint)
+                            .frame(height: 42)
+                    } else {
+                        FanGeoSportBadgeView(sport: activity.id, size: 42, style: .profile)
+                    }
 
                     Text(activity.title)
                         .font(.system(size: 9, weight: .bold, design: .rounded))
@@ -32,7 +36,7 @@ struct FanOpenToActivityCard: View {
                         .minimumScaleFactor(0.75)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
+                .padding(.vertical, 9)
                 .padding(.horizontal, 6)
                 .background(cardBackground)
                 .overlay(cardBorder)

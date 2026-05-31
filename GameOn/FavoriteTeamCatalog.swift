@@ -1148,4 +1148,9 @@ enum FavoriteTeamsStore {
             UserDefaults.standard.set(trimmed, forKey: primaryTeamIDAppStorageKey)
         }
     }
+
+    static func clearAppStorage() {
+        UserDefaults.standard.removeObject(forKey: appStorageKey)
+        UserDefaults.standard.removeObject(forKey: primaryTeamIDAppStorageKey)
+    }
 }

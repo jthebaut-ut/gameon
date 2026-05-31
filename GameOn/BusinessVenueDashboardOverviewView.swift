@@ -350,9 +350,9 @@ struct BusinessVenueDashboardOverviewView: View {
     }
 
     private var favoriteTeamsQuickActionSubtitle: String {
-        if favoriteTeamsCount == 0 { return "No teams selected" }
-        if favoriteTeamsCount == 1 { return "1 team followed" }
-        return "\(favoriteTeamsCount) teams followed"
+        if favoriteTeamsCount == 0 { return "No teams" }
+        if favoriteTeamsCount == 1 { return "1 team" }
+        return "\(favoriteTeamsCount) teams"
     }
 
     private func activeVenueSelectionInfoBanner(_ message: String, tint: Color) -> some View {
@@ -839,10 +839,11 @@ private struct BusinessVenueDashboardActionCard: View {
 
                         if let subtitle {
                             Text(subtitle)
-                                .font(.system(size: 9, weight: .heavy, design: .rounded))
+                                .font(.system(size: 8.8, weight: .heavy, design: .rounded))
                                 .foregroundStyle(tint.opacity(colorScheme == .dark ? 0.96 : 0.90))
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.82)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.74)
                         }
                     }
                 }

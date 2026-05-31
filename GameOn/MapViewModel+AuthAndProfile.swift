@@ -600,6 +600,10 @@ extension MapViewModel {
         currentUserAuthId = nil
         clearUnseenPokesBadgeState()
 
+        savedProGames = []
+        favoriteTeamProGames = []
+        FavoriteTeamsStore.clearAppStorage()
+        clearBusinessFavoriteTeamState()
         favoriteVenueIDs = []
         interestedVenueEventKeys = []
         favoriteVenueWriteInFlightIDs = []
@@ -705,6 +709,7 @@ extension MapViewModel {
         reportedCommentDisplays = []
 
         authErrorMessage = ""
+        notificationPermissionMessage = ""
         userPasswordResetMessage = ""
         userPasswordResetError = ""
         passwordResetUpdateMessage = ""
@@ -1055,7 +1060,8 @@ extension MapViewModel {
 #endif
     }
 
-    func forceLogout(reason: String, source: String) async {
+    @discardableResult
+    func forceLogout(reason: String, source: String) async -> Bool {
         let destructiveAllowed = destructiveLogoutAllowed(reason: reason, source: source)
         logBusinessLogoutTrace("forceLogoutCalled reason=\(reason)")
         logBusinessLogoutTrace("destructiveLogoutAllowed=\(destructiveAllowed)")
@@ -1064,8 +1070,9 @@ extension MapViewModel {
         guard destructiveAllowed else {
             logBusinessLogoutTrace("supabaseSignOutCalled=false")
             await markTransientMissingSessionPreserved(reason: reason, source: source)
-            return
+            return false
         }
+        let requiresSuccessfulRemoteSignOut = reason == "explicitUserLogout" || source == "MapViewModel.logoutUser"
 
         let snapshot = await MainActor.run {
             (
@@ -1092,6 +1099,13 @@ extension MapViewModel {
 #endif
         } catch {
             print("[AuthForceLogoutDebug] signOutSuccess=false error=\(error.localizedDescription)")
+            if requiresSuccessfulRemoteSignOut {
+                await MainActor.run {
+                    authErrorMessage = "Could not log out. Please check your connection and try again."
+                    venueAuthErrorMessage = authErrorMessage
+                }
+                return false
+            }
         }
 
         await stopVenueOwnerAnalyticsRealtime()
@@ -1110,6 +1124,7 @@ extension MapViewModel {
 
         clearPersistedAccountMode()
         UserDefaults.standard.set(true, forKey: Self.didExplicitlyLogoutKey)
+        return true
     }
 
     private func logSessionRestored(_ restored: Bool, reason: String, userId: UUID? = nil) {
@@ -1699,13 +1714,20 @@ extension MapViewModel {
         }
     }
 
-    func logoutUser(reason: String = "explicitUserLogout", preserveAuthErrorMessage: Bool = false) async {
+    @discardableResult
+    func logoutUser(reason: String = "explicitUserLogout", preserveAuthErrorMessage: Bool = false) async -> Bool {
 #if DEBUG
         print("[Auth] logout requested")
 #endif
         let preservedAuthErrorMessage = preserveAuthErrorMessage ? await MainActor.run { authErrorMessage } : ""
 
-        await forceLogout(reason: reason, source: "MapViewModel.logoutUser")
+        let didLogout = await forceLogout(reason: reason, source: "MapViewModel.logoutUser")
+        guard didLogout else {
+#if DEBUG
+            print("[Auth] logout failed; local auth state preserved")
+#endif
+            return false
+        }
 
         if preserveAuthErrorMessage, !preservedAuthErrorMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             await MainActor.run {
@@ -1717,6 +1739,7 @@ extension MapViewModel {
         print("[Auth] local auth state cleared")
         print("[Auth] explicit logout marker set")
 #endif
+        return true
     }
 
     func hasValidSession() async -> Bool {

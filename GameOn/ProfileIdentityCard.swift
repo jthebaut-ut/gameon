@@ -120,6 +120,11 @@ struct ProfileIdentityCard: View {
     private static let incomingPokesLiveRefreshIntervalSeconds = 20
     private static let incomingPokesLiveRefreshIntervalNs: UInt64 =
         UInt64(incomingPokesLiveRefreshIntervalSeconds) * 1_000_000_000
+    private static let profileHeroAvatarDiameter: CGFloat = 126
+    private static let profileHeroAvatarRingWidth: CGFloat = 4
+    private static let profileHeroAvatarOuterPadding: CGFloat = 4
+    private static let profileHeroCameraButtonDiameter: CGFloat = 31
+    private static let profileHeroCameraIconSize: CGFloat = 11.5
     private static let favoriteTeamsCarouselHeight: CGFloat = 178
     private static let favoriteTeamsHomeCrowdBottomSpacing: CGFloat = 8
     private static let profileMajorSectionSpacing: CGFloat = 22
@@ -1899,7 +1904,7 @@ struct ProfileIdentityCard: View {
     }
 
     private var headerRow: some View {
-        HStack(alignment: .top, spacing: 18) {
+        HStack(alignment: .top, spacing: 16) {
             PhotosPicker(selection: $selectedAvatarItem, matching: .images) {
                 avatarStack
             }
@@ -2067,7 +2072,7 @@ struct ProfileIdentityCard: View {
                 localPreviewImage: localAvatarPreviewImage,
                 displayName: displayName,
                 email: viewModel.currentUserEmail,
-                size: 94,
+                size: Self.profileHeroAvatarDiameter,
                 fallbackStyle: .lightOnWhiteChrome,
                 imagePlaceholderTint: FGColor.accentBlue
             )
@@ -2083,16 +2088,16 @@ struct ProfileIdentityCard: View {
                             ],
                             center: .center
                         ),
-                        lineWidth: 3
+                        lineWidth: Self.profileHeroAvatarRingWidth
                     )
             }
-            .padding(3)
+            .padding(Self.profileHeroAvatarOuterPadding)
             .background(Circle().fill(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.96)))
             .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.18 : 0.16), radius: 12, y: 5)
 
             Circle()
                 .fill(Color(.secondarySystemGroupedBackground))
-                .frame(width: 27, height: 27)
+                .frame(width: Self.profileHeroCameraButtonDiameter, height: Self.profileHeroCameraButtonDiameter)
                 .overlay {
                     if isUploadingAvatar {
                         ProgressView()
@@ -2100,15 +2105,15 @@ struct ProfileIdentityCard: View {
                             .tint(FGColor.accentGreen)
                     } else {
                         Image(systemName: "camera.fill")
-                            .font(.system(size: 10, weight: .bold))
+                            .font(.system(size: Self.profileHeroCameraIconSize, weight: .bold))
                             .foregroundStyle(FGColor.accentGreen)
                     }
                 }
                 .overlay {
                     Circle()
-                        .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.14 : 0.95), lineWidth: 1.5)
+                        .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.14 : 0.95), lineWidth: 1.75)
                 }
-                .offset(x: 2, y: 2)
+                .offset(x: 5, y: 5)
         }
     }
 
@@ -4166,13 +4171,19 @@ private struct ProfileSuggestedFansSection: View {
 
     private enum CardMetrics {
         static let width: CGFloat = 168
-        static let height: CGFloat = 220
+        static let minHeight: CGFloat = 244
         static let avatarSize: CGFloat = 74
         static let mutualAvatarSize: CGFloat = 18
         static let buttonHeight: CGFloat = 34
         static let verticalSpacing: CGFloat = 9
         static let infoHeight: CGFloat = 48
         static let reasonRowHeight: CGFloat = 24
+        static let cardTopPadding: CGFloat = 12
+        static let cardHorizontalPadding: CGFloat = 12
+        static let cardBottomPadding: CGFloat = 20
+        static let rowTopPadding: CGFloat = 4
+        static let rowBottomPadding: CGFloat = 22
+        static let rowMinHeight: CGFloat = minHeight + rowTopPadding + rowBottomPadding
     }
 
     private var suggestionsAvatarFingerprint: String {
@@ -4224,13 +4235,15 @@ private struct ProfileSuggestedFansSection: View {
                 ForEach(0..<3, id: \.self) { _ in
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
                         .fill(Color.white.opacity(colorScheme == .dark ? 0.05 : 0.72))
-                        .frame(width: CardMetrics.width, height: CardMetrics.height)
+                        .frame(width: CardMetrics.width, height: CardMetrics.minHeight)
                         .redacted(reason: .placeholder)
                 }
             }
             .padding(.horizontal, 2)
-            .padding(.vertical, 3)
+            .padding(.top, CardMetrics.rowTopPadding)
+            .padding(.bottom, CardMetrics.rowBottomPadding)
         }
+        .frame(minHeight: CardMetrics.rowMinHeight, alignment: .top)
         .accessibilityLabel(L10n.t("suggested_fans", languageCode: appLanguageRaw))
     }
 
@@ -4267,9 +4280,11 @@ private struct ProfileSuggestedFansSection: View {
                 }
             }
             .padding(.horizontal, 2)
-            .padding(.vertical, 4)
+            .padding(.top, CardMetrics.rowTopPadding)
+            .padding(.bottom, CardMetrics.rowBottomPadding)
             .padding(.trailing, 8)
         }
+        .frame(minHeight: CardMetrics.rowMinHeight, alignment: .top)
     }
 
     private func prefetchSuggestedFanAvatars() async {
@@ -4354,8 +4369,11 @@ private struct ProfileSuggestedFansSection: View {
 
             addButton(for: suggestion)
         }
-        .padding(12)
-        .frame(width: CardMetrics.width, height: CardMetrics.height, alignment: .top)
+        .padding(.top, CardMetrics.cardTopPadding)
+        .padding(.horizontal, CardMetrics.cardHorizontalPadding)
+        .padding(.bottom, CardMetrics.cardBottomPadding)
+        .frame(width: CardMetrics.width, alignment: .top)
+        .frame(minHeight: CardMetrics.minHeight, alignment: .top)
         .background(cardBackground)
         .overlay(alignment: .topTrailing) {
             dismissButton(for: suggestion)
@@ -4364,7 +4382,7 @@ private struct ProfileSuggestedFansSection: View {
         .accessibilityElement(children: .combine)
         .onAppear {
 #if DEBUG
-            print("[FriendSuggestionsDebug] cardSize=width:\(Int(CardMetrics.width)),height:\(Int(CardMetrics.height)),avatar:\(Int(CardMetrics.avatarSize)),buttonHeight:\(Int(CardMetrics.buttonHeight))")
+            print("[FriendSuggestionsDebug] cardSize=width:\(Int(CardMetrics.width)),minHeight:\(Int(CardMetrics.minHeight)),avatar:\(Int(CardMetrics.avatarSize)),buttonHeight:\(Int(CardMetrics.buttonHeight))")
 #endif
         }
     }

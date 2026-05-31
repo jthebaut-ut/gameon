@@ -175,29 +175,50 @@ struct NationalTeamIdentityCard: View {
     @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
 
     var body: some View {
-        let flagFrame: CGFloat = compact ? 40 : 46
-        let flagFont: CGFloat = compact ? 30 : 34
-        let cardCorner: CGFloat = compact ? 18 : 20
+        let flagFrame: CGFloat = compact ? 58 : 46
+        let flagFont: CGFloat = compact ? 40 : 34
+        let cardCorner: CGFloat = compact ? 22 : 20
+        let horizontalPadding: CGFloat = compact ? 16 : 13
+        let verticalPadding: CGFloat = compact ? 15 : 13
+        let minCardHeight: CGFloat? = compact ? 92 : nil
         Button {
             onTap?()
         } label: {
-            HStack(spacing: compact ? 10 : 12) {
+            HStack(spacing: compact ? 14 : 12) {
                 Text(identity.flag)
                     .font(.system(size: flagFont))
                     .frame(width: flagFrame, height: flagFrame)
-                    .background(Circle().fill(Color.white.opacity(colorScheme == .dark ? 0.10 : 0.78)))
+                    .minimumScaleFactor(0.8)
+                    .lineLimit(1)
+                    .background {
+                        Circle()
+                            .fill(Color.white.opacity(compact ? (colorScheme == .dark ? 0.15 : 0.86) : (colorScheme == .dark ? 0.10 : 0.78)))
+                            .overlay {
+                                Circle()
+                                    .strokeBorder(
+                                        Color.white.opacity(compact ? (colorScheme == .dark ? 0.22 : 0.78) : 0),
+                                        lineWidth: compact ? 1 : 0
+                                    )
+                            }
+                    }
+                    .shadow(
+                        color: FGColor.accentBlue.opacity(compact ? (colorScheme == .dark ? 0.18 : 0.12) : 0),
+                        radius: compact ? 10 : 0,
+                        y: compact ? 5 : 0
+                    )
 
-                VStack(alignment: .leading, spacing: compact ? 3 : 4) {
+                VStack(alignment: .leading, spacing: compact ? 5 : 4) {
                     Text(identity.resolvedSupporterLabel(languageCode: appLanguageRaw))
-                        .font(.system(size: compact ? 16 : 17, weight: .heavy, design: .rounded))
+                        .font(.system(size: compact ? 18 : 17, weight: .heavy, design: .rounded))
                         .foregroundStyle(FGColor.primaryText(colorScheme))
                         .lineLimit(1)
-                        .minimumScaleFactor(0.75)
+                        .minimumScaleFactor(0.72)
                     HStack(spacing: 6) {
                         Image(systemName: "soccerball")
-                            .font(.system(size: 10, weight: .bold))
+                            .font(.system(size: compact ? 11 : 10, weight: .bold))
                         Text(NationalTeamCopy.text("world_cup_2026", languageCode: appLanguageRaw))
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .font(.system(size: compact ? 12 : 11, weight: .bold, design: .rounded))
+                            .lineLimit(1)
                     }
                     .foregroundStyle(FGColor.accentGreen)
                 }
@@ -210,25 +231,52 @@ struct NationalTeamIdentityCard: View {
                         .foregroundStyle(FGColor.secondaryText(colorScheme))
                 }
             }
-            .padding(compact ? 10 : 13)
+            .padding(.horizontal, horizontalPadding)
+            .padding(.vertical, verticalPadding)
+            .frame(maxWidth: .infinity, minHeight: minCardHeight, alignment: .leading)
             .background {
                 RoundedRectangle(cornerRadius: cardCorner, style: .continuous)
                     .fill(
                         LinearGradient(
                             colors: [
-                                FGColor.accentGreen.opacity(colorScheme == .dark ? 0.22 : 0.13),
-                                FGColor.accentBlue.opacity(colorScheme == .dark ? 0.18 : 0.10),
-                                Color.white.opacity(colorScheme == .dark ? 0.06 : 0.72)
+                                FGColor.accentGreen.opacity(compact ? (colorScheme == .dark ? 0.28 : 0.18) : (colorScheme == .dark ? 0.22 : 0.13)),
+                                FGColor.accentBlue.opacity(compact ? (colorScheme == .dark ? 0.22 : 0.13) : (colorScheme == .dark ? 0.18 : 0.10)),
+                                Color.white.opacity(compact ? (colorScheme == .dark ? 0.08 : 0.80) : (colorScheme == .dark ? 0.06 : 0.72))
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
+                    .overlay(alignment: .topTrailing) {
+                        if compact {
+                            Circle()
+                                .fill(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.10 : 0.08))
+                                .frame(width: 86, height: 86)
+                                .offset(x: 24, y: -36)
+                        }
+                    }
             }
             .overlay {
-                RoundedRectangle(cornerRadius: cardCorner, style: .continuous)
-                    .strokeBorder(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.30 : 0.20), lineWidth: 1)
+                if compact {
+                    RoundedRectangle(cornerRadius: cardCorner, style: .continuous)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(colorScheme == .dark ? 0.12 : 0.86),
+                                    FGColor.accentGreen.opacity(colorScheme == .dark ? 0.32 : 0.24),
+                                    FGColor.accentBlue.opacity(colorScheme == .dark ? 0.22 : 0.16)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                } else {
+                    RoundedRectangle(cornerRadius: cardCorner, style: .continuous)
+                        .strokeBorder(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.30 : 0.20), lineWidth: 1)
+                }
             }
+            .shadow(color: FGColor.accentGreen.opacity(colorScheme == .dark ? 0.12 : 0.08), radius: compact ? 16 : 0, y: compact ? 8 : 0)
         }
         .buttonStyle(.plain)
         .disabled(onTap == nil)

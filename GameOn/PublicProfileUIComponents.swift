@@ -22,6 +22,166 @@ struct PublicProfileSectionLabel: View {
     }
 }
 
+struct FanGeoSportBadgeView: View {
+    enum Style {
+        case profile
+    }
+
+    let sport: String
+    var size: CGFloat = 48
+    var style: Style = .profile
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var visual: SportFilterCatalog.ChipVisual {
+        SportFilterCatalog.resolve(sport)
+    }
+
+    private var normalizedSport: String {
+        sport.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    var body: some View {
+        let colors = palette
+        ZStack {
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            colors.highlight,
+                            colors.primary,
+                            colors.shadow
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(alignment: .topLeading) {
+                    Circle()
+                        .fill(Color.white.opacity(colorScheme == .dark ? 0.20 : 0.30))
+                        .frame(width: size * 0.58, height: size * 0.58)
+                        .blur(radius: size * 0.16)
+                        .offset(x: -size * 0.10, y: -size * 0.16)
+                }
+                .overlay {
+                    Circle()
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(colorScheme == .dark ? 0.28 : 0.78),
+                                    Color.white.opacity(colorScheme == .dark ? 0.08 : 0.20)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: max(0.75, size * 0.025)
+                        )
+                }
+
+            Image(systemName: visual.systemImage)
+                .font(.system(size: size * 0.43, weight: .bold))
+                .symbolRenderingMode(.monochrome)
+                .foregroundStyle(colors.glyph)
+                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.24 : 0.16), radius: 1.5, y: 1)
+                .frame(width: size * 0.68, height: size * 0.68)
+                .accessibilityHidden(true)
+        }
+        .frame(width: size, height: size)
+        .shadow(color: colors.primary.opacity(colorScheme == .dark ? 0.34 : 0.24), radius: size * 0.18, y: size * 0.08)
+        .accessibilityLabel(sport)
+    }
+
+    private var palette: (highlight: Color, primary: Color, shadow: Color, glyph: Color) {
+        let sport = normalizedSport
+        if sport.contains("soccer") || sport.contains("mls") {
+            return (
+                Color(red: 0.20, green: 0.88, blue: 0.48),
+                Color(red: 0.05, green: 0.58, blue: 0.30),
+                Color(red: 0.03, green: 0.30, blue: 0.22),
+                .white
+            )
+        }
+        if sport.contains("basketball") || sport.contains("nba") {
+            return (
+                Color(red: 1.00, green: 0.70, blue: 0.28),
+                Color(red: 0.95, green: 0.40, blue: 0.12),
+                Color(red: 0.54, green: 0.20, blue: 0.08),
+                .white
+            )
+        }
+        if sport.contains("football") || sport.contains("nfl") {
+            return (
+                Color(red: 0.78, green: 0.52, blue: 0.30),
+                Color(red: 0.46, green: 0.28, blue: 0.14),
+                Color(red: 0.24, green: 0.14, blue: 0.08),
+                .white
+            )
+        }
+        if sport.contains("baseball") || sport.contains("mlb") {
+            return (
+                Color(red: 1.00, green: 0.93, blue: 0.88),
+                Color(red: 0.88, green: 0.22, blue: 0.24),
+                Color(red: 0.45, green: 0.08, blue: 0.12),
+                .white
+            )
+        }
+        if sport.contains("tennis") {
+            return (
+                Color(red: 1.00, green: 0.94, blue: 0.20),
+                Color(red: 0.62, green: 0.78, blue: 0.12),
+                Color(red: 0.22, green: 0.48, blue: 0.20),
+                Color(red: 0.05, green: 0.16, blue: 0.10)
+            )
+        }
+        if sport.contains("hockey") || sport.contains("nhl") {
+            return (
+                Color(red: 0.68, green: 0.92, blue: 1.00),
+                Color(red: 0.18, green: 0.50, blue: 0.92),
+                Color(red: 0.08, green: 0.20, blue: 0.46),
+                .white
+            )
+        }
+        if sport.contains("golf") {
+            return (
+                Color(red: 0.38, green: 0.86, blue: 0.58),
+                Color(red: 0.10, green: 0.54, blue: 0.40),
+                Color(red: 0.06, green: 0.28, blue: 0.38),
+                .white
+            )
+        }
+        if sport.contains("pickleball") {
+            return (
+                Color(red: 0.30, green: 0.88, blue: 0.72),
+                Color(red: 0.12, green: 0.66, blue: 0.44),
+                Color(red: 0.04, green: 0.34, blue: 0.30),
+                .white
+            )
+        }
+        if sport.contains("volleyball") {
+            return (
+                Color(red: 0.52, green: 0.80, blue: 1.00),
+                Color(red: 0.18, green: 0.46, blue: 0.92),
+                Color(red: 0.96, green: 0.70, blue: 0.22),
+                .white
+            )
+        }
+        if sport.contains("running") || sport.contains("fitness") {
+            return (
+                Color(red: 0.56, green: 0.56, blue: 1.00),
+                Color(red: 0.42, green: 0.30, blue: 0.86),
+                Color(red: 0.14, green: 0.28, blue: 0.62),
+                .white
+            )
+        }
+        return (
+            visual.accent.opacity(colorScheme == .dark ? 0.95 : 0.86),
+            visual.accent,
+            FGColor.accentBlue.opacity(0.72),
+            .white
+        )
+    }
+}
+
 // MARK: - Open To chips
 
 struct PublicProfileOpenToChipGrid: View {
@@ -44,10 +204,14 @@ struct PublicProfileOpenToChipGrid: View {
 
     private func openToChipCard(_ item: PublicProfileOpenToItem) -> some View {
         VStack(spacing: 6) {
-            Image(systemName: item.systemImage)
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(item.tint)
-                .frame(height: 26)
+            if item.isSocial {
+                Image(systemName: item.systemImage)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(item.tint)
+                    .frame(height: 44)
+            } else {
+                FanGeoSportBadgeView(sport: item.id, size: 44, style: .profile)
+            }
 
             Text(item.title)
                 .font(.system(size: 9, weight: .bold, design: .rounded))
@@ -57,7 +221,7 @@ struct PublicProfileOpenToChipGrid: View {
                 .minimumScaleFactor(0.75)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
+        .padding(.vertical, 9)
         .padding(.horizontal, 4)
         .background {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -109,10 +273,14 @@ struct SelfProfileOpenToPreviewGrid: View {
 
     private func openToChipCard(_ item: PublicProfileOpenToItem) -> some View {
         VStack(spacing: 6) {
-            Image(systemName: item.systemImage)
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(item.tint)
-                .frame(height: 26)
+            if item.isSocial {
+                Image(systemName: item.systemImage)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(item.tint)
+                    .frame(height: 44)
+            } else {
+                FanGeoSportBadgeView(sport: item.id, size: 44, style: .profile)
+            }
 
             Text(item.title)
                 .font(.system(size: 9, weight: .bold, design: .rounded))
@@ -122,7 +290,7 @@ struct SelfProfileOpenToPreviewGrid: View {
                 .minimumScaleFactor(0.75)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
+        .padding(.vertical, 9)
         .padding(.horizontal, 4)
         .background {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -174,7 +342,7 @@ struct SelfProfileOpenToPreviewGrid: View {
                 Image(systemName: "plus")
                     .font(.system(size: 22, weight: .semibold))
                     .foregroundStyle(FGColor.accentBlue)
-                    .frame(height: 26)
+                    .frame(height: 44)
 
                 Text("Add")
                     .font(.system(size: 9, weight: .bold, design: .rounded))
@@ -184,7 +352,7 @@ struct SelfProfileOpenToPreviewGrid: View {
                     .minimumScaleFactor(0.75)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 10)
+            .padding(.vertical, 9)
             .padding(.horizontal, 4)
             .background {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)

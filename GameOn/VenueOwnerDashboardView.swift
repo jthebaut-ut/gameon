@@ -7686,17 +7686,25 @@ struct VenueOwnerDashboardView: View {
                     .foregroundStyle(.secondary)
 
                 VStack(alignment: .leading, spacing: 7) {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text("Opportunity Score: \(score.value)")
-                            .font(.caption.weight(.heavy))
-                            .foregroundStyle(FGColor.primaryText(colorScheme))
-                        Text(score.band)
-                            .font(.caption2.weight(.heavy))
-                            .foregroundStyle(scoreTint)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(scoreTint.opacity(colorScheme == .dark ? 0.18 : 0.10))
-                            .clipShape(Capsule(style: .continuous))
+                    HStack(alignment: .top, spacing: 8) {
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text("Opportunity Score: \(score.value)")
+                                .font(.caption.weight(.heavy))
+                                .foregroundStyle(FGColor.primaryText(colorScheme))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.82)
+
+                            Text(score.band)
+                                .font(.caption2.weight(.heavy))
+                                .foregroundStyle(scoreTint)
+                                .lineLimit(1)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(scoreTint.opacity(colorScheme == .dark ? 0.18 : 0.10))
+                                .clipShape(Capsule(style: .continuous))
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
                         Button {
                             suggestedScoreHelpPresentation = .game(
                                 title: suggestedMatchTitle(for: match),
@@ -7708,6 +7716,7 @@ struct VenueOwnerDashboardView: View {
                                 .foregroundStyle(Color.accentColor)
                         }
                         .buttonStyle(.plain)
+                        .padding(.top, 1)
                     }
 
                     suggestedOpportunityReasonChips(score.reasonChips, fallbackBand: score.band, tint: accent)
@@ -7759,15 +7768,13 @@ struct VenueOwnerDashboardView: View {
         tint: Color
     ) -> some View {
         let displayChips = suggestedOpportunityDisplayChips(chips, fallbackBand: fallbackBand)
-        return ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 7) {
-                ForEach(displayChips, id: \.self) { chip in
-                    suggestedOpportunityBadge(chip, tint: suggestedOpportunityReasonTint(chip, fallbackTint: tint))
-                }
+        return FGWrappingLayout(horizontalSpacing: 7, verticalSpacing: 6) {
+            ForEach(displayChips, id: \.self) { chip in
+                suggestedOpportunityBadge(chip, tint: suggestedOpportunityReasonTint(chip, fallbackTint: tint))
             }
-            .padding(.vertical, 1)
         }
-        .scrollClipDisabled()
+        .padding(.vertical, 1)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func suggestedOpportunityDisplayChips(_ chips: [String], fallbackBand: String) -> [String] {
@@ -7775,7 +7782,7 @@ struct VenueOwnerDashboardView: View {
         if display.count < 2 {
             display.append(fallbackBand)
         }
-        return Array(display.prefix(4))
+        return Array(display.prefix(3))
     }
 
     private func suggestedOpportunityReasonTint(_ chip: String, fallbackTint: Color) -> Color {
@@ -7805,6 +7812,7 @@ struct VenueOwnerDashboardView: View {
         Text(text)
             .font(.caption2.weight(.heavy))
             .foregroundStyle(tint)
+            .lineLimit(1)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .background(tint.opacity(colorScheme == .dark ? 0.18 : 0.10))
@@ -10860,6 +10868,8 @@ private struct VenueOwnerManageGameRow: View {
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(FGColor.secondaryText(colorScheme))
                         .lineLimit(1)
+
+                    scheduledVenueLine
                 }
 
                 Spacer(minLength: 8)
@@ -10973,6 +10983,89 @@ private struct VenueOwnerManageGameRow: View {
             return formattedDateTime
         }
         return Self.dashboardDateTimeFormatter.string(from: start)
+    }
+
+    private var scheduledVenueLine: some View {
+        let venue = resolvedScheduledVenue
+        return HStack(alignment: .firstTextBaseline, spacing: 5) {
+            Image(systemName: "mappin.and.ellipse")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme).opacity(0.78))
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(venue.name)
+                    .font(.caption2.weight(.heavy))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+
+                if let address = venue.address {
+                    Text(address)
+                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme).opacity(0.82))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+            }
+        }
+        .accessibilityLabel("Venue: \(venue.name)")
+    }
+
+    private var resolvedScheduledVenue: (name: String, address: String?) {
+        let managed = viewModel.managedVenuesForOwner()
+        let matchedVenue = managed.first { managedRow in
+            guard let managedId = managedRow.id else { return false }
+            return managedId == row.venue_id
+        }
+
+        let name = firstNonEmpty(
+            matchedVenue?.venue_name,
+            row.venue_name,
+            selectedManagedVenue?.venue_name,
+            viewModel.ownerVenueName,
+            "Venue"
+        )
+        let address = compactVenueAddress(for: matchedVenue ?? selectedManagedVenue)
+        return (name, address)
+    }
+
+    private var selectedManagedVenue: VenueProfileRow? {
+        guard let selectedId = viewModel.ownerVenueDatabaseId else { return nil }
+        return viewModel.managedVenuesForOwner().first { $0.id == selectedId }
+    }
+
+    private func compactVenueAddress(for venue: VenueProfileRow?) -> String? {
+        guard let venue else { return nil }
+        let formatted = firstNonEmpty(venue.formatted_address, venue.address)
+        if !formatted.isEmpty, formatted.count <= 58 {
+            return formatted
+        }
+
+        let street = firstNonEmpty(venue.address_line1, venue.address)
+        let locality = [venue.city, venue.state]
+            .compactMap { trimmedNonEmpty($0) }
+            .joined(separator: ", ")
+        let compact = [street, locality]
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: ", ")
+        guard !compact.isEmpty, compact.count <= 58 else { return nil }
+        return compact
+    }
+
+    private func firstNonEmpty(_ values: String?...) -> String {
+        for value in values {
+            if let trimmed = trimmedNonEmpty(value) {
+                return trimmed
+            }
+        }
+        return ""
+    }
+
+    private func trimmedNonEmpty(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     private var momentumState: (label: String, tint: Color, isHighEnergy: Bool) {

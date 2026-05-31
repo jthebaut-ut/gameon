@@ -191,6 +191,8 @@ struct SettingsScreen: View {
     @State private var showUserAuthSheet = false
     @State private var showVenueAuthSheet = false
     @State private var showLiveSharingModeDialog = false
+    @State private var isProfileLogoutInProgress = false
+    @State private var profileSettingsLogoutError: String?
     @State private var showDeleteAccountSheet = false
     @State private var showDeleteVenueOwnerSheet = false
     @State private var showReportedCommentsSheet = false
@@ -284,14 +286,31 @@ struct SettingsScreen: View {
         viewModel.isLoggedIn || viewModel.isVenueOwnerLoggedIn || viewModel.hasAuthenticatedVenueOwnerSession
     }
 
-    /// Full Supabase sign-out for business sessions (same pipeline as fan logout: clears tokens, explicit-logout marker, and owner UI state).
-    private func performBusinessAccountLogout() {
+    /// Full Supabase sign-out for fan and business sessions. Keeps Settings open until the remote sign-out and local cleanup agree.
+    private func performProfileSettingsLogout() {
+        guard !isProfileLogoutInProgress else { return }
+        isProfileLogoutInProgress = true
+        profileSettingsLogoutError = nil
         Task { @MainActor in
-            await viewModel.logoutUser()
-            venueOwnerDashboardSheet = nil
-            showVenueOwnerPasswordResetSheet = false
-            showReportedCommentsSheet = false
-            showDeleteVenueOwnerSheet = false
+            let didLogout = await viewModel.logoutUser()
+            if didLogout {
+                chatViewModel.clearForSignOut()
+                venueOwnerDashboardSheet = nil
+                showVenueOwnerPasswordResetSheet = false
+                showReportedCommentsSheet = false
+                showDeleteVenueOwnerSheet = false
+                showDeleteAccountSheet = false
+                profileSettingsPath = NavigationPath()
+                showProfileSettingsSheet = false
+            } else {
+                let message = viewModel.authErrorMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    ? viewModel.venueAuthErrorMessage.trimmingCharacters(in: .whitespacesAndNewlines)
+                    : viewModel.authErrorMessage.trimmingCharacters(in: .whitespacesAndNewlines)
+                profileSettingsLogoutError = message.isEmpty
+                    ? "Could not log out. Please check your connection and try again."
+                    : message
+            }
+            isProfileLogoutInProgress = false
         }
     }
 
@@ -308,6 +327,10 @@ struct SettingsScreen: View {
                         SettingsProfileHero(
                             viewModel: viewModel,
                             businessMembershipStatus: settingsBusinessMembershipStatus,
+                            businessVenueSelectorOnAddLocation: { openAddLocationFromPicker() },
+                            businessVenueSelectorIsHydrating: businessProfileVenueSelectorIsHydrating,
+                            businessVenueSelectorHydrationReason: businessProfileVenueHydrationState.reason,
+                            businessVenueSelectorOnBlockedEarlyTap: logBusinessProfileHydrationBlockedEarlyTap,
                             venueOwnerOnNotifications: { showReportedCommentsSheet = true },
                             venueOwnerOnResetPassword: {
                                 guard viewModel.canPresentPasswordResetRequestSheet() else {
@@ -381,17 +404,6 @@ struct SettingsScreen: View {
 
                 if shouldShowInlineBusinessDashboard {
                     Section {
-                        BusinessLocationVenuePicker(
-                            viewModel: viewModel,
-                            chrome: .dashboard,
-                            onRequestAddNewLocation: { openAddLocationFromPicker() },
-                            isHydrating: businessProfileVenueSelectorIsHydrating,
-                            hydrationReason: businessProfileVenueHydrationState.reason,
-                            onBlockedEarlyTap: logBusinessProfileHydrationBlockedEarlyTap
-                        )
-                        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
-                        .listRowBackground(Color.clear)
-
                         settingsBusinessProRow
                             .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 6, trailing: 16))
                             .listRowBackground(Color.clear)
@@ -752,7 +764,9 @@ struct SettingsScreen: View {
             }
         }
         .onChange(of: showProfileSettingsSheet) { _, isPresented in
-            if !isPresented {
+            if isPresented {
+                profileSettingsLogoutError = nil
+            } else {
                 profileSettingsPath = NavigationPath()
             }
         }
@@ -823,6 +837,7 @@ struct SettingsScreen: View {
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
                 .presentationBackground(FGAdaptiveSurface.sheetRoot)
+                .interactiveDismissDisabled(isProfileLogoutInProgress)
         }
         .sheet(isPresented: $showBusinessProSubscriptionSheet) {
             BusinessProSubscriptionView(businessStatus: settingsBusinessMembershipStatus)
@@ -1022,6 +1037,7 @@ struct SettingsScreen: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L10n.t("close", languageCode: appLanguageRaw)) { showProfileSettingsSheet = false }
+                        .disabled(isProfileLogoutInProgress)
                 }
             }
         }
@@ -1713,14 +1729,38 @@ struct SettingsScreen: View {
                 .listRowBackground(Color.clear)
 
                 settingsSectionCard {
+                    if let profileSettingsLogoutError,
+                       !profileSettingsLogoutError.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        SettingsSheetStatusBanner(
+                            title: "Could not log out",
+                            message: profileSettingsLogoutError,
+                            tint: FGColor.dangerRed,
+                            systemImage: "exclamationmark.triangle.fill"
+                        )
+                        .padding(.horizontal, FGSpacing.md)
+                        .padding(.vertical, FGSpacing.sm)
+
+                        settingsRowDivider()
+                    }
+
                     if viewModel.isLoggedIn {
                         Button {
-                            showProfileSettingsSheet = false
-                            Task { await viewModel.logoutUser() }
+                            performProfileSettingsLogout()
                         } label: {
-                            settingsRow(title: "Logout", subtitle: nil, systemImage: "rectangle.portrait.and.arrow.right")
+                            settingsRow(
+                                title: isProfileLogoutInProgress ? "Logging out..." : "Logout",
+                                subtitle: isProfileLogoutInProgress ? "Signing out securely." : nil,
+                                systemImage: "rectangle.portrait.and.arrow.right",
+                                showsChevron: false
+                            ) {
+                                if isProfileLogoutInProgress {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                }
+                            }
                         }
                         .buttonStyle(.plain)
+                        .disabled(isProfileLogoutInProgress)
 
                         settingsRowDivider()
 
@@ -1735,6 +1775,7 @@ struct SettingsScreen: View {
                             )
                         }
                         .buttonStyle(.plain)
+                        .disabled(isProfileLogoutInProgress)
 
                         if viewModel.isVenueOwnerLoggedIn {
                             settingsRowDivider()
@@ -1750,19 +1791,26 @@ struct SettingsScreen: View {
                                 )
                             }
                             .buttonStyle(.plain)
+                            .disabled(isProfileLogoutInProgress)
                         }
                     } else if viewModel.isVenueOwnerLoggedIn {
                         Button {
-                            showProfileSettingsSheet = false
-                            performBusinessAccountLogout()
+                            performProfileSettingsLogout()
                         } label: {
                             settingsRow(
-                                title: "Logout",
-                                subtitle: "Sign out of this business account.",
-                                systemImage: "rectangle.portrait.and.arrow.right"
-                            )
+                                title: isProfileLogoutInProgress ? "Logging out..." : "Logout",
+                                subtitle: isProfileLogoutInProgress ? "Signing out securely." : "Sign out of this business account.",
+                                systemImage: "rectangle.portrait.and.arrow.right",
+                                showsChevron: false
+                            ) {
+                                if isProfileLogoutInProgress {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                }
+                            }
                         }
                         .buttonStyle(.plain)
+                        .disabled(isProfileLogoutInProgress)
 
                         settingsRowDivider()
 
@@ -1777,6 +1825,7 @@ struct SettingsScreen: View {
                             )
                         }
                         .buttonStyle(.plain)
+                        .disabled(isProfileLogoutInProgress)
                     }
                 }
                 .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 12, trailing: 16))
@@ -4660,6 +4709,10 @@ private struct SettingsVenueAuthSheet: View {
 private struct SettingsProfileHero: View {
     @ObservedObject var viewModel: MapViewModel
     var businessMembershipStatus: BusinessVenueGamePostingStatus?
+    var businessVenueSelectorOnAddLocation: (() -> Void)?
+    var businessVenueSelectorIsHydrating = false
+    var businessVenueSelectorHydrationReason = "ready"
+    var businessVenueSelectorOnBlockedEarlyTap: ((String, String) -> Void)?
     var venueOwnerOnNotifications: () -> Void
     var venueOwnerOnResetPassword: () -> Void
     var venueOwnerOnDismissSheetsAfterLogout: () -> Void
@@ -5038,6 +5091,8 @@ private struct SettingsProfileHero: View {
                             .font(FGTypography.caption.weight(.bold))
                             .foregroundStyle(FGColor.accentGreen)
 
+                        businessHeaderVenueSelector
+
                         Text("We bring fans together with the best sports atmosphere.")
                             .font(FGTypography.caption)
                             .foregroundStyle(.white.opacity(0.82))
@@ -5094,6 +5149,19 @@ private struct SettingsProfileHero: View {
         }
         .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.24 : 0.14), radius: 16, y: 9)
         .shadow(color: FGColor.accentGreen.opacity(colorScheme == .dark ? 0.10 : 0.06), radius: 14, y: 2)
+    }
+
+    @ViewBuilder
+    private var businessHeaderVenueSelector: some View {
+        BusinessLocationVenuePicker(
+            viewModel: viewModel,
+            chrome: .headerCompact,
+            onRequestAddNewLocation: businessVenueSelectorOnAddLocation,
+            isHydrating: businessVenueSelectorIsHydrating,
+            hydrationReason: businessVenueSelectorHydrationReason,
+            onBlockedEarlyTap: businessVenueSelectorOnBlockedEarlyTap
+        )
+        .padding(.top, 1)
     }
 
     private var businessHeaderAvatar: some View {
@@ -7834,6 +7902,7 @@ struct BusinessLocationVenuePicker: View {
     enum Chrome {
         case settings
         case dashboard
+        case headerCompact
     }
 
     private enum ManagedVenueSelectorStatus {
@@ -8144,7 +8213,7 @@ struct BusinessLocationVenuePicker: View {
         switch chrome {
         case .settings:
             return "Current managed venue"
-        case .dashboard:
+        case .dashboard, .headerCompact:
             return "Managing location"
         }
     }
@@ -8409,6 +8478,52 @@ struct BusinessLocationVenuePicker: View {
         }
     }
 
+    private var headerCompactSelectorButton: some View {
+        Button {
+            guard !blockHydratingTap(action: "viewingVenueSelector") else { return }
+#if DEBUG
+            print("[BusinessVenueSelectorDebug] headerSelectorTapped=true")
+#endif
+            showVenueListSheet = true
+        } label: {
+            HStack(spacing: 7) {
+                Image(systemName: isHydrating ? "hourglass" : "building.2.fill")
+                    .font(.system(size: 11, weight: .bold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.white.opacity(0.88))
+
+                Text(selectedVenueLabel)
+                    .font(.system(size: 12, weight: .heavy, design: .rounded))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+
+                Image(systemName: isHydrating ? "chevron.right" : "chevron.down")
+                    .font(.system(size: 9, weight: .black))
+                    .foregroundStyle(.white.opacity(0.72))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background {
+                Capsule(style: .continuous)
+                    .fill(Color.white.opacity(colorScheme == .dark ? 0.12 : 0.14))
+                    .overlay {
+                        Capsule(style: .continuous)
+                            .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.16 : 0.22), lineWidth: 1)
+                    }
+            }
+            .contentShape(Capsule(style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .opacity(isHydrating ? 0.68 : 1)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .onAppear {
+#if DEBUG
+            print("[BusinessVenueSelectorDebug] headerSelectorVisible=true")
+#endif
+        }
+    }
+
     private var dashboardVenueListSheet: some View {
         NavigationStack {
             ScrollView {
@@ -8664,12 +8779,14 @@ struct BusinessLocationVenuePicker: View {
                     settingsChromePickerStack()
                 case .dashboard:
                     dashboardChromeSelectorButton
+                case .headerCompact:
+                    headerCompactSelectorButton
                 }
             } else if venuePairs.isEmpty && managedVenueSelectorRows.isEmpty {
                 switch chrome {
                 case .settings:
                     settingsChromePickerStack()
-                case .dashboard:
+                case .dashboard, .headerCompact:
                     EmptyView()
                 }
             } else {
@@ -8679,6 +8796,8 @@ struct BusinessLocationVenuePicker: View {
 
                 case .dashboard:
                     dashboardChromeSelectorButton
+                case .headerCompact:
+                    headerCompactSelectorButton
                 }
             }
         }
