@@ -25,14 +25,17 @@ extension MapViewModel {
     }
 
     @MainActor
-    func refreshLiveMatchesForCalendar(forceRefresh: Bool = false) async {
+    func refreshLiveMatchesForCalendar(selectedDate: Date? = nil, forceRefresh: Bool = false) async {
         if let inFlight = liveMatchesRefreshTask {
             await inFlight.value
-            return
         }
 
         let task = Task { @MainActor [weak self] () -> Void in
-            await self?.runLiveMatchesRefresh(forceRefresh: forceRefresh)
+            if let selectedDate {
+                await self?.runCalendarProGamesRefresh(selectedDate: selectedDate, forceRefresh: forceRefresh)
+            } else {
+                await self?.runLiveMatchesRefresh(forceRefresh: forceRefresh)
+            }
         }
         liveMatchesRefreshTask = task
         await task.value
@@ -49,8 +52,12 @@ extension MapViewModel {
         print("[LiveDebug] timezone=\(TimeZone.current.identifier)")
         print("[LiveDebug] provider=\(LiveSportsService.providerDescription)")
 #endif
+        let featuredEventsTask = Task {
+            await LiveSportsService.shared.fetchActiveFeaturedEvents(forceRefresh: forceRefresh)
+        }
         do {
             let matches = try await LiveSportsService.shared.fetchLiveMatches(forceRefresh: forceRefresh)
+            activeFeaturedEvents = await featuredEventsTask.value
             let diagnostics = await LiveSportsService.shared.lastFetchDiagnostics
 #if DEBUG
             print("[LiveRefreshDebug] replace_not_append=true previous_count=\(liveMatches.count) incoming_count=\(matches.count)")
@@ -73,6 +80,58 @@ extension MapViewModel {
 #endif
             liveMatchesLoadError = "Couldn't refresh live games. Showing the latest available results."
             liveMatchesEmptyDebugHint = "Live provider error: \(error.localizedDescription)"
+            activeFeaturedEvents = await featuredEventsTask.value
+        }
+    }
+
+    @MainActor
+    private func runCalendarProGamesRefresh(selectedDate: Date, forceRefresh: Bool) async {
+        isLoadingLiveMatches = true
+        defer { isLoadingLiveMatches = false }
+
+#if DEBUG
+        print("[CalendarProGamesDebug] selectedDateFetchStarted forceRefresh=\(forceRefresh)")
+#endif
+        let featuredEventsTask = Task {
+            await LiveSportsService.shared.fetchActiveFeaturedEvents(forceRefresh: forceRefresh)
+        }
+        do {
+            let matches = try await LiveSportsService.shared.fetchLiveMatches(on: selectedDate, forceRefresh: forceRefresh)
+            activeFeaturedEvents = await featuredEventsTask.value
+            mergeCalendarProGameMatches(matches, for: selectedDate)
+            liveMatchesLoadError = nil
+            invalidateCalendarTabEventsListCache()
+#if DEBUG
+            print("[CalendarProGamesDebug] selectedDateFetchCount=\(matches.count)")
+#endif
+        } catch {
+#if DEBUG
+            print("[CalendarProGamesDebug] selectedDateFetchFailed error=\(error.localizedDescription)")
+#endif
+            liveMatchesLoadError = "Couldn't refresh pro games. Showing the latest available results."
+            activeFeaturedEvents = await featuredEventsTask.value
+        }
+    }
+
+    @MainActor
+    private func mergeCalendarProGameMatches(_ matches: [LiveMatch], for selectedDate: Date) {
+        let cal = Calendar.current
+        let day = cal.startOfDay(for: selectedDate)
+        var mergedByID: [String: LiveMatch] = [:]
+
+        for match in liveMatches where !cal.isDate(match.startTime, inSameDayAs: day) {
+            mergedByID[match.id] = match
+        }
+        for match in matches {
+            mergedByID[match.id] = match
+        }
+
+        liveMatches = mergedByID.values.sorted { lhs, rhs in
+            if lhs.matchStatus.isHappeningNow != rhs.matchStatus.isHappeningNow {
+                return lhs.matchStatus.isHappeningNow && !rhs.matchStatus.isHappeningNow
+            }
+            if lhs.startTime != rhs.startTime { return lhs.startTime < rhs.startTime }
+            return lhs.league.localizedCaseInsensitiveCompare(rhs.league) == .orderedAscending
         }
     }
 
@@ -134,7 +193,9 @@ extension MapViewModel {
         selectedDate: Date,
         searchQuery: String,
         sportFilter: String,
-        worldCupOnly: Bool
+        worldCupOnly: Bool,
+        selectedLeagueCountries: Set<String> = [],
+        featuredEvent: FeaturedEvent? = nil
     ) -> [LiveMatch] {
         let cal = Calendar.current
         let day = cal.startOfDay(for: selectedDate)
@@ -143,13 +204,23 @@ extension MapViewModel {
         let matches = liveMatches
             .filter { cal.isDate($0.startTime, inSameDayAs: day) }
             .filter { match in
-                sport.isEmpty
+                guard featuredEvent == nil else { return true }
+                return sport.isEmpty
                     || sport.localizedCaseInsensitiveCompare("All") == .orderedSame
                     || match.sport.localizedCaseInsensitiveCompare(sport) == .orderedSame
                     || SportFilterCatalog.storedSport(match.sport, matchesSearchQuery: sport)
             }
             .filter { query.isEmpty || Self.liveMatch($0, matchesSearchQuery: query) }
-            .filter { !worldCupOnly || Self.liveMatchMatchesWorldCupFilter($0) }
+            .filter { match in
+                if let featuredEvent {
+                    return LiveMatchFilters.matchesFeaturedEvent(match, featuredEvent: featuredEvent)
+                }
+                return !worldCupOnly || LiveMatchFilters.isFifaWorldCupMatch(match)
+            }
+            .filter { match in
+                guard featuredEvent == nil else { return true }
+                return LiveMatchFilters.matchesLeagueCountry(match, selectedCountries: selectedLeagueCountries)
+            }
             .sorted { lhs, rhs in
                 if lhs.startTime != rhs.startTime { return lhs.startTime < rhs.startTime }
                 if lhs.league != rhs.league {
@@ -161,6 +232,8 @@ extension MapViewModel {
         print("[CalendarProGamesDebug] selectedDate=\(Self.calendarProGamesDebugDateFormatter.string(from: day))")
         print("[CalendarProGamesDebug] sportFilter=\(sport.isEmpty ? "All" : sport)")
         print("[CalendarProGamesDebug] worldCupOnly=\(worldCupOnly)")
+        print("[CalendarProGamesDebug] featuredEvent=\(featuredEvent?.slug ?? "nil")")
+        print("[CalendarProGamesDebug] selectedLeagueCountries=\(selectedLeagueCountries.sorted().joined(separator: ","))")
         print("[CalendarProGamesDebug] filteredCount=\(matches.count)")
 #endif
         return matches
@@ -168,7 +241,45 @@ extension MapViewModel {
 
     func calendarProGameDotDates() -> Set<Date> {
         let cal = Calendar.current
-        return Set(liveMatches.map { cal.startOfDay(for: $0.startTime) })
+        return proGameCalendarDotDates.union(liveMatches.map { cal.startOfDay(for: $0.startTime) })
+    }
+
+    @MainActor
+    func loadCalendarProGameDotDatesAroundMonth(_ month: Date, reason: String) {
+        let cacheKey = Self.calendarProGameDotCacheKey(for: month)
+        if let cached = proGameCalendarDotDatesCache[cacheKey],
+           Date().timeIntervalSince(cached.fetchedAt) < 5 * 60 {
+            proGameCalendarDotDates = cached.dates
+            return
+        }
+
+        isLoadingProGameCalendarDots = true
+#if DEBUG
+        print("[CalendarProGamesDebug] dotFetchStarted reason=\(reason)")
+#endif
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer { self.isLoadingProGameCalendarDots = false }
+            do {
+                let dates = try await LiveSportsService.shared.fetchLiveMatchDateDots(around: month)
+                self.proGameCalendarDotDatesCache[cacheKey] = (dates: dates, fetchedAt: Date())
+                self.proGameCalendarDotDates = dates
+#if DEBUG
+                print("[CalendarProGamesDebug] dotFetchCount=\(dates.count)")
+#endif
+            } catch {
+#if DEBUG
+                print("[CalendarProGamesDebug] dotFetchFailed error=\(error.localizedDescription)")
+#endif
+                self.proGameCalendarDotDates = self.calendarProGameDotDates()
+            }
+        }
+    }
+
+    private static func calendarProGameDotCacheKey(for month: Date) -> String {
+        let calendar = Calendar.current
+        let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: month)) ?? calendar.startOfDay(for: month)
+        return Self.calendarProGamesDebugDateFormatter.string(from: monthStart)
     }
 
     private func liveMatchesDisplayed(
@@ -214,115 +325,4 @@ extension MapViewModel {
         return f
     }()
 
-    private static func liveMatchMatchesWorldCupFilter(_ match: LiveMatch) -> Bool {
-        let league = normalizedWorldCupFilterText(match.league)
-        let title = normalizedWorldCupFilterText("\(match.awayTeam) \(match.homeTeam)")
-        let sport = match.liveSportVisualType
-
-        let clubTournamentKeywords = [
-            "champions league",
-            "europa league",
-            "conference league",
-            "champions cup",
-            "libertadores",
-            "sudamericana",
-            "club world cup"
-        ]
-        if clubTournamentKeywords.contains(where: { league.contains($0) }) {
-            return false
-        }
-
-        let tournamentKeywords = [
-            "world cup",
-            "fifa",
-            "concacaf",
-            "conmebol",
-            "uefa",
-            "international",
-            "friendlies",
-            "friendly",
-            "nations league",
-            "gold cup",
-            "copa america",
-            "euros",
-            "euro qualifiers",
-            "world cup qualification",
-            "world cup qualifier"
-        ]
-        if tournamentKeywords.contains(where: { league.contains($0) }) {
-            return true
-        }
-
-        guard sport == .soccer else { return false }
-        if tournamentKeywords.contains(where: { title.contains($0) }) {
-            return true
-        }
-
-        return isLikelyNationalTeamName(match.awayTeam) && isLikelyNationalTeamName(match.homeTeam)
-    }
-
-    private static func normalizedWorldCupFilterText(_ raw: String) -> String {
-        raw
-            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
-            .replacingOccurrences(of: "_", with: " ")
-            .replacingOccurrences(of: "-", with: " ")
-            .replacingOccurrences(of: "/", with: " ")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
-    }
-
-    private static func isLikelyNationalTeamName(_ rawTeam: String) -> Bool {
-        var name = normalizedWorldCupFilterText(rawTeam)
-        let suffixes = [
-            " national team",
-            " men",
-            " women",
-            " u23",
-            " u21",
-            " u20",
-            " u19",
-            " u18",
-            " u17"
-        ]
-        for suffix in suffixes where name.hasSuffix(suffix) {
-            name = String(name.dropLast(suffix.count)).trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-        return worldCupFilterNationalTeamNames.contains(name)
-    }
-
-    private static let worldCupFilterNationalTeamNames: Set<String> = {
-        var names = Set<String>()
-        for region in Locale.Region.isoRegions {
-            let code = region.identifier
-            let locale = Locale(identifier: "en_US")
-            if let country = locale.localizedString(forRegionCode: code) {
-                names.insert(
-                    country
-                        .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
-                        .lowercased()
-                )
-            }
-        }
-        names.formUnion([
-            "usa",
-            "us",
-            "united states",
-            "england",
-            "scotland",
-            "wales",
-            "northern ireland",
-            "republic of ireland",
-            "south korea",
-            "north korea",
-            "ivory coast",
-            "cote d ivoire",
-            "czech republic",
-            "czechia",
-            "iran",
-            "russia",
-            "turkiye",
-            "turkey"
-        ])
-        return names
-    }()
 }

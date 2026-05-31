@@ -9,14 +9,16 @@ struct CalendarScreen: View {
     /// False while Calendar is preserved off-screen (defers tab-only pickup refresh at launch).
     var isCalendarTabSelected: Bool = false
     @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
+    @AppStorage(LiveLeagueCountryFilterPreference.appStorageKey) private var calendarLeagueCountryFilterRaw: String = ""
     @Environment(\.colorScheme) private var calendarColorScheme
     @Environment(\.scenePhase) private var scenePhase
     @State private var showDatePicker = false
     @State private var showCalendarSportMoreSheet = false
+    @State private var showCalendarLeagueCountryFilterSheet = false
     @State private var calendarDatePickerDetent: PresentationDetent = .large
     @State private var gameSearchText = ""
     @State private var calendarProGamesSportFilter = "All"
-    @State private var calendarProGamesWorldCupOnly = false
+    @State private var calendarFeaturedEventFilterSlug: String?
     @State private var calendarPickupDetailToken: PickupDetailNavigationToken?
 
     private var isBusinessCalendarAccess: Bool {
@@ -71,8 +73,43 @@ struct CalendarScreen: View {
             selectedDate: viewModel.calendarTabSelectedDate,
             searchQuery: gameSearchText,
             sportFilter: calendarProGamesSportFilter,
-            worldCupOnly: calendarProGamesWorldCupOnly
+            worldCupOnly: false,
+            selectedLeagueCountries: selectedCalendarFeaturedEvent == nil ? selectedCalendarLeagueCountries : [],
+            featuredEvent: selectedCalendarFeaturedEvent
         )
+    }
+
+    private var selectedCalendarLeagueCountries: Set<String> {
+        LiveLeagueCountryFilterPreference.decode(from: calendarLeagueCountryFilterRaw)
+    }
+
+    private var calendarLeagueCountryFilterCount: Int {
+        selectedCalendarLeagueCountries.count
+    }
+
+    private var calendarLeagueCountryFilterIsActive: Bool {
+        !selectedCalendarLeagueCountries.isEmpty
+    }
+
+    private var calendarLeagueCountryChipTitle: String {
+        calendarLeagueCountryFilterCount == 0 ? "Countries" : "Countries \(calendarLeagueCountryFilterCount)"
+    }
+
+    private var calendarLeagueCountryOptions: [String] {
+        let cal = Calendar.current
+        let detected = viewModel.liveMatches
+            .filter { cal.isDate($0.startTime, inSameDayAs: viewModel.calendarTabSelectedDate) }
+            .compactMap(\.leagueCountry)
+        return Array(Set(LiveLeagueCountryResolver.presetCountries + detected + Array(selectedCalendarLeagueCountries))).sorted()
+    }
+
+    private var calendarFeaturedEvents: [FeaturedEvent] {
+        viewModel.activeFeaturedEvents
+    }
+
+    private var selectedCalendarFeaturedEvent: FeaturedEvent? {
+        guard let calendarFeaturedEventFilterSlug else { return nil }
+        return calendarFeaturedEvents.first { $0.slug == calendarFeaturedEventFilterSlug }
     }
 
     private var isProGamesSelected: Bool {
@@ -191,6 +228,15 @@ struct CalendarScreen: View {
                 }
             }
         }
+        .sheet(isPresented: $showCalendarLeagueCountryFilterSheet) {
+            CalendarLeagueCountryFilterSheet(
+                countries: calendarLeagueCountryOptions,
+                selectedCountries: Binding(
+                    get: { selectedCalendarLeagueCountries },
+                    set: { updateSelectedCalendarLeagueCountries($0) }
+                )
+            )
+        }
         .onAppear {
             sanitizeBusinessCalendarFilterIfNeeded()
             guard isCalendarTabSelected else {
@@ -227,6 +273,7 @@ struct CalendarScreen: View {
         .onChange(of: viewModel.calendarTabSelectedDate) { _, _ in
             guard isCalendarTabSelected else { return }
             sanitizeBusinessCalendarFilterIfNeeded()
+            refreshCalendarProGamesIfNeeded(reason: "calendar_selected_date_change")
             guard viewModel.canFanUsePickupGamesUI else { return }
             Task {
                 await viewModel.refreshCalendarTabPickupSources()
@@ -348,8 +395,22 @@ struct CalendarScreen: View {
         print("[CalendarProGamesDebug] refreshReason=\(reason)")
 #endif
         Task {
-            await viewModel.refreshLiveMatchesForCalendar(forceRefresh: false)
+            await viewModel.refreshLiveMatchesForCalendar(selectedDate: viewModel.calendarTabSelectedDate, forceRefresh: false)
         }
+    }
+
+    private var calendarProGamesEmptyStateMessage: String {
+        if selectedCalendarFeaturedEvent != nil {
+            return "No matches found for this featured event."
+        }
+        if calendarLeagueCountryFilterIsActive {
+            return "No pro games for selected countries on this date."
+        }
+        return "No pro games found for this date or search."
+    }
+
+    private func updateSelectedCalendarLeagueCountries(_ countries: Set<String>) {
+        calendarLeagueCountryFilterRaw = LiveLeagueCountryFilterPreference.encode(countries)
     }
 
     private var gameSearchBar: some View {
@@ -393,7 +454,7 @@ struct CalendarScreen: View {
                         if isProGamesSelected {
                             let proMatches = displayedProMatches
                             if proMatches.isEmpty {
-                                calendarEmptyState("No pro games found for this date or search.")
+                                calendarEmptyState(calendarProGamesEmptyStateMessage)
                             } else {
                                 VStack(spacing: 12) {
                                     ForEach(proMatches) { match in
@@ -452,6 +513,11 @@ struct CalendarScreen: View {
             HStack(spacing: 10) {
                 ForEach(calendarProVisibleSportFilters, id: \.selection) { item in
                     proGamesSportChip(selection: item.selection, displayTitle: item.display)
+                    if item.selection == "All" {
+                        ForEach(calendarFeaturedEvents) { featuredEvent in
+                            calendarFeaturedEventChip(featuredEvent)
+                        }
+                    }
                 }
 
                 SportFilterChip(sport: "More", isSelected: false, isCompact: true) {
@@ -467,33 +533,30 @@ struct CalendarScreen: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
                 Button {
-                    withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
-                        calendarProGamesWorldCupOnly.toggle()
-                    }
+                    showCalendarLeagueCountryFilterSheet = true
                 } label: {
                     HStack(spacing: 6) {
-                        Image(systemName: "trophy.fill")
+                        Image(systemName: "globe.americas.fill")
                             .font(.system(size: 13, weight: .semibold))
 
-                        Text("World Cup only")
+                        Text(calendarLeagueCountryChipTitle)
                             .font(.system(size: 13, weight: .semibold, design: .rounded))
                             .lineLimit(1)
                     }
                     .padding(.horizontal, 12)
                     .frame(height: 34)
-                    .foregroundStyle(calendarProGamesWorldCupOnly ? Color.white : FGColor.dangerRed)
+                    .foregroundStyle(calendarLeagueCountryFilterIsActive ? Color.white : FGColor.accentGreen)
                     .background {
                         Capsule(style: .continuous)
-                            .fill(calendarProGamesWorldCupOnly ? FGColor.dangerRed : FGColor.dangerRed.opacity(calendarColorScheme == .dark ? 0.18 : 0.10))
+                            .fill(calendarLeagueCountryFilterIsActive ? FGColor.accentGreen : FGColor.accentGreen.opacity(calendarColorScheme == .dark ? 0.18 : 0.10))
                     }
                     .overlay {
                         Capsule(style: .continuous)
-                            .strokeBorder(FGColor.dangerRed.opacity(calendarColorScheme == .dark ? 0.44 : 0.28), lineWidth: 1)
+                            .strokeBorder(FGColor.accentGreen.opacity(calendarColorScheme == .dark ? 0.44 : 0.28), lineWidth: 1)
                     }
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("World Cup only")
-                .accessibilityValue(calendarProGamesWorldCupOnly ? "On" : "Off")
+                .accessibilityLabel(calendarLeagueCountryFilterCount == 0 ? "Countries" : "Countries, \(calendarLeagueCountryFilterCount) selected")
             }
             .padding(.horizontal, 4)
         }
@@ -513,11 +576,27 @@ struct CalendarScreen: View {
         SportFilterChip(
             sport: selection,
             displayTitle: displayTitle,
-            isSelected: DiscoverSportFilterRowLayout.selectionTokensMatch(calendarProGamesSportFilter, selection),
+            isSelected: selectedCalendarFeaturedEvent == nil && DiscoverSportFilterRowLayout.selectionTokensMatch(calendarProGamesSportFilter, selection),
             isCompact: true
         ) {
             withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
+                calendarFeaturedEventFilterSlug = nil
                 calendarProGamesSportFilter = selection
+            }
+        }
+    }
+
+    private func calendarFeaturedEventChip(_ featuredEvent: FeaturedEvent) -> some View {
+        SportFilterChip(
+            sport: featuredEvent.sport ?? "Soccer",
+            displayTitle: featuredEvent.chipTitle,
+            isSelected: selectedCalendarFeaturedEvent?.slug == featuredEvent.slug,
+            isCompact: true
+        ) {
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
+                calendarProGamesSportFilter = "All"
+                updateSelectedCalendarLeagueCountries([])
+                calendarFeaturedEventFilterSlug = selectedCalendarFeaturedEvent?.slug == featuredEvent.slug ? nil : featuredEvent.slug
             }
         }
     }
@@ -565,13 +644,14 @@ struct CalendarScreen: View {
     private func calendarProGameCard(_ match: LiveMatch) -> some View {
         let sportKey = match.liveSportVisualType.sportFilterCatalogKey
         let accent = match.matchStatus.isHappeningNow ? FGColor.dangerRed : viewModel.colorForSport(sportKey)
+        let featuredEvent = calendarFeaturedEvent(for: match)
+        let isSaved = viewModel.isProGameSaved(match)
         return HStack(alignment: .top, spacing: 14) {
-            ZStack {
-                Circle()
-                    .fill(accent.opacity(calendarColorScheme == .dark ? 0.24 : 0.13))
-                SportArtworkIconView(sport: sportKey, diameter: 40, preferSystemSymbol: true)
-            }
-            .frame(width: 56, height: 56)
+            ProGameSportBadgeView(
+                sportType: match.liveSportVisualType,
+                diameter: 56,
+                isFeatured: featuredEvent != nil
+            )
 
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -585,13 +665,17 @@ struct CalendarScreen: View {
                                 .fill(accent.opacity(calendarColorScheme == .dark ? 0.18 : 0.10))
                         )
 
+                    if let featuredEvent {
+                        calendarFeaturedEventBadge(featuredEvent, accent: accent)
+                    }
+
                     Text("\(AppSportCatalog.displayLabel(forSportToken: match.sport)) • \(match.league)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
 
-                Text("\(match.awayTeam) at \(match.homeTeam)")
+                Text(calendarProGameTitle(match))
                     .font(.headline)
                     .fontWeight(.bold)
                     .foregroundStyle(.primary)
@@ -610,11 +694,76 @@ struct CalendarScreen: View {
             }
 
             Spacer(minLength: 0)
+
+            calendarProGameSaveButton(match, isSaved: isSaved, accent: accent)
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+
+    private func calendarProGameSaveButton(_ match: LiveMatch, isSaved: Bool, accent: Color) -> some View {
+        Button {
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+                viewModel.toggleSavedProGame(match)
+            }
+        } label: {
+            Image(systemName: isSaved ? "heart.fill" : "heart")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(isSaved ? Color.red.opacity(0.95) : accent)
+                .frame(width: 34, height: 34)
+                .background(
+                    Circle()
+                        .fill((isSaved ? Color.red : accent).opacity(calendarColorScheme == .dark ? 0.18 : 0.10))
+                )
+                .overlay {
+                    Circle()
+                        .strokeBorder((isSaved ? Color.red : accent).opacity(calendarColorScheme == .dark ? 0.40 : 0.24), lineWidth: 1)
+                }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(isSaved ? "Unsave pro game" : "Save pro game")
+    }
+
+    private func calendarFeaturedEvent(for match: LiveMatch) -> FeaturedEvent? {
+        if let featuredEventSlug = match.featuredEventSlug {
+            let normalizedSlug = LiveMatchFilters.normalizedSearchText(featuredEventSlug)
+            if let direct = calendarFeaturedEvents.first(where: { LiveMatchFilters.normalizedSearchText($0.slug) == normalizedSlug }) {
+                return direct
+            }
+        }
+        return calendarFeaturedEvents.first {
+            LiveMatchFilters.matchesFeaturedEvent(match, featuredEvent: $0)
+        }
+    }
+
+    private func calendarFeaturedEventBadge(_ featuredEvent: FeaturedEvent, accent: Color) -> some View {
+        Text(featuredEvent.chipTitle)
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(accent)
+            .lineLimit(1)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(accent.opacity(calendarColorScheme == .dark ? 0.18 : 0.10))
+            )
+    }
+
+    private func calendarProGameTitle(_ match: LiveMatch) -> String {
+        "\(calendarTeamDisplayName(match.awayTeam)) at \(calendarTeamDisplayName(match.homeTeam))"
+    }
+
+    private func calendarTeamDisplayName(_ teamName: String) -> String {
+        let trimmed = teamName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              CountryFlagHelper.isCountry(trimmed),
+              let flag = CountryFlagHelper.flag(for: trimmed),
+              !flag.isEmpty else {
+            return trimmed
+        }
+        return "\(flag) \(trimmed)"
     }
 
     private func calendarProGameStartTimeText(_ match: LiveMatch) -> String {
@@ -816,5 +965,94 @@ struct CalendarScreen: View {
 
     private func venueEventSubtitle(_ event: SportsEvent) -> String {
         "\(event.league) • \(event.sport) • \(viewModel.displayTime(for: event))"
+    }
+}
+
+private struct CalendarLeagueCountryFilterSheet: View {
+    let countries: [String]
+    @Binding var selectedCountries: Set<String>
+
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+
+    private let northAmericaPreset = ["United States", "Canada", "Mexico"]
+    private let topEuropePreset = ["England", "France", "Spain", "Germany", "Italy"]
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Calendar Countries")
+                            .font(FGTypography.sectionTitle)
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                        Text("Choose which league countries appear in Pro Games.")
+                            .font(FGTypography.caption)
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    }
+                    .padding(.vertical, 4)
+                }
+
+                Section("Quick Actions") {
+                    quickAction("Select All") {
+                        selectedCountries = Set(countries)
+                    }
+                    quickAction("Clear") {
+                        selectedCountries = []
+                    }
+                    quickAction("North America") {
+                        selectedCountries = Set(northAmericaPreset)
+                    }
+                    quickAction("Top European") {
+                        selectedCountries = Set(topEuropePreset)
+                    }
+                }
+
+                Section("Countries") {
+                    ForEach(countries, id: \.self) { country in
+                        Button {
+                            toggle(country)
+                        } label: {
+                            HStack(spacing: 12) {
+                                Text(country)
+                                    .font(FGTypography.body)
+                                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                                Spacer()
+                                if selectedCountries.contains(country) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(FGColor.accentGreen)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .navigationTitle("Calendar Countries")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+    }
+
+    private func quickAction(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(FGTypography.body.weight(.semibold))
+        }
+    }
+
+    private func toggle(_ country: String) {
+        if selectedCountries.contains(country) {
+            selectedCountries.remove(country)
+        } else {
+            selectedCountries.insert(country)
+        }
     }
 }

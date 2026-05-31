@@ -209,6 +209,8 @@ struct SettingsScreen: View {
     @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
     @AppStorage(FanGeoAppearancePreference.appStorageKey) private var appearancePreferenceRaw = FanGeoAppearancePreference.system.rawValue
     @AppStorage(PrivateChatSecuritySettings.requireFaceIDSettingKey) private var requireFaceIDForPrivateChat = false
+    @AppStorage(ProGamesFavoriteTeamAutoFollowPreference.enabledKey) private var proGamesAutoFollowFavoriteTeams = false
+    @AppStorage(ProGamesFavoriteTeamAutoFollowPreference.windowDaysKey) private var proGamesFavoriteTeamWindowDays = ProGamesFavoriteTeamAutoFollowPreference.Window.next30.rawValue
 
     private var appearancePreference: FanGeoAppearancePreference {
         FanGeoAppearancePreference(rawValue: appearancePreferenceRaw) ?? .system
@@ -990,6 +992,7 @@ struct SettingsScreen: View {
                 profileSettingsPrivacySection()
                 profileSettingsNotificationsSection()
                 profileSettingsExperienceSection()
+                profileSettingsProGamesSection()
                 profileSettingsHelpSafetySection()
                 profileSettingsLegalSection()
                 profileSettingsAccountSection()
@@ -1925,6 +1928,69 @@ struct SettingsScreen: View {
         } header: {
             settingsSectionHeader("Experience")
         }
+    }
+
+    private func profileSettingsProGamesSection() -> some View {
+        Section {
+            settingsSectionCard {
+                settingsRow(
+                    title: "Automatically follow Favorite Teams",
+                    subtitle: "Show upcoming Pro Games involving your favorite teams in Going.",
+                    systemImage: "star.circle.fill",
+                    tint: FGColor.accentBlue,
+                    showsChevron: false
+                ) {
+                    Toggle("Automatically follow games from my Favorite Teams", isOn: $proGamesAutoFollowFavoriteTeams)
+                        .labelsHidden()
+                }
+
+                settingsRowDivider()
+
+                proGamesFavoriteTeamWindowRow
+                    .opacity(proGamesAutoFollowFavoriteTeams ? 1 : 0.48)
+                    .disabled(!proGamesAutoFollowFavoriteTeams)
+            }
+            .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 12, trailing: 16))
+            .listRowBackground(Color.clear)
+        } header: {
+            settingsSectionHeader("Pro Games Preferences")
+        }
+    }
+
+    private var proGamesFavoriteTeamWindowRow: some View {
+        HStack(alignment: .center, spacing: FGSpacing.md) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .fill(SettingsPremiumChrome.iconSurface(colorScheme))
+                Image(systemName: "calendar.badge.clock")
+                    .font(.system(size: 14, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(FGColor.accentGreen)
+            }
+            .frame(width: SettingsPremiumChrome.rowIconSize, height: SettingsPremiumChrome.rowIconSize)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Favorite Team Game Window")
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .foregroundStyle(SettingsPremiumChrome.primaryText(colorScheme))
+                Text("How far ahead Going should look for your teams.")
+                    .font(.system(size: 12, weight: .regular, design: .rounded))
+                    .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
+                    .lineLimit(2)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Picker("Favorite Team Game Window", selection: $proGamesFavoriteTeamWindowDays) {
+                ForEach(ProGamesFavoriteTeamAutoFollowPreference.Window.allCases) { window in
+                    Text(window.title).tag(window.rawValue)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
+        }
+        .padding(.horizontal, FGSpacing.md)
+        .padding(.vertical, 10)
+        .frame(minHeight: SettingsPremiumChrome.rowMinHeight, alignment: .center)
     }
 
     private func profileSettingsHelpSafetySection() -> some View {

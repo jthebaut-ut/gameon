@@ -104,7 +104,16 @@ final class MapViewModel: ObservableObject {
     @Published var authSessionState: FanGeoAuthSessionState = .signedOut
     @Published var currentUserEmail: String = ""
     /// Supabase Auth user id; mirrors ``supabase.auth.session.user.id`` when signed in (fan session).
-    @Published var currentUserAuthId: UUID?
+    @Published var currentUserAuthId: UUID? {
+        didSet {
+            guard oldValue != currentUserAuthId else { return }
+            guard currentUserAuthId != nil else {
+                reloadSavedProGamesFromStorage()
+                return
+            }
+            Task { await fetchSavedProGames() }
+        }
+    }
     @Published var activeAccountBan: FanGeoAccountBan?
     @Published var isCheckingActiveBan = false
     @Published var activeBusinessAccountBan: FanGeoAccountBan?
@@ -118,6 +127,7 @@ final class MapViewModel: ObservableObject {
     var isAuthenticatedForSocialFeatures: Bool {
         isLoggedIn || isVenueOwnerLoggedIn || currentUserAuthId != nil
     }
+    @Published var favoriteTeamProGames: [FavoriteTeamProGame] = []
     /// Discover map and public pickup rows: no fan session and no venue-owner session (same as ``!isAuthenticatedForSocialFeatures``).
     var isGuestDiscoverMode: Bool {
         !isAuthenticatedForSocialFeatures
@@ -450,6 +460,8 @@ final class MapViewModel: ObservableObject {
     /// True while schedule data is re-fetched but existing ``events``/UI should stay visible (Phase 1 perf).
     @Published var isRefreshingDiscoverEvents: Bool = false
     @Published var liveMatches: [LiveMatch] = []
+    @Published var activeFeaturedEvents: [FeaturedEvent] = FeaturedEvent.fallbackEvents
+    @Published var savedProGames: [SavedProGame] = []
     @Published var isLoadingLiveMatches: Bool = false
     @Published var liveMatchesLoadError: String?
     /// DEBUG-only hint when Live Games is empty (provider/cache diagnostics).
@@ -532,10 +544,13 @@ final class MapViewModel: ObservableObject {
     @Published var venueGameCalendarDotDates: Set<Date> = []
     /// Discover calendar overlay: pickup ``game_start_at`` days in the month window (blue dots; Pickup games map mode only).
     @Published var pickupGameCalendarDotDates: Set<Date> = []
+    /// Bottom-tab Calendar Pro Games days loaded with a lightweight `live_matches.start_time` query.
+    @Published var proGameCalendarDotDates: Set<Date> = []
     /// Discover map calendar: venue-game dot RPC in flight (see ``loadVenueGameCalendarDotsForDiscover``).
     @Published var isLoadingVenueCalendarDots: Bool = false
     /// Discover map calendar: pickup-game dot fetch in flight (see ``loadPickupGameCalendarDotsForDiscover``).
     @Published var isLoadingPickupCalendarDots: Bool = false
+    @Published var isLoadingProGameCalendarDots: Bool = false
     @Published var calendarDotStatusText: String?
     @Published var currentUserDisplayName: String = ""
     /// Stored without `@`, lowercase — public FanGeo handle.
@@ -896,6 +911,7 @@ final class MapViewModel: ObservableObject {
         #if DEBUG
         print("[FanUpdatesStoreMigrationDebug] RemovedMapViewModelBridge=true")
         #endif
+        reloadSavedProGamesFromStorage()
     }
 
     func applyDiscoverMapRenderSnapshot(_ snapshot: DiscoverMapRenderSnapshot) {
@@ -974,4 +990,5 @@ final class MapViewModel: ObservableObject {
     var calendarEventsListCache: [String: (storedAt: Date, events: [SportsEvent])] = [:]
     var venueGameCalendarDotDatesCache: [String: (dates: Set<Date>, fetchedAt: Date)] = [:]
     var pickupGameCalendarDotDatesCache: [String: (dates: Set<Date>, fetchedAt: Date)] = [:]
+    var proGameCalendarDotDatesCache: [String: (dates: Set<Date>, fetchedAt: Date)] = [:]
 }

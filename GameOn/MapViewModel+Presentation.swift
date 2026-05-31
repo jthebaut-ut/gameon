@@ -72,7 +72,7 @@ extension MapViewModel {
         case .pickupGames:
             return isLoadingPickupCalendarDots
         case .proGames:
-            return isLoadingLiveMatches
+            return isLoadingProGameCalendarDots
         }
     }
 

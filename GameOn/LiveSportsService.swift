@@ -22,8 +22,11 @@ actor LiveSportsService {
 
     private let cacheTTL: TimeInterval = 60
     private let cacheSyncCooldown: TimeInterval = 55
+    private let featuredEventsCacheTTL: TimeInterval = 5 * 60
     private var cachedMatches: (fetchedAt: Date, matches: [LiveMatch])?
+    private var cachedFeaturedEvents: (fetchedAt: Date, events: [FeaturedEvent])?
     private var inFlightFetch: Task<[LiveMatch], Error>?
+    private var inFlightFeaturedEventsFetch: Task<[FeaturedEvent], Never>?
     private var lastCacheSyncAt: Date?
     private(set) var lastFetchDiagnostics: LiveMatchesFetchDiagnostics?
 
@@ -64,17 +67,44 @@ actor LiveSportsService {
         return matches
     }
 
+    func fetchActiveFeaturedEvents(forceRefresh: Bool = false) async -> [FeaturedEvent] {
+        if !forceRefresh,
+           let cachedFeaturedEvents,
+           Date().timeIntervalSince(cachedFeaturedEvents.fetchedAt) < featuredEventsCacheTTL {
+            return cachedFeaturedEvents.events
+        }
+
+        if let inFlightFeaturedEventsFetch {
+            return await inFlightFeaturedEventsFetch.value
+        }
+
+        let staleEvents = cachedFeaturedEvents?.events
+        let task = Task<[FeaturedEvent], Never> {
+            do {
+                return try await Self.fetchFeaturedEventsFromSupabase()
+            } catch {
+#if DEBUG
+                print("[FeaturedEventsDebug] fetch_failed error=\(error.localizedDescription)")
+#endif
+                return staleEvents ?? FeaturedEvent.fallbackEvents
+            }
+        }
+        inFlightFeaturedEventsFetch = task
+        let events = await task.value
+        inFlightFeaturedEventsFetch = nil
+        cachedFeaturedEvents = (Date(), events)
+        return events
+    }
+
     func fetchLiveMatches(
         on selectedDate: Date,
         sportFilter: String? = nil,
         forceRefresh: Bool = false
     ) async throws -> [LiveMatch] {
-        let matches = try await fetchLiveMatches(forceRefresh: forceRefresh)
-        let calendar = Calendar.current
-        let day = calendar.startOfDay(for: selectedDate)
+        let requestURL = try await Self.liveMatchesRequestURL(selectedDate: selectedDate)
+        let matches = try await fetchLiveMatchesFromSupabase(requestURL: requestURL, cacheSyncAttempted: false)
         let sport = sportFilter?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return matches
-            .filter { calendar.startOfDay(for: $0.startTime) == day }
             .filter { match in
                 guard !sport.isEmpty, sport.localizedCaseInsensitiveCompare("All") != .orderedSame else {
                     return true
@@ -86,6 +116,46 @@ actor LiveSportsService {
                 if lhs.startTime != rhs.startTime { return lhs.startTime < rhs.startTime }
                 return "\(lhs.awayTeam) \(lhs.homeTeam)".localizedCaseInsensitiveCompare("\(rhs.awayTeam) \(rhs.homeTeam)") == .orderedAscending
             }
+    }
+
+    func fetchLiveMatches(windowDays: Int) async throws -> [LiveMatch] {
+        let calendar = Calendar.current
+        let now = Date()
+        let windowStart = calendar.startOfDay(for: now)
+        let clampedDays = min(max(windowDays, 7), 90)
+        let windowEnd = calendar.date(byAdding: .day, value: clampedDays, to: windowStart)
+            ?? now.addingTimeInterval(TimeInterval(clampedDays * 24 * 60 * 60))
+        let requestURL = try await Self.liveMatchesRequestURL(
+            windowStart: windowStart,
+            windowEnd: windowEnd,
+            upperBoundOperator: "lt"
+        )
+        return try await fetchLiveMatchesFromSupabase(requestURL: requestURL, cacheSyncAttempted: false)
+    }
+
+    func fetchLiveMatchDateDots(around month: Date) async throws -> Set<Date> {
+        let requestURL = try await Self.liveMatchDateDotsRequestURL(around: month)
+        let publishableKey = await supabasePublishableKey
+        var request = URLRequest(url: requestURL)
+        request.httpMethod = "GET"
+        request.setValue(publishableKey, forHTTPHeaderField: "apikey")
+        request.setValue("Bearer \(publishableKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+        guard 200..<300 ~= httpResponse.statusCode else {
+            throw LiveSportsServiceError.supabaseRequestFailed(statusCode: httpResponse.statusCode, body: Self.rawPreview(data))
+        }
+
+        let rows = try JSONDecoder().decode([LiveMatchDateDotRow].self, from: data)
+        let calendar = Calendar.current
+        return Set(rows.compactMap { row in
+            guard let start = SupabaseTimestampParsing.parseTimestamptz(row.start_time) else { return nil }
+            return calendar.startOfDay(for: start)
+        })
     }
 
     private func triggerCacheSyncIfNeeded(force: Bool) async -> Bool {
@@ -122,19 +192,27 @@ actor LiveSportsService {
         return true
     }
 
-    private func fetchLiveMatchesFromSupabase(cacheSyncAttempted: Bool) async throws -> [LiveMatch] {
-        let requestURL = try await Self.liveMatchesRequestURL()
+    private func fetchLiveMatchesFromSupabase(
+        requestURL: URL? = nil,
+        cacheSyncAttempted: Bool
+    ) async throws -> [LiveMatch] {
+        let resolvedRequestURL: URL
+        if let providedRequestURL = requestURL {
+            resolvedRequestURL = providedRequestURL
+        } else {
+            resolvedRequestURL = try await Self.liveMatchesRequestURL()
+        }
         let publishableKey = await supabasePublishableKey
-        var request = URLRequest(url: requestURL)
+        var request = URLRequest(url: resolvedRequestURL)
         request.httpMethod = "GET"
         request.setValue(publishableKey, forHTTPHeaderField: "apikey")
         request.setValue("Bearer \(publishableKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
 
-        Self.logRequest(requestURL: requestURL, request: request)
+        Self.logRequest(requestURL: resolvedRequestURL, request: request)
 
 #if DEBUG
-        print("[LiveDebug] requestURL=\(requestURL.absoluteString)")
+        print("[LiveDebug] requestURL=\(resolvedRequestURL.absoluteString)")
 #endif
         let (data, response): (Data, URLResponse)
         do {
@@ -145,7 +223,7 @@ actor LiveSportsService {
 #endif
             lastFetchDiagnostics = LiveMatchesFetchDiagnostics(
                 provider: Self.providerDescription,
-                requestURL: requestURL.absoluteString,
+                requestURL: resolvedRequestURL.absoluteString,
                 rawCount: 0,
                 decodedCount: 0,
                 liveCount: 0,
@@ -172,7 +250,7 @@ actor LiveSportsService {
 #endif
             lastFetchDiagnostics = LiveMatchesFetchDiagnostics(
                 provider: Self.providerDescription,
-                requestURL: requestURL.absoluteString,
+                requestURL: resolvedRequestURL.absoluteString,
                 rawCount: 0,
                 decodedCount: 0,
                 liveCount: 0,
@@ -192,7 +270,7 @@ actor LiveSportsService {
 #endif
             lastFetchDiagnostics = LiveMatchesFetchDiagnostics(
                 provider: Self.providerDescription,
-                requestURL: requestURL.absoluteString,
+                requestURL: resolvedRequestURL.absoluteString,
                 rawCount: 0,
                 decodedCount: 0,
                 liveCount: 0,
@@ -243,7 +321,7 @@ actor LiveSportsService {
 
         lastFetchDiagnostics = LiveMatchesFetchDiagnostics(
             provider: Self.providerDescription,
-            requestURL: requestURL.absoluteString,
+            requestURL: resolvedRequestURL.absoluteString,
             rawCount: rows.count,
             decodedCount: normalized.count,
             liveCount: liveCount,
@@ -317,6 +395,20 @@ actor LiveSportsService {
         let now = Date()
         let windowStart = now.addingTimeInterval(-2 * 60 * 60)
         let windowEnd = now.addingTimeInterval(7 * 24 * 60 * 60)
+        return try await liveMatchesRequestURL(windowStart: windowStart, windowEnd: windowEnd, upperBoundOperator: "lte")
+    }
+
+    private static func liveMatchesRequestURL(selectedDate: Date) async throws -> URL {
+        let calendar = Calendar.current
+        let windowStart = calendar.startOfDay(for: selectedDate)
+        let windowEnd = calendar.date(byAdding: .day, value: 1, to: windowStart) ?? selectedDate.addingTimeInterval(24 * 60 * 60)
+        return try await liveMatchesRequestURL(windowStart: windowStart, windowEnd: windowEnd, upperBoundOperator: "lt")
+    }
+
+    private static func liveMatchDateDotsRequestURL(around month: Date) async throws -> URL {
+        let calendar = Calendar.current
+        let windowStart = calendar.date(from: calendar.dateComponents([.year, .month], from: month)) ?? calendar.startOfDay(for: month)
+        let windowEnd = calendar.date(byAdding: .month, value: 1, to: windowStart) ?? windowStart.addingTimeInterval(31 * 24 * 60 * 60)
         let projectURL = await supabaseProjectURL
         var components = URLComponents(
             url: projectURL
@@ -326,10 +418,88 @@ actor LiveSportsService {
             resolvingAgainstBaseURL: false
         )
         components?.queryItems = [
-            URLQueryItem(name: "select", value: "id,sport,home_team,away_team,score_home,score_away,match_status,minute,league,start_time,updated_at,payload,tv_broadcasts,timeline_events"),
+            URLQueryItem(name: "select", value: "start_time"),
             URLQueryItem(name: "start_time", value: "gte.\(supabaseTimestampFormatter.string(from: windowStart))"),
-            URLQueryItem(name: "start_time", value: "lte.\(supabaseTimestampFormatter.string(from: windowEnd))"),
+            URLQueryItem(name: "start_time", value: "lt.\(supabaseTimestampFormatter.string(from: windowEnd))"),
             URLQueryItem(name: "order", value: "start_time.asc")
+        ]
+        guard let url = components?.url else {
+            throw URLError(.badURL)
+        }
+        return url
+    }
+
+    private static func liveMatchesRequestURL(
+        windowStart: Date,
+        windowEnd: Date,
+        upperBoundOperator: String
+    ) async throws -> URL {
+        let projectURL = await supabaseProjectURL
+        var components = URLComponents(
+            url: projectURL
+                .appendingPathComponent("rest")
+                .appendingPathComponent("v1")
+                .appendingPathComponent("live_matches"),
+            resolvingAgainstBaseURL: false
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "select", value: "id,source,external_id,sport,home_team,away_team,score_home,score_away,match_status,minute,league,start_time,updated_at,payload,tv_broadcasts,timeline_events,featured_event_slug"),
+            URLQueryItem(name: "start_time", value: "gte.\(supabaseTimestampFormatter.string(from: windowStart))"),
+            URLQueryItem(name: "start_time", value: "\(upperBoundOperator).\(supabaseTimestampFormatter.string(from: windowEnd))"),
+            URLQueryItem(name: "order", value: "start_time.asc")
+        ]
+        guard let url = components?.url else {
+            throw URLError(.badURL)
+        }
+        return url
+    }
+
+    private static func fetchFeaturedEventsFromSupabase() async throws -> [FeaturedEvent] {
+        let requestURL = try await featuredEventsRequestURL()
+        let publishableKey = await supabasePublishableKey
+        var request = URLRequest(url: requestURL)
+        request.httpMethod = "GET"
+        request.setValue(publishableKey, forHTTPHeaderField: "apikey")
+        request.setValue("Bearer \(publishableKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+#if DEBUG
+        print("[FeaturedEventsDebug] requestURL=\(requestURL.absoluteString)")
+#endif
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+        guard 200..<300 ~= httpResponse.statusCode else {
+            throw LiveSportsServiceError.supabaseRequestFailed(statusCode: httpResponse.statusCode, body: rawPreview(data))
+        }
+        let decoder = JSONDecoder()
+        let rows = try decoder.decode([FeaturedEvent].self, from: data)
+#if DEBUG
+        print("[FeaturedEventsDebug] activeCount=\(rows.count)")
+#endif
+        return rows.filter(\.enabled).sorted { lhs, rhs in
+            if lhs.priority != rhs.priority { return lhs.priority > rhs.priority }
+            return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+        }
+    }
+
+    private static func featuredEventsRequestURL() async throws -> URL {
+        let projectURL = await supabaseProjectURL
+        let today = featuredEventDateFormatter.string(from: Date())
+        var components = URLComponents(
+            url: projectURL
+                .appendingPathComponent("rest")
+                .appendingPathComponent("v1")
+                .appendingPathComponent("featured_events"),
+            resolvingAgainstBaseURL: false
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "select", value: "id,slug,title,short_title,icon,sport,include_keywords,exclude_keywords,start_date,end_date,enabled,priority"),
+            URLQueryItem(name: "enabled", value: "eq.true"),
+            URLQueryItem(name: "start_date", value: "lte.\(today)"),
+            URLQueryItem(name: "end_date", value: "gte.\(today)"),
+            URLQueryItem(name: "order", value: "priority.desc")
         ]
         guard let url = components?.url else {
             throw URLError(.badURL)
@@ -341,6 +511,15 @@ actor LiveSportsService {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        return formatter
+    }()
+
+    private static let featuredEventDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
         return formatter
     }()
 
@@ -395,6 +574,8 @@ private enum LiveSportsServiceError: LocalizedError {
 
 private nonisolated struct LiveMatchRow: Decodable {
     let id: String?
+    let source: String?
+    let external_id: String?
     let sport: String?
     let home_team: String?
     let away_team: String?
@@ -407,6 +588,7 @@ private nonisolated struct LiveMatchRow: Decodable {
     let payload: [String: LiveMatchPayloadValue]?
     let tv_broadcasts: [LiveTVBroadcast]?
     let timeline_events: [LiveTimelineEvent]?
+    let featured_event_slug: String?
 
 #if DEBUG
     var debugSummary: String {
@@ -433,6 +615,8 @@ private nonisolated struct LiveMatchRow: Decodable {
         let title = "\(awayTeam) at \(homeTeam)"
         let decodedVenue = venueName
         let decodedCity = venueCity
+        let payloadLeague = Self.firstString(in: payload, keys: ["strLeague", "league"])
+        let payloadSport = Self.firstString(in: payload, keys: ["strSport", "sport"])
 #if DEBUG
         print("[LiveSportNormalization] id=\(id) raw=\(rawSport ?? "nil") normalized=\(normalizedSport)")
         print("[LiveSportDetected] id=\(id) sportType=\(visualType.rawValue) label=\(normalizedSport)")
@@ -449,6 +633,8 @@ private nonisolated struct LiveMatchRow: Decodable {
 
         return LiveMatch(
             id: id,
+            source: Self.clean(source),
+            externalId: Self.clean(external_id),
             sport: normalizedSport,
             homeTeam: homeTeam,
             awayTeam: awayTeam,
@@ -458,13 +644,19 @@ private nonisolated struct LiveMatchRow: Decodable {
             matchStatus: Self.parseMatchStatus(match_status),
             minute: minute,
             league: Self.clean(league) ?? "Live",
+            sourceLeagueName: payloadLeague,
+            eventName: eventName,
+            leagueAlternate: leagueAlternate,
+            sourceSportName: payloadSport ?? rawSport,
             startTime: start,
             venueName: decodedVenue,
             venueCity: decodedCity,
             venueLatitude: venueLatitude,
             venueLongitude: venueLongitude,
+            leagueCountry: leagueCountry,
             tvBroadcasts: tv_broadcasts ?? [],
-            timelineEvents: timeline_events ?? []
+            timelineEvents: timeline_events ?? [],
+            featuredEventSlug: Self.clean(featured_event_slug)
         )
     }
 
@@ -491,6 +683,28 @@ private nonisolated struct LiveMatchRow: Decodable {
                 ["arena", "strArena"],
                 ["location", "name"],
                 ["location", "venueName"]
+            ]
+        )
+    }
+
+    private var eventName: String? {
+        Self.firstString(
+            in: payload,
+            keys: ["strEvent", "event", "eventName", "name"],
+            paths: [
+                ["event", "name"],
+                ["fixture", "name"]
+            ]
+        )
+    }
+
+    private var leagueAlternate: String? {
+        Self.firstString(
+            in: payload,
+            keys: ["strLeagueAlternate", "leagueAlternate", "league_alternate"],
+            paths: [
+                ["league", "alternate"],
+                ["league", "strLeagueAlternate"]
             ]
         )
     }
@@ -582,6 +796,33 @@ private nonisolated struct LiveMatchRow: Decodable {
                 ["location", "coordinates", "longitude"]
             ]
         )
+    }
+
+    private var leagueCountry: String? {
+        let explicitCountry = Self.firstString(
+            in: payload,
+            keys: [
+                "strCountry",
+                "strLeagueCountry",
+                "strEventCountry",
+                "country",
+                "league country",
+                "league_country",
+                "leagueCountry",
+                "competition country",
+                "competition_country",
+                "competitionCountry"
+            ],
+            paths: [
+                ["league", "country"],
+                ["competition", "country"],
+                ["event", "country"]
+            ]
+        )
+        if let country = LiveLeagueCountryResolver.normalizedCountry(explicitCountry) {
+            return country
+        }
+        return LiveLeagueCountryResolver.country(for: Self.clean(league) ?? "")
     }
 
 #if DEBUG
@@ -791,4 +1032,8 @@ private nonisolated indirect enum LiveMatchPayloadValue: Decodable {
         }
     }
 #endif
+}
+
+private nonisolated struct LiveMatchDateDotRow: Decodable {
+    let start_time: String
 }

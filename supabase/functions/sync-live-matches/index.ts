@@ -57,6 +57,25 @@ type MatchWindow = {
   endISO: string
 }
 
+type FeaturedEventRow = {
+  slug: string
+  title: string
+  sport: string | null
+  include_keywords: string[] | null
+  exclude_keywords: string[] | null
+  start_date: string
+  end_date: string
+  enabled: boolean
+  priority: number | null
+}
+
+type FeaturedEventProviderConfig = {
+  leagueId: string
+  season: string
+  sport: string | null
+  league: string | null
+}
+
 type LiveMatchUpsert = {
   id: string
   source: string
@@ -75,6 +94,7 @@ type LiveMatchUpsert = {
   tv_updated_at: string | null
   timeline_events: TimelineEventRow[] | null
   timeline_updated_at: string | null
+  featured_event_slug: string | null
 }
 
 type SyncCounts = {
@@ -104,6 +124,17 @@ type ScheduledFixturesCounts = {
   errors: number
 }
 
+type FeaturedPreloadCounts = {
+  featuredEventsChecked: number
+  featuredFixturesFetched: number
+  featuredFixturesNormalized: number
+  featuredFixturesMatched: number
+  featuredFixturesUpserted: number
+  featuredPreloadSkippedReason: string | null
+  apiCalls: number
+  errors: number
+}
+
 type ScheduledLeagueConfig = {
   id: string
   sport: string
@@ -114,6 +145,12 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 }
+
+const FEATURED_PRELOAD_LOOKAHEAD_DAYS = 180
+const FEATURED_PRELOAD_COOLDOWN_MS = 6 * 60 * 60 * 1000
+const HEAVY_ENRICHMENT_LOOKAHEAD_MS = 48 * 60 * 60 * 1000
+
+let lastFeaturedPreloadAttemptAt = 0
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -153,16 +190,34 @@ serve(async (req) => {
       upserted: 0,
       errors: 0,
     }
+    const featuredCounts: FeaturedPreloadCounts = {
+      featuredEventsChecked: 0,
+      featuredFixturesFetched: 0,
+      featuredFixturesNormalized: 0,
+      featuredFixturesMatched: 0,
+      featuredFixturesUpserted: 0,
+      featuredPreloadSkippedReason: null,
+      apiCalls: 0,
+      errors: 0,
+    }
     const fetchResult = await fetchNormalizedMatches(matchWindow, counts)
     const scheduledMatches = await fetchScheduledFixtureMatches(matchWindow, scheduledCounts)
     const supabase = createClient(supabaseUrl, serviceRoleKey)
 
     counts.pruned = await pruneStaleMatches(supabase, matchWindow)
     const protectedMatchIds = await fetchProtectedMatchIds(supabase, matchWindow)
-    const matchesToUpsert = mergeLiveAndScheduledMatches(fetchResult.matches, scheduledMatches, protectedMatchIds, scheduledCounts)
+    const featuredMatches = await fetchFeaturedEventFixtureMatches(supabase, featuredCounts)
+    const featuredUpsertIds = new Set(featuredMatches.map((match) => match.id))
+    const scheduledOnlyMatches = scheduledMatches.filter((match) => !featuredUpsertIds.has(match.id))
+    const matchesToUpsert = mergeLiveAndScheduledMatches(
+      fetchResult.matches,
+      [...featuredMatches, ...scheduledOnlyMatches],
+      protectedMatchIds,
+      scheduledCounts,
+    )
     await enrichMatchesWithTVBroadcasts(supabase, matchesToUpsert, counts)
     await enrichMatchesWithTimelineEvents(supabase, matchesToUpsert, counts)
-    const scheduledUpsertIds = new Set(scheduledMatches.map((match) => match.id))
+    const scheduledUpsertIds = new Set(scheduledOnlyMatches.map((match) => match.id))
 
     if (matchesToUpsert.length > 0) {
       const { error } = await supabase
@@ -177,8 +232,12 @@ serve(async (req) => {
       scheduledCounts.upserted = matchesToUpsert.filter((match) =>
         scheduledUpsertIds.has(match.id) && match.match_status === "SCHEDULED"
       ).length
+      featuredCounts.featuredFixturesUpserted = matchesToUpsert.filter((match) =>
+        featuredUpsertIds.has(match.id) && match.match_status === "SCHEDULED"
+      ).length
     }
     scheduledLog(`upserted=${scheduledCounts.upserted}`)
+    featuredLog(`upserted=${featuredCounts.featuredFixturesUpserted}`)
 
     return json({
       success: true,
@@ -189,6 +248,7 @@ serve(async (req) => {
       },
       counts,
       scheduledCounts,
+      featuredCounts,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
@@ -278,6 +338,246 @@ async function fetchScheduledFixtureMatches(
   return normalizeScheduledFixtureBatch(allMatches, matchWindow, counts)
 }
 
+async function fetchFeaturedEventFixtureMatches(
+  supabase: ReturnType<typeof createClient>,
+  counts: FeaturedPreloadCounts,
+): Promise<LiveMatchUpsert[]> {
+  const now = Date.now()
+  if (now - lastFeaturedPreloadAttemptAt < FEATURED_PRELOAD_COOLDOWN_MS) {
+    counts.featuredPreloadSkippedReason = "cooldown"
+    return []
+  }
+  lastFeaturedPreloadAttemptAt = now
+
+  const lastPersistedPreloadAt = await fetchLastFeaturedPreloadUpdatedAt(supabase)
+  if (lastPersistedPreloadAt && now - lastPersistedPreloadAt.getTime() < FEATURED_PRELOAD_COOLDOWN_MS) {
+    counts.featuredPreloadSkippedReason = "cooldown"
+    return []
+  }
+
+  const featuredEvents = await fetchActiveUpcomingFeaturedEvents(supabase, counts)
+  counts.featuredEventsChecked = featuredEvents.length
+  if (featuredEvents.length === 0) {
+    counts.featuredPreloadSkippedReason = "no_active_upcoming_featured_events"
+    return []
+  }
+
+  const apiKey = Deno.env.get("THESPORTSDB_API_KEY") ?? "123"
+  const allMatches: LiveMatchUpsert[] = []
+  const missingMappings: string[] = []
+
+  for (const featuredEvent of featuredEvents) {
+    const providerConfigs = configuredFeaturedEventProviderConfigs(featuredEvent)
+    if (providerConfigs.length === 0) {
+      missingMappings.push(featuredEvent.slug)
+      featuredLog(`slug=${featuredEvent.slug} skipped=no_provider_mapping`)
+      continue
+    }
+
+    const eventStart = parseDateOnly(featuredEvent.start_date)
+    const eventEnd = endOfDateOnly(featuredEvent.end_date)
+    if (!eventStart || !eventEnd) {
+      counts.errors += 1
+      featuredLog(`slug=${featuredEvent.slug} skipped=invalid_date_window`)
+      continue
+    }
+
+    for (const config of providerConfigs) {
+      const encodedLeagueId = encodeURIComponent(config.leagueId)
+      const encodedSeason = encodeURIComponent(config.season)
+      const url = `https://www.thesportsdb.com/api/v1/json/${apiKey}/eventsseason.php?id=${encodedLeagueId}&s=${encodedSeason}`
+      const redactedURL = `https://www.thesportsdb.com/api/v1/json/redacted/eventsseason.php?id=${encodedLeagueId}&s=${encodedSeason}`
+      featuredLog(`slug=${featuredEvent.slug} leagueId=${config.leagueId} season=${config.season}`)
+      debugLog(`featured_request_url=${redactedURL}`)
+      counts.apiCalls += 1
+
+      try {
+        const response = await fetch(url)
+        debugLog(`featured_response_status=${response.status}`)
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+
+        const raw = await response.text()
+        debugLog(`featured_raw_response=${rawPreview(raw)}`)
+        const data = JSON.parse(raw)
+        const events = Array.isArray(data?.events) ? data.events : []
+        counts.featuredFixturesFetched += events.length
+
+        for (const event of events) {
+          const normalized = normalizeSportsDBScheduledFixture(event, {
+            id: config.leagueId,
+            sport: config.sport ?? featuredEvent.sport ?? "Sports",
+            league: config.league ?? String(event?.strLeague ?? config.leagueId),
+          })
+          if (!normalized) continue
+          counts.featuredFixturesNormalized += 1
+
+          const startTime = new Date(normalized.start_time)
+          if (!Number.isFinite(startTime.getTime()) || startTime < eventStart || startTime > eventEnd) {
+            continue
+          }
+          if (!featuredEventMatchesFixture(featuredEvent, normalized)) {
+            continue
+          }
+
+          allMatches.push({
+            ...normalized,
+            featured_event_slug: featuredEvent.slug,
+            payload: {
+              ...(event && typeof event === "object" ? event : {}),
+              fangeo_sync_kind: "featured_event_fixture",
+              fangeo_featured_event_slug: featuredEvent.slug,
+            },
+          })
+          counts.featuredFixturesMatched += 1
+        }
+      } catch (error) {
+        counts.errors += 1
+        const message = error instanceof Error ? error.message : String(error)
+        featuredLog(`slug=${featuredEvent.slug} error=${message}`)
+      }
+    }
+  }
+
+  if (allMatches.length === 0 && missingMappings.length > 0) {
+    counts.featuredPreloadSkippedReason = `missing_provider_mapping:${missingMappings.join(",")}`
+  }
+
+  return dedupeFeaturedMatches(allMatches)
+}
+
+async function fetchLastFeaturedPreloadUpdatedAt(
+  supabase: ReturnType<typeof createClient>,
+): Promise<Date | null> {
+  const { data, error } = await supabase
+    .from("live_matches")
+    .select("updated_at")
+    .not("featured_event_slug", "is", null)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    featuredLog(`cooldown_query_error=${error.message}`)
+    return null
+  }
+
+  const updatedAt = new Date(String(data?.updated_at ?? ""))
+  return Number.isFinite(updatedAt.getTime()) ? updatedAt : null
+}
+
+async function fetchActiveUpcomingFeaturedEvents(
+  supabase: ReturnType<typeof createClient>,
+  counts: FeaturedPreloadCounts,
+): Promise<FeaturedEventRow[]> {
+  const today = dateOnlyString(new Date())
+  const lookaheadEnd = dateOnlyString(new Date(Date.now() + FEATURED_PRELOAD_LOOKAHEAD_DAYS * 24 * 60 * 60 * 1000))
+  const { data, error } = await supabase
+    .from("featured_events")
+    .select("slug,title,sport,include_keywords,exclude_keywords,start_date,end_date,enabled,priority")
+    .eq("enabled", true)
+    .gte("end_date", today)
+    .lte("start_date", lookaheadEnd)
+    .order("priority", { ascending: false })
+
+  if (error || !Array.isArray(data)) {
+    counts.errors += 1
+    counts.featuredPreloadSkippedReason = error ? `featured_events_query:${error.message}` : "featured_events_query:invalid_response"
+    featuredLog(`error=${counts.featuredPreloadSkippedReason}`)
+    return []
+  }
+
+  return data
+    .map(normalizeFeaturedEventRow)
+    .filter((event): event is FeaturedEventRow => event !== null)
+}
+
+function normalizeFeaturedEventRow(row: any): FeaturedEventRow | null {
+  const slug = cleanString(row?.slug)
+  const title = cleanString(row?.title) ?? slug
+  const startDate = cleanString(row?.start_date)
+  const endDate = cleanString(row?.end_date)
+  if (!slug || !title || !startDate || !endDate) return null
+  return {
+    slug,
+    title,
+    sport: cleanString(row?.sport),
+    include_keywords: stringArray(row?.include_keywords),
+    exclude_keywords: stringArray(row?.exclude_keywords),
+    start_date: startDate,
+    end_date: endDate,
+    enabled: row?.enabled === true,
+    priority: numberOrNull(row?.priority),
+  }
+}
+
+function configuredFeaturedEventProviderConfigs(featuredEvent: FeaturedEventRow): FeaturedEventProviderConfig[] {
+  const envSuffix = normalizedEnvKey(featuredEvent.slug)
+  const leagueIds = envList(`THESPORTSDB_FEATURED_EVENT_LEAGUE_IDS_${envSuffix}`, [])
+  const seasons = envList(`THESPORTSDB_FEATURED_EVENT_SEASONS_${envSuffix}`, [])
+  if (leagueIds.length === 0 || seasons.length === 0) return []
+
+  const sport = cleanString(Deno.env.get(`THESPORTSDB_FEATURED_EVENT_SPORT_${envSuffix}`)) ?? featuredEvent.sport
+  const league = cleanString(Deno.env.get(`THESPORTSDB_FEATURED_EVENT_LEAGUE_NAME_${envSuffix}`))
+  const configs: FeaturedEventProviderConfig[] = []
+  for (const leagueId of leagueIds) {
+    for (const season of seasons) {
+      configs.push({ leagueId, season, sport, league })
+    }
+  }
+  return configs
+}
+
+function featuredEventMatchesFixture(featuredEvent: FeaturedEventRow, match: LiveMatchUpsert): boolean {
+  if (featuredEvent.sport && !sportMatchesFeaturedEvent(match.sport, featuredEvent.sport)) {
+    return false
+  }
+
+  const searchable = normalizedFeaturedText([
+    match.sport,
+    match.league,
+    match.home_team,
+    match.away_team,
+    payloadString(match.payload, "strSport"),
+    payloadString(match.payload, "strLeague"),
+    payloadString(match.payload, "strLeagueAlternate"),
+    payloadString(match.payload, "strEvent"),
+  ].join(" "))
+
+  const includeKeywords = (featuredEvent.include_keywords ?? [])
+    .map(normalizedFeaturedText)
+    .filter(Boolean)
+  if (includeKeywords.length === 0) return false
+  if (!includeKeywords.some((keyword) => searchable.includes(keyword))) return false
+
+  const excludeKeywords = (featuredEvent.exclude_keywords ?? [])
+    .map(normalizedFeaturedText)
+    .filter(Boolean)
+  return !excludeKeywords.some((keyword) => searchable.includes(keyword))
+}
+
+function sportMatchesFeaturedEvent(matchSport: string, featuredSport: string): boolean {
+  const lhs = normalizedFeaturedText(matchSport)
+  const rhs = normalizedFeaturedText(featuredSport)
+  if (!rhs) return true
+  if (rhs === "soccer" || rhs === "football" || rhs === "association football") {
+    return lhs === "soccer" || lhs === "football" || lhs.includes("association football")
+  }
+  if (rhs === "basketball") return lhs === "basketball" || lhs === "nba"
+  if (rhs === "baseball") return lhs === "baseball" || lhs === "mlb"
+  if (rhs === "hockey" || rhs === "ice hockey") return lhs === "hockey" || lhs === "ice hockey" || lhs === "nhl"
+  if (rhs === "american football" || rhs === "football") return lhs === "american football" || lhs === "nfl"
+  return lhs === rhs || lhs.includes(rhs) || rhs.includes(lhs)
+}
+
+function dedupeFeaturedMatches(matches: LiveMatchUpsert[]): LiveMatchUpsert[] {
+  const latestById = new Map<string, LiveMatchUpsert>()
+  for (const match of matches) {
+    latestById.set(match.id, match)
+  }
+  return [...latestById.values()].sort((lhs, rhs) => lhs.start_time.localeCompare(rhs.start_time))
+}
+
+
 async function fetchTheSportsDBPremiumV2Matches(
   apiKey: string,
   counts: SyncCounts,
@@ -345,6 +645,7 @@ function normalizeSportsDBV2Livescore(event: Record<string, unknown>): LiveMatch
     tv_updated_at: null,
     timeline_events: null,
     timeline_updated_at: null,
+    featured_event_slug: null,
   }
 }
 
@@ -414,6 +715,7 @@ function normalizeSportsDBEvent(event: Record<string, any>, fallbackLeague: stri
     tv_updated_at: null,
     timeline_events: null,
     timeline_updated_at: null,
+    featured_event_slug: null,
   }
 }
 
@@ -504,15 +806,16 @@ function mergeLiveAndScheduledMatches(
   protectedMatchIds: Set<string>,
   counts: ScheduledFixturesCounts,
 ): LiveMatchUpsert[] {
-  const liveIds = new Set(liveMatches.map((match) => match.id))
+  const mergedIds = new Set(liveMatches.map((match) => match.id))
   const merged = [...liveMatches]
 
   for (const match of scheduledMatches) {
-    if (liveIds.has(match.id) || protectedMatchIds.has(match.id)) {
+    if (mergedIds.has(match.id) || protectedMatchIds.has(match.id)) {
       counts.protectedExisting += 1
       continue
     }
     merged.push(match)
+    mergedIds.add(match.id)
   }
 
   return merged
@@ -539,6 +842,14 @@ async function enrichMatchesWithTVBroadcasts(
       match.tv_broadcasts = cached.tv_broadcasts ?? []
       match.tv_updated_at = cached.tv_updated_at
       counts.tvCacheHits += 1
+      continue
+    }
+
+    if (shouldSkipHeavyEnrichment(match)) {
+      match.tv_broadcasts = cached?.tv_broadcasts ?? match.tv_broadcasts
+      match.tv_updated_at = cached?.tv_updated_at ?? match.tv_updated_at
+      if (cached) counts.tvCacheHits += 1
+      tvLog(`event=${match.external_id} skipped=far_future`)
       continue
     }
 
@@ -718,6 +1029,14 @@ async function enrichMatchesWithTimelineEvents(
       continue
     }
 
+    if (shouldSkipHeavyEnrichment(match)) {
+      match.timeline_events = cached?.timeline_events ?? match.timeline_events
+      match.timeline_updated_at = cached?.timeline_updated_at ?? match.timeline_updated_at
+      if (cached) counts.timelineCacheHits += 1
+      timelineLog(`event=${match.external_id} skipped=far_future`)
+      continue
+    }
+
     const runCached = fetchedByEventId.get(match.external_id)
     if (runCached) {
       match.timeline_events = runCached.events
@@ -788,6 +1107,12 @@ function timelineEventCacheTTLMilliseconds(match: LiveMatchUpsert): number {
   return match.match_status === "LIVE" || match.match_status === "HT"
     ? 30 * 60 * 1000
     : 6 * 60 * 60 * 1000
+}
+
+function shouldSkipHeavyEnrichment(match: LiveMatchUpsert): boolean {
+  if (match.match_status !== "SCHEDULED") return false
+  const startTime = new Date(match.start_time).getTime()
+  return Number.isFinite(startTime) && startTime > Date.now() + HEAVY_ENRICHMENT_LOOKAHEAD_MS
 }
 
 async function fetchTheSportsDBTimelineEvents(
@@ -879,6 +1204,7 @@ async function pruneStaleMatches(
       .from("live_matches")
       .delete({ count: "exact" })
       .or(`start_time.lt.${matchWindow.startISO},start_time.gt.${matchWindow.endISO}`)
+      .is("featured_event_slug", null)
 
     if (deleteError) throw deleteError
     return count ?? 0
@@ -929,6 +1255,54 @@ function envList(name: string, fallback: string[]): string[] {
   const configured = Deno.env.get(name)
   const values = configured?.split(",").map((value) => value.trim()).filter(Boolean)
   return values && values.length > 0 ? values : fallback
+}
+
+function normalizedEnvKey(raw: string): string {
+  return raw
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+}
+
+function stringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((entry) => String(entry ?? "").trim()).filter(Boolean)
+  }
+  const raw = String(value ?? "").trim()
+  if (!raw) return []
+  return raw.split(",").map((entry) => entry.trim()).filter(Boolean)
+}
+
+function dateOnlyString(date: Date): string {
+  return date.toISOString().slice(0, 10)
+}
+
+function parseDateOnly(raw: string): Date | null {
+  const date = new Date(`${raw.slice(0, 10)}T00:00:00Z`)
+  return Number.isFinite(date.getTime()) ? date : null
+}
+
+function endOfDateOnly(raw: string): Date | null {
+  const start = parseDateOnly(raw)
+  if (!start) return null
+  return new Date(start.getTime() + 24 * 60 * 60 * 1000 - 1)
+}
+
+function normalizedFeaturedText(raw: string): string {
+  return raw
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+}
+
+function payloadString(payload: unknown, key: string): string {
+  if (!payload || typeof payload !== "object") return ""
+  const value = (payload as Record<string, unknown>)[key]
+  return String(value ?? "")
 }
 
 function isWithinMatchWindow(rawStart: string, matchWindow: MatchWindow): boolean {
@@ -1007,6 +1381,10 @@ function debugLog(message: string): void {
 
 function scheduledLog(message: string): void {
   console.log(`[ScheduledFixturesSync] ${message}`)
+}
+
+function featuredLog(message: string): void {
+  console.log(`[FeaturedFixturesSync] ${message}`)
 }
 
 function tvLog(message: string): void {

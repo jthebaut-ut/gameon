@@ -13,6 +13,8 @@ enum CountryFlagHelper {
         "CN": ["china", "pr china"],
         "CO": ["colombia"],
         "CR": ["costa rica"],
+        "CD": ["dr congo", "d r congo", "democratic republic of congo", "congo dr", "congo kinshasa"],
+        "CI": ["ivory coast", "cote d ivoire", "côte d ivoire"],
         "DE": ["germany", "deutschland"],
         "DK": ["denmark"],
         "EC": ["ecuador"],
@@ -20,25 +22,36 @@ enum CountryFlagHelper {
         "ES": ["spain", "españa"],
         "FR": ["france"],
         "GB": ["great britain", "britain", "uk", "united kingdom", "england", "scotland", "wales"],
+        "GH": ["ghana"],
+        "HT": ["haiti"],
         "HR": ["croatia"],
+        "IQ": ["iraq"],
+        "IR": ["iran"],
         "IT": ["italy", "italia"],
+        "JO": ["jordan"],
         "JP": ["japan"],
         "KR": ["south korea", "korea", "republic of korea"],
         "MA": ["morocco"],
         "MX": ["mexico", "méxico"],
         "NL": ["netherlands", "holland"],
         "NO": ["norway"],
+        "NZ": ["new zealand"],
+        "PA": ["panama"],
         "PE": ["peru"],
         "PL": ["poland", "polska"],
         "PT": ["portugal"],
+        "QA": ["qatar"],
         "RS": ["serbia"],
         "RU": ["russia"],
         "SA": ["saudi arabia"],
         "SE": ["sweden"],
         "SN": ["senegal"],
+        "TN": ["tunisia"],
         "TR": ["turkey", "turkiye", "türkiye"],
         "US": ["usa", "u.s.a.", "us", "u.s.", "united states", "united states of america", "america"],
-        "UY": ["uruguay"]
+        "UY": ["uruguay"],
+        "UZ": ["uzbekistan"],
+        "ZA": ["south africa"]
     ]
 
     private static let regionCodeByAlias: [String: String] = {
@@ -99,9 +112,31 @@ enum CountryFlagHelper {
         if let direct = regionCodeByAlias[normalized] {
             return direct
         }
+        if let withoutTeamSuffix = normalizedCountryTeamSuffixRemoved(normalized),
+           let direct = regionCodeByAlias[withoutTeamSuffix] {
+            return direct
+        }
         return regionCodeByAlias.first { alias, _ in
             normalized == alias || normalized.hasSuffix(" \(alias)")
         }?.value
+    }
+
+    private static func normalizedCountryTeamSuffixRemoved(_ normalized: String) -> String? {
+        let suffixes = [
+            " women",
+            " men",
+            " womens",
+            " mens",
+            " u17",
+            " u18",
+            " u19",
+            " u20",
+            " u21",
+            " u23"
+        ]
+        guard let suffix = suffixes.first(where: { normalized.hasSuffix($0) }) else { return nil }
+        let trimmed = String(normalized.dropLast(suffix.count)).trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     private static func normalize(_ value: String) -> String {

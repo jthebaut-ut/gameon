@@ -1058,6 +1058,7 @@ extension MapViewModel {
         }
         loadVenueGameCalendarDotsForDiscover(around: month, reason: reason + "_calTabVenue", logIfOpeningBeforeReady: false)
         loadPickupGameCalendarDotsForDiscover(around: month, reason: reason + "_calTabPickup", logIfOpeningBeforeReady: false)
+        loadCalendarProGameDotDatesAroundMonth(month, reason: reason + "_calTabPro")
     }
 
     private func loadVenueGameCalendarDotsForDiscover(

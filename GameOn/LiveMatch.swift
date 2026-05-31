@@ -174,8 +174,450 @@ nonisolated struct LiveTimelineEvent: Codable, Equatable, Identifiable {
     }
 }
 
+nonisolated enum LiveLeagueCountryResolver {
+    static let presetCountries = [
+        "Australia",
+        "Canada",
+        "England",
+        "France",
+        "Germany",
+        "Italy",
+        "Japan",
+        "Mexico",
+        "Spain",
+        "United States"
+    ]
+
+    static func country(for league: String) -> String? {
+        let normalized = normalizedLeagueText(league)
+        guard !normalized.isEmpty else { return nil }
+
+        let fallbackRules: [(country: String, fragments: [String])] = [
+            ("Japan", ["japanese j1 league", "j1 league", "japanese j2 league", "j2 league"]),
+            ("Australia", ["nbl1 central", "nbl1 east", "nbl1 north", "nbl1 south", "nbl1 west"]),
+            ("United States", ["mls", "major league soccer", "nba", "mlb", "nhl", "nfl", "wnba", "usl"]),
+            ("Mexico", ["liga mx"]),
+            ("England", ["premier league", "english premier league"]),
+            ("France", ["ligue 1", "french ligue 1"]),
+            ("Spain", ["la liga", "spanish la liga"]),
+            ("Germany", ["bundesliga", "german bundesliga"]),
+            ("Italy", ["serie a", "italian serie a"])
+        ]
+
+        for rule in fallbackRules where rule.fragments.contains(where: { normalized.contains($0) }) {
+            return rule.country
+        }
+        return nil
+    }
+
+    static func normalizedCountry(_ raw: String?) -> String? {
+        let value = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !value.isEmpty else { return nil }
+
+        let lowercased = value.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current).lowercased()
+        switch lowercased {
+        case "usa", "us", "u.s.", "u.s.a.", "united states of america":
+            return "United States"
+        case "uk", "eng", "england":
+            return "England"
+        default:
+            return value
+                .split(separator: " ")
+                .map { word in
+                    let lower = word.lowercased()
+                    return lower.prefix(1).uppercased() + String(lower.dropFirst())
+                }
+                .joined(separator: " ")
+        }
+    }
+
+    private static func normalizedLeagueText(_ raw: String) -> String {
+        raw.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
+            .replacingOccurrences(of: "&", with: " and ")
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+    }
+}
+
+nonisolated enum LiveLeagueCountryFilterPreference {
+    static let appStorageKey = "liveLeagueCountryFilterSelection.v1"
+
+    static func decode(from raw: String) -> Set<String> {
+        Set(
+            raw.split(separator: "\n")
+                .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+        )
+    }
+
+    static func encode(_ countries: Set<String>) -> String {
+        countries.sorted().joined(separator: "\n")
+    }
+}
+
+nonisolated struct FeaturedEvent: Identifiable, Equatable, Codable, Sendable {
+    let id: String
+    let slug: String
+    let title: String
+    let shortTitle: String?
+    let icon: String?
+    let sport: String?
+    let includeKeywords: [String]
+    let excludeKeywords: [String]
+    let startDate: Date
+    let endDate: Date
+    let enabled: Bool
+    let priority: Int
+
+    var chipTitle: String {
+        let label = (shortTitle ?? title).trimmingCharacters(in: .whitespacesAndNewlines)
+        let symbol = icon?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if symbol.isEmpty { return label }
+        return "\(symbol) \(label)"
+    }
+
+    var emptyStateTitle: String {
+        isFifaWorldCupDefinition ? "FIFA World Cup" : title
+    }
+
+    var isFifaWorldCupDefinition: Bool {
+        let normalizedSlug = LiveMatchFilters.normalizedSearchText(slug)
+        let normalizedTitle = LiveMatchFilters.normalizedSearchText(title)
+        let normalizedShortTitle = shortTitle.map(LiveMatchFilters.normalizedSearchText) ?? ""
+        return [normalizedSlug, normalizedTitle, normalizedShortTitle].contains { value in
+            value.contains("fifa") && (value.contains("world cup") || value.contains("wc"))
+        }
+    }
+
+    static let fallbackFIFAWorldCup = FeaturedEvent(
+        id: "fallback-fifa-world-cup",
+        slug: "fifa-world-cup",
+        title: "FIFA World Cup",
+        shortTitle: "FIFA WC",
+        icon: "🏆",
+        sport: "Soccer",
+        includeKeywords: [
+            "fifa world cup",
+            "fifa world cup qualifiers",
+            "fifa world cup qualification",
+            "fifa club world cup",
+            "fifa women s world cup",
+            "women s fifa world cup",
+            "world cup qualifiers",
+            "world cup qualification"
+        ],
+        excludeKeywords: [
+            "fiba",
+            "basketball world cup",
+            "cricket world cup",
+            "icc world cup",
+            "t20 world cup",
+            "rugby world cup",
+            "hockey world cup",
+            "american football",
+            "nfl",
+            "gridiron",
+            "us football"
+        ],
+        startDate: .distantPast,
+        endDate: .distantFuture,
+        enabled: true,
+        priority: Int.max
+    )
+
+    static let fallbackEvents = [fallbackFIFAWorldCup]
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case slug
+        case title
+        case shortTitle = "short_title"
+        case icon
+        case sport
+        case includeKeywords = "include_keywords"
+        case excludeKeywords = "exclude_keywords"
+        case startDate = "start_date"
+        case endDate = "end_date"
+        case enabled
+        case priority
+    }
+
+    init(
+        id: String,
+        slug: String,
+        title: String,
+        shortTitle: String?,
+        icon: String?,
+        sport: String?,
+        includeKeywords: [String],
+        excludeKeywords: [String],
+        startDate: Date,
+        endDate: Date,
+        enabled: Bool,
+        priority: Int
+    ) {
+        self.id = id
+        self.slug = slug
+        self.title = title
+        self.shortTitle = shortTitle
+        self.icon = icon
+        self.sport = sport
+        self.includeKeywords = includeKeywords
+        self.excludeKeywords = excludeKeywords
+        self.startDate = startDate
+        self.endDate = endDate
+        self.enabled = enabled
+        self.priority = priority
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeFlexibleString(forKey: .id)
+        slug = try container.decodeFlexibleString(forKey: .slug)
+        title = try container.decodeFlexibleString(forKey: .title)
+        shortTitle = try container.decodeFlexibleOptionalString(forKey: .shortTitle)
+        icon = try container.decodeFlexibleOptionalString(forKey: .icon)
+        sport = try container.decodeFlexibleOptionalString(forKey: .sport)
+        includeKeywords = try container.decodeStringArrayIfPresent(forKey: .includeKeywords) ?? []
+        excludeKeywords = try container.decodeStringArrayIfPresent(forKey: .excludeKeywords) ?? []
+        startDate = try container.decodeFlexibleDate(forKey: .startDate)
+        endDate = try container.decodeFlexibleDate(forKey: .endDate)
+        enabled = (try? container.decode(Bool.self, forKey: .enabled)) ?? true
+        priority = (try? container.decode(Int.self, forKey: .priority)) ?? 0
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(slug, forKey: .slug)
+        try container.encode(title, forKey: .title)
+        try container.encodeIfPresent(shortTitle, forKey: .shortTitle)
+        try container.encodeIfPresent(icon, forKey: .icon)
+        try container.encodeIfPresent(sport, forKey: .sport)
+        try container.encode(includeKeywords, forKey: .includeKeywords)
+        try container.encode(excludeKeywords, forKey: .excludeKeywords)
+        try container.encode(Self.dateOnlyFormatter.string(from: startDate), forKey: .startDate)
+        try container.encode(Self.dateOnlyFormatter.string(from: endDate), forKey: .endDate)
+        try container.encode(enabled, forKey: .enabled)
+        try container.encode(priority, forKey: .priority)
+    }
+
+    private static let dateOnlyFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
+
+    fileprivate static func parseDate(_ raw: String) -> Date? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let date = dateOnlyFormatter.date(from: trimmed) {
+            return date
+        }
+        return SupabaseTimestampParsing.parseTimestamptz(trimmed)
+    }
+}
+
+private extension KeyedDecodingContainer where K == FeaturedEvent.CodingKeys {
+    nonisolated func decodeFlexibleString(forKey key: K) throws -> String {
+        if let value = try? decode(String.self, forKey: key) {
+            return value
+        }
+        if let value = try? decode(UUID.self, forKey: key) {
+            return value.uuidString.lowercased()
+        }
+        if let value = try? decode(Int.self, forKey: key) {
+            return String(value)
+        }
+        throw DecodingError.typeMismatch(
+            String.self,
+            DecodingError.Context(codingPath: codingPath + [key], debugDescription: "Expected string-compatible value.")
+        )
+    }
+
+    nonisolated func decodeFlexibleOptionalString(forKey key: K) throws -> String? {
+        guard contains(key), !(try decodeNil(forKey: key)) else { return nil }
+        return try decodeFlexibleString(forKey: key)
+    }
+
+    nonisolated func decodeStringArrayIfPresent(forKey key: K) throws -> [String]? {
+        guard contains(key), !(try decodeNil(forKey: key)) else { return nil }
+        if let values = try? decode([String].self, forKey: key) {
+            return values
+        }
+        if let value = try? decode(String.self, forKey: key) {
+            return value
+                .split(separator: ",")
+                .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+        }
+        return nil
+    }
+
+    nonisolated func decodeFlexibleDate(forKey key: K) throws -> Date {
+        let raw = try decodeFlexibleString(forKey: key)
+        if let date = FeaturedEvent.parseDate(raw) {
+            return date
+        }
+        throw DecodingError.dataCorruptedError(forKey: key, in: self, debugDescription: "Invalid date: \(raw)")
+    }
+}
+
+nonisolated enum LiveMatchFilters {
+    static func isFifaWorldCupMatch(_ match: LiveMatch) -> Bool {
+        guard isSoccer(match) else { return false }
+
+        let searchableText = [
+            match.league,
+            match.sourceLeagueName,
+            match.leagueAlternate,
+            match.eventName,
+            "\(match.awayTeam) \(match.homeTeam)"
+        ]
+            .compactMap { $0 }
+            .map(normalizedSearchText)
+            .joined(separator: " ")
+
+        let nonFifaWorldCupMarkers = [
+            "fiba",
+            "basketball world cup",
+            "cricket world cup",
+            "icc world cup",
+            "t20 world cup",
+            "rugby world cup",
+            "hockey world cup",
+            "american football",
+            "nfl",
+            "gridiron",
+            "us football"
+        ]
+        if nonFifaWorldCupMarkers.contains(where: { searchableText.contains($0) }) {
+            return false
+        }
+
+        if searchableText.contains("fifa") && searchableText.contains("world cup") {
+            return true
+        }
+        if searchableText.contains("club world cup") {
+            return true
+        }
+        if searchableText.contains("world cup qualifier") || searchableText.contains("world cup qualification") {
+            return true
+        }
+        if searchableText.contains("men s world cup") || searchableText.contains("mens world cup") {
+            return true
+        }
+        if searchableText.contains("women s world cup") || searchableText.contains("womens world cup") {
+            return true
+        }
+        return false
+    }
+
+    static func matchesLeagueCountry(_ match: LiveMatch, selectedCountries: Set<String>) -> Bool {
+        guard !selectedCountries.isEmpty else { return true }
+        guard let country = match.leagueCountry else { return false }
+        return selectedCountries.contains(country)
+    }
+
+    static func matchesFeaturedEvent(_ match: LiveMatch, featuredEvent: FeaturedEvent) -> Bool {
+        if let featuredEventSlug = match.featuredEventSlug,
+           normalizedSearchText(featuredEventSlug) == normalizedSearchText(featuredEvent.slug) {
+            return true
+        }
+
+        if featuredEvent.isFifaWorldCupDefinition {
+            return isFifaWorldCupMatch(match)
+        }
+
+        if let sport = featuredEvent.sport?.trimmingCharacters(in: .whitespacesAndNewlines), !sport.isEmpty {
+            guard matchesSport(match, sport: sport) else { return false }
+        }
+
+        let searchableText = searchableText(for: match)
+        let includeKeywords = featuredEvent.includeKeywords
+            .map(normalizedSearchText)
+            .filter { !$0.isEmpty }
+        guard !includeKeywords.isEmpty else { return false }
+        guard includeKeywords.contains(where: { searchableText.contains($0) }) else { return false }
+
+        let excludeKeywords = featuredEvent.excludeKeywords
+            .map(normalizedSearchText)
+            .filter { !$0.isEmpty }
+        return !excludeKeywords.contains(where: { searchableText.contains($0) })
+    }
+
+    static func filterByLeagueCountries(_ matches: [LiveMatch], selectedCountries: Set<String>) -> [LiveMatch] {
+        guard !selectedCountries.isEmpty else { return matches }
+        return matches.filter { matchesLeagueCountry($0, selectedCountries: selectedCountries) }
+    }
+
+    static func normalizedSearchText(_ raw: String) -> String {
+        raw
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
+            .replacingOccurrences(of: "&", with: " and ")
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+    }
+
+    private static func searchableText(for match: LiveMatch) -> String {
+        [
+            match.sport,
+            match.sourceSportName,
+            match.league,
+            match.sourceLeagueName,
+            match.leagueAlternate,
+            match.eventName,
+            match.awayTeam,
+            match.homeTeam
+        ]
+            .compactMap { $0 }
+            .map(normalizedSearchText)
+            .joined(separator: " ")
+    }
+
+    private static func matchesSport(_ match: LiveMatch, sport: String) -> Bool {
+        let normalizedSport = normalizedSearchText(sport)
+        guard !normalizedSport.isEmpty else { return true }
+        if ["soccer", "football", "association football"].contains(normalizedSport) {
+            return isSoccer(match)
+        }
+        let matchSports = [match.sport, match.sourceSportName]
+            .compactMap { $0 }
+            .map(normalizedSearchText)
+        return matchSports.contains(normalizedSport)
+            || LiveSportVisualType.normalize(sport) == match.liveSportVisualType
+    }
+
+    private static func isSoccer(_ match: LiveMatch) -> Bool {
+        let sportFields = [match.sport, match.sourceSportName]
+            .compactMap { $0 }
+            .map(normalizedSearchText)
+        let americanFootballMarkers = [
+            "american football",
+            "nfl",
+            "gridiron",
+            "us football"
+        ]
+        if sportFields.contains(where: { sport in americanFootballMarkers.contains(where: { sport.contains($0) }) }) {
+            return false
+        }
+        if match.liveSportVisualType == .soccer { return true }
+        return sportFields.contains { sport in
+            sport == "soccer" || sport == "football" || sport.contains("association football")
+        }
+    }
+}
+
 nonisolated struct LiveMatch: Identifiable, Equatable, Codable {
     let id: String
+    let source: String?
+    let externalId: String?
     let sport: String
     let homeTeam: String
     let awayTeam: String
@@ -185,13 +627,19 @@ nonisolated struct LiveMatch: Identifiable, Equatable, Codable {
     let matchStatus: MatchStatus
     let minute: Int?
     let league: String
+    let sourceLeagueName: String?
+    let eventName: String?
+    let leagueAlternate: String?
+    let sourceSportName: String?
     let startTime: Date
     let venueName: String?
     let venueCity: String?
     let venueLatitude: Double?
     let venueLongitude: Double?
+    let leagueCountry: String?
     let tvBroadcasts: [LiveTVBroadcast]
     let timelineEvents: [LiveTimelineEvent]
+    let featuredEventSlug: String?
 
     var liveSportVisualType: LiveSportVisualType {
         LiveSportVisualType.normalize(sport)

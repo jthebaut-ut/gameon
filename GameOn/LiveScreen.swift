@@ -15,6 +15,7 @@ struct LiveScreen: View {
 
     @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
     @AppStorage(FavoriteTeamsStore.appStorageKey) private var favoriteTeamIDsRaw: String = ""
+    @AppStorage(LiveLeagueCountryFilterPreference.appStorageKey) private var liveLeagueCountryFilterRaw: String = ""
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.scenePhase) private var scenePhase
     @State private var showVenueDetails = false
@@ -23,11 +24,12 @@ struct LiveScreen: View {
     @State private var liveIndicatorPulse = false
     @State private var liveAutoRefreshTask: Task<Void, Never>?
     @State private var liveGamesSportFilter: LiveSportVisualType?
-    @State private var liveGamesWorldCupFilterSelected = false
+    @State private var liveFeaturedEventFilterSlug: String?
     @State private var liveNowExpanded = false
     @State private var liveWatchSpotsPresentation: LiveWatchSpotsPresentation?
     @State private var fanUpdatesSheetEvent: FanUpdatesSheetEvent?
     @State private var liveMatchDetailSelection: LiveMatch?
+    @State private var showLiveCountryFilterSheet = false
 
     private struct LiveWatchSpotsPresentation: Identifiable {
         let id: String
@@ -134,11 +136,21 @@ struct LiveScreen: View {
     private var displayedLiveMatches: [LiveMatch] {
         let matches = viewModel.liveTabLiveMatchesDisplayed(
             searchQuery: "",
-            sportFilter: liveGamesWorldCupFilterSelected ? nil : liveGamesSportFilter,
+            sportFilter: selectedLiveFeaturedEvent == nil ? liveGamesSportFilter : nil,
             calendarDay: liveCalendarToday
         )
-        guard liveGamesWorldCupFilterSelected else { return matches }
-        return matches.filter(liveMatchMatchesWorldCupFilter)
+        let featuredFiltered: [LiveMatch]
+        if let selectedLiveFeaturedEvent {
+            featuredFiltered = matches.filter {
+                LiveMatchFilters.matchesFeaturedEvent($0, featuredEvent: selectedLiveFeaturedEvent)
+            }
+        } else {
+            featuredFiltered = matches
+        }
+        if selectedLiveFeaturedEvent != nil {
+            return featuredFiltered
+        }
+        return liveMatchesFilteredBySelectedCountries(featuredFiltered)
     }
 
     private var liveGamesSportFilterOptions: [LiveSportVisualType] {
@@ -147,6 +159,49 @@ struct LiveScreen: View {
                 .map(\.liveSportVisualType)
         )
         return LiveSportVisualType.allCases.filter { present.contains($0) }
+    }
+
+    private var liveFeaturedEvents: [FeaturedEvent] {
+        viewModel.activeFeaturedEvents
+    }
+
+    private var selectedLiveFeaturedEvent: FeaturedEvent? {
+        guard let liveFeaturedEventFilterSlug else { return nil }
+        return liveFeaturedEvents.first { $0.slug == liveFeaturedEventFilterSlug }
+    }
+
+    private func selectedFeaturedEvent(for match: LiveMatch) -> FeaturedEvent? {
+        if let featuredEventSlug = match.featuredEventSlug {
+            let normalizedSlug = LiveMatchFilters.normalizedSearchText(featuredEventSlug)
+            if let direct = liveFeaturedEvents.first(where: { LiveMatchFilters.normalizedSearchText($0.slug) == normalizedSlug }) {
+                return direct
+            }
+        }
+        return liveFeaturedEvents.first {
+            LiveMatchFilters.matchesFeaturedEvent(match, featuredEvent: $0)
+        }
+    }
+
+    private var selectedLiveLeagueCountries: Set<String> {
+        LiveLeagueCountryFilterPreference.decode(from: liveLeagueCountryFilterRaw)
+    }
+
+    private var liveLeagueCountryFilterCount: Int {
+        selectedLiveLeagueCountries.count
+    }
+
+    private var liveLeagueCountryFilterIsActive: Bool {
+        !selectedLiveLeagueCountries.isEmpty
+    }
+
+    private var liveLeagueCountryChipTitle: String {
+        liveLeagueCountryFilterCount == 0 ? "Countries" : "Countries \(liveLeagueCountryFilterCount)"
+    }
+
+    private var liveLeagueCountryOptions: [String] {
+        let allMatches = viewModel.liveTabLiveMatchesDisplayed(searchQuery: "", sportFilter: nil, calendarDay: liveCalendarToday)
+        let detected = allMatches.compactMap(\.leagueCountry)
+        return Array(Set(LiveLeagueCountryResolver.presetCountries + detected + Array(selectedLiveLeagueCountries))).sorted()
     }
 
     private var userSelectedTimeZone: TimeZone {
@@ -166,6 +221,18 @@ struct LiveScreen: View {
         }
 #endif
         return displayed
+    }
+
+    private func updateSelectedLiveLeagueCountries(_ countries: Set<String>) {
+        liveLeagueCountryFilterRaw = LiveLeagueCountryFilterPreference.encode(countries)
+    }
+
+    private func liveMatchesFilteredBySelectedCountries(_ matches: [LiveMatch]) -> [LiveMatch] {
+        LiveMatchFilters.filterByLeagueCountries(matches, selectedCountries: selectedLiveLeagueCountries)
+    }
+
+    private func liveMatchMatchesSelectedCountries(_ match: LiveMatch) -> Bool {
+        LiveMatchFilters.matchesLeagueCountry(match, selectedCountries: selectedLiveLeagueCountries)
     }
 
     private var shouldAutoRefreshLiveMatches: Bool {
@@ -197,6 +264,15 @@ struct LiveScreen: View {
             }
             .sheet(item: $liveMatchDetailSelection) { match in
                 LiveMatchDetailSheet(match: match)
+            }
+            .sheet(isPresented: $showLiveCountryFilterSheet) {
+                LiveLeagueCountryFilterSheet(
+                    countries: liveLeagueCountryOptions,
+                    selectedCountries: Binding(
+                        get: { selectedLiveLeagueCountries },
+                        set: { updateSelectedLiveLeagueCountries($0) }
+                    )
+                )
             }
             .sheet(item: Binding(
                 get: {
@@ -691,9 +767,9 @@ struct LiveScreen: View {
             sportFilter: nil,
             calendarDay: liveCalendarToday
         )
-        let worldCupMatches = allLiveGames.filter(liveMatchMatchesWorldCupFilter)
+        let worldCupMatches = allLiveGames.filter(LiveMatchFilters.isFifaWorldCupMatch)
         let _: Void = logLiveWorldCupFilterDebug(
-            selected: liveGamesWorldCupFilterSelected,
+            selected: selectedLiveFeaturedEvent?.isFifaWorldCupDefinition == true,
             totalLiveGames: allLiveGames.count,
             matchedWorldCupGames: worldCupMatches
         )
@@ -737,7 +813,7 @@ struct LiveScreen: View {
                         }
                     }
                     .animation(.spring(response: 0.34, dampingFraction: 0.86), value: liveGamesSportFilter)
-                    .animation(.spring(response: 0.34, dampingFraction: 0.86), value: liveGamesWorldCupFilterSelected)
+                    .animation(.spring(response: 0.34, dampingFraction: 0.86), value: liveFeaturedEventFilterSlug)
                 }
             }
         }
@@ -754,8 +830,11 @@ struct LiveScreen: View {
     }
 
     private var liveGamesEmptyStateMessage: String {
-        if liveGamesWorldCupFilterSelected {
-            return "No World Cup or international games live right now"
+        if selectedLiveFeaturedEvent != nil {
+            return "No matches found for this featured event."
+        }
+        if liveLeagueCountryFilterIsActive {
+            return "No live games for selected countries right now"
         }
         if let liveGamesSportFilter {
             return "No live \(liveGamesSportFilter.filterChipLabel) games right now"
@@ -768,106 +847,127 @@ struct LiveScreen: View {
             HStack(spacing: 10) {
                 SportFilterChip(
                     sport: "All",
-                    isSelected: liveGamesSportFilter == nil && !liveGamesWorldCupFilterSelected,
+                    isSelected: liveGamesSportFilter == nil && selectedLiveFeaturedEvent == nil,
                     preferSystemSymbol: true
                 ) {
                     withAnimation(.spring(response: 0.32, dampingFraction: 0.84)) {
-                        liveGamesWorldCupFilterSelected = false
+                        liveFeaturedEventFilterSlug = nil
                         liveGamesSportFilter = nil
                     }
                 }
-                SportFilterChip(
-                    sport: "Soccer",
-                    displayTitle: "🏆 World Cup",
-                    isSelected: liveGamesWorldCupFilterSelected,
-                    preferSystemSymbol: true
-                ) {
-                    withAnimation(.spring(response: 0.32, dampingFraction: 0.84)) {
-                        liveGamesSportFilter = nil
-                        liveGamesWorldCupFilterSelected = true
-                    }
+                ForEach(liveFeaturedEvents) { featuredEvent in
+                    liveFeaturedEventChip(featuredEvent)
                 }
                 ForEach(liveGamesSportFilterOptions, id: \.self) { sport in
                     SportFilterChip(
                         sport: sport.sportFilterCatalogKey,
                         displayTitle: sport.filterChipLabel,
-                        isSelected: liveGamesSportFilter == sport && !liveGamesWorldCupFilterSelected,
+                        isSelected: liveGamesSportFilter == sport && selectedLiveFeaturedEvent == nil,
                         preferSystemSymbol: true
                     ) {
                         withAnimation(.spring(response: 0.32, dampingFraction: 0.84)) {
-                            liveGamesWorldCupFilterSelected = false
+                            liveFeaturedEventFilterSlug = nil
                             liveGamesSportFilter = sport
                         }
                     }
                 }
+                liveCountryFilterChip
             }
             .padding(.horizontal, 1)
             .padding(.vertical, 2)
         }
         .scrollClipDisabled()
         .animation(.spring(response: 0.32, dampingFraction: 0.86), value: liveGamesSportFilter)
-        .animation(.spring(response: 0.32, dampingFraction: 0.86), value: liveGamesWorldCupFilterSelected)
+        .animation(.spring(response: 0.32, dampingFraction: 0.86), value: liveFeaturedEventFilterSlug)
+        .animation(.spring(response: 0.32, dampingFraction: 0.86), value: liveLeagueCountryFilterRaw)
+    }
+
+    private func liveFeaturedEventChip(_ featuredEvent: FeaturedEvent) -> some View {
+        SportFilterChip(
+            sport: featuredEvent.sport ?? "Soccer",
+            displayTitle: featuredEvent.chipTitle,
+            isSelected: selectedLiveFeaturedEvent?.slug == featuredEvent.slug,
+            preferSystemSymbol: true
+        ) {
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.84)) {
+                liveGamesSportFilter = nil
+                updateSelectedLiveLeagueCountries([])
+                liveFeaturedEventFilterSlug = selectedLiveFeaturedEvent?.slug == featuredEvent.slug ? nil : featuredEvent.slug
+            }
+        }
+    }
+
+    private var liveCountryFilterChip: some View {
+        Button {
+            showLiveCountryFilterSheet = true
+        } label: {
+            HStack(spacing: 6) {
+                Text("🌎")
+                    .font(.system(size: 16))
+                    .baselineOffset(-0.35)
+                Text(liveLeagueCountryChipTitle)
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 1)
+            .frame(height: 36, alignment: .center)
+            .foregroundStyle(liveLeagueCountryFilterIsActive ? Color.white : FGColor.primaryText(colorScheme))
+            .background {
+                Group {
+                    if liveLeagueCountryFilterIsActive {
+                        Capsule(style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [FGColor.accentBlue.opacity(0.98), FGColor.accentBlue.opacity(0.74)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    } else {
+                        ZStack {
+                            Capsule(style: .continuous)
+                                .fill(.ultraThinMaterial)
+                            Capsule(style: .continuous)
+                                .fill(FGColor.cardBackground(colorScheme).opacity(colorScheme == .dark ? 0.55 : 0.72))
+                            Capsule(style: .continuous)
+                                .fill(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.10 : 0.065))
+                        }
+                    }
+                }
+            }
+            .overlay(
+                Capsule(style: .continuous)
+                    .strokeBorder(
+                        liveLeagueCountryFilterIsActive ? Color.white.opacity(0.22) : FGColor.accentBlue.opacity(colorScheme == .dark ? 0.26 : 0.20),
+                        lineWidth: liveLeagueCountryFilterIsActive ? 1 : 0.9
+                    )
+            )
+            .contentShape(Capsule(style: .continuous))
+            .shadow(
+                color: liveLeagueCountryFilterIsActive ? FGColor.accentBlue.opacity(colorScheme == .dark ? 0.34 : 0.22) : .black.opacity(colorScheme == .dark ? 0.14 : 0.05),
+                radius: liveLeagueCountryFilterIsActive ? 12 : 6,
+                x: 0,
+                y: liveLeagueCountryFilterIsActive ? 5 : 2.5
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(liveLeagueCountryFilterCount == 0 ? "Countries" : "Countries, \(liveLeagueCountryFilterCount) selected")
     }
 
     private var favoriteTeams: [FavoriteTeam] {
         FavoriteTeamsStore.resolvedTeams(from: favoriteTeamIDsRaw)
     }
 
-    private func liveMatchMatchesWorldCupFilter(_ match: LiveMatch) -> Bool {
-        let league = normalizedWorldCupFilterText(match.league)
-        let title = normalizedWorldCupFilterText("\(match.awayTeam) \(match.homeTeam)")
-        let sport = match.liveSportVisualType
-
-        let clubTournamentKeywords = [
-            "champions league",
-            "europa league",
-            "conference league",
-            "champions cup",
-            "libertadores",
-            "sudamericana",
-            "club world cup"
-        ]
-        if clubTournamentKeywords.contains(where: { league.contains($0) }) {
-            return false
-        }
-
-        let tournamentKeywords = [
-            "world cup",
-            "fifa",
-            "concacaf",
-            "conmebol",
-            "uefa",
-            "international",
-            "friendlies",
-            "friendly",
-            "nations league",
-            "gold cup",
-            "copa america",
-            "euros",
-            "euro qualifiers",
-            "world cup qualification",
-            "world cup qualifier"
-        ]
-        if tournamentKeywords.contains(where: { league.contains($0) }) {
-            return true
-        }
-
-        guard sport == .soccer else { return false }
-        if tournamentKeywords.contains(where: { title.contains($0) }) {
-            return true
-        }
-
-        return isLikelyNationalTeamName(match.awayTeam) && isLikelyNationalTeamName(match.homeTeam)
-    }
-
     private func normalizedWorldCupFilterText(_ raw: String) -> String {
         raw
             .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
-            .replacingOccurrences(of: "_", with: " ")
-            .replacingOccurrences(of: "-", with: " ")
-            .replacingOccurrences(of: "/", with: " ")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased()
+            .replacingOccurrences(of: "&", with: " and ")
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
     }
 
     private func isLikelyNationalTeamName(_ rawTeam: String) -> Bool {
@@ -965,6 +1065,7 @@ struct LiveScreen: View {
     private func favoriteTeamLiveItem(for team: FavoriteTeam, rankedItems: [LiveFeedItem]) -> FavoriteTeamLiveItem? {
         let matchingMatches = viewModel.liveMatches
             .filter { liveMatchIsLiveOrStartingSoon($0) }
+            .filter(liveMatchMatchesSelectedCountries)
             .filter { favoriteTeamMatches(team, in: $0) }
             .sorted(by: favoriteTeamLiveMatchSort)
         let matchingVenueItems = rankedItems
@@ -1455,6 +1556,8 @@ struct LiveScreen: View {
         let title = "\(match.awayTeam) at \(match.homeTeam)"
         let renderVenue = match.venueName?.trimmingCharacters(in: .whitespacesAndNewlines)
         let renderCity = match.venueCity?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let isSaved = viewModel.isProGameSaved(match)
+        let isFeatured = selectedFeaturedEvent(for: match) != nil
 #if DEBUG
         print("[LiveVenueDebug] provider=LiveMatch")
         print("[LiveVenueDebug] title=\(title)")
@@ -1463,12 +1566,11 @@ struct LiveScreen: View {
 #endif
         return VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 10) {
-                ZStack {
-                    Circle()
-                        .fill(accent.opacity(colorScheme == .dark ? 0.24 : 0.13))
-                    SportArtworkIconView(sport: catalogSportKey, diameter: 34, preferSystemSymbol: true)
-                }
-                .frame(width: 42, height: 42)
+                ProGameSportBadgeView(
+                    sportType: sportType,
+                    diameter: 42,
+                    isFeatured: isFeatured
+                )
 
                 VStack(alignment: .leading, spacing: 9) {
                     HStack(spacing: 7) {
@@ -1484,7 +1586,7 @@ struct LiveScreen: View {
                                     .fill(accent.opacity(colorScheme == .dark ? 0.18 : 0.10))
                             )
 
-                        Text(match.league)
+                        Text(liveMatchLeagueCompetitionText(for: match))
                             .font(FGTypography.metadata.weight(.semibold))
                             .foregroundStyle(FGColor.secondaryText(colorScheme))
                             .lineLimit(1)
@@ -1498,6 +1600,8 @@ struct LiveScreen: View {
                 }
 
                 Spacer(minLength: 0)
+
+                liveProGameSaveButton(match, isSaved: isSaved, accent: accent)
             }
 
             if canShowPersonalLiveSections && !socialProfiles.isEmpty {
@@ -1555,6 +1659,29 @@ struct LiveScreen: View {
         .onTapGesture {
             liveMatchDetailSelection = match
         }
+    }
+
+    private func liveProGameSaveButton(_ match: LiveMatch, isSaved: Bool, accent: Color) -> some View {
+        Button {
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+                viewModel.toggleSavedProGame(match)
+            }
+        } label: {
+            Image(systemName: isSaved ? "heart.fill" : "heart")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(isSaved ? Color.red.opacity(0.95) : accent)
+                .frame(width: 32, height: 32)
+                .background(
+                    Circle()
+                        .fill((isSaved ? Color.red : accent).opacity(colorScheme == .dark ? 0.18 : 0.10))
+                )
+                .overlay {
+                    Circle()
+                        .strokeBorder((isSaved ? Color.red : accent).opacity(colorScheme == .dark ? 0.40 : 0.24), lineWidth: 1)
+                }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(isSaved ? "Unsave pro game" : "Save pro game")
     }
 
     private func liveFeedNativeAdCard(slotIndex: Int) -> some View {
@@ -1664,6 +1791,16 @@ struct LiveScreen: View {
         guard !venue.isEmpty else { return nil }
         let city = match.venueCity?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return city.isEmpty ? venue : "\(venue) • \(city)"
+    }
+
+    private func liveMatchLeagueCompetitionText(for match: LiveMatch) -> String {
+        let league = match.league.trimmingCharacters(in: .whitespacesAndNewlines)
+        let country = match.leagueCountry?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !country.isEmpty else { return league }
+
+        let flag = CountryFlagHelper.flag(for: country)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let countryText = flag.isEmpty ? country : "\(flag) \(country)"
+        return league.isEmpty ? countryText : "\(countryText) • \(league)"
     }
 
     private func liveStatusPill(_ match: LiveMatch, accent: Color) -> some View {
@@ -3332,6 +3469,95 @@ private struct LiveMatchDetailSheet: View {
             .foregroundStyle(FGColor.secondaryText(colorScheme))
             .lineLimit(1)
             .truncationMode(.tail)
+    }
+}
+
+private struct LiveLeagueCountryFilterSheet: View {
+    let countries: [String]
+    @Binding var selectedCountries: Set<String>
+
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+
+    private let northAmericaPreset = ["United States", "Canada", "Mexico"]
+    private let topEuropePreset = ["England", "France", "Spain", "Germany", "Italy"]
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Live Countries")
+                            .font(FGTypography.sectionTitle)
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                        Text("Choose which league countries appear in your Live feed.")
+                            .font(FGTypography.caption)
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    }
+                    .padding(.vertical, 4)
+                }
+
+                Section("Quick Actions") {
+                    quickAction("Select All") {
+                        selectedCountries = Set(countries)
+                    }
+                    quickAction("Clear") {
+                        selectedCountries = []
+                    }
+                    quickAction("North America") {
+                        selectedCountries = Set(northAmericaPreset)
+                    }
+                    quickAction("Top European") {
+                        selectedCountries = Set(topEuropePreset)
+                    }
+                }
+
+                Section("Countries") {
+                    ForEach(countries, id: \.self) { country in
+                        Button {
+                            toggle(country)
+                        } label: {
+                            HStack(spacing: 12) {
+                                Text(country)
+                                    .font(FGTypography.body)
+                                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                                Spacer()
+                                if selectedCountries.contains(country) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(FGColor.accentGreen)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .navigationTitle("Live Countries")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+    }
+
+    private func quickAction(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(FGTypography.body.weight(.semibold))
+        }
+    }
+
+    private func toggle(_ country: String) {
+        if selectedCountries.contains(country) {
+            selectedCountries.remove(country)
+        } else {
+            selectedCountries.insert(country)
+        }
     }
 }
 
