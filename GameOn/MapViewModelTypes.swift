@@ -871,6 +871,20 @@ struct ApprovedVenueOwnershipSummary: Equatable {
     let ownerEmail: String?
 }
 
+/// In-memory snapshot for the lightweight Business Dashboard preload.
+/// This is session-only and intentionally excludes social/comment/prediction data.
+struct BusinessDashboardPreloadSnapshot {
+    let key: String
+    let businessId: UUID?
+    let selectedVenueId: UUID?
+    let managedVenueCount: Int
+    let selectedVenue: VenueProfileRow?
+    let entitlementStatus: BusinessVenueGamePostingStatus?
+    let favoriteTeamCount: Int
+    let scheduledGames: [VenueEventRow]
+    let loadedAt: Date
+}
+
 struct BusinessApprovedVenueClaimMetadata: Decodable, Equatable {
     let claimId: UUID
     let venueId: UUID?

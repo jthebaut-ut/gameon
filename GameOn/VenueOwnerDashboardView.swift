@@ -1,5 +1,7 @@
 import CoreLocation
 import Photos
+import PostgREST
+import Supabase
 import SwiftUI
 import Charts
 import PhotosUI
@@ -989,6 +991,147 @@ struct VenueOwnerDashboardView: View {
     private enum ManageGamesListTab: Int, CaseIterable {
         case scheduled = 0
         case add = 1
+        case suggested = 2
+    }
+
+    private struct BusinessGameOpportunity: Identifiable {
+        let match: LiveMatch
+        let favoriteTeamNames: [String]
+        let featuredEvent: FeaturedEvent?
+        let opportunityScore: BusinessSuggestedGameOpportunityScore
+
+        var id: String { match.id }
+        var favoriteTeamMatchCount: Int { favoriteTeamNames.count }
+    }
+
+    private struct BusinessSuggestedGameOpportunityScore {
+        let value: Int
+        let band: String
+        let reasonChips: [String]
+        let breakdown: [BusinessSuggestedGameOpportunityScoreComponent]
+    }
+
+    private struct BusinessSuggestedGameOpportunityScoreComponent: Identifiable {
+        let points: Int
+        let label: String
+        let chip: String
+        let detail: String?
+
+        var id: String { "\(points)-\(label)-\(chip)-\(detail ?? "")" }
+    }
+
+    private struct BusinessSuggestedFanActivitySignals {
+        let savedProGameCount: Int
+        let hostedGameInterestCount: Int
+        let teamFanInterestCount: Int
+
+        static let empty = BusinessSuggestedFanActivitySignals(
+            savedProGameCount: 0,
+            hostedGameInterestCount: 0,
+            teamFanInterestCount: 0
+        )
+
+        var savedProGameDemandApplies: Bool {
+            savedProGameCount > 0
+        }
+
+        var savedProGameDemandPoints: Int {
+            min(savedProGameCount * 2, 20)
+        }
+
+        var savedProGameDemandDisplayText: String? {
+            if savedProGameCount >= 3 {
+                return savedProGameCount == 1
+                    ? "1 fan saved this game"
+                    : "\(savedProGameCount) fans saved this game"
+            }
+            if savedProGameCount > 0 {
+                return "Early fan interest"
+            }
+            return nil
+        }
+
+        var savedProGameDemandChipText: String? {
+            if savedProGameCount >= 3 { return "\(savedProGameCount) fans saved" }
+            if savedProGameCount > 0 { return "Early fan interest" }
+            return nil
+        }
+
+        var hostedGameInterestApplies: Bool {
+            hostedGameInterestCount > 0
+        }
+
+        var hostedGameInterestPoints: Int {
+            min(hostedGameInterestCount * 2, 20)
+        }
+
+        var hostedGameInterestDisplayText: String? {
+            if hostedGameInterestCount >= 3 {
+                return hostedGameInterestCount == 1
+                    ? "1 fan marked going"
+                    : "\(hostedGameInterestCount) fans marked going"
+            }
+            if hostedGameInterestCount > 0 {
+                return "Early hosted-game interest"
+            }
+            return nil
+        }
+
+        var hostedGameInterestChipText: String? {
+            if hostedGameInterestCount >= 3 { return "\(hostedGameInterestCount) going" }
+            if hostedGameInterestCount > 0 { return "Early hosted-game interest" }
+            return nil
+        }
+
+        var teamFanInterestApplies: Bool {
+            teamFanInterestCount > 0
+        }
+
+        var teamFanInterestPoints: Int {
+            min(teamFanInterestCount, 25)
+        }
+
+        var teamFanInterestDisplayText: String? {
+            if teamFanInterestCount >= 3 {
+                return "\(teamFanInterestCount) fans follow these teams"
+            }
+            if teamFanInterestCount > 0 {
+                return "Early team interest"
+            }
+            return nil
+        }
+
+        var teamFanInterestChipText: String? {
+            if teamFanInterestCount >= 3 { return "Team Interest" }
+            if teamFanInterestCount > 0 { return "Early team interest" }
+            return nil
+        }
+    }
+
+    private struct BusinessSuggestedSavedProGameDemandCountParams: Encodable {
+        let p_live_match_ids: [String]
+        let p_team_ids_by_live_match: [String: [String]]
+    }
+
+    private struct BusinessSuggestedSavedProGameDemandCountRow: Decodable {
+        let live_match_id: String
+        let saved_count: Int
+        let going_count: Int
+        let team_follow_count: Int
+    }
+
+    private enum BusinessSuggestedScoreHelpPresentation: Identifiable {
+        case overview
+        case game(title: String, score: BusinessSuggestedGameOpportunityScore)
+
+        var id: String {
+            switch self {
+            case .overview:
+                return "overview"
+            case .game(let title, let score):
+                return "game-\(title)-\(score.value)"
+            }
+        }
     }
 
     private enum BusinessGameCreationMode: String, CaseIterable {
@@ -1030,6 +1173,7 @@ struct VenueOwnerDashboardView: View {
     @State private var lastBusinessPlanRefreshBusinessID: UUID?
     @State private var showBusinessProSubscriptionSheet = false
     @State private var showBusinessUsageSheet = false
+    @State private var showBusinessFavoriteTeamsSheet = false
     @State private var businessHostedGameCycleAudit: BusinessHostedGameCycleAudit?
     @State private var businessHostedGameCycleAuditLoading = false
     @State private var businessHostedGameCycleAuditUnavailable = false
@@ -1060,6 +1204,12 @@ struct VenueOwnerDashboardView: View {
     @State private var importedHomeTeam: String?
     @State private var importedAwayTeam: String?
     @State private var importedFromAPI = false
+    @State private var suggestedGamesLoading = false
+    @State private var suggestedGamesError = ""
+    @State private var suggestedSavedProGameCountsByMatchID: [String: Int] = [:]
+    @State private var suggestedHostedGameInterestCountsByMatchID: [String: Int] = [:]
+    @State private var suggestedTeamFanInterestCountsByMatchID: [String: Int] = [:]
+    @State private var suggestedScoreHelpPresentation: BusinessSuggestedScoreHelpPresentation?
 
     init(
         viewModel: MapViewModel,
@@ -1118,6 +1268,10 @@ struct VenueOwnerDashboardView: View {
         businessCanHostGameFromServer && !selectedVenuePlanLocked
     }
 
+    private var businessAccessStatusChecking: Bool {
+        businessMembershipStatus?.loadedFromServer != true
+    }
+
     /// Games / analytics require ``MapViewModel/venueOwnerToolsUnlockedForUI()`` (at least one linked or legacy venue row).
     private var venueOwnerGamesAndAnalyticsLocked: Bool {
         !viewModel.venueOwnerToolsUnlockedForUI()
@@ -1173,15 +1327,12 @@ struct VenueOwnerDashboardView: View {
                 HStack(spacing: 8) {
                     manageGamesSheetTabButton(title: "Scheduled", tab: .scheduled)
                     manageGamesSheetTabButton(title: "Add Game", tab: .add)
+                    manageGamesSheetTabButton(title: "Suggested", tab: .suggested)
                 }
 
                 manageGamesStatusBanners
 
-                if manageGamesListTab == .scheduled {
-                    manageGamesListPane
-                } else {
-                    addGamePane
-                }
+                manageGamesSelectedPane
             }
             .padding()
             .background(FGAdaptiveSurface.cardElevated)
@@ -1208,6 +1359,9 @@ struct VenueOwnerDashboardView: View {
         }
         .onChange(of: manageGamesListTab) { _, _ in
             startAddGamePaneEntitlementRefreshIfNeeded()
+            if manageGamesListTab == .suggested {
+                startSuggestedGameOpportunitiesRefresh()
+            }
         }
         .confirmationDialog(
             "Cancel this game?",
@@ -1240,6 +1394,21 @@ struct VenueOwnerDashboardView: View {
                 }
             )
         }
+        .sheet(isPresented: $showBusinessFavoriteTeamsSheet) {
+            BusinessFavoriteTeamsManagementSheet(
+                viewModel: viewModel,
+                businessId: viewModel.currentBusinessIdForAddLocation()
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(FGAdaptiveSurface.sheetRoot)
+        }
+        .sheet(item: $suggestedScoreHelpPresentation) { presentation in
+            suggestedScoreHelpSheet(presentation)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(FGAdaptiveSurface.sheetRoot)
+        }
     }
 
     private func manageGamesSheetTabButton(title: String, tab: ManageGamesListTab) -> some View {
@@ -1248,6 +1417,8 @@ struct VenueOwnerDashboardView: View {
             manageGamesListTab = tab
             if tab == .add {
                 gameCreationMode = .manual
+            } else if tab == .suggested {
+                startSuggestedGameOpportunitiesRefresh()
             }
         } label: {
             Text(title)
@@ -1390,8 +1561,7 @@ struct VenueOwnerDashboardView: View {
         }
         .task(id: effectiveSection) {
             if effectiveSection == .overview {
-                await refreshBusinessPlanStatus(source: "onAppear")
-                await refreshBusinessDashboardOverview()
+                await refreshBusinessDashboardPreload(source: "overview")
             } else if effectiveSection == .analytics {
                 await refreshBusinessStatisticsProStatus(reason: entryPoint == .analyticsViewer ? "analyticsViewer" : "analyticsSection")
                 guard businessStatisticsAccessGranted else {
@@ -1644,6 +1814,15 @@ struct VenueOwnerDashboardView: View {
                 .task {
                     await refreshBusinessUsageSheetData()
                 }
+        }
+        .sheet(isPresented: $showBusinessFavoriteTeamsSheet) {
+            BusinessFavoriteTeamsManagementSheet(
+                viewModel: viewModel,
+                businessId: viewModel.currentBusinessIdForAddLocation()
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(FGAdaptiveSurface.sheetRoot)
         }
         .sheet(item: $businessGameChatTarget) { target in
             VenueEventCommentsSheet(
@@ -2082,6 +2261,10 @@ struct VenueOwnerDashboardView: View {
                     showBusinessUsageSheet = true
                 }
             },
+            favoriteTeamsCount: viewModel.businessFavoriteTeamIDs.count,
+            onManageFavoriteTeams: {
+                showBusinessFavoriteTeamsSheet = true
+            },
             onCommentsReports: {
                 handleBusinessStatisticsEntryTapped(source: "commentsReportsQuickAction")
             },
@@ -2101,7 +2284,7 @@ struct VenueOwnerDashboardView: View {
             logBusinessDashboardDebug()
         }
         .task(id: businessStatisticsProRefreshToken) {
-            await refreshBusinessPlanStatus(source: "onAppear")
+            await refreshBusinessDashboardPreload(source: "overviewCard")
         }
     }
 
@@ -2129,12 +2312,12 @@ struct VenueOwnerDashboardView: View {
     }
 
     private var businessCanCreateVenueFromServer: Bool {
-        guard let status = businessMembershipStatus else { return true }
+        guard let status = businessMembershipStatus, status.loadedFromServer else { return false }
         return status.canAddVenue
     }
 
     private var businessCanHostGameFromServer: Bool {
-        guard let status = businessMembershipStatus else { return true }
+        guard let status = businessMembershipStatus, status.loadedFromServer else { return false }
         return status.canHostBusinessGames
     }
 
@@ -2496,7 +2679,12 @@ struct VenueOwnerDashboardView: View {
         force: Bool = false,
         refreshOwnedVenues: Bool = false
     ) async {
-        if refreshOwnedVenues || force || source == "onAppear" || source == "foreground" {
+        if source == "onAppear" || source == "foreground" {
+            await refreshBusinessDashboardPreload(source: source)
+            return
+        }
+
+        if refreshOwnedVenues || force {
             await viewModel.refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
         }
 
@@ -2634,12 +2822,44 @@ struct VenueOwnerDashboardView: View {
 #endif
     }
 
-    private func refreshBusinessDashboardOverview() async {
+    private func refreshBusinessDashboardPreload(source: String) async {
+        await MainActor.run {
+            businessMembershipStatus = nil
+        }
+        let snapshot = await viewModel.loadBusinessDashboardPreload()
+        await MainActor.run {
+            guard let snapshot else {
+                logBusinessDashboardDebug()
+                return
+            }
+            if let status = snapshot.entitlementStatus {
+                businessMembershipStatus = status
+                lastBusinessPlanRefreshAt = Date()
+                lastBusinessPlanRefreshBusinessID = snapshot.businessId
+                logBusinessStatisticsGateDebug(status)
+            }
+            myVenueGamesForManage = snapshot.scheduledGames
+            manageGamesListLoading = false
+            manageGamesRefreshInFlight = false
+#if DEBUG
+            print("[BusinessDashboardPreload] source=\(source) businessId=\(snapshot.businessId?.uuidString.lowercased() ?? "nil") selectedVenueId=\(snapshot.selectedVenueId?.uuidString.lowercased() ?? "nil") venues=\(snapshot.managedVenueCount) games=\(snapshot.scheduledGames.count) favoriteTeams=\(snapshot.favoriteTeamCount) entitlementLoaded=\(snapshot.entitlementStatus?.loadedFromServer == true)")
+#endif
+            logBusinessDashboardDebug()
+        }
+    }
+
+    private func refreshBusinessDashboardOverview(loadEngagementMetrics: Bool = false) async {
         guard !venueOwnerGamesAndAnalyticsLocked else {
             logBusinessDashboardDebug()
             return
         }
-        await refreshManageGamesList(isInitialPick: false)
+        await refreshManageGamesList(isInitialPick: false, loadEngagementMetrics: loadEngagementMetrics)
+        guard loadEngagementMetrics else {
+            await MainActor.run {
+                logBusinessDashboardDebug()
+            }
+            return
+        }
         let ids = await MainActor.run { businessDashboardEventIDs }
         await viewModel.loadVenueEventPredictionSummaries(eventIDs: ids)
         await MainActor.run {
@@ -6728,6 +6948,9 @@ struct VenueOwnerDashboardView: View {
             }
             .onChange(of: manageGamesListTab) { _, _ in
                 startAddGamePaneEntitlementRefreshIfNeeded()
+                if manageGamesListTab == .suggested {
+                    startSuggestedGameOpportunitiesRefresh()
+                }
             }
             .confirmationDialog(
                 "Cancel this game?",
@@ -6760,6 +6983,12 @@ struct VenueOwnerDashboardView: View {
                     }
                 )
             }
+            .sheet(item: $suggestedScoreHelpPresentation) { presentation in
+                suggestedScoreHelpSheet(presentation)
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+                    .presentationBackground(FGAdaptiveSurface.sheetRoot)
+            }
     }
 
     private var manageGamesTabbedCard: some View {
@@ -6788,6 +7017,11 @@ struct VenueOwnerDashboardView: View {
             manageGamesTabButton(
                 title: "Add Game",
                 tab: .add,
+                isLocked: false
+            )
+            manageGamesTabButton(
+                title: "Suggested",
+                tab: .suggested,
                 isLocked: false
             )
         }
@@ -6832,6 +7066,8 @@ struct VenueOwnerDashboardView: View {
             manageGamesListPane
         case .add:
             addGamePane
+        case .suggested:
+            suggestedGamesPane
         }
     }
 
@@ -6963,6 +7199,8 @@ struct VenueOwnerDashboardView: View {
             manageGamesListTab = tab
             if tab == .add {
                 initializeAddGameScheduleFromDefaults()
+            } else if tab == .suggested {
+                startSuggestedGameOpportunitiesRefresh()
             }
         } label: {
             HStack(spacing: 6) {
@@ -7117,6 +7355,796 @@ struct VenueOwnerDashboardView: View {
             }
     }
 
+    private var businessFavoriteTeamsForSuggestions: [FavoriteTeam] {
+        FavoriteTeamsStore.resolvedTeams(fromIDs: Array(viewModel.businessFavoriteTeamIDs).sorted())
+    }
+
+    private var suggestedGameOpportunities: [BusinessGameOpportunity] {
+        let teams = businessFavoriteTeamsForSuggestions
+        guard !teams.isEmpty else { return [] }
+
+        let calendar = Calendar.current
+        let windowStart = calendar.startOfDay(for: Date())
+        let windowEnd = calendar.date(byAdding: .day, value: 90, to: windowStart)
+            ?? Date().addingTimeInterval(90 * 24 * 60 * 60)
+
+        var byStableKey: [String: BusinessGameOpportunity] = [:]
+        for match in viewModel.liveMatches {
+            guard match.startTime >= windowStart, match.startTime < windowEnd else { continue }
+            let favoriteNames = matchedBusinessFavoriteTeamNames(for: match, teams: teams)
+            guard !favoriteNames.isEmpty else { continue }
+            let featuredEvent = suggestedFeaturedEvent(for: match)
+            byStableKey[SavedProGame.stableKey(for: match)] = BusinessGameOpportunity(
+                match: match,
+                favoriteTeamNames: favoriteNames,
+                featuredEvent: featuredEvent,
+                opportunityScore: suggestedOpportunityScore(
+                    for: match,
+                    favoriteTeamMatchCount: favoriteNames.count,
+                    featuredEvent: featuredEvent,
+                    fanActivitySignals: suggestedFanActivitySignals(for: match)
+                )
+            )
+        }
+
+        return byStableKey.values.sorted { lhs, rhs in
+            if lhs.opportunityScore.value != rhs.opportunityScore.value {
+                return lhs.opportunityScore.value > rhs.opportunityScore.value
+            }
+            if lhs.match.startTime != rhs.match.startTime { return lhs.match.startTime < rhs.match.startTime }
+            return lhs.match.id < rhs.match.id
+        }
+    }
+
+    private func matchedBusinessFavoriteTeamNames(for match: LiveMatch, teams: [FavoriteTeam]) -> [String] {
+        var seen = Set<String>()
+        return teams.compactMap { team in
+            guard FavoriteTeamLiveMatcher.matchesLiveMatch(team, homeTeam: match.homeTeam, awayTeam: match.awayTeam) else {
+                return nil
+            }
+            let key = team.name.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            guard seen.insert(key).inserted else { return nil }
+            return team.name
+        }
+    }
+
+    private func suggestedFeaturedEvent(for match: LiveMatch) -> FeaturedEvent? {
+        if let slug = match.featuredEventSlug?.trimmingCharacters(in: .whitespacesAndNewlines), !slug.isEmpty {
+            let normalizedSlug = LiveMatchFilters.normalizedSearchText(slug)
+            if let direct = viewModel.activeFeaturedEvents.first(where: { LiveMatchFilters.normalizedSearchText($0.slug) == normalizedSlug }) {
+                return direct
+            }
+            if let fallback = FeaturedEvent.fallbackEvents.first(where: { LiveMatchFilters.normalizedSearchText($0.slug) == normalizedSlug }) {
+                return fallback
+            }
+        }
+        return viewModel.activeFeaturedEvents.first {
+            LiveMatchFilters.matchesFeaturedEvent(match, featuredEvent: $0)
+        } ?? FeaturedEvent.fallbackEvents.first {
+            LiveMatchFilters.matchesFeaturedEvent(match, featuredEvent: $0)
+        }
+    }
+
+    private func suggestedOpportunityScore(
+        for match: LiveMatch,
+        favoriteTeamMatchCount: Int,
+        featuredEvent: FeaturedEvent?,
+        fanActivitySignals: BusinessSuggestedFanActivitySignals = .empty
+    ) -> BusinessSuggestedGameOpportunityScore {
+        var score = 0
+        var reasons: [String] = []
+        var breakdown: [BusinessSuggestedGameOpportunityScoreComponent] = []
+        var engagementChips: [String] = []
+
+        func add(points: Int, label: String, chip: String? = nil, detail: String? = nil) {
+            score += points
+            breakdown.append(BusinessSuggestedGameOpportunityScoreComponent(
+                points: points,
+                label: label,
+                chip: chip ?? label,
+                detail: detail
+            ))
+            reasons.append(chip ?? label)
+        }
+
+        if featuredEvent != nil {
+            add(points: 40, label: "Featured Event")
+        }
+
+        if favoriteTeamMatchCount >= 2 {
+            add(points: 40, label: "Favorite Team Match", chip: "Both Favorite Teams")
+        } else {
+            add(points: 25, label: "Favorite Team Match")
+        }
+
+        if suggestedMatchIsNationalTeamMatch(match) {
+            add(points: 15, label: "National Team Match")
+        }
+
+        if let featuredBonus = suggestedFeaturedEventBonus(for: match, featuredEvent: featuredEvent) {
+            add(points: featuredBonus.points, label: featuredBonus.label, chip: featuredBonus.chip)
+        }
+
+        let daysUntilStart = Calendar.current.dateComponents(
+            [.day],
+            from: Calendar.current.startOfDay(for: Date()),
+            to: Calendar.current.startOfDay(for: match.startTime)
+        ).day ?? 0
+        if daysUntilStart <= 14 {
+            add(points: 10, label: "Starts Soon")
+        } else if daysUntilStart <= 30 {
+            add(points: 5, label: "Starts This Month")
+        }
+
+        if daysUntilStart <= 30,
+           fanActivitySignals.savedProGameDemandApplies,
+           fanActivitySignals.savedProGameDemandPoints > 0 {
+            let demandDisplayText = fanActivitySignals.savedProGameDemandDisplayText
+            add(
+                points: fanActivitySignals.savedProGameDemandPoints,
+                label: "Fan Demand",
+                chip: fanActivitySignals.savedProGameDemandChipText ?? "Fan Demand",
+                detail: demandDisplayText
+            )
+            engagementChips.append(fanActivitySignals.savedProGameDemandChipText ?? "Fan Demand")
+        }
+
+        if daysUntilStart <= 30,
+           fanActivitySignals.hostedGameInterestApplies,
+           fanActivitySignals.hostedGameInterestPoints > 0 {
+            let hostedDisplayText = fanActivitySignals.hostedGameInterestDisplayText
+            add(
+                points: fanActivitySignals.hostedGameInterestPoints,
+                label: "Hosted Game Interest",
+                chip: fanActivitySignals.hostedGameInterestChipText ?? "Hosted Interest",
+                detail: hostedDisplayText
+            )
+            engagementChips.append(fanActivitySignals.hostedGameInterestChipText ?? "Hosted Interest")
+        }
+
+        if fanActivitySignals.teamFanInterestApplies,
+           fanActivitySignals.teamFanInterestPoints > 0 {
+            let teamDisplayText = fanActivitySignals.teamFanInterestDisplayText
+            add(
+                points: fanActivitySignals.teamFanInterestPoints,
+                label: "Team Fan Interest",
+                chip: fanActivitySignals.teamFanInterestChipText ?? "Team Interest",
+                detail: teamDisplayText
+            )
+            engagementChips.append(fanActivitySignals.teamFanInterestChipText ?? "Team Interest")
+        }
+
+        let displayReasonChips: [String]
+        if !engagementChips.isEmpty, reasons.count > 4 {
+            var prioritized = reasons
+            prioritized.removeAll { engagementChips.contains($0) }
+            displayReasonChips = Array((Array(prioritized.prefix(max(1, 4 - engagementChips.count))) + engagementChips).prefix(4))
+        } else {
+            displayReasonChips = Array(reasons.prefix(4))
+        }
+
+        return BusinessSuggestedGameOpportunityScore(
+            value: score,
+            band: suggestedOpportunityBand(for: score),
+            reasonChips: displayReasonChips,
+            breakdown: breakdown
+        )
+    }
+
+    private func suggestedFanActivitySignals(for match: LiveMatch) -> BusinessSuggestedFanActivitySignals {
+        BusinessSuggestedFanActivitySignals(
+            savedProGameCount: suggestedSavedProGameCountsByMatchID[SavedProGame.stableKey(for: match), default: 0],
+            hostedGameInterestCount: suggestedHostedGameInterestCountsByMatchID[SavedProGame.stableKey(for: match), default: 0],
+            teamFanInterestCount: suggestedTeamFanInterestCountsByMatchID[SavedProGame.stableKey(for: match), default: 0]
+        )
+    }
+
+    private func suggestedMatchIsNationalTeamMatch(_ match: LiveMatch) -> Bool {
+        CountryFlagHelper.isCountry(match.homeTeam.trimmingCharacters(in: .whitespacesAndNewlines))
+            && CountryFlagHelper.isCountry(match.awayTeam.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    private func suggestedFeaturedEventBonus(
+        for match: LiveMatch,
+        featuredEvent: FeaturedEvent?
+    ) -> (points: Int, label: String, chip: String)? {
+        guard match.featuredEventSlug?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+                || featuredEvent != nil else {
+            return nil
+        }
+
+        let tokens = [
+            match.featuredEventSlug,
+            featuredEvent?.slug,
+            featuredEvent?.title,
+            featuredEvent?.shortTitle,
+            match.league,
+            match.eventName
+        ]
+        .compactMap { $0 }
+        .map(LiveMatchFilters.normalizedSearchText)
+        .joined(separator: " ")
+        let sport = LiveMatchFilters.normalizedSearchText(match.sport)
+
+        if tokens.contains("fifa") && tokens.contains("world cup") {
+            return (20, "FIFA World Cup", "World Cup")
+        }
+        if tokens.contains("nba finals") {
+            return (15, "NBA Finals", "NBA Finals")
+        }
+        if tokens.contains("super bowl") {
+            return (15, "Super Bowl", "Super Bowl")
+        }
+        if tokens.contains("stanley cup") {
+            return (15, "Stanley Cup Finals", "Stanley Cup")
+        }
+        if tokens.contains("wimbledon") {
+            return (10, "Wimbledon", "Wimbledon")
+        }
+        if tokens.contains("roland garros") || tokens.contains("french open") {
+            return (10, "Roland Garros", "Roland Garros")
+        }
+        if (tokens.contains("us open") || tokens.contains("u s open")), sport.contains("tennis") {
+            return (10, "US Open Tennis", "US Open")
+        }
+
+        return nil
+    }
+
+    private func suggestedOpportunityBand(for score: Int) -> String {
+        if score >= 90 { return "High Opportunity" }
+        if score >= 70 { return "Strong Opportunity" }
+        if score >= 50 { return "Good Opportunity" }
+        return "Standard Opportunity"
+    }
+
+    private func suggestedOpportunityBandColor(for score: Int) -> Color {
+        if score >= 90 { return FGColor.accentGreen }
+        if score >= 70 { return FGColor.accentBlue }
+        if score >= 50 { return FGColor.accentYellow }
+        return FGColor.secondaryText(colorScheme)
+    }
+
+    private func suggestedTeamDisplayName(_ teamName: String) -> String {
+        let trimmed = teamName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              CountryFlagHelper.isCountry(trimmed),
+              let flag = CountryFlagHelper.flag(for: trimmed)?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !flag.isEmpty else {
+            return trimmed
+        }
+        return "\(flag) \(trimmed)"
+    }
+
+    private func suggestedMatchTitle(for match: LiveMatch) -> String {
+        let homeTrimmed = match.homeTeam.trimmingCharacters(in: .whitespacesAndNewlines)
+        let awayTrimmed = match.awayTeam.trimmingCharacters(in: .whitespacesAndNewlines)
+        let bothNationalTeams = CountryFlagHelper.isCountry(homeTrimmed) && CountryFlagHelper.isCountry(awayTrimmed)
+        let home = bothNationalTeams ? suggestedTeamDisplayName(homeTrimmed) : homeTrimmed
+        let away = bothNationalTeams ? suggestedTeamDisplayName(awayTrimmed) : awayTrimmed
+        if !home.isEmpty, !away.isEmpty { return "\(home) vs \(away)" }
+        return [home, away].filter { !$0.isEmpty }.joined(separator: " vs ")
+    }
+
+    private func suggestedLeagueEventTitle(for opportunity: BusinessGameOpportunity) -> String {
+        if let featuredEvent = opportunity.featuredEvent {
+            return featuredEvent.chipTitle
+        }
+        let eventName = opportunity.match.eventName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !eventName.isEmpty { return eventName }
+        let league = opportunity.match.league.trimmingCharacters(in: .whitespacesAndNewlines)
+        return league.isEmpty ? "Pro Game" : league
+    }
+
+    private func importedCompetitionLabel(for match: LiveMatch) -> String {
+        let league = match.league.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !league.isEmpty, league.localizedCaseInsensitiveCompare("Live") != .orderedSame {
+            return league
+        }
+        let event = match.eventName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !event.isEmpty { return event }
+        return suggestedFeaturedEvent(for: match)?.title ?? league
+    }
+
+    private func suggestedGameCard(_ opportunity: BusinessGameOpportunity) -> some View {
+        let match = opportunity.match
+        let sportLabel = AppSportCatalog.displayLabel(forSportToken: match.sport)
+        let accent = match.liveSportVisualType.catalogAccent
+        let score = opportunity.opportunityScore
+        let scoreTint = suggestedOpportunityBandColor(for: score.value)
+        return HStack(alignment: .top, spacing: 14) {
+            ProGameSportBadgeView(
+                sportType: match.liveSportVisualType,
+                diameter: 54,
+                featuredEvent: opportunity.featuredEvent,
+                featuredEventSlug: match.featuredEventSlug
+            )
+
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(suggestedLeagueEventTitle(for: opportunity))
+                        .font(.caption.weight(.heavy))
+                        .foregroundStyle(accent)
+                        .lineLimit(1)
+                    Spacer(minLength: 8)
+                    Text(sportLabel)
+                        .font(.caption2.weight(.heavy))
+                        .foregroundStyle(accent)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(accent.opacity(colorScheme == .dark ? 0.20 : 0.12))
+                        .clipShape(Capsule(style: .continuous))
+                }
+
+                Text(suggestedMatchTitle(for: match))
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+
+                Text("\(Self.dateFormatter.string(from: match.startTime)) • \(Self.timeFormatter.string(from: match.startTime))")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                VStack(alignment: .leading, spacing: 7) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text("Opportunity Score: \(score.value)")
+                            .font(.caption.weight(.heavy))
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                        Text(score.band)
+                            .font(.caption2.weight(.heavy))
+                            .foregroundStyle(scoreTint)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(scoreTint.opacity(colorScheme == .dark ? 0.18 : 0.10))
+                            .clipShape(Capsule(style: .continuous))
+                        Button {
+                            suggestedScoreHelpPresentation = .game(
+                                title: suggestedMatchTitle(for: match),
+                                score: score
+                            )
+                        } label: {
+                            Text("Why?")
+                                .font(.caption2.weight(.heavy))
+                                .foregroundStyle(Color.accentColor)
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    suggestedOpportunityReasonChips(score.reasonChips, fallbackBand: score.band, tint: accent)
+                }
+
+                if !opportunity.favoriteTeamNames.isEmpty {
+                    Text("Matches \(opportunity.favoriteTeamNames.prefix(2).joined(separator: ", "))")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                Button {
+                    Task {
+                        await hostSuggestedGame(match)
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        if !selectedVenueCanHostGames {
+                            Image(systemName: "lock.fill")
+                                .font(.caption2.weight(.bold))
+                        }
+                        Text(businessAccessStatusChecking ? "Checking access..." : "Host This Game")
+                            .font(.caption.weight(.heavy))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(selectedVenueCanHostGames ? Color.accentColor : FGAdaptiveSurface.capsuleUnselected)
+                    .foregroundStyle(selectedVenueCanHostGames ? .white : FGColor.secondaryText(colorScheme))
+                    .clipShape(Capsule(style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .disabled(businessAccessStatusChecking)
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(FGAdaptiveSurface.sheetRoot.opacity(0.72))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(accent.opacity(colorScheme == .dark ? 0.28 : 0.18), lineWidth: 1)
+        )
+    }
+
+    private func suggestedOpportunityReasonChips(
+        _ chips: [String],
+        fallbackBand: String,
+        tint: Color
+    ) -> some View {
+        let displayChips = suggestedOpportunityDisplayChips(chips, fallbackBand: fallbackBand)
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 7) {
+                ForEach(displayChips, id: \.self) { chip in
+                    suggestedOpportunityBadge(chip, tint: suggestedOpportunityReasonTint(chip, fallbackTint: tint))
+                }
+            }
+            .padding(.vertical, 1)
+        }
+        .scrollClipDisabled()
+    }
+
+    private func suggestedOpportunityDisplayChips(_ chips: [String], fallbackBand: String) -> [String] {
+        var display = chips
+        if display.count < 2 {
+            display.append(fallbackBand)
+        }
+        return Array(display.prefix(4))
+    }
+
+    private func suggestedOpportunityReasonTint(_ chip: String, fallbackTint: Color) -> Color {
+        if chip == "Fan Demand"
+            || chip == "Hosted Interest"
+            || chip == "Team Interest"
+            || chip == "Early fan interest"
+            || chip == "Early hosted-game interest"
+            || chip == "Early team interest"
+            || chip.contains("fans saved")
+            || chip.contains("going") {
+            return FGColor.accentGreen
+        }
+        switch chip {
+        case "Featured Event", "World Cup", "NBA Finals", "Super Bowl", "Stanley Cup", "Wimbledon", "Roland Garros", "US Open":
+            return FGColor.dangerRed
+        case "National Team Match":
+            return FGColor.accentBlue
+        case "Starts Soon", "Starts This Month":
+            return FGColor.accentYellow
+        default:
+            return fallbackTint
+        }
+    }
+
+    private func suggestedOpportunityBadge(_ text: String, tint: Color) -> some View {
+        Text(text)
+            .font(.caption2.weight(.heavy))
+            .foregroundStyle(tint)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(tint.opacity(colorScheme == .dark ? 0.18 : 0.10))
+            .clipShape(Capsule(style: .continuous))
+    }
+
+    private func suggestedScoreHelpSheet(_ presentation: BusinessSuggestedScoreHelpPresentation) -> some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    switch presentation {
+                    case .overview:
+                        suggestedScoreOverviewContent
+                    case .game(let title, let score):
+                        suggestedScoreGameBreakdownContent(title: title, score: score)
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle("How Opportunity Score Works")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        suggestedScoreHelpPresentation = nil
+                    }
+                }
+            }
+        }
+    }
+
+    private var suggestedScoreOverviewContent: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Text("FanGeo Opportunity Score helps identify professional games that may be valuable for your venue to host.")
+                .font(.subheadline)
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .fixedSize(horizontal: false, vertical: true)
+
+            suggestedScoreHelpSection(title: "Scores are based on:") {
+                VStack(alignment: .leading, spacing: 10) {
+                    suggestedScoreFactorRow("Featured Events")
+                    suggestedScoreFactorRow("Business Favorite Teams")
+                    suggestedScoreFactorRow("National Team Matches")
+                    suggestedScoreFactorRow("Event Importance")
+                    suggestedScoreFactorRow("Time Until Match")
+                    suggestedScoreFactorRow("Real FanGeo Activity")
+                }
+            }
+
+            suggestedScoreHelpSection(title: "Real FanGeo Activity") {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Counts are aggregated and privacy-safe. Individual users are never shown, and some activity signals appear only close to game day.")
+                        .font(.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        suggestedScoreFactorRow("Fans saving or hearting a Pro Game")
+                        suggestedScoreFactorRow("Fans marking Going for a hosted version of the game")
+                        suggestedScoreFactorRow("Fans following the teams involved")
+                    }
+
+                    Text("Fan Demand")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+
+                    Text("Hearting or saving a Pro Game counts as Fan Demand: +2 points per fan, up to +20 points. Hosted Game Interest also adds +2 per fan marked going/interested, up to +20. Team Fan Interest adds +1 per fan who follows either team, up to +25.")
+                        .font(.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            suggestedScoreHelpSection(title: "Opportunity levels") {
+                VStack(alignment: .leading, spacing: 10) {
+                    suggestedScoreLevelRow(icon: "🔥", title: "High Opportunity", range: "90+", tint: FGColor.accentGreen)
+                    suggestedScoreLevelRow(icon: "⭐", title: "Strong Opportunity", range: "70–89", tint: FGColor.accentBlue)
+                    suggestedScoreLevelRow(icon: "👍", title: "Good Opportunity", range: "50–69", tint: FGColor.accentYellow)
+                    suggestedScoreLevelRow(icon: "•", title: "Standard Opportunity", range: "<50", tint: FGColor.secondaryText(colorScheme))
+                }
+            }
+
+            suggestedScoreHelpSection(title: "Example") {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("🇫🇷 France vs 🇲🇽 Mexico")
+                        .font(.headline.weight(.black))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        suggestedScoreBreakdownRow(points: 40, label: "Featured Event")
+                        suggestedScoreBreakdownRow(points: 40, label: "Favorite Team Match")
+                        suggestedScoreBreakdownRow(points: 15, label: "National Team Match")
+                        suggestedScoreBreakdownRow(points: 20, label: "FIFA World Cup")
+                        suggestedScoreBreakdownRow(points: 10, label: "Starts Soon")
+                        suggestedScoreBreakdownRow(points: 6, label: "Fan Demand")
+                        suggestedScoreBreakdownRow(points: 8, label: "Hosted Game Interest")
+                        suggestedScoreBreakdownRow(points: 12, label: "Team Fan Interest")
+                    }
+
+                    Divider()
+
+                    Text("3 fans saved this game")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    Text("4 fans marked going")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    Text("12 fans follow these teams")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+
+                    Text("Total Score: 151")
+                        .font(.subheadline.weight(.black))
+                    Text("🔥 High Opportunity")
+                        .font(.subheadline.weight(.black))
+                        .foregroundStyle(FGColor.accentGreen)
+                }
+            }
+        }
+    }
+
+    private func suggestedScoreGameBreakdownContent(
+        title: String,
+        score: BusinessSuggestedGameOpportunityScore
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title)
+                    .font(.headline.weight(.black))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("Opportunity Score: \(score.value)")
+                    .font(.title3.weight(.black))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+            }
+
+            suggestedScoreHelpSection(title: "Score breakdown") {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(score.breakdown) { item in
+                        suggestedScoreBreakdownRow(points: item.points, label: item.label)
+                        if let detail = item.detail, !detail.isEmpty {
+                            Text(detail)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                                .padding(.leading, 36)
+                        }
+                    }
+                }
+            }
+
+            Divider()
+
+            Text("Total Score: \(score.value)")
+                .font(.subheadline.weight(.black))
+            Text("\(suggestedOpportunityBandIcon(for: score.value)) \(score.band)")
+                .font(.subheadline.weight(.black))
+                .foregroundStyle(suggestedOpportunityBandColor(for: score.value))
+        }
+    }
+
+    private func suggestedScoreHelpSection<Content: View>(
+        title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.subheadline.weight(.black))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+            content()
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(FGAdaptiveSurface.cardElevated)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme).opacity(0.42), lineWidth: 1)
+        )
+    }
+
+    private func suggestedScoreFactorRow(_ title: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.caption.weight(.black))
+                .foregroundStyle(FGColor.accentGreen)
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+        }
+    }
+
+    private func suggestedScoreLevelRow(icon: String, title: String, range: String, tint: Color) -> some View {
+        HStack(spacing: 10) {
+            Text(icon)
+                .font(.subheadline.weight(.black))
+                .frame(width: 24, alignment: .center)
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+            Spacer(minLength: 8)
+            Text(range)
+                .font(.caption.weight(.black))
+                .foregroundStyle(tint)
+        }
+    }
+
+    private func suggestedScoreBreakdownRow(points: Int, label: String) -> some View {
+        HStack(spacing: 10) {
+            Text("+\(points)")
+                .font(.caption.weight(.black))
+                .foregroundStyle(Color.accentColor)
+                .frame(width: 42, alignment: .leading)
+            Text(label)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+        }
+    }
+
+    private func suggestedOpportunityBandIcon(for score: Int) -> String {
+        if score >= 90 { return "🔥" }
+        if score >= 70 { return "⭐" }
+        if score >= 50 { return "👍" }
+        return "•"
+    }
+
+    private func suggestedGamesMessageCard(icon: String, title: String, message: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Color.orange)
+                .frame(width: 24)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.headline.weight(.bold))
+                Text(message)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(FGAdaptiveSurface.sheetRoot.opacity(0.72))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private func suggestedGamesEmptyState(
+        icon: String,
+        title: String,
+        message: String,
+        buttonTitle: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            suggestedGamesMessageCard(icon: icon, title: title, message: message)
+            Button(action: action) {
+                Text(buttonTitle)
+                    .font(.caption.weight(.heavy))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 11)
+                    .background(Color.accentColor)
+                    .foregroundStyle(.white)
+                    .clipShape(Capsule(style: .continuous))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var suggestedGamesPane: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("Suggested games")
+                    .font(.title2)
+                    .fontWeight(.bold)
+
+                Button {
+                    suggestedScoreHelpPresentation = .overview
+                } label: {
+                    Image(systemName: "info.circle.fill")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(Color.accentColor)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("How Opportunity Score Works")
+
+                Spacer(minLength: 0)
+            }
+
+            Text("Upcoming Pro Games that match your business favorite teams over the next 90 days.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            if suggestedGamesLoading && suggestedGameOpportunities.isEmpty {
+                HStack(spacing: 10) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Loading recommendations...")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else if viewModel.businessFavoriteTeamIDs.isEmpty {
+                suggestedGamesEmptyState(
+                    icon: "star.circle",
+                    title: "No favorite teams selected",
+                    message: "Follow teams to receive recommended Pro Games.",
+                    buttonTitle: "Manage Favorite Teams",
+                    action: {
+                        showBusinessFavoriteTeamsSheet = true
+                    }
+                )
+            } else if !suggestedGamesError.isEmpty && suggestedGameOpportunities.isEmpty {
+                suggestedGamesMessageCard(
+                    icon: "wifi.exclamationmark",
+                    title: "Couldn’t load recommendations",
+                    message: "\(suggestedGamesError) Try again in a moment."
+                )
+            } else if suggestedGameOpportunities.isEmpty {
+                suggestedGamesMessageCard(
+                    icon: "calendar.badge.exclamationmark",
+                    title: "No upcoming recommended games found.",
+                    message: "Check back after more fixtures are loaded for your favorite teams."
+                )
+            } else {
+                VStack(spacing: 10) {
+                    ForEach(suggestedGameOpportunities) { opportunity in
+                        suggestedGameCard(opportunity)
+                    }
+                }
+            }
+        }
+        .onAppear {
+            startSuggestedGameOpportunitiesRefresh()
+        }
+        .onChange(of: viewModel.businessFavoriteTeamIDs) { _, _ in
+            guard manageGamesListTab == .suggested else { return }
+            startSuggestedGameOpportunitiesRefresh()
+        }
+    }
+
     private func addGamePaneContent(
         showsCreationModeControls: Bool,
         importPaneUsesLifecycle: Bool = true
@@ -7143,12 +8171,12 @@ struct VenueOwnerDashboardView: View {
             }
 
             if !selectedVenueCanHostGames {
-                Text(selectedVenuePlanLocked ? BusinessLimitCopy.planLockedVenueHostedGameBlocked : BusinessLimitCopy.hostedGameLimitReached)
+                Text(businessAccessStatusChecking ? "Checking access..." : (selectedVenuePlanLocked ? BusinessLimitCopy.planLockedVenueHostedGameBlocked : BusinessLimitCopy.hostedGameLimitReached))
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(FGColor.dangerRed)
+                    .foregroundStyle(businessAccessStatusChecking ? FGColor.secondaryText(colorScheme) : FGColor.dangerRed)
                     .padding(10)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(FGColor.dangerRed.opacity(colorScheme == .dark ? 0.16 : 0.10), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .background((businessAccessStatusChecking ? Color.gray : FGColor.dangerRed).opacity(colorScheme == .dark ? 0.16 : 0.10), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
 
             addGameFormFields
@@ -7161,15 +8189,155 @@ struct VenueOwnerDashboardView: View {
         }
     }
 
+    private func startSuggestedGameOpportunitiesRefresh() {
+        Task {
+            await refreshSuggestedGameOpportunities()
+        }
+    }
+
+    private func refreshSuggestedGameOpportunities() async {
+        guard viewModel.hasAuthenticatedVenueOwnerSession else {
+            await MainActor.run {
+                suggestedGamesLoading = false
+                suggestedGamesError = ""
+                suggestedSavedProGameCountsByMatchID = [:]
+                suggestedHostedGameInterestCountsByMatchID = [:]
+                suggestedTeamFanInterestCountsByMatchID = [:]
+            }
+            return
+        }
+
+        await MainActor.run {
+            suggestedGamesLoading = true
+            suggestedGamesError = ""
+        }
+
+        let businessId = await MainActor.run { viewModel.currentBusinessIdForAddLocation() }
+        if let businessId {
+            await viewModel.loadBusinessFavoriteTeams(businessId: businessId)
+        }
+        await viewModel.refreshBusinessFavoriteTeamProGames(businessId: businessId, windowDays: 90)
+        let demandCandidates = suggestedFanGeoActivityDemandCandidates()
+        let demandCounts = await fetchSuggestedFanGeoActivityDemandCounts(
+            liveMatchIDs: demandCandidates.liveMatchIDs,
+            teamIDsByLiveMatch: demandCandidates.teamIDsByLiveMatch
+        )
+
+        await MainActor.run {
+            suggestedSavedProGameCountsByMatchID = demandCounts.saved
+            suggestedHostedGameInterestCountsByMatchID = demandCounts.hosted
+            suggestedTeamFanInterestCountsByMatchID = demandCounts.team
+            suggestedGamesLoading = false
+        }
+    }
+
+    private func suggestedFanGeoActivityDemandCandidates() -> (liveMatchIDs: [String], teamIDsByLiveMatch: [String: [String]]) {
+        let teams = businessFavoriteTeamsForSuggestions
+        guard !teams.isEmpty else { return ([], [:]) }
+
+        let calendar = Calendar.current
+        let windowStart = calendar.startOfDay(for: Date())
+        let windowEnd = calendar.date(byAdding: .day, value: 90, to: windowStart)
+            ?? Date().addingTimeInterval(90 * 24 * 60 * 60)
+
+        var seen = Set<String>()
+        var ids: [String] = []
+        var teamIDsByLiveMatch: [String: [String]] = [:]
+        for match in viewModel.liveMatches {
+            guard match.startTime >= windowStart, match.startTime < windowEnd else { continue }
+            guard !matchedBusinessFavoriteTeamNames(for: match, teams: teams).isEmpty else { continue }
+            let key = SavedProGame.stableKey(for: match)
+            guard !key.isEmpty, seen.insert(key).inserted else { continue }
+            ids.append(key)
+            teamIDsByLiveMatch[key] = suggestedCatalogTeamIDs(for: match)
+        }
+        return (ids, teamIDsByLiveMatch)
+    }
+
+    private func suggestedCatalogTeamIDs(for match: LiveMatch) -> [String] {
+        FavoriteTeamCatalog.all.compactMap { team -> String? in
+            guard team.kind == .team || team.kind == .nationalTeam else { return nil }
+            guard FavoriteTeamLiveMatcher.matchesLiveMatch(team, homeTeam: match.homeTeam, awayTeam: match.awayTeam) else {
+                return nil
+            }
+            return team.id
+        }
+    }
+
+    private func fetchSuggestedFanGeoActivityDemandCounts(
+        liveMatchIDs: [String],
+        teamIDsByLiveMatch: [String: [String]]
+    ) async -> (saved: [String: Int], hosted: [String: Int], team: [String: Int]) {
+        var seen = Set<String>()
+        let uniqueIDs = liveMatchIDs.compactMap { raw -> String? in
+            let id = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !id.isEmpty, seen.insert(id).inserted else { return nil }
+            return id
+        }
+        .prefix(150)
+        guard !uniqueIDs.isEmpty else { return ([:], [:], [:]) }
+
+        do {
+            let rows: [BusinessSuggestedSavedProGameDemandCountRow] = try await supabase
+                .rpc(
+                    "get_saved_pro_game_counts",
+                    params: BusinessSuggestedSavedProGameDemandCountParams(
+                        p_live_match_ids: Array(uniqueIDs),
+                        p_team_ids_by_live_match: teamIDsByLiveMatch
+                    )
+                )
+                .execute()
+                .value
+            return (
+                saved: Dictionary(uniqueKeysWithValues: rows.map { ($0.live_match_id, max(0, $0.saved_count)) }),
+                hosted: Dictionary(uniqueKeysWithValues: rows.map { ($0.live_match_id, max(0, $0.going_count)) }),
+                team: Dictionary(uniqueKeysWithValues: rows.map { ($0.live_match_id, max(0, $0.team_follow_count)) })
+            )
+        } catch {
+#if DEBUG
+            print("[BusinessSuggestedDemand] fanGeoActivityCountsUnavailable error=\(error.localizedDescription)")
+#endif
+            return ([:], [:], [:])
+        }
+    }
+
+    private func hostSuggestedGame(_ match: LiveMatch) async {
+        guard selectedVenueCanHostGames else {
+            await MainActor.run {
+                manageGamesFeedback = ""
+                manageGamesError = selectedVenuePlanLocked
+                    ? BusinessLimitCopy.planLockedVenueHostedGameBlocked
+                    : BusinessLimitCopy.hostedGameLimitReached
+                if !selectedVenuePlanLocked {
+                    showBusinessUsageSheet = true
+                }
+            }
+            return
+        }
+
+        await MainActor.run {
+            gameCreationMode = .importLive
+            clearManageGamesBanners()
+        }
+
+        let imported = await selectImportedLiveGame(match)
+        guard imported else { return }
+
+        await MainActor.run {
+            manageGamesListTab = .add
+            gameCreationMode = .importLive
+        }
+    }
+
     private func startAddGamePaneEntitlementRefreshIfNeeded() {
-        guard manageGamesListTab == .add else { return }
+        guard manageGamesListTab == .add || manageGamesListTab == .suggested else { return }
         Task {
             await prepareAddGamePaneEntitlementsIfNeeded()
         }
     }
 
     private func prepareAddGamePaneEntitlementsIfNeeded() async {
-        guard manageGamesListTab == .add else { return }
+        guard manageGamesListTab == .add || manageGamesListTab == .suggested else { return }
         await businessProEntitlement.prepare()
         businessMembershipStatus = await viewModel.businessVenueGamePostingStatus(
             storeKitBusinessProActive: businessProEntitlement.businessProActive
@@ -8226,9 +9394,11 @@ struct VenueOwnerDashboardView: View {
         }
     }
 
-    private func selectImportedLiveGame(_ match: LiveMatch) async {
+    @discardableResult
+    private func selectImportedLiveGame(_ match: LiveMatch) async -> Bool {
         let title = Self.importedGameTitle(for: match)
         let mappedSport = Self.mappedVenueSport(for: match)
+        let competitionLabel = importedCompetitionLabel(for: match)
         let externalSource = LiveSportsService.providerDescription
         let venueId = await MainActor.run { viewModel.ownerVenueDatabaseId }
 
@@ -8247,7 +9417,7 @@ struct VenueOwnerDashboardView: View {
                 manageGamesError = "This game already exists for this venue."
                 manageGamesFeedback = ""
             }
-            return
+            return false
         }
 
         await MainActor.run {
@@ -8257,14 +9427,14 @@ struct VenueOwnerDashboardView: View {
             viewModel.ownerVenuePrimarySport = mappedSport
             gameDate = Calendar.current.startOfDay(for: match.startTime)
             gameStartTime = match.startTime
-            gameLeague = match.league
+            gameLeague = competitionLabel
             gameTeam1 = match.homeTeam
             gameTeam2 = match.awayTeam
             gameTeam1Selection = ManualVenueTeamResolver.resolve(match.homeTeam)
             gameTeam2Selection = ManualVenueTeamResolver.resolve(match.awayTeam)
             importedExternalGameID = match.id
             importedExternalSource = externalSource
-            importedExternalLeague = match.league.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : match.league
+            importedExternalLeague = competitionLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : competitionLabel
             importedHomeTeam = match.homeTeam
             importedAwayTeam = match.awayTeam
             importedFromAPI = true
@@ -8278,6 +9448,7 @@ struct VenueOwnerDashboardView: View {
 #if DEBUG
         print("[BusinessGameImportDebug] populatedTitle=\(title)")
 #endif
+        return true
     }
 
     nonisolated fileprivate static func importedGameTitle(for match: LiveMatch) -> String {
@@ -8331,6 +9502,12 @@ struct VenueOwnerDashboardView: View {
         gameCreationMode = .manual
         importGamesMatches = []
         importGamesError = ""
+        suggestedGamesLoading = false
+        suggestedGamesError = ""
+        suggestedSavedProGameCountsByMatchID = [:]
+        suggestedHostedGameInterestCountsByMatchID = [:]
+        suggestedTeamFanInterestCountsByMatchID = [:]
+        suggestedScoreHelpPresentation = nil
         clearImportedGameMetadata()
 #if DEBUG
         print("[BusinessGameState] cleared transient game state for venue switch")
@@ -8404,7 +9581,10 @@ struct VenueOwnerDashboardView: View {
         }
     }
 
-    private func refreshManageGamesList(isInitialPick: Bool) async {
+    private func refreshManageGamesList(
+        isInitialPick: Bool,
+        loadEngagementMetrics: Bool = true
+    ) async {
         let entered = await MainActor.run { () -> Bool in
             guard !manageGamesRefreshInFlight else { return false }
             manageGamesRefreshInFlight = true
@@ -8427,12 +9607,14 @@ struct VenueOwnerDashboardView: View {
         print("[ManageGamesDebug] loadMyVenueScheduledGames returned count=\(rows.count)")
 #endif
         let ids = rows.compactMap(\.id)
-        await viewModel.loadInterestCountsForVenueEventIDs(ids)
-        await withTaskGroup(of: Void.self) { group in
-            for id in ids {
-                group.addTask {
-                    await viewModel.loadComments(for: id)
-                    await viewModel.loadVibes(for: id)
+        if loadEngagementMetrics {
+            await viewModel.loadInterestCountsForVenueEventIDs(ids)
+            await withTaskGroup(of: Void.self) { group in
+                for id in ids {
+                    group.addTask {
+                        await viewModel.loadComments(for: id)
+                        await viewModel.loadVibes(for: id)
+                    }
                 }
             }
         }

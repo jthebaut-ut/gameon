@@ -650,7 +650,8 @@ struct CalendarScreen: View {
             ProGameSportBadgeView(
                 sportType: match.liveSportVisualType,
                 diameter: 56,
-                isFeatured: featuredEvent != nil
+                featuredEvent: featuredEvent,
+                featuredEventSlug: match.featuredEventSlug
             )
 
             VStack(alignment: .leading, spacing: 6) {

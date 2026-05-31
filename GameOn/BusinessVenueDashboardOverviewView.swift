@@ -177,6 +177,8 @@ struct BusinessVenueDashboardOverviewView: View {
     let onPredictions: () -> Void
     let onAnalytics: () -> Void
     let onUsage: () -> Void
+    let favoriteTeamsCount: Int
+    let onManageFavoriteTeams: () -> Void
     var onActiveVenueSelection: (() -> Void)?
     let onCommentsReports: () -> Void
     let onViewAllGames: () -> Void
@@ -270,7 +272,7 @@ struct BusinessVenueDashboardOverviewView: View {
                     }
                     BusinessVenueDashboardActionCard(
                         title: L10n.t("add_venue", languageCode: appLanguageRaw),
-                        subtitle: isAddVenueAllowed ? nil : "Limit reached",
+                        subtitle: addVenueAccessSubtitle,
                         systemImage: isAddVenueAllowed ? "plus.circle.fill" : "lock.fill",
                         tint: isAddVenueAllowed ? FGColor.accentBlue : Color.gray,
                         badgeText: nil,
@@ -311,6 +313,16 @@ struct BusinessVenueDashboardOverviewView: View {
                         )
                     }
                     BusinessVenueDashboardActionCard(
+                        title: "Favorite Teams",
+                        subtitle: favoriteTeamsQuickActionSubtitle,
+                        systemImage: "star.circle.fill",
+                        tint: FGColor.accentBlue,
+                        badgeText: nil,
+                        isPremium: false,
+                        isLimited: false,
+                        action: onManageFavoriteTeams
+                    )
+                    BusinessVenueDashboardActionCard(
                         title: "Flagged Comments",
                         subtitle: "Review reports",
                         systemImage: "exclamationmark.bubble",
@@ -330,6 +342,17 @@ struct BusinessVenueDashboardOverviewView: View {
                 activeVenueSelectionInfoBanner(activeVenueSelectionFootnote, tint: FGColor.accentGreen)
             }
         }
+    }
+
+    private var addVenueAccessSubtitle: String? {
+        guard businessUsageStatus != nil else { return "Checking access..." }
+        return isAddVenueAllowed ? nil : "Limit reached"
+    }
+
+    private var favoriteTeamsQuickActionSubtitle: String {
+        if favoriteTeamsCount == 0 { return "No teams selected" }
+        if favoriteTeamsCount == 1 { return "1 team followed" }
+        return "\(favoriteTeamsCount) teams followed"
     }
 
     private func activeVenueSelectionInfoBanner(_ message: String, tint: Color) -> some View {

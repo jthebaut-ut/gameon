@@ -107,10 +107,11 @@ final class MapViewModel: ObservableObject {
     @Published var currentUserAuthId: UUID? {
         didSet {
             guard oldValue != currentUserAuthId else { return }
-            guard currentUserAuthId != nil else {
-                reloadSavedProGamesFromStorage()
+            clearSavedProGamesForSessionBoundary()
+            guard let userID = currentUserAuthId else {
                 return
             }
+            reloadSavedProGamesFromStorage(for: userID)
             Task { await fetchSavedProGames() }
         }
     }
@@ -128,6 +129,9 @@ final class MapViewModel: ObservableObject {
         isLoggedIn || isVenueOwnerLoggedIn || currentUserAuthId != nil
     }
     @Published var favoriteTeamProGames: [FavoriteTeamProGame] = []
+    @Published var businessFavoriteTeamIDs: Set<String> = []
+    @Published var businessFavoriteTeamProGames: [FavoriteTeamProGame] = []
+    var businessFavoriteTeamsLoadedBusinessId: UUID?
     /// Discover map and public pickup rows: no fan session and no venue-owner session (same as ``!isAuthenticatedForSocialFeatures``).
     var isGuestDiscoverMode: Bool {
         !isAuthenticatedForSocialFeatures
@@ -152,6 +156,10 @@ final class MapViewModel: ObservableObject {
     @Published var archivedOwnedBusinesses: [BusinessRow] = []
     /// `public.venues` rows linked via `business_id` to ``ownedBusinesses``.
     @Published var ownedBusinessVenues: [VenueProfileRow] = []
+    /// Last successful lightweight Business Dashboard preload, kept in memory for fast first paint.
+    @Published var businessDashboardPreloadSnapshot: BusinessDashboardPreloadSnapshot?
+    var businessDashboardPreloadInFlightKey: String?
+    var businessDashboardPreloadTask: Task<BusinessDashboardPreloadSnapshot?, Never>?
     /// Unapproved ``venue_claims`` rows for the signed-in owner / their businesses (Settings “Pending locations”; Phase C1).
     @Published var pendingVenueClaimsForSettings: [VenueClaimPendingSettingsRow] = []
     /// Rejected, not-yet-dismissed ``venue_claims`` for Settings (“Rejected locations”). Rows with ``rejection_acknowledged_at`` set are excluded at fetch time.
@@ -911,7 +919,7 @@ final class MapViewModel: ObservableObject {
         #if DEBUG
         print("[FanUpdatesStoreMigrationDebug] RemovedMapViewModelBridge=true")
         #endif
-        reloadSavedProGamesFromStorage()
+        clearSavedProGamesForSessionBoundary()
     }
 
     func applyDiscoverMapRenderSnapshot(_ snapshot: DiscoverMapRenderSnapshot) {

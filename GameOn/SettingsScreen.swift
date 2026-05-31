@@ -180,6 +180,7 @@ struct SettingsScreen: View {
     @State private var showBusinessUsageSheet = false
     @State private var showSponsorInquirySheet = false
     @State private var showBusinessActiveVenueSelectionSheet = false
+    @State private var showBusinessFavoriteTeamsSheet = false
     @State private var businessDashboardQuickActionNotice: String?
     @State private var activeVenueSelectionQuickActionNotice: String?
     @State private var settingsBusinessMembershipStatus: BusinessVenueGamePostingStatus?
@@ -270,8 +271,7 @@ struct SettingsScreen: View {
     }
 
     private var settingsBusinessProfileHasCachedData: Bool {
-        settingsBusinessMembershipStatus != nil
-            && viewModel.hasBusinessAccountForOwner()
+        viewModel.hasBusinessAccountForOwner()
             && !viewModel.hasArchivedBusinessAccountForOwner()
             && !viewModel.managedVenuesForOwner().isEmpty
     }
@@ -771,6 +771,7 @@ struct SettingsScreen: View {
                 showReportedCommentsSheet = false
                 showAddLocationSheet = false
                 showDeleteVenueOwnerSheet = false
+                showBusinessFavoriteTeamsSheet = false
             }
         }
         .sheet(item: $venueOwnerDashboardSheet) { route in
@@ -872,6 +873,15 @@ struct SettingsScreen: View {
                     activeVenueSelectionQuickActionNotice = nil
                     Task { await refreshSettingsBusinessProfile(trigger: "activeVenueSelectionSaved", refreshBusinessData: true, debounce: false) }
                 }
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(FGAdaptiveSurface.sheetRoot)
+        }
+        .sheet(isPresented: $showBusinessFavoriteTeamsSheet) {
+            BusinessFavoriteTeamsManagementSheet(
+                viewModel: viewModel,
+                businessId: viewModel.currentBusinessIdForAddLocation()
             )
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
@@ -1202,6 +1212,7 @@ struct SettingsScreen: View {
         showBusinessProSubscriptionSheet = false
         showBusinessUsageSheet = false
         showBusinessActiveVenueSelectionSheet = false
+        showBusinessFavoriteTeamsSheet = false
         showReportedCommentsSheet = false
         businessDashboardQuickActionNotice = nil
         present()
@@ -2488,16 +2499,13 @@ struct SettingsScreen: View {
         let managedCount = managedVenues.count
         let selectedVenueId = viewModel.ownerVenueDatabaseId
 
-        if viewModel.isVenueOwnerBusinessDataLoading && !settingsBusinessProfileHasCachedData {
-            return BusinessProfileVenueHydrationState(isReady: false, reason: "businessDataLoading", selectedVenueId: selectedVenueId, managedCount: managedCount)
-        }
-        if settingsBusinessProfileHydrationInFlight && !settingsBusinessProfileHasCachedData {
-            return BusinessProfileVenueHydrationState(isReady: false, reason: "businessProfileHydrationInFlight", selectedVenueId: selectedVenueId, managedCount: managedCount)
-        }
-        if settingsBusinessMembershipStatus == nil {
-            return BusinessProfileVenueHydrationState(isReady: false, reason: "entitlementLoading", selectedVenueId: selectedVenueId, managedCount: managedCount)
-        }
         guard !managedVenues.isEmpty else {
+            if viewModel.isVenueOwnerBusinessDataLoading {
+                return BusinessProfileVenueHydrationState(isReady: false, reason: "businessDataLoading", selectedVenueId: selectedVenueId, managedCount: managedCount)
+            }
+            if settingsBusinessProfileHydrationInFlight {
+                return BusinessProfileVenueHydrationState(isReady: false, reason: "businessProfileHydrationInFlight", selectedVenueId: selectedVenueId, managedCount: managedCount)
+            }
             return BusinessProfileVenueHydrationState(isReady: false, reason: "managedVenuesLoading", selectedVenueId: selectedVenueId, managedCount: managedCount)
         }
         guard let selectedVenueId else {
@@ -2585,6 +2593,12 @@ struct SettingsScreen: View {
                     showBusinessUsageSheet = true
                 }
             },
+            favoriteTeamsCount: viewModel.businessFavoriteTeamIDs.count,
+            onManageFavoriteTeams: {
+                presentBusinessDashboardQuickAction(source: "favoriteTeamsQuickAction") {
+                    showBusinessFavoriteTeamsSheet = true
+                }
+            },
             onActiveVenueSelection: {
                 handleActiveVenueSelectionQuickAction()
             },
@@ -2623,7 +2637,7 @@ struct SettingsScreen: View {
             logBusinessProfileHydrationState()
         }
         .task(id: settingsInlineBusinessDashboardLoadToken) {
-            await refreshSettingsInlineBusinessDashboard()
+            await refreshSettingsInlineBusinessDashboardPreload()
         }
     }
 
@@ -2639,12 +2653,12 @@ struct SettingsScreen: View {
     }
 
     private var settingsBusinessCanCreateVenueFromServer: Bool {
-        guard let status = settingsBusinessMembershipStatus else { return true }
+        guard let status = settingsBusinessMembershipStatus, status.loadedFromServer else { return false }
         return status.canAddVenue
     }
 
     private var settingsBusinessCanHostGameFromServer: Bool {
-        guard let status = settingsBusinessMembershipStatus else { return true }
+        guard let status = settingsBusinessMembershipStatus, status.loadedFromServer else { return false }
         return status.canAddHostedGame
     }
 
@@ -2716,7 +2730,6 @@ struct SettingsScreen: View {
     }
 
     private var settingsBusinessDashboardSelectedVenue: VenueProfileRow? {
-        guard businessProfileVenueHydrationState.isReady else { return nil }
         let managedVenues = viewModel.managedVenuesForOwner()
         if let venueID = viewModel.ownerVenueDatabaseId,
            let selected = managedVenues.first(where: { $0.id == venueID }) {
@@ -2813,14 +2826,12 @@ struct SettingsScreen: View {
     }
 
     private var settingsBusinessDashboardVenueName: String {
-        guard businessProfileVenueHydrationState.isReady else {
-            return "Loading venues..."
-        }
         let selectedName = settingsBusinessDashboardSelectedVenue?.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if !selectedName.isEmpty { return selectedName }
 
         let ownerName = viewModel.ownerVenueName.trimmingCharacters(in: .whitespacesAndNewlines)
-        return ownerName.isEmpty ? "Your venue" : ownerName
+        if !ownerName.isEmpty { return ownerName }
+        return businessProfileVenueHydrationState.isReady ? "Your venue" : "Loading venues..."
     }
 
     private var settingsBusinessDashboardLocationLine: String {
@@ -2988,10 +2999,17 @@ struct SettingsScreen: View {
         return (L10n.t("normal", languageCode: appLanguageRaw), FGColor.accentBlue)
     }
 
-    private func refreshSettingsInlineBusinessDashboard() async {
+    private func refreshSettingsInlineBusinessDashboard(loadEngagementMetrics: Bool = false) async {
         guard shouldShowInlineBusinessDashboard else { return }
         let rows = await viewModel.loadMyVenueScheduledGames()
         let ids = rows.compactMap(\.id)
+
+        await MainActor.run {
+            inlineBusinessDashboardGames = rows
+            logSettingsInlineBusinessDashboardDebug()
+        }
+
+        guard loadEngagementMetrics else { return }
 
         await withTaskGroup(of: Void.self) { group in
             for id in ids {
@@ -3004,9 +3022,32 @@ struct SettingsScreen: View {
 
         await viewModel.loadVenueEventPredictionSummaries(eventIDs: ids)
         await MainActor.run {
-            inlineBusinessDashboardGames = rows
             logSettingsInlineBusinessDashboardDebug()
         }
+    }
+
+    private func refreshSettingsInlineBusinessDashboardPreload() async {
+        guard shouldShowInlineBusinessDashboard else { return }
+        let snapshot = await viewModel.loadBusinessDashboardPreload()
+        applySettingsBusinessDashboardPreloadSnapshot(snapshot)
+    }
+
+    @MainActor
+    private func applySettingsBusinessDashboardPreloadSnapshot(
+        _ snapshot: BusinessDashboardPreloadSnapshot?,
+        requestId: Int? = nil
+    ) {
+        if let requestId, requestId != settingsBusinessProfileLatestRequestId { return }
+        guard let snapshot else { return }
+        inlineBusinessDashboardGames = snapshot.scheduledGames
+        if let status = snapshot.entitlementStatus {
+            if settingsBusinessMembershipStatus?.computedIsPro == true && !status.loadedFromServer {
+                return
+            }
+            settingsBusinessMembershipStatus = status
+            settingsBusinessProfileLastEntitlementSignature = settingsBusinessEntitlementSignature
+        }
+        logSettingsInlineBusinessDashboardDebug()
     }
 
     private func refreshSettingsBusinessProfile(
@@ -3059,15 +3100,21 @@ struct SettingsScreen: View {
         }
         guard !Task.isCancelled else { return }
 
+        var preloadStatus: BusinessVenueGamePostingStatus?
         if refreshBusinessData {
-            await viewModel.refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
-        }
-
-        if shouldShowInlineBusinessDashboard {
+            await MainActor.run {
+                settingsBusinessMembershipStatus = nil
+            }
+            let snapshot = await viewModel.loadBusinessDashboardPreload(force: trigger == "manualRefresh")
+            preloadStatus = snapshot?.entitlementStatus
+            applySettingsBusinessDashboardPreloadSnapshot(snapshot, requestId: requestId)
+        } else if shouldShowInlineBusinessDashboard {
             await refreshSettingsInlineBusinessDashboard()
         }
 
-        await refreshSettingsBusinessProStatus(trigger: trigger, requestId: requestId)
+        if preloadStatus == nil {
+            await refreshSettingsBusinessProStatus(trigger: trigger, requestId: requestId)
+        }
     }
 
     private var settingsBusinessProfilePassiveRefreshTTL: TimeInterval { 30 }

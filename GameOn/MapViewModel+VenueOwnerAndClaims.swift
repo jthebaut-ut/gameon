@@ -1602,6 +1602,10 @@ extension MapViewModel {
         archivedOwnedBusinesses = []
         ownedBusinessVenues = []
         legacyOwnerVenuesForEmailFallback = []
+        businessDashboardPreloadSnapshot = nil
+        businessDashboardPreloadInFlightKey = nil
+        businessDashboardPreloadTask = nil
+        clearBusinessFavoriteTeamState()
         isVenueOwnerBusinessDataLoading = false
         pendingVenueClaimsForSettings = []
         rejectedVenueClaimsForSettings = []
@@ -4399,6 +4403,347 @@ extension MapViewModel {
             }
         }
         return patched
+    }
+
+    private var businessDashboardPreloadKey: String {
+        let email = OwnerBusinessEmail.normalized(venueOwnerEmail)
+        let businessId = currentBusinessIdForAddLocation()?.uuidString.lowercased() ?? "nil"
+        let venueId = ownerVenueDatabaseId?.uuidString.lowercased() ?? "nil"
+        return "\(email)|\(businessId)|\(venueId)"
+    }
+
+    func loadBusinessDashboardPreload(force: Bool = false) async -> BusinessDashboardPreloadSnapshot? {
+        let requestKey = await MainActor.run { businessDashboardPreloadKey }
+        if let task = await MainActor.run(body: { businessDashboardPreloadTask }),
+           await MainActor.run(body: { businessDashboardPreloadInFlightKey }) == requestKey {
+            return await task.value
+        }
+
+        let task = Task { [weak self] in
+            await self?.performBusinessDashboardPreload()
+        }
+        await MainActor.run {
+            businessDashboardPreloadInFlightKey = requestKey
+            businessDashboardPreloadTask = task
+        }
+
+        let snapshot = await task.value
+        await MainActor.run {
+            if businessDashboardPreloadInFlightKey == requestKey {
+                businessDashboardPreloadInFlightKey = nil
+                businessDashboardPreloadTask = nil
+            }
+            if let snapshot {
+                businessDashboardPreloadSnapshot = snapshot
+            }
+        }
+        return snapshot
+    }
+
+    private func performBusinessDashboardPreload() async -> BusinessDashboardPreloadSnapshot? {
+        await refreshBusinessDashboardIdentityForPreload()
+
+        let identity = await MainActor.run {
+            (
+                key: businessDashboardPreloadKey,
+                businessId: currentBusinessIdForAddLocation(),
+                selectedVenueId: ownerVenueDatabaseId,
+                managedVenues: managedVenuesForOwner(),
+                favoriteTeamCount: businessFavoriteTeamIDs.count
+            )
+        }
+
+        async let entitlementStatus = loadBusinessDashboardEntitlementStatus(businessId: identity.businessId)
+        async let scheduledGames = loadMyVenueScheduledGames()
+        async let favoriteTeamCount = loadBusinessDashboardFavoriteTeamCount(businessId: identity.businessId)
+        async let claimsRefresh: Void = refreshBusinessDashboardClaimStatusForPreload()
+
+        let selectedVenue = identity.managedVenues.first { row in
+            row.id == identity.selectedVenueId
+        }
+        let status = await entitlementStatus
+        let games = await scheduledGames
+        let teamCount = await favoriteTeamCount
+        _ = await claimsRefresh
+
+        return BusinessDashboardPreloadSnapshot(
+            key: identity.key,
+            businessId: identity.businessId,
+            selectedVenueId: identity.selectedVenueId,
+            managedVenueCount: identity.managedVenues.count,
+            selectedVenue: selectedVenue,
+            entitlementStatus: status,
+            favoriteTeamCount: max(identity.favoriteTeamCount, teamCount),
+            scheduledGames: games,
+            loadedAt: Date()
+        )
+    }
+
+    private func loadBusinessDashboardEntitlementStatus(businessId: UUID?) async -> BusinessVenueGamePostingStatus? {
+        guard let businessId else { return nil }
+        return await businessVenueGamePostingStatus(
+            storeKitBusinessProActive: false,
+            businessId: businessId
+        )
+    }
+
+    private func loadBusinessDashboardFavoriteTeamCount(businessId: UUID?) async -> Int {
+        guard let businessId else { return 0 }
+        await loadBusinessFavoriteTeams(businessId: businessId)
+        return await MainActor.run { businessFavoriteTeamIDs.count }
+    }
+
+    private func refreshBusinessDashboardClaimStatusForPreload() async {
+        async let pending: Void = refreshPendingVenueClaimsForSettings()
+        async let statusLine: Void = refreshVenueClaimStatusLineFromDatabase()
+        _ = await (pending, statusLine)
+    }
+
+    private func refreshBusinessDashboardIdentityForPreload() async {
+        let snapshot = await MainActor.run {
+            (
+                email: OwnerBusinessEmail.normalized(venueOwnerEmail),
+                shouldLoad: isVenueOwnerLoggedIn && OwnerBusinessEmail.isValidStrict(OwnerBusinessEmail.normalized(venueOwnerEmail)),
+                authUid: currentUserAuthId,
+                hasCachedIdentity: !ownedBusinesses.isEmpty || !managedVenuesForOwner().isEmpty
+            )
+        }
+
+        guard snapshot.shouldLoad else {
+            await MainActor.run {
+                clearVenueOwnerOwnedBusinessCaches()
+                ownerVenueDatabaseId = nil
+                isVenueOwnerBusinessDataLoading = false
+            }
+            return
+        }
+
+        if snapshot.hasCachedIdentity {
+            await MainActor.run {
+                applySelectedVenueAfterBusinessLoad()
+                isVenueOwnerBusinessDataLoading = false
+            }
+            return
+        }
+
+        await MainActor.run {
+            venueOwnerEmail = snapshot.email
+            isVenueOwnerBusinessDataLoading = true
+        }
+
+        async let activeFromEmail = dashboardFetchBusinesses(
+            ownerEmail: snapshot.email,
+            ownerUserId: nil,
+            adminStatus: "active"
+        )
+        async let activeFromUser = dashboardFetchBusinesses(
+            ownerEmail: nil,
+            ownerUserId: snapshot.authUid,
+            adminStatus: "active"
+        )
+        async let archivedFromEmail = dashboardFetchBusinesses(
+            ownerEmail: snapshot.email,
+            ownerUserId: nil,
+            adminStatus: "archived"
+        )
+        async let archivedFromUser = dashboardFetchBusinesses(
+            ownerEmail: nil,
+            ownerUserId: snapshot.authUid,
+            adminStatus: "archived"
+        )
+        async let claimLinkedBusinesses = dashboardFetchClaimLinkedBusinesses(ownerEmail: snapshot.email)
+
+        let activeEmailRows = await activeFromEmail
+        let activeUserRows = await activeFromUser
+        let claimBusinessRows = await claimLinkedBusinesses
+        let archivedEmailRows = await archivedFromEmail
+        let archivedUserRows = await archivedFromUser
+
+        let initialResolvedBusinesses = Self.dedupeBusinessRowsPreservingOrder(
+            activeEmailRows + activeUserRows + claimBusinessRows
+        )
+        let archivedBusinesses = Self.dedupeBusinessRowsPreservingOrder(
+            archivedEmailRows + archivedUserRows
+        )
+        let initialBusinessIds = initialResolvedBusinesses.map { $0.id }
+
+        async let venueRowsByBusiness = dashboardFetchVenuesByBusinessIds(initialBusinessIds)
+        async let emailVenueRows = dashboardFetchVenuesByOwnerEmail(snapshot.email)
+        async let userVenueRows = dashboardFetchVenuesByOwnerUserId(snapshot.authUid)
+        async let claimLinkedVenues = dashboardFetchClaimLinkedVenues(
+            ownerEmail: snapshot.email,
+            businessIds: initialBusinessIds
+        )
+
+        let businessVenueRows = await venueRowsByBusiness
+        let emailVenueRowsValue = await emailVenueRows
+        let userVenueRowsValue = await userVenueRows
+        let claimVenueRows = await claimLinkedVenues
+
+        var mergedVenues = Self.dedupeVenueProfileRowsPreservingOrder(
+            businessVenueRows + emailVenueRowsValue + userVenueRowsValue + claimVenueRows
+        )
+
+        var finalResolvedBusinesses = initialResolvedBusinesses
+        if finalResolvedBusinesses.isEmpty {
+            let linkedBusinessIds = Set(mergedVenues.compactMap { $0.business_id })
+            let fromVenueLinks = await dashboardFetchBusinessesByIds(Array(linkedBusinessIds))
+            if !fromVenueLinks.isEmpty {
+                finalResolvedBusinesses = fromVenueLinks
+                let extraVenues = await dashboardFetchVenuesByBusinessIds(fromVenueLinks.map { $0.id })
+                mergedVenues = Self.dedupeVenueProfileRowsPreservingOrder(mergedVenues + extraVenues)
+            }
+        }
+
+        let businessesForState = finalResolvedBusinesses
+        let venuesForState = mergedVenues
+        await MainActor.run {
+            ownedBusinesses = businessesForState
+            archivedOwnedBusinesses = archivedBusinesses
+            ownedBusinessVenues = venuesForState
+            legacyOwnerVenuesForEmailFallback = emailVenueRowsValue
+            applySelectedVenueAfterBusinessLoad()
+            if let selectedId = ownerVenueDatabaseId,
+               let selected = managedVenuesForOwner().first(where: { $0.id == selectedId }) {
+                applyVenueProfileRowToOwnerState(selected)
+            } else if managedVenuesForOwner().isEmpty {
+                clearSelectedVenueProfileForEmptyState(deletedSelectedVenue: nil)
+            }
+            isVenueOwnerBusinessDataLoading = false
+        }
+    }
+
+    private func dashboardFetchBusinesses(
+        ownerEmail: String?,
+        ownerUserId: UUID?,
+        adminStatus: String
+    ) async -> [BusinessRow] {
+        do {
+            if let ownerEmail, OwnerBusinessEmail.isValidStrict(ownerEmail) {
+                return try await supabase
+                    .from("businesses")
+                    .select("id,display_name,owner_email,owner_user_id,admin_status,created_at,entitlement_updated_at,free_active_venues_selected_at")
+                    .eq("admin_status", value: adminStatus)
+                    .eq("owner_email", value: ownerEmail)
+                    .execute()
+                    .value
+            } else if let ownerUserId {
+                return try await supabase
+                    .from("businesses")
+                    .select("id,display_name,owner_email,owner_user_id,admin_status,created_at,entitlement_updated_at,free_active_venues_selected_at")
+                    .eq("admin_status", value: adminStatus)
+                    .eq("owner_user_id", value: ownerUserId)
+                    .execute()
+                    .value
+            } else {
+                return []
+            }
+        } catch {
+#if DEBUG
+            print("[BusinessDashboardPreload] business fetch failed status=\(adminStatus):", error)
+#endif
+            return []
+        }
+    }
+
+    private func dashboardFetchBusinessesByIds(_ ids: [UUID]) async -> [BusinessRow] {
+        guard !ids.isEmpty else { return [] }
+        do {
+            return try await supabase
+                .from("businesses")
+                .select("id,display_name,owner_email,owner_user_id,admin_status,created_at,entitlement_updated_at,free_active_venues_selected_at")
+                .in("id", values: ids.map(\.uuidString))
+                .eq("admin_status", value: "active")
+                .execute()
+                .value
+        } catch {
+#if DEBUG
+            print("[BusinessDashboardPreload] businesses by id fetch failed:", error)
+#endif
+            return []
+        }
+    }
+
+    private func dashboardFetchVenuesByBusinessIds(_ ids: [UUID]) async -> [VenueProfileRow] {
+        guard !ids.isEmpty else { return [] }
+        do {
+            return try await supabase
+                .from("venues")
+                .select()
+                .in("business_id", values: ids.map(\.uuidString))
+                .in("admin_status", values: ["active", "plan_locked"])
+                .execute()
+                .value
+        } catch {
+#if DEBUG
+            print("[BusinessDashboardPreload] venues by business fetch failed:", error)
+#endif
+            return []
+        }
+    }
+
+    private func dashboardFetchVenuesByOwnerEmail(_ ownerEmail: String) async -> [VenueProfileRow] {
+        guard OwnerBusinessEmail.isValidStrict(ownerEmail) else { return [] }
+        do {
+            return try await supabase
+                .from("venues")
+                .select()
+                .eq("owner_email", value: ownerEmail)
+                .in("admin_status", values: ["active", "plan_locked"])
+                .execute()
+                .value
+        } catch {
+#if DEBUG
+            print("[BusinessDashboardPreload] venues by email fetch failed:", error)
+#endif
+            return []
+        }
+    }
+
+    private func dashboardFetchVenuesByOwnerUserId(_ ownerUserId: UUID?) async -> [VenueProfileRow] {
+        guard let ownerUserId else { return [] }
+        do {
+            return try await supabase
+                .from("venues")
+                .select()
+                .eq("owner_user_id", value: ownerUserId)
+                .in("admin_status", values: ["active", "plan_locked"])
+                .execute()
+                .value
+        } catch {
+#if DEBUG
+            print("[BusinessDashboardPreload] venues by owner user fetch failed:", error)
+#endif
+            return []
+        }
+    }
+
+    private func dashboardFetchClaimLinkedBusinesses(ownerEmail: String) async -> [BusinessRow] {
+        do {
+            return try await loadBusinessesLinkedFromApprovedClaims(ownerEmail: ownerEmail)
+        } catch {
+#if DEBUG
+            print("[BusinessDashboardPreload] claim-linked businesses fetch failed:", error)
+#endif
+            return []
+        }
+    }
+
+    private func dashboardFetchClaimLinkedVenues(
+        ownerEmail: String,
+        businessIds: [UUID]
+    ) async -> [VenueProfileRow] {
+        do {
+            return try await loadVenuesLinkedFromApprovedClaims(
+                ownerEmail: ownerEmail,
+                businessIds: businessIds
+            )
+        } catch {
+#if DEBUG
+            print("[BusinessDashboardPreload] claim-linked venues fetch failed:", error)
+#endif
+            return []
+        }
     }
 
     /// Loads `businesses` for ``venueOwnerEmail``, then `venues` with `business_id` in those ids; legacy email-only venues when the business-linked set is empty.

@@ -157,20 +157,38 @@ nonisolated struct FavoriteTeamProGame: Identifiable, Equatable {
 }
 
 extension MapViewModel {
-    private static let savedProGamesDefaultsKey = "gameon.savedProGames.v1"
+    private static let savedProGamesLegacyGlobalDefaultsKey = "gameon.savedProGames.v1"
+    private static let savedProGamesGuestDefaultsKey = "gameon.savedProGames.guest.v1"
     private static let savedProGamesSelectColumns = "live_match_id,source,external_id,home_team,away_team,league,sport,start_time,match_status,score_home,score_away,featured_event_slug,tv_summary,created_at"
 
     func reloadSavedProGamesFromStorage() {
-        savedProGames = Self.decodeSavedProGames()
+        if let userID = currentUserAuthId {
+            reloadSavedProGamesFromStorage(for: userID)
+        } else {
+            logLegacySavedProGamesCacheIfPresent(context: "signedOut")
+            savedProGames = []
+        }
+    }
+
+    func reloadSavedProGamesFromStorage(for userID: UUID) {
+        logLegacySavedProGamesCacheIfPresent(context: "authenticatedIgnored")
+        savedProGames = Self.decodeSavedProGames(storageKey: Self.savedProGamesDefaultsKey(for: userID))
+    }
+
+    func clearSavedProGamesForSessionBoundary() {
+        savedProGames = []
     }
 
     func fetchSavedProGames() async {
         guard let userID = currentUserAuthId, isAuthenticatedForSocialFeatures else {
-            reloadSavedProGamesFromStorage()
+            clearSavedProGamesForSessionBoundary()
             return
         }
 
-        let localSnapshots = savedProGames.isEmpty ? Self.decodeSavedProGames() : savedProGames
+        let scopedCacheKey = Self.savedProGamesDefaultsKey(for: userID)
+        let localSnapshots = Self.decodeSavedProGames(storageKey: scopedCacheKey)
+        savedProGames = localSnapshots
+
         do {
             let rows: [SavedProGameSupabaseRow] = try await supabase
                 .from("saved_pro_games")
@@ -183,10 +201,17 @@ extension MapViewModel {
             let remoteSnapshots = rows.compactMap(\.savedProGame)
             let remoteKeys = Set(remoteSnapshots.map(\.stableKey))
             let merged = Self.mergedSavedProGames(local: localSnapshots, remote: remoteSnapshots)
+            guard currentUserAuthId == userID else {
+#if DEBUG
+                print("[SavedProGames] fetchDiscarded reason=sessionChanged userId=\(userID.uuidString.lowercased())")
+#endif
+                return
+            }
             savedProGames = merged
-            persistSavedProGames()
+            persistSavedProGames(for: userID)
 
             for snapshot in localSnapshots where !remoteKeys.contains(snapshot.stableKey) {
+                guard currentUserAuthId == userID else { return }
                 do {
                     try await upsertSavedProGameToSupabase(snapshot, userID: userID)
                 } catch {
@@ -199,6 +224,7 @@ extension MapViewModel {
 #if DEBUG
             print("[SavedProGames] fetchFailed error=\(error.localizedDescription)")
 #endif
+            guard currentUserAuthId == userID else { return }
             if savedProGames.isEmpty {
                 savedProGames = localSnapshots
             }
@@ -324,8 +350,20 @@ extension MapViewModel {
     }
 
     private func persistSavedProGames() {
+        if let userID = currentUserAuthId {
+            persistSavedProGames(for: userID)
+        } else {
+            persistSavedProGames(storageKey: Self.savedProGamesGuestDefaultsKey)
+        }
+    }
+
+    private func persistSavedProGames(for userID: UUID) {
+        persistSavedProGames(storageKey: Self.savedProGamesDefaultsKey(for: userID))
+    }
+
+    private func persistSavedProGames(storageKey: String) {
         if let data = try? JSONEncoder().encode(savedProGames) {
-            UserDefaults.standard.set(data, forKey: Self.savedProGamesDefaultsKey)
+            UserDefaults.standard.set(data, forKey: storageKey)
         }
     }
 
@@ -340,7 +378,7 @@ extension MapViewModel {
         }
     }
 
-    private static func favoriteTeamProGames(
+    static func favoriteTeamProGames(
         from matches: [LiveMatch],
         favoriteTeams: [FavoriteTeam]
     ) -> [FavoriteTeamProGame] {
@@ -375,8 +413,12 @@ extension MapViewModel {
         }
     }
 
-    private static func decodeSavedProGames() -> [SavedProGame] {
-        guard let data = UserDefaults.standard.data(forKey: savedProGamesDefaultsKey),
+    private static func savedProGamesDefaultsKey(for userID: UUID) -> String {
+        "gameon.savedProGames.\(userID.uuidString.lowercased()).v1"
+    }
+
+    private static func decodeSavedProGames(storageKey: String) -> [SavedProGame] {
+        guard let data = UserDefaults.standard.data(forKey: storageKey),
               let decoded = try? JSONDecoder().decode([SavedProGame].self, from: data) else {
             return []
         }
@@ -384,6 +426,15 @@ extension MapViewModel {
             if $0.startTime == $1.startTime { return $0.savedAt > $1.savedAt }
             return $0.startTime < $1.startTime
         }
+    }
+
+    private func logLegacySavedProGamesCacheIfPresent(context: String) {
+#if DEBUG
+        guard UserDefaults.standard.data(forKey: Self.savedProGamesLegacyGlobalDefaultsKey) != nil else { return }
+        print("[SavedProGames] legacyGlobalCacheDetected context=\(context) key=\(Self.savedProGamesLegacyGlobalDefaultsKey) action=ignoredForAuthenticatedUsers")
+#else
+        _ = context
+#endif
     }
 }
 
@@ -483,29 +534,169 @@ private nonisolated struct SavedProGameUpsertRow: Encodable {
     }
 }
 
+private struct ProGameFeaturedBadgeIdentity {
+    let mark: String
+    let caption: String?
+    let systemImage: String
+    let primary: Color
+    let secondary: Color
+    let foreground: Color
+
+    static func resolve(event: FeaturedEvent?, slug: String?) -> ProGameFeaturedBadgeIdentity? {
+        let rawValues = [
+            slug,
+            event?.slug,
+            event?.title,
+            event?.shortTitle
+        ]
+        let normalizedValues = rawValues
+            .compactMap { $0 }
+            .map(normalized)
+            .filter { !$0.isEmpty }
+        let haystack = normalizedValues.joined(separator: " ")
+        guard !haystack.isEmpty else { return nil }
+
+        if haystack.contains("fifa") && haystack.contains("world cup") {
+            return ProGameFeaturedBadgeIdentity(
+                mark: "FIFA\nWC",
+                caption: "Cup",
+                systemImage: "trophy.fill",
+                primary: Color(red: 0.02, green: 0.18, blue: 0.46),
+                secondary: Color(red: 0.12, green: 0.62, blue: 0.88),
+                foreground: .white
+            )
+        }
+        if haystack.contains("roland garros") || haystack.contains("french open") {
+            return ProGameFeaturedBadgeIdentity(
+                mark: "RG",
+                caption: "Clay",
+                systemImage: "tennisball.fill",
+                primary: Color(red: 0.70, green: 0.26, blue: 0.10),
+                secondary: Color(red: 0.98, green: 0.66, blue: 0.26),
+                foreground: .white
+            )
+        }
+        if haystack.contains("wimbledon") {
+            return ProGameFeaturedBadgeIdentity(
+                mark: "W",
+                caption: "SW19",
+                systemImage: "tennisball.fill",
+                primary: Color(red: 0.18, green: 0.35, blue: 0.22),
+                secondary: Color(red: 0.48, green: 0.20, blue: 0.58),
+                foreground: .white
+            )
+        }
+        if haystack.contains("us open") || haystack.contains("u s open") {
+            return ProGameFeaturedBadgeIdentity(
+                mark: "US\nOPEN",
+                caption: nil,
+                systemImage: "tennisball.fill",
+                primary: Color(red: 0.03, green: 0.18, blue: 0.48),
+                secondary: Color(red: 0.08, green: 0.48, blue: 0.86),
+                foreground: .white
+            )
+        }
+        if haystack.contains("nba finals") {
+            return ProGameFeaturedBadgeIdentity(
+                mark: "NBA\nFINALS",
+                caption: nil,
+                systemImage: "basketball.fill",
+                primary: Color(red: 0.05, green: 0.16, blue: 0.45),
+                secondary: Color(red: 0.86, green: 0.12, blue: 0.18),
+                foreground: .white
+            )
+        }
+        if haystack.contains("stanley cup") {
+            return ProGameFeaturedBadgeIdentity(
+                mark: "SCF",
+                caption: "Cup",
+                systemImage: "hockey.puck.fill",
+                primary: Color(red: 0.09, green: 0.10, blue: 0.12),
+                secondary: Color(red: 0.72, green: 0.76, blue: 0.82),
+                foreground: .white
+            )
+        }
+        if haystack.contains("super bowl") {
+            return ProGameFeaturedBadgeIdentity(
+                mark: "SB",
+                caption: "NFL",
+                systemImage: "football.fill",
+                primary: Color(red: 0.02, green: 0.12, blue: 0.34),
+                secondary: Color(red: 0.78, green: 0.10, blue: 0.16),
+                foreground: .white
+            )
+        }
+
+        return generic(event: event, slug: slug)
+    }
+
+    private static func generic(event: FeaturedEvent?, slug: String?) -> ProGameFeaturedBadgeIdentity? {
+        let title = [
+            event?.shortTitle,
+            event?.title,
+            slug
+        ]
+        .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+        .first { !$0.isEmpty } ?? ""
+        guard !title.isEmpty else { return nil }
+
+        return ProGameFeaturedBadgeIdentity(
+            mark: abbreviation(for: title),
+            caption: "Event",
+            systemImage: "star.fill",
+            primary: Color(red: 0.12, green: 0.15, blue: 0.28),
+            secondary: FGColor.accentYellow,
+            foreground: .white
+        )
+    }
+
+    private static func abbreviation(for title: String) -> String {
+        let words = title
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
+        guard !words.isEmpty else { return "PRO" }
+        if words.count == 1 {
+            return String(words[0].prefix(6)).uppercased()
+        }
+        return words.prefix(3).compactMap { $0.first }.map { String($0) }.joined().uppercased()
+    }
+
+    nonisolated private static func normalized(_ raw: String) -> String {
+        raw
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+    }
+}
+
 struct ProGameSportBadgeView: View {
     let sportType: LiveSportVisualType
     var diameter: CGFloat = 56
+    var featuredEvent: FeaturedEvent?
+    var featuredEventSlug: String?
     var isFeatured = false
 
     @Environment(\.colorScheme) private var colorScheme
 
-    private var visual: SportFilterCatalog.ChipVisual {
-        sportType.catalogVisual
+    private var featuredBadge: ProGameFeaturedBadgeIdentity? {
+        ProGameFeaturedBadgeIdentity.resolve(event: featuredEvent, slug: featuredEventSlug)
     }
 
     private var accent: Color {
-        sportType.catalogAccent
+        featuredBadge?.primary ?? sportType.catalogAccent
     }
 
     private var secondaryAccent: Color {
+        if let featuredBadge { return featuredBadge.secondary }
         switch sportType {
         case .soccer:
-            return FGColor.accentGreen
+            return Color(red: 0.18, green: 0.74, blue: 0.42)
         case .basketball:
             return Color.orange
         case .nfl:
-            return Color(red: 0.66, green: 0.42, blue: 0.20)
+            return Color(red: 0.70, green: 0.46, blue: 0.24)
         case .hockey:
             return FGColor.accentBlue
         case .baseball:
@@ -513,104 +704,116 @@ struct ProGameSportBadgeView: View {
         case .tennis:
             return Color(red: 0.72, green: 0.86, blue: 0.18)
         default:
-            return visual.accent
+            return sportType.catalogAccent
+        }
+    }
+
+    private var premiumSportSymbol: String {
+        switch sportType {
+        case .soccer:
+            return "figure.soccer"
+        case .basketball:
+            return "figure.basketball"
+        case .hockey:
+            return "figure.hockey"
+        case .baseball:
+            return "figure.baseball"
+        case .nfl:
+            return "figure.american.football"
+        case .tennis:
+            return "figure.tennis"
+        case .badminton:
+            return "sportscourt.fill"
+        case .golf:
+            return "figure.golf"
+        case .formula1:
+            return "flag.checkered.2.crossed"
+        case .breakdance, .ballet:
+            return "figure.dance"
+        case .other:
+            return "sportscourt.fill"
         }
     }
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                accent.opacity(colorScheme == .dark ? 0.36 : 0.24),
-                                secondaryAccent.opacity(colorScheme == .dark ? 0.22 : 0.14),
-                                Color(.secondarySystemGroupedBackground).opacity(colorScheme == .dark ? 0.38 : 0.80)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
+        ZStack {
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            accent.opacity(colorScheme == .dark ? 0.92 : 0.84),
+                            secondaryAccent.opacity(colorScheme == .dark ? 0.76 : 0.62),
+                            Color(.secondarySystemGroupedBackground).opacity(colorScheme == .dark ? 0.30 : 0.86)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
                     )
+                )
 
-                Circle()
-                    .strokeBorder(accent.opacity(colorScheme == .dark ? 0.62 : 0.42), lineWidth: 1.2)
+            Circle()
+                .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.28 : 0.62), lineWidth: 1.4)
 
-                sportGlyph
-                    .font(.system(size: max(18, diameter * 0.44), weight: .heavy))
-                    .foregroundStyle(accent)
-                    .shadow(color: accent.opacity(colorScheme == .dark ? 0.28 : 0.14), radius: 4, y: 1)
+            Circle()
+                .strokeBorder(accent.opacity(colorScheme == .dark ? 0.74 : 0.42), lineWidth: 0.8)
+                .padding(2)
 
-                sportDetail
-                    .opacity(0.86)
-            }
-            .frame(width: diameter, height: diameter)
-            .overlay {
-                if isFeatured {
-                    Circle()
-                        .strokeBorder(FGColor.accentYellow.opacity(colorScheme == .dark ? 0.48 : 0.34), lineWidth: 1)
-                }
-            }
-            .shadow(color: isFeatured ? FGColor.accentYellow.opacity(colorScheme == .dark ? 0.26 : 0.14) : .clear, radius: 8, y: 2)
+            Capsule()
+                .fill(Color.white.opacity(colorScheme == .dark ? 0.18 : 0.30))
+                .frame(width: diameter * 0.46, height: max(1.2, diameter * 0.035))
+                .rotationEffect(.degrees(-34))
+                .offset(x: -diameter * 0.09, y: -diameter * 0.18)
 
-            if isFeatured {
-                Image(systemName: "trophy.fill")
-                    .font(.system(size: max(9, diameter * 0.19), weight: .bold))
-                    .foregroundStyle(FGColor.accentYellow)
-                    .frame(width: max(18, diameter * 0.34), height: max(18, diameter * 0.34))
-                    .background(Color(.systemBackground), in: Circle())
-                    .overlay(Circle().strokeBorder(FGColor.accentYellow.opacity(0.45), lineWidth: 0.8))
-                    .offset(x: 1, y: 1)
+            if let featuredBadge {
+                featuredEventArtwork(featuredBadge)
+            } else {
+                premiumSportArtwork
             }
         }
+        .frame(width: diameter, height: diameter)
+        .shadow(
+            color: accent.opacity((featuredBadge != nil || isFeatured) ? (colorScheme == .dark ? 0.34 : 0.20) : (colorScheme == .dark ? 0.22 : 0.10)),
+            radius: (featuredBadge != nil || isFeatured) ? 12 : 8,
+            y: 3
+        )
         .accessibilityHidden(true)
     }
 
-    @ViewBuilder
-    private var sportGlyph: some View {
-        Image(systemName: visual.systemImage)
+    private func featuredEventArtwork(_ badge: ProGameFeaturedBadgeIdentity) -> some View {
+        VStack(spacing: max(1, diameter * 0.035)) {
+            Image(systemName: badge.systemImage)
+                .font(.system(size: max(8, diameter * 0.19), weight: .black))
+                .foregroundStyle(badge.foreground.opacity(0.92))
+
+            Text(badge.mark)
+                .font(.system(size: max(10, diameter * (badge.mark.contains("\n") ? 0.19 : 0.27)), weight: .black, design: .rounded))
+                .multilineTextAlignment(.center)
+                .lineSpacing(-1)
+                .minimumScaleFactor(0.58)
+                .foregroundStyle(badge.foreground)
+                .shadow(color: Color.black.opacity(0.16), radius: 1, y: 1)
+
+            if let caption = badge.caption {
+                Text(caption.uppercased())
+                    .font(.system(size: max(6, diameter * 0.10), weight: .heavy, design: .rounded))
+                    .minimumScaleFactor(0.65)
+                    .foregroundStyle(badge.foreground.opacity(0.86))
+            }
+        }
+        .padding(.horizontal, diameter * 0.12)
     }
 
-    @ViewBuilder
-    private var sportDetail: some View {
-        switch sportType {
-        case .soccer:
-            Circle()
-                .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.30 : 0.42), lineWidth: 1)
-                .frame(width: diameter * 0.25, height: diameter * 0.25)
-                .offset(x: diameter * 0.17, y: -diameter * 0.17)
-        case .basketball:
-            VStack(spacing: diameter * 0.10) {
-                Capsule().fill(Color.white.opacity(0.30)).frame(width: diameter * 0.42, height: 1)
-                Capsule().fill(Color.white.opacity(0.24)).frame(width: diameter * 0.30, height: 1)
-            }
-            .rotationEffect(.degrees(-28))
-            .offset(x: diameter * 0.10, y: diameter * 0.06)
-        case .nfl:
-            Capsule()
-                .fill(Color.white.opacity(0.28))
-                .frame(width: diameter * 0.34, height: 2)
-                .rotationEffect(.degrees(-24))
-                .offset(x: diameter * 0.04, y: diameter * 0.12)
-        case .hockey:
-            Capsule()
-                .fill(Color.white.opacity(0.28))
-                .frame(width: diameter * 0.44, height: 2)
-                .rotationEffect(.degrees(-35))
-                .offset(x: diameter * 0.08, y: diameter * 0.12)
-        case .baseball:
-            HStack(spacing: diameter * 0.24) {
-                Capsule().fill(Color.white.opacity(0.24)).frame(width: 2, height: diameter * 0.30)
-                Capsule().fill(Color.white.opacity(0.24)).frame(width: 2, height: diameter * 0.30)
-            }
-            .rotationEffect(.degrees(18))
-        case .tennis:
-            Circle()
-                .strokeBorder(Color.white.opacity(0.34), lineWidth: 1)
-                .frame(width: diameter * 0.34, height: diameter * 0.34)
-                .offset(x: diameter * 0.12, y: -diameter * 0.10)
-        default:
-            EmptyView()
+    private var premiumSportArtwork: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: diameter * 0.18, style: .continuous)
+                .fill(Color.white.opacity(colorScheme == .dark ? 0.14 : 0.26))
+                .frame(width: diameter * 0.58, height: diameter * 0.58)
+                .rotationEffect(.degrees(-8))
+
+            Image(systemName: premiumSportSymbol)
+                .font(.system(size: max(18, diameter * 0.42), weight: .black))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(Color.white.opacity(colorScheme == .dark ? 0.96 : 0.98))
+                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.30 : 0.16), radius: 3, y: 1)
         }
     }
 }

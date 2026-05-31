@@ -1557,7 +1557,7 @@ struct LiveScreen: View {
         let renderVenue = match.venueName?.trimmingCharacters(in: .whitespacesAndNewlines)
         let renderCity = match.venueCity?.trimmingCharacters(in: .whitespacesAndNewlines)
         let isSaved = viewModel.isProGameSaved(match)
-        let isFeatured = selectedFeaturedEvent(for: match) != nil
+        let featuredEvent = selectedFeaturedEvent(for: match)
 #if DEBUG
         print("[LiveVenueDebug] provider=LiveMatch")
         print("[LiveVenueDebug] title=\(title)")
@@ -1569,7 +1569,8 @@ struct LiveScreen: View {
                 ProGameSportBadgeView(
                     sportType: sportType,
                     diameter: 42,
-                    isFeatured: isFeatured
+                    featuredEvent: featuredEvent,
+                    featuredEventSlug: match.featuredEventSlug
                 )
 
                 VStack(alignment: .leading, spacing: 9) {

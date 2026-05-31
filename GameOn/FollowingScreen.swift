@@ -41,6 +41,7 @@ struct FollowingScreen: View {
     @State private var selectedGoingMode: GoingParticipationMode = .venueGames
     @State private var selectedGoingVenueTab: GoingVenueTab = .games
     @State private var selectedGoingGamesTab: GoingGamesTab = .playing
+    @State private var selectedBusinessProGameFilter: BusinessProGameFilter = .all
     @State private var cachedGoingVenueGameItems: [FollowingGoingDisplayItem] = []
     @State private var cachedPlayingGameCards: [PickupGameJoinRequestCardDisplay] = []
 
@@ -53,7 +54,7 @@ struct FollowingScreen: View {
     }
 
     private var favoriteTeamAutoFollowTaskIdentity: String? {
-        guard isFollowingTabSelected, selectedGoingMode == .proGames else { return nil }
+        guard isFollowingTabSelected, activeGoingMode == .proGames, !isBusinessProGamesOnly else { return nil }
         let auth = viewModel.currentUserAuthId?.uuidString ?? "signedOut"
         return [
             auth,
@@ -63,6 +64,22 @@ struct FollowingScreen: View {
         ].joined(separator: "|")
     }
 
+    private var businessFavoriteTeamProGamesTaskIdentity: String? {
+        guard isFollowingTabSelected, activeGoingMode == .proGames, isBusinessProGamesOnly else { return nil }
+        let auth = viewModel.currentUserAuthId?.uuidString ?? "signedOut"
+        let businessId = viewModel.currentBusinessIdForAddLocation()?.uuidString ?? "noBusiness"
+        let teams = viewModel.businessFavoriteTeamIDs.sorted().joined(separator: ",")
+        return "\(auth)|\(businessId)|\(teams)"
+    }
+
+    private var isBusinessProGamesOnly: Bool {
+        viewModel.hasAuthenticatedVenueOwnerSession
+    }
+
+    private var activeGoingMode: GoingParticipationMode {
+        isBusinessProGamesOnly ? .proGames : selectedGoingMode
+    }
+
     var body: some View {
         ZStack {
             Color.clear
@@ -70,28 +87,26 @@ struct FollowingScreen: View {
                 .ignoresSafeArea()
 
             if viewModel.isAuthenticatedForSocialFeatures {
-                if viewModel.hasAuthenticatedVenueOwnerSession {
-                    businessFollowingLockedContent
-                } else {
-                    loggedInContent
-                }
+                loggedInContent
             } else {
                 loggedOutContent
             }
         }
         .onAppear {
             rebuildFollowingDisplayCaches(reason: "appear")
+            sanitizeBusinessGoingModeIfNeeded()
             refreshFavoriteTeamProGamesIfVisible(reason: "appear")
             if suppressInitialAutoRefresh && !didHandleInitialAutoRefresh {
                 didHandleInitialAutoRefresh = true
                 return
             }
             guard isFollowingTabSelected else { return }
-            guard viewModel.isAuthenticatedForSocialFeatures, viewModel.canUseFollowingTab else { return }
+            guard viewModel.isAuthenticatedForSocialFeatures else { return }
             Task { await reloadFollowingDataForCurrentUser() }
         }
         .onChange(of: viewModel.currentUserAuthId) { _, newId in
             rebuildFollowingDisplayCaches(reason: "authChanged")
+            sanitizeBusinessGoingModeIfNeeded()
             guard isFollowingTabSelected else { return }
             if newId != nil {
                 Task { await reloadFollowingDataForCurrentUser() }
@@ -102,7 +117,12 @@ struct FollowingScreen: View {
         }
         .task(id: followingTabTaskIdentity) {
             guard isFollowingTabSelected else { return }
-            guard viewModel.isAuthenticatedForSocialFeatures, viewModel.canUseFollowingTab else { return }
+            guard viewModel.isAuthenticatedForSocialFeatures else { return }
+            if isBusinessProGamesOnly {
+                await reloadBusinessProGamesData(reason: "goingTabActivation")
+                return
+            }
+            guard viewModel.canUseFollowingTab else { return }
             await viewModel.refreshFollowingTabDataGloballyUnlessFresh()
             await viewModel.loadMyPickupGameJoinRequestsForFollowing(reason: "goingTabActivation")
             await viewModel.loadIncomingPickupGameInvites()
@@ -111,6 +131,10 @@ struct FollowingScreen: View {
         .task(id: favoriteTeamAutoFollowTaskIdentity) {
             guard favoriteTeamAutoFollowTaskIdentity != nil else { return }
             await refreshFavoriteTeamProGames(reason: "autoFollowStateChanged")
+        }
+        .task(id: businessFavoriteTeamProGamesTaskIdentity) {
+            guard businessFavoriteTeamProGamesTaskIdentity != nil else { return }
+            await refreshBusinessFavoriteTeamProGames(reason: "businessFavoriteTeamsChanged")
         }
         .sheet(item: $pickupDetailNav, onDismiss: {
             Task {
@@ -132,6 +156,7 @@ struct FollowingScreen: View {
         }
         .onChange(of: viewModel.isAuthenticatedForSocialFeatures) { _, _ in
             rebuildFollowingDisplayCaches(reason: "socialAuthChanged")
+            sanitizeBusinessGoingModeIfNeeded()
             Task { await syncFollowingAfterAuthChange() }
         }
         .onChange(of: viewModel.followingTabGoingItems.count) { _, _ in
@@ -290,12 +315,19 @@ struct FollowingScreen: View {
 
     /// Reload Following when fan or business-owner auth changes while a Supabase session may already exist.
     private func syncFollowingAfterAuthChange() async {
-        if viewModel.isAuthenticatedForSocialFeatures, viewModel.canUseFollowingTab {
+        if viewModel.isAuthenticatedForSocialFeatures, isBusinessProGamesOnly {
+            await reloadBusinessProGamesData(reason: "authChanged")
+        } else if viewModel.isAuthenticatedForSocialFeatures, viewModel.canUseFollowingTab {
             await reloadFollowingDataForCurrentUser()
         } else {
             clearFollowingUserSpecificState()
             interestedOnlyEncoded = ""
         }
+    }
+
+    private func sanitizeBusinessGoingModeIfNeeded() {
+        guard isBusinessProGamesOnly, selectedGoingMode != .proGames else { return }
+        selectedGoingMode = .proGames
     }
 
     private func performFollowingPickupWithdraw(_ state: PickupJoinWithdrawConfirmState) async {
@@ -368,36 +400,6 @@ struct FollowingScreen: View {
         .padding(.bottom, 110)
     }
 
-    // MARK: - Business account (fan features locked)
-
-    private var businessFollowingLockedContent: some View {
-        VStack(spacing: 22) {
-            Spacer(minLength: 24)
-
-            Image(systemName: "lock.fill")
-                .font(.system(size: 44, weight: .semibold))
-                .foregroundStyle(FGColor.accentYellow)
-
-            Text("Going")
-                .font(FGTypography.screenTitle)
-                .foregroundStyle(FGColor.primaryText(followingColorScheme))
-
-            Text(BusinessFanGateCopy.followingLockedBody)
-                .font(FGTypography.body)
-                .foregroundStyle(FGColor.secondaryText(followingColorScheme))
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 28)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Spacer(minLength: 24)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.bottom, 110)
-        .onAppear {
-            viewModel.logBusinessUserGateBlocked(action: "followingTab")
-        }
-    }
-
     // MARK: - Logged in
 
     private var loggedInContent: some View {
@@ -412,6 +414,11 @@ struct FollowingScreen: View {
                     .padding(.bottom, 110)
             }
             .refreshable {
+                if isBusinessProGamesOnly {
+                    await reloadBusinessProGamesData(reason: "pullToRefresh")
+                    logGoingHubDebug(reason: "pullToRefresh")
+                    return
+                }
                 await viewModel.fetchSavedProGames()
                 await viewModel.refreshFollowingTabDataGlobally()
                 await viewModel.loadMyPickupGameJoinRequestsForFollowing(
@@ -440,7 +447,7 @@ struct FollowingScreen: View {
                         .foregroundStyle(FGColor.primaryText(followingColorScheme))
                         .padding(.top, 8)
 
-                    Text("Games, venues, and pickup plans you're part of.")
+                    Text(goingHubHeaderSubtitle)
                         .font(FGTypography.caption)
                         .foregroundStyle(FGColor.secondaryText(followingColorScheme))
                         .fixedSize(horizontal: false, vertical: true)
@@ -448,7 +455,9 @@ struct FollowingScreen: View {
 
                 Spacer(minLength: 8)
 
-                goingInviteBellButton
+                if !isBusinessProGamesOnly {
+                    goingInviteBellButton
+                }
             }
 
             if let favoriteActionBanner {
@@ -463,10 +472,17 @@ struct FollowingScreen: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
-            if goingHubShouldShowActivityStrip {
+            if !isBusinessProGamesOnly && goingHubShouldShowActivityStrip {
                 goingHubActivityStrip
             }
         }
+    }
+
+    private var goingHubHeaderSubtitle: String {
+        if isBusinessProGamesOnly {
+            return "Saved live and scheduled pro games for your business account."
+        }
+        return "Games, venues, and pickup plans you're part of."
     }
 
     private var goingInviteBellButton: some View {
@@ -508,7 +524,7 @@ struct FollowingScreen: View {
             goingModeSwitcher
 
             Group {
-                switch selectedGoingMode {
+                switch activeGoingMode {
                 case .venueGames:
                     goingVenueTabsGroup
                 case .pickupGames:
@@ -517,7 +533,7 @@ struct FollowingScreen: View {
                     goingProGamesGroup
                 }
             }
-            .id(selectedGoingMode)
+            .id(activeGoingMode)
             .transition(.opacity.combined(with: .move(edge: .trailing)))
         }
         .padding(.top, 6)
@@ -636,31 +652,39 @@ struct FollowingScreen: View {
 
     private var goingModeSwitcher: some View {
         GameOnSegmentedControl(
-            tabs: [
-                GameOnSegmentedTab(
-                    id: GoingParticipationMode.venueGames,
-                    title: GoingParticipationMode.venueGames.title,
-                    tint: GoingParticipationMode.venueGames.tint,
-                    accessibilityLabel: "Venue-hosted games"
-                ),
-                GameOnSegmentedTab(
-                    id: GoingParticipationMode.pickupGames,
-                    title: GoingParticipationMode.pickupGames.title,
-                    tint: GoingParticipationMode.pickupGames.tint,
-                    showsActivityDot: viewModel.pendingPickupGameJoinRequestCount > 0 || !viewModel.incomingPickupGameInvites.isEmpty,
-                    accessibilityLabel: "Pickup and community games",
-                    activityAccessibilityLabel: "Pickup activity waiting"
-                ),
-                GameOnSegmentedTab(
-                    id: GoingParticipationMode.proGames,
-                    title: GoingParticipationMode.proGames.title,
-                    badge: savedProGamesTabBadge,
-                    tint: GoingParticipationMode.proGames.tint,
-                    accessibilityLabel: "Saved pro games"
-                )
-            ],
+            tabs: goingModeTabs,
             selection: $selectedGoingMode
         )
+    }
+
+    private var goingModeTabs: [GameOnSegmentedTab<GoingParticipationMode>] {
+        let proGames = GameOnSegmentedTab(
+            id: GoingParticipationMode.proGames,
+            title: GoingParticipationMode.proGames.title,
+            badge: savedProGamesTabBadge,
+            tint: GoingParticipationMode.proGames.tint,
+            accessibilityLabel: "Saved pro games"
+        )
+        if isBusinessProGamesOnly {
+            return [proGames]
+        }
+        return [
+            GameOnSegmentedTab(
+                id: GoingParticipationMode.venueGames,
+                title: GoingParticipationMode.venueGames.title,
+                tint: GoingParticipationMode.venueGames.tint,
+                accessibilityLabel: "Venue-hosted games"
+            ),
+            GameOnSegmentedTab(
+                id: GoingParticipationMode.pickupGames,
+                title: GoingParticipationMode.pickupGames.title,
+                tint: GoingParticipationMode.pickupGames.tint,
+                showsActivityDot: viewModel.pendingPickupGameJoinRequestCount > 0 || !viewModel.incomingPickupGameInvites.isEmpty,
+                accessibilityLabel: "Pickup and community games",
+                activityAccessibilityLabel: "Pickup activity waiting"
+            ),
+            proGames
+        ]
     }
 
     private var goingVenueTabsGroup: some View {
@@ -719,14 +743,33 @@ struct FollowingScreen: View {
     }
 
     private var goingProGamesGroup: some View {
-        goingTabbedPanel(title: "Pro Games", subtitle: "Saved and favorite-team pro games to watch later.") {
-            EmptyView()
+        goingTabbedPanel(title: "Pro Games", subtitle: proGamesPanelSubtitle) {
+            if isBusinessProGamesOnly {
+                businessProGamesFilterControl
+            } else {
+                EmptyView()
+            }
         } content: {
             savedProGamesContent
         }
     }
 
+    private var proGamesPanelSubtitle: String {
+        isBusinessProGamesOnly
+            ? "Saved pro games and followed-team matches for your business."
+            : "Saved and favorite-team pro games to watch later."
+    }
+
+    @ViewBuilder
     private var savedProGamesContent: some View {
+        if isBusinessProGamesOnly {
+            businessProGamesContent
+        } else {
+            fanSavedProGamesContent
+        }
+    }
+
+    private var fanSavedProGamesContent: some View {
         VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 10) {
                 sectionEyebrow("Saved Games")
@@ -777,6 +820,101 @@ struct FollowingScreen: View {
         .padding(.top, 6)
     }
 
+    private var businessProGamesContent: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if selectedBusinessProGameFilter == .all {
+                businessSavedProGamesSection
+                businessMyTeamsProGamesSection
+            } else {
+                businessMyTeamsFilteredSection
+            }
+        }
+        .padding(.top, 6)
+    }
+
+    private var businessSavedProGamesSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionEyebrow("Saved Games")
+            if manualSavedProGamesForDisplay.isEmpty {
+                emptyCard(
+                    icon: "heart",
+                    title: "No saved pro games yet.",
+                    subtitle: "Save pro games you want your business to track."
+                )
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(manualSavedProGamesForDisplay) { game in
+                        savedProGameCard(game, badges: businessSavedProGameBadges(for: game))
+                    }
+                }
+            }
+        }
+    }
+
+    private var businessMyTeamsProGamesSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionEyebrow("My Teams")
+            businessMyTeamsProGameList(emptyTitle: "No upcoming pro games found for your followed teams.")
+        }
+    }
+
+    private var businessMyTeamsFilteredSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionEyebrow("My Teams")
+            businessMyTeamsProGameList(emptyTitle: "No My Teams pro games match right now.")
+        }
+    }
+
+    @ViewBuilder
+    private func businessMyTeamsProGameList(emptyTitle: String) -> some View {
+        if viewModel.businessFavoriteTeamIDs.isEmpty {
+            emptyCard(
+                icon: "star",
+                title: "No business favorite teams yet.",
+                subtitle: "Add Favorite Teams from the Business Dashboard to use My Teams."
+            )
+        } else if businessMyTeamSavedProGamesForDisplay.isEmpty && businessMyTeamProGamesForDisplay.isEmpty {
+            emptyCard(
+                icon: "star",
+                title: emptyTitle,
+                subtitle: "Try adding more teams from the Business Dashboard."
+            )
+        } else {
+            VStack(spacing: 12) {
+                ForEach(businessMyTeamSavedProGamesForDisplay) { game in
+                    savedProGameCard(game, badges: businessSavedProGameBadges(for: game))
+                }
+                ForEach(businessMyTeamProGamesForDisplay) { autoGame in
+                    savedProGameCard(
+                        autoGame.game,
+                        badges: businessMyTeamProGameBadges(),
+                        showsUnsaveButton: false
+                    )
+                }
+            }
+        }
+    }
+
+    private var businessProGamesFilterControl: some View {
+        GameOnSegmentedControl(
+            tabs: [
+                GameOnSegmentedTab(
+                    id: BusinessProGameFilter.all,
+                    title: "All",
+                    badge: businessAllProGamesBadge,
+                    tint: FGColor.accentBlue
+                ),
+                GameOnSegmentedTab(
+                    id: BusinessProGameFilter.myTeams,
+                    title: "My Teams",
+                    badge: businessMyTeamsProGamesBadge,
+                    tint: FGColor.accentBlue
+                )
+            ],
+            selection: $selectedBusinessProGameFilter
+        )
+    }
+
     private var manualSavedProGamesForDisplay: [SavedProGame] {
         viewModel.savedProGames.map { viewModel.currentSavedProGameSnapshot($0) }
     }
@@ -786,8 +924,41 @@ struct FollowingScreen: View {
         return viewModel.favoriteTeamProGames.filter { !manualKeys.contains($0.game.stableKey) }
     }
 
+    private var businessFavoriteTeamsForDisplay: [FavoriteTeam] {
+        FavoriteTeamsStore.resolvedTeams(fromIDs: Array(viewModel.businessFavoriteTeamIDs).sorted())
+    }
+
+    private var businessMyTeamSavedProGamesForDisplay: [SavedProGame] {
+        manualSavedProGamesForDisplay.filter { game in
+            businessFavoriteTeamsForDisplay.contains { team in
+                FavoriteTeamLiveMatcher.matchesLiveMatch(team, homeTeam: game.homeTeam, awayTeam: game.awayTeam)
+            }
+        }
+    }
+
+    private var businessMyTeamProGamesForDisplay: [FavoriteTeamProGame] {
+        let manualKeys = Set(manualSavedProGamesForDisplay.map(\.stableKey))
+        return viewModel.businessFavoriteTeamProGames.filter { !manualKeys.contains($0.game.stableKey) }
+    }
+
+    private var businessAllProGamesBadge: String? {
+        let count = manualSavedProGamesForDisplay.count + businessMyTeamProGamesForDisplay.count
+        guard count > 0 else { return nil }
+        return count > 9 ? "9+" : "\(count)"
+    }
+
+    private var businessMyTeamsProGamesBadge: String? {
+        let count = businessMyTeamSavedProGamesForDisplay.count + businessMyTeamProGamesForDisplay.count
+        guard count > 0 else { return nil }
+        return count > 9 ? "9+" : "\(count)"
+    }
+
     private func favoriteTeamAutoFollowMatch(for game: SavedProGame) -> FavoriteTeamProGame? {
         viewModel.favoriteTeamProGames.first { $0.game.stableKey == game.stableKey }
+    }
+
+    private func businessFavoriteTeamMatch(for game: SavedProGame) -> FavoriteTeamProGame? {
+        viewModel.businessFavoriteTeamProGames.first { $0.game.stableKey == game.stableKey }
     }
 
     private func savedProGameBadges(for game: SavedProGame) -> [String] {
@@ -802,6 +973,18 @@ struct FollowingScreen: View {
         ["Favorite Team"]
     }
 
+    private func businessSavedProGameBadges(for game: SavedProGame) -> [String] {
+        var badges = ["Saved"]
+        if businessFavoriteTeamMatch(for: game) != nil || businessMyTeamSavedProGamesForDisplay.contains(where: { $0.stableKey == game.stableKey }) {
+            badges.append("My Teams")
+        }
+        return badges
+    }
+
+    private func businessMyTeamProGameBadges() -> [String] {
+        ["My Teams"]
+    }
+
     private func sectionEyebrow(_ text: String) -> some View {
         Text(text.uppercased())
             .font(.caption2.weight(.bold))
@@ -811,12 +994,17 @@ struct FollowingScreen: View {
     }
 
     private func refreshFavoriteTeamProGamesIfVisible(reason: String) {
-        guard isFollowingTabSelected, selectedGoingMode == .proGames else { return }
-        Task { await refreshFavoriteTeamProGames(reason: reason) }
+        guard isFollowingTabSelected, activeGoingMode == .proGames else { return }
+        if isBusinessProGamesOnly {
+            Task { await refreshBusinessFavoriteTeamProGames(reason: reason) }
+        } else {
+            Task { await refreshFavoriteTeamProGames(reason: reason) }
+        }
     }
 
     private func refreshFavoriteTeamProGames(reason: String) async {
-        guard viewModel.isAuthenticatedForSocialFeatures, viewModel.canUseFollowingTab else {
+        guard viewModel.isAuthenticatedForSocialFeatures,
+              (viewModel.canUseFollowingTab || isBusinessProGamesOnly) else {
             await MainActor.run {
                 viewModel.favoriteTeamProGames = []
             }
@@ -831,6 +1019,19 @@ struct FollowingScreen: View {
             windowDays: window.rawValue,
             favoriteTeamIDsRaw: favoriteTeamIDsRaw
         )
+    }
+
+    private func refreshBusinessFavoriteTeamProGames(reason: String) async {
+        guard viewModel.isAuthenticatedForSocialFeatures, isBusinessProGamesOnly else {
+            await MainActor.run {
+                viewModel.businessFavoriteTeamProGames = []
+            }
+            return
+        }
+#if DEBUG
+        print("[BusinessFavoriteTeams] proGameRefresh reason=\(reason)")
+#endif
+        await viewModel.refreshBusinessFavoriteTeamProGames(windowDays: 30)
     }
 
     private var playingGamesContent: some View {
@@ -930,7 +1131,9 @@ struct FollowingScreen: View {
     }
 
     private var savedProGamesTabBadge: String? {
-        let count = manualSavedProGamesForDisplay.count + favoriteTeamProGamesForDisplay.count
+        let count = isBusinessProGamesOnly
+            ? manualSavedProGamesForDisplay.count + businessMyTeamProGamesForDisplay.count
+            : manualSavedProGamesForDisplay.count + favoriteTeamProGamesForDisplay.count
         guard count > 0 else { return nil }
         return count > 9 ? "9+" : "\(count)"
     }
@@ -1268,7 +1471,8 @@ struct FollowingScreen: View {
             ProGameSportBadgeView(
                 sportType: sportType,
                 diameter: 56,
-                isFeatured: featuredEvent != nil
+                featuredEvent: featuredEvent,
+                featuredEventSlug: game.featuredEventSlug
             )
 
             VStack(alignment: .leading, spacing: 6) {
@@ -1798,9 +2002,14 @@ struct FollowingScreen: View {
         viewModel.interestedVenueEventKeys = []
         viewModel.incomingPickupGameInvites = []
         viewModel.favoriteTeamProGames = []
+        viewModel.clearBusinessFavoriteTeamState()
     }
 
     private func reloadFollowingDataForCurrentUser() async {
+        if isBusinessProGamesOnly {
+            await reloadBusinessProGamesData(reason: "authOrInitialReload")
+            return
+        }
         await viewModel.fetchSavedProGames()
         await viewModel.refreshFollowingTabDataGlobally()
         await viewModel.loadMyPickupGameJoinRequestsForFollowing(
@@ -1809,6 +2018,15 @@ struct FollowingScreen: View {
         )
         await viewModel.loadIncomingPickupGameInvites()
         await refreshFavoriteTeamProGames(reason: "authOrInitialReload")
+    }
+
+    private func reloadBusinessProGamesData(reason: String) async {
+        sanitizeBusinessGoingModeIfNeeded()
+        await viewModel.fetchSavedProGames()
+        if let businessId = await MainActor.run(body: { viewModel.currentBusinessIdForAddLocation() }) {
+            await viewModel.loadBusinessFavoriteTeams(businessId: businessId)
+        }
+        await refreshBusinessFavoriteTeamProGames(reason: reason)
     }
 
 #if DEBUG
@@ -3134,6 +3352,11 @@ private enum GoingParticipationMode: Hashable {
         case .proGames: return FGColor.accentBlue
         }
     }
+}
+
+private enum BusinessProGameFilter: Hashable {
+    case all
+    case myTeams
 }
 
 private struct PickupGameInviteDetailSheet: View {

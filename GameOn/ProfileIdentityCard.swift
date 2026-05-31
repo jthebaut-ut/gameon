@@ -4726,6 +4726,15 @@ private struct PremiumTeamIdentityOrb: View {
     let team: FavoriteTeam
     let diameter: CGFloat
 
+    private var nationalTeamFlag: String? {
+        guard team.kind == .nationalTeam,
+              let flag = CountryFlagHelper.flag(for: team.name),
+              !flag.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+        return flag
+    }
+
     var body: some View {
         ZStack {
             Circle()
@@ -4736,9 +4745,17 @@ private struct PremiumTeamIdentityOrb: View {
                         .strokeBorder(Color.white.opacity(0.34), lineWidth: 1)
                 }
 
-            Text(team.initials)
-                .font(.system(size: max(10, diameter * 0.34), weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
+            if let nationalTeamFlag {
+                Text(nationalTeamFlag)
+                    .font(.system(size: max(24, diameter * 0.54)))
+                    .minimumScaleFactor(0.8)
+                    .lineLimit(1)
+                    .shadow(color: Color.black.opacity(0.18), radius: 1.5, y: 1)
+            } else {
+                Text(team.initials)
+                    .font(.system(size: max(10, diameter * 0.34), weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+            }
         }
         .frame(width: diameter, height: diameter)
         .accessibilityLabel("\(team.name), \(team.sport.chipTitle)")

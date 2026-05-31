@@ -26,6 +26,23 @@ struct FanGeoTeamIdentityBadge: View {
         team.identityStyle
     }
 
+    private var nationalTeamFlag: String? {
+        guard team.kind == .nationalTeam,
+              let flag = CountryFlagHelper.flag(for: team.name)?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !flag.isEmpty else {
+            return nil
+        }
+        return flag
+    }
+
+    private var badgeText: String {
+        nationalTeamFlag ?? team.initials
+    }
+
+    private var badgeTextIsFlag: Bool {
+        nationalTeamFlag != nil
+    }
+
     var body: some View {
         Group {
             switch style {
@@ -48,11 +65,12 @@ struct FanGeoTeamIdentityBadge: View {
         ZStack {
             Circle()
                 .fill(badgeGradient)
-            Text(team.initials)
-                .font(.system(size: diameter * 0.32, weight: .bold, design: .rounded))
+            Text(badgeText)
+                .font(standardBadgeTextFont)
                 .foregroundStyle(.white)
-                .minimumScaleFactor(0.7)
+                .minimumScaleFactor(badgeTextIsFlag ? 0.82 : 0.7)
                 .lineLimit(1)
+                .shadow(color: Color.black.opacity(badgeTextIsFlag ? 0.18 : 0), radius: 1.5, y: 1)
         }
         .frame(width: diameter, height: diameter)
         .overlay {
@@ -60,6 +78,12 @@ struct FanGeoTeamIdentityBadge: View {
                 .strokeBorder(Color.white.opacity(0.22), lineWidth: 1)
         }
         .shadow(color: team.badgeColor.opacity(0.35), radius: 4, y: 2)
+    }
+
+    private var standardBadgeTextFont: Font {
+        badgeTextIsFlag
+            ? .system(size: max(18, diameter * 0.54))
+            : .system(size: diameter * 0.32, weight: .bold, design: .rounded)
     }
 
     // MARK: - Hockey (neon ice, puck / sticks)
@@ -81,15 +105,17 @@ struct FanGeoTeamIdentityBadge: View {
                     )
                 )
             VStack(spacing: 0) {
-                Text(team.initials)
-                    .font(.system(size: diameter * 0.28, weight: .heavy, design: .rounded))
+                Text(badgeText)
+                    .font(hockeyBadgeTextFont)
                     .foregroundStyle(.white)
-                    .minimumScaleFactor(0.65)
+                    .minimumScaleFactor(badgeTextIsFlag ? 0.82 : 0.65)
                     .lineLimit(1)
-                Image(systemName: "hockey.puck.fill")
-                    .font(.system(size: diameter * 0.16, weight: .semibold))
-                    .foregroundStyle(Color.cyan.opacity(0.9))
-                    .offset(y: -1)
+                if !badgeTextIsFlag {
+                    Image(systemName: "hockey.puck.fill")
+                        .font(.system(size: diameter * 0.16, weight: .semibold))
+                        .foregroundStyle(Color.cyan.opacity(0.9))
+                        .offset(y: -1)
+                }
             }
         }
         .frame(width: diameter, height: diameter * 1.05)
@@ -105,6 +131,12 @@ struct FanGeoTeamIdentityBadge: View {
                 )
         }
         .shadow(color: Color.cyan.opacity(0.35), radius: 6, y: 2)
+    }
+
+    private var hockeyBadgeTextFont: Font {
+        badgeTextIsFlag
+            ? .system(size: max(18, diameter * 0.50))
+            : .system(size: diameter * 0.28, weight: .heavy, design: .rounded)
     }
 
     // MARK: - Racing (stripes, checkered accent)
@@ -124,13 +156,15 @@ struct FanGeoTeamIdentityBadge: View {
             .opacity(0.55)
 
             HStack(spacing: 4) {
-                Image(systemName: "flag.checkered.2.crossed.fill")
-                    .font(.system(size: diameter * 0.18, weight: .bold))
-                    .foregroundStyle(team.badgeColor)
-                Text(team.initials)
-                    .font(.system(size: diameter * 0.26, weight: .heavy, design: .rounded))
+                if !badgeTextIsFlag {
+                    Image(systemName: "flag.checkered.2.crossed.fill")
+                        .font(.system(size: diameter * 0.18, weight: .bold))
+                        .foregroundStyle(team.badgeColor)
+                }
+                Text(badgeText)
+                    .font(racingBadgeTextFont)
                     .foregroundStyle(.white)
-                    .minimumScaleFactor(0.65)
+                    .minimumScaleFactor(badgeTextIsFlag ? 0.82 : 0.65)
                     .lineLimit(1)
             }
             .padding(.horizontal, diameter * 0.1)
@@ -142,6 +176,12 @@ struct FanGeoTeamIdentityBadge: View {
                 .strokeBorder(team.badgeColor.opacity(0.5), lineWidth: 1)
         }
         .shadow(color: team.badgeColor.opacity(0.4), radius: 5, y: 2)
+    }
+
+    private var racingBadgeTextFont: Font {
+        badgeTextIsFlag
+            ? .system(size: max(16, diameter * 0.42))
+            : .system(size: diameter * 0.26, weight: .heavy, design: .rounded)
     }
 
     // MARK: - NCAA (collegiate shield)
@@ -156,16 +196,22 @@ struct FanGeoTeamIdentityBadge: View {
                 Image(systemName: "building.columns.fill")
                     .font(.system(size: diameter * 0.14, weight: .semibold))
                     .foregroundStyle(Color.white.opacity(0.75))
-                Text(team.initials)
-                    .font(.system(size: diameter * 0.3, weight: .heavy, design: .serif))
+                Text(badgeText)
+                    .font(collegiateBadgeTextFont)
                     .foregroundStyle(.white)
-                    .minimumScaleFactor(0.65)
+                    .minimumScaleFactor(badgeTextIsFlag ? 0.82 : 0.65)
                     .lineLimit(1)
             }
             .padding(.top, diameter * 0.06)
         }
         .frame(width: diameter * 0.92, height: diameter * 1.08)
         .shadow(color: team.badgeColor.opacity(0.38), radius: 5, y: 2)
+    }
+
+    private var collegiateBadgeTextFont: Font {
+        badgeTextIsFlag
+            ? .system(size: max(18, diameter * 0.50))
+            : .system(size: diameter * 0.3, weight: .heavy, design: .serif)
     }
 
     private var shieldShape: some Shape {
