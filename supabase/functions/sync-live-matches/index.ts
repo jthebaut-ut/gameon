@@ -9,6 +9,47 @@ const THESPORTSDB_V2_BASE = "https://www.thesportsdb.com/api/v2/json"
 
 type MatchStatus = "LIVE" | "HT" | "FT" | "SCHEDULED"
 
+type TVBroadcastRow = {
+  idEvent: string | null
+  strCountry: string | null
+  strEventCountry: string | null
+  strChannel: string | null
+  strLogo: string | null
+  strTime: string | null
+  dateEvent: string | null
+  strTimeStamp: string | null
+}
+
+type TVBroadcastCacheRow = {
+  external_id: string
+  tv_broadcasts: TVBroadcastRow[] | null
+  tv_updated_at: string | null
+}
+
+type TimelineEventRow = {
+  idTimeline: string | null
+  idEvent: string | null
+  strTimeline: string | null
+  strTimelineDetail: string | null
+  strHome: string | null
+  idPlayer: string | null
+  strPlayer: string | null
+  idAssist: string | null
+  strAssist: string | null
+  intTime: string | null
+  idTeam: string | null
+  strTeam: string | null
+  strComment: string | null
+  dateEvent: string | null
+  strSeason: string | null
+}
+
+type TimelineEventCacheRow = {
+  external_id: string
+  timeline_events: TimelineEventRow[] | null
+  timeline_updated_at: string | null
+}
+
 type MatchWindow = {
   start: Date
   end: Date
@@ -30,6 +71,10 @@ type LiveMatchUpsert = {
   league: string
   start_time: string
   payload: unknown
+  tv_broadcasts: TVBroadcastRow[] | null
+  tv_updated_at: string | null
+  timeline_events: TimelineEventRow[] | null
+  timeline_updated_at: string | null
 }
 
 type SyncCounts = {
@@ -39,6 +84,14 @@ type SyncCounts = {
   deduped: number
   upserted: number
   pruned: number
+  tvCacheHits: number
+  tvFetched: number
+  tvEmpty: number
+  tvErrors: number
+  timelineCacheHits: number
+  timelineFetched: number
+  timelineEmpty: number
+  timelineErrors: number
 }
 
 type ScheduledFixturesCounts = {
@@ -82,6 +135,14 @@ serve(async (req) => {
       deduped: 0,
       upserted: 0,
       pruned: 0,
+      tvCacheHits: 0,
+      tvFetched: 0,
+      tvEmpty: 0,
+      tvErrors: 0,
+      timelineCacheHits: 0,
+      timelineFetched: 0,
+      timelineEmpty: 0,
+      timelineErrors: 0,
     }
     const scheduledCounts: ScheduledFixturesCounts = {
       fetched: 0,
@@ -99,6 +160,8 @@ serve(async (req) => {
     counts.pruned = await pruneStaleMatches(supabase, matchWindow)
     const protectedMatchIds = await fetchProtectedMatchIds(supabase, matchWindow)
     const matchesToUpsert = mergeLiveAndScheduledMatches(fetchResult.matches, scheduledMatches, protectedMatchIds, scheduledCounts)
+    await enrichMatchesWithTVBroadcasts(supabase, matchesToUpsert, counts)
+    await enrichMatchesWithTimelineEvents(supabase, matchesToUpsert, counts)
     const scheduledUpsertIds = new Set(scheduledMatches.map((match) => match.id))
 
     if (matchesToUpsert.length > 0) {
@@ -278,6 +341,10 @@ function normalizeSportsDBV2Livescore(event: Record<string, unknown>): LiveMatch
     league: String(event?.strLeague ?? "Sports"),
     start_time: timestamp,
     payload: event,
+    tv_broadcasts: null,
+    tv_updated_at: null,
+    timeline_events: null,
+    timeline_updated_at: null,
   }
 }
 
@@ -343,6 +410,10 @@ function normalizeSportsDBEvent(event: Record<string, any>, fallbackLeague: stri
     league: String(event?.strLeague ?? fallbackLeague),
     start_time: timestamp,
     payload: event,
+    tv_broadcasts: null,
+    tv_updated_at: null,
+    timeline_events: null,
+    timeline_updated_at: null,
   }
 }
 
@@ -445,6 +516,354 @@ function mergeLiveAndScheduledMatches(
   }
 
   return merged
+}
+
+async function enrichMatchesWithTVBroadcasts(
+  supabase: ReturnType<typeof createClient>,
+  matches: LiveMatchUpsert[],
+  counts: SyncCounts,
+): Promise<void> {
+  const sportsDBMatches = matches.filter((match) =>
+    match.source === "thesportsdb" && match.external_id
+  )
+  if (sportsDBMatches.length === 0) return
+
+  const externalIds = [...new Set(sportsDBMatches.map((match) => match.external_id))]
+  const cacheByEventId = await fetchTVBroadcastCache(supabase, externalIds)
+  const fetchedByEventId = new Map<string, { broadcasts: TVBroadcastRow[]; updatedAt: string }>()
+  const sportsDBKey = Deno.env.get("THESPORTSDB_API_KEY")?.trim()
+
+  for (const match of sportsDBMatches) {
+    const cached = cacheByEventId.get(match.external_id)
+    if (cached && isTVBroadcastCacheFresh(cached, match)) {
+      match.tv_broadcasts = cached.tv_broadcasts ?? []
+      match.tv_updated_at = cached.tv_updated_at
+      counts.tvCacheHits += 1
+      continue
+    }
+
+    const runCached = fetchedByEventId.get(match.external_id)
+    if (runCached) {
+      match.tv_broadcasts = runCached.broadcasts
+      match.tv_updated_at = runCached.updatedAt
+      counts.tvCacheHits += 1
+      continue
+    }
+
+    try {
+      const broadcasts = await fetchTheSportsDBTVBroadcasts(match.external_id, sportsDBKey)
+      const updatedAt = new Date().toISOString()
+      fetchedByEventId.set(match.external_id, { broadcasts, updatedAt })
+      match.tv_broadcasts = broadcasts
+      match.tv_updated_at = updatedAt
+      counts.tvFetched += 1
+      if (broadcasts.length === 0) counts.tvEmpty += 1
+      tvLog(`event=${match.external_id} fetched=${broadcasts.length}`)
+    } catch (error) {
+      counts.tvErrors += 1
+      const message = error instanceof Error ? error.message : String(error)
+      tvLog(`event=${match.external_id} error=${message}`)
+      match.tv_broadcasts = cached?.tv_broadcasts ?? []
+      match.tv_updated_at = cached?.tv_updated_at ?? null
+    }
+  }
+}
+
+async function fetchTVBroadcastCache(
+  supabase: ReturnType<typeof createClient>,
+  externalIds: string[],
+): Promise<Map<string, TVBroadcastCacheRow>> {
+  if (externalIds.length === 0) return new Map()
+
+  const { data, error } = await supabase
+    .from("live_matches")
+    .select("external_id,tv_broadcasts,tv_updated_at")
+    .eq("source", "thesportsdb")
+    .in("external_id", externalIds)
+
+  if (error || !Array.isArray(data)) {
+    if (error) tvLog(`cache_query_error=${error.message}`)
+    return new Map()
+  }
+
+  const rows = new Map<string, TVBroadcastCacheRow>()
+  for (const row of data) {
+    const externalId = String(row?.external_id ?? "")
+    if (!externalId) continue
+    rows.set(externalId, {
+      external_id: externalId,
+      tv_broadcasts: Array.isArray(row?.tv_broadcasts)
+        ? row.tv_broadcasts.map((entry) => normalizeTVBroadcastRow(entry)).filter(isTVBroadcastRow)
+        : null,
+      tv_updated_at: typeof row?.tv_updated_at === "string" ? row.tv_updated_at : null,
+    })
+  }
+  return rows
+}
+
+function isTVBroadcastCacheFresh(cache: TVBroadcastCacheRow, match: LiveMatchUpsert): boolean {
+  if (!cache.tv_updated_at) return false
+  const updatedAt = new Date(cache.tv_updated_at)
+  if (!Number.isFinite(updatedAt.getTime())) return false
+  return Date.now() - updatedAt.getTime() < tvBroadcastCacheTTLMilliseconds(match)
+}
+
+function tvBroadcastCacheTTLMilliseconds(match: LiveMatchUpsert): number {
+  return match.match_status === "LIVE" || match.match_status === "HT"
+    ? 30 * 60 * 1000
+    : 6 * 60 * 60 * 1000
+}
+
+async function fetchTheSportsDBTVBroadcasts(
+  idEvent: string,
+  apiKey: string | undefined,
+): Promise<TVBroadcastRow[]> {
+  if (apiKey) {
+    try {
+      return await fetchTheSportsDBV2TVBroadcasts(idEvent, apiKey)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      tvLog(`v2_failed event=${idEvent} error=${message}`)
+    }
+  }
+  return await fetchTheSportsDBV1TVBroadcasts(idEvent, apiKey ?? "123")
+}
+
+async function fetchTheSportsDBV2TVBroadcasts(
+  idEvent: string,
+  apiKey: string,
+): Promise<TVBroadcastRow[]> {
+  const url = `${THESPORTSDB_V2_BASE}/lookup/event_tv/${encodeURIComponent(idEvent)}`
+  const response = await fetch(url, {
+    headers: { "X-API-KEY": apiKey },
+  })
+  if (!response.ok) throw new Error(`v2 HTTP ${response.status}`)
+  const data = await response.json()
+  return normalizeTVBroadcastRows(data, idEvent)
+}
+
+async function fetchTheSportsDBV1TVBroadcasts(
+  idEvent: string,
+  apiKey: string,
+): Promise<TVBroadcastRow[]> {
+  const url = `https://www.thesportsdb.com/api/v1/json/${apiKey}/lookuptv.php?id=${encodeURIComponent(idEvent)}`
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`v1 HTTP ${response.status}`)
+  const data = await response.json()
+  return normalizeTVBroadcastRows(data, idEvent)
+}
+
+function normalizeTVBroadcastRows(data: unknown, fallbackEventId: string): TVBroadcastRow[] {
+  const rows = extractTVBroadcastRows(data)
+  return rows
+    .map((row) => normalizeTVBroadcastRow(row, fallbackEventId))
+    .filter(isTVBroadcastRow)
+}
+
+function extractTVBroadcastRows(data: unknown): unknown[] {
+  if (Array.isArray(data)) return data
+  if (!data || typeof data !== "object") return []
+  const record = data as Record<string, unknown>
+  for (const key of ["event_tv", "eventtv", "tvevent", "tvevents", "tv", "events"]) {
+    const value = record[key]
+    if (Array.isArray(value)) return value
+  }
+  return []
+}
+
+function normalizeTVBroadcastRow(row: unknown, fallbackEventId: string | null = null): TVBroadcastRow {
+  const record = row && typeof row === "object" ? row as Record<string, unknown> : {}
+  return {
+    idEvent: cleanString(record.idEvent) ?? fallbackEventId,
+    strCountry: cleanString(record.strCountry),
+    strEventCountry: cleanString(record.strEventCountry),
+    strChannel: cleanString(record.strChannel),
+    strLogo: cleanString(record.strLogo),
+    strTime: cleanString(record.strTime),
+    dateEvent: cleanString(record.dateEvent),
+    strTimeStamp: cleanString(record.strTimeStamp),
+  }
+}
+
+function isTVBroadcastRow(row: TVBroadcastRow): boolean {
+  return Boolean(row.strChannel)
+}
+
+function cleanString(value: unknown): string | null {
+  const trimmed = String(value ?? "").trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
+async function enrichMatchesWithTimelineEvents(
+  supabase: ReturnType<typeof createClient>,
+  matches: LiveMatchUpsert[],
+  counts: SyncCounts,
+): Promise<void> {
+  const sportsDBMatches = matches.filter((match) =>
+    match.source === "thesportsdb" && match.external_id
+  )
+  if (sportsDBMatches.length === 0) return
+
+  const externalIds = [...new Set(sportsDBMatches.map((match) => match.external_id))]
+  const cacheByEventId = await fetchTimelineEventCache(supabase, externalIds)
+  const fetchedByEventId = new Map<string, { events: TimelineEventRow[]; updatedAt: string }>()
+  const sportsDBKey = Deno.env.get("THESPORTSDB_API_KEY")?.trim()
+
+  for (const match of sportsDBMatches) {
+    const cached = cacheByEventId.get(match.external_id)
+    if (cached && isTimelineEventCacheFresh(cached, match)) {
+      match.timeline_events = cached.timeline_events ?? []
+      match.timeline_updated_at = cached.timeline_updated_at
+      counts.timelineCacheHits += 1
+      continue
+    }
+
+    const runCached = fetchedByEventId.get(match.external_id)
+    if (runCached) {
+      match.timeline_events = runCached.events
+      match.timeline_updated_at = runCached.updatedAt
+      counts.timelineCacheHits += 1
+      continue
+    }
+
+    try {
+      const events = await fetchTheSportsDBTimelineEvents(match.external_id, sportsDBKey)
+      const updatedAt = new Date().toISOString()
+      fetchedByEventId.set(match.external_id, { events, updatedAt })
+      match.timeline_events = events
+      match.timeline_updated_at = updatedAt
+      counts.timelineFetched += 1
+      if (events.length === 0) counts.timelineEmpty += 1
+      timelineLog(`event=${match.external_id} fetched=${events.length}`)
+    } catch (error) {
+      counts.timelineErrors += 1
+      const message = error instanceof Error ? error.message : String(error)
+      timelineLog(`event=${match.external_id} error=${message}`)
+      match.timeline_events = cached?.timeline_events ?? []
+      match.timeline_updated_at = cached?.timeline_updated_at ?? null
+    }
+  }
+}
+
+async function fetchTimelineEventCache(
+  supabase: ReturnType<typeof createClient>,
+  externalIds: string[],
+): Promise<Map<string, TimelineEventCacheRow>> {
+  if (externalIds.length === 0) return new Map()
+
+  const { data, error } = await supabase
+    .from("live_matches")
+    .select("external_id,timeline_events,timeline_updated_at")
+    .eq("source", "thesportsdb")
+    .in("external_id", externalIds)
+
+  if (error || !Array.isArray(data)) {
+    if (error) timelineLog(`cache_query_error=${error.message}`)
+    return new Map()
+  }
+
+  const rows = new Map<string, TimelineEventCacheRow>()
+  for (const row of data) {
+    const externalId = String(row?.external_id ?? "")
+    if (!externalId) continue
+    rows.set(externalId, {
+      external_id: externalId,
+      timeline_events: Array.isArray(row?.timeline_events)
+        ? row.timeline_events.map((entry) => normalizeTimelineEventRow(entry)).filter(isTimelineEventRow)
+        : null,
+      timeline_updated_at: typeof row?.timeline_updated_at === "string" ? row.timeline_updated_at : null,
+    })
+  }
+  return rows
+}
+
+function isTimelineEventCacheFresh(cache: TimelineEventCacheRow, match: LiveMatchUpsert): boolean {
+  if (!cache.timeline_updated_at) return false
+  const updatedAt = new Date(cache.timeline_updated_at)
+  if (!Number.isFinite(updatedAt.getTime())) return false
+  return Date.now() - updatedAt.getTime() < timelineEventCacheTTLMilliseconds(match)
+}
+
+function timelineEventCacheTTLMilliseconds(match: LiveMatchUpsert): number {
+  return match.match_status === "LIVE" || match.match_status === "HT"
+    ? 30 * 60 * 1000
+    : 6 * 60 * 60 * 1000
+}
+
+async function fetchTheSportsDBTimelineEvents(
+  idEvent: string,
+  apiKey: string | undefined,
+): Promise<TimelineEventRow[]> {
+  if (apiKey) {
+    try {
+      return await fetchTheSportsDBV2TimelineEvents(idEvent, apiKey)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      timelineLog(`v2_failed event=${idEvent} error=${message}`)
+    }
+  }
+  return await fetchTheSportsDBV1TimelineEvents(idEvent, apiKey ?? "123")
+}
+
+async function fetchTheSportsDBV2TimelineEvents(idEvent: string, apiKey: string): Promise<TimelineEventRow[]> {
+  const url = `${THESPORTSDB_V2_BASE}/lookup/event_timeline/${encodeURIComponent(idEvent)}`
+  const response = await fetch(url, {
+    headers: { "X-API-KEY": apiKey },
+  })
+  if (!response.ok) throw new Error(`v2 HTTP ${response.status}`)
+  const data = await response.json()
+  return normalizeTimelineEventRows(data, idEvent)
+}
+
+async function fetchTheSportsDBV1TimelineEvents(idEvent: string, apiKey: string): Promise<TimelineEventRow[]> {
+  const url = `https://www.thesportsdb.com/api/v1/json/${apiKey}/lookuptimeline.php?id=${encodeURIComponent(idEvent)}`
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`v1 HTTP ${response.status}`)
+  const data = await response.json()
+  return normalizeTimelineEventRows(data, idEvent)
+}
+
+function normalizeTimelineEventRows(data: unknown, fallbackEventId: string): TimelineEventRow[] {
+  const rows = extractTimelineEventRows(data)
+  return rows
+    .map((row) => normalizeTimelineEventRow(row, fallbackEventId))
+    .filter(isTimelineEventRow)
+}
+
+function extractTimelineEventRows(data: unknown): unknown[] {
+  if (Array.isArray(data)) return data
+  if (!data || typeof data !== "object") return []
+  const record = data as Record<string, unknown>
+  for (const key of ["timeline", "event_timeline", "eventtimeline", "timelines", "events"]) {
+    const value = record[key]
+    if (Array.isArray(value)) return value
+  }
+  return []
+}
+
+function normalizeTimelineEventRow(row: unknown, fallbackEventId: string | null = null): TimelineEventRow {
+  const record = row && typeof row === "object" ? row as Record<string, unknown> : {}
+  return {
+    idTimeline: cleanString(record.idTimeline),
+    idEvent: cleanString(record.idEvent) ?? fallbackEventId,
+    strTimeline: cleanString(record.strTimeline),
+    strTimelineDetail: cleanString(record.strTimelineDetail),
+    strHome: cleanString(record.strHome),
+    idPlayer: cleanString(record.idPlayer),
+    strPlayer: cleanString(record.strPlayer),
+    idAssist: cleanString(record.idAssist),
+    strAssist: cleanString(record.strAssist),
+    intTime: cleanString(record.intTime),
+    idTeam: cleanString(record.idTeam),
+    strTeam: cleanString(record.strTeam),
+    strComment: cleanString(record.strComment),
+    dateEvent: cleanString(record.dateEvent),
+    strSeason: cleanString(record.strSeason),
+  }
+}
+
+function isTimelineEventRow(row: TimelineEventRow): boolean {
+  return Boolean(row.strTimeline || row.strPlayer || row.strTeam)
 }
 
 async function pruneStaleMatches(
@@ -588,6 +1007,14 @@ function debugLog(message: string): void {
 
 function scheduledLog(message: string): void {
   console.log(`[ScheduledFixturesSync] ${message}`)
+}
+
+function tvLog(message: string): void {
+  console.log(`[TheSportsDBTV] ${message}`)
+}
+
+function timelineLog(message: string): void {
+  console.log(`[TheSportsDBTimeline] ${message}`)
 }
 
 function redactedSecretDescription(value: string | undefined): string {

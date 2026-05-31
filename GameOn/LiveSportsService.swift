@@ -326,7 +326,7 @@ actor LiveSportsService {
             resolvingAgainstBaseURL: false
         )
         components?.queryItems = [
-            URLQueryItem(name: "select", value: "id,sport,home_team,away_team,score_home,score_away,match_status,minute,league,start_time,updated_at,payload"),
+            URLQueryItem(name: "select", value: "id,sport,home_team,away_team,score_home,score_away,match_status,minute,league,start_time,updated_at,payload,tv_broadcasts,timeline_events"),
             URLQueryItem(name: "start_time", value: "gte.\(supabaseTimestampFormatter.string(from: windowStart))"),
             URLQueryItem(name: "start_time", value: "lte.\(supabaseTimestampFormatter.string(from: windowEnd))"),
             URLQueryItem(name: "order", value: "start_time.asc")
@@ -405,6 +405,8 @@ private nonisolated struct LiveMatchRow: Decodable {
     let league: String?
     let start_time: String?
     let payload: [String: LiveMatchPayloadValue]?
+    let tv_broadcasts: [LiveTVBroadcast]?
+    let timeline_events: [LiveTimelineEvent]?
 
 #if DEBUG
     var debugSummary: String {
@@ -452,6 +454,7 @@ private nonisolated struct LiveMatchRow: Decodable {
             awayTeam: awayTeam,
             scoreHome: score_home ?? 0,
             scoreAway: score_away ?? 0,
+            scoresAreAvailable: score_home != nil && score_away != nil,
             matchStatus: Self.parseMatchStatus(match_status),
             minute: minute,
             league: Self.clean(league) ?? "Live",
@@ -459,7 +462,9 @@ private nonisolated struct LiveMatchRow: Decodable {
             venueName: decodedVenue,
             venueCity: decodedCity,
             venueLatitude: venueLatitude,
-            venueLongitude: venueLongitude
+            venueLongitude: venueLongitude,
+            tvBroadcasts: tv_broadcasts ?? [],
+            timelineEvents: timeline_events ?? []
         )
     }
 
