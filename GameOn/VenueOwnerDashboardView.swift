@@ -4,6 +4,14 @@ import SwiftUI
 import Charts
 import PhotosUI
 
+private func localizedWholePercent(_ percent: Int) -> String {
+    (Double(percent) / 100).formatted(.percent.precision(.fractionLength(0)))
+}
+
+private func localizedSignedWholePercent(_ percent: Int) -> String {
+    (Double(percent) / 100).formatted(.percent.precision(.fractionLength(0)).sign(strategy: .always()))
+}
+
 // MARK: - Venue analytics locally hidden events
 //
 // TODO: Persist hides in Supabase with `venue_hidden_analytics_events` (venue_owner_id, venue_event_id,
@@ -3671,7 +3679,7 @@ struct VenueOwnerDashboardView: View {
                 Spacer(minLength: 0)
 
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("+\(summary.percent)%")
+                    Text(verbatim: localizedSignedWholePercent(summary.percent))
                         .font(.headline.weight(.black))
                         .foregroundStyle(FGColor.accentGreen)
                     Text("of engagement")
@@ -4998,7 +5006,7 @@ struct VenueOwnerDashboardView: View {
                 rank: index + 1,
                 title: meta.title,
                 subtitle: meta.subtitle,
-                valueText: "\(max(1, percent))%",
+                valueText: localizedWholePercent(max(1, percent)),
                 progress: min(1, max(0.06, Double(item.value) / Double(total))),
                 icon: meta.icon.isEmpty ? fallbackIcon : meta.icon,
                 tint: tints[index % max(tints.count, 1)]

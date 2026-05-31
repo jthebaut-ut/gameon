@@ -1950,7 +1950,7 @@ struct SettingsScreen: View {
                     settingsRow(
                         title: "Follow FanGeo on Instagram",
                         subtitle: "@fangeosports",
-                        systemImage: "camera.fill",
+                        assetImage: "FanGeoInstagramLogo",
                         showsChevron: true
                     )
                 }
@@ -1958,6 +1958,23 @@ struct SettingsScreen: View {
                 .accessibilityLabel("Follow FanGeo on Instagram")
                 .accessibilityValue("@fangeosports")
                 .accessibilityHint("Opens the FanGeo Sports Instagram profile.")
+
+                settingsRowDivider()
+
+                Button {
+                    openFanGeoFacebook()
+                } label: {
+                    settingsRow(
+                        title: "Follow FanGeo on Facebook",
+                        subtitle: "FanGeo Sports",
+                        assetImage: "FanGeoFacebookLogo",
+                        showsChevron: true
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Follow FanGeo on Facebook")
+                .accessibilityValue("FanGeo Sports")
+                .accessibilityHint("Opens the FanGeo Sports Facebook page.")
 
                 settingsRowDivider()
 
@@ -1995,15 +2012,17 @@ struct SettingsScreen: View {
     }
 
     private func openFanGeoInstagram() {
-        guard let appURL = URL(string: "instagram://user?username=fangeosports"),
-              let webURL = URL(string: "https://www.instagram.com/fangeosports") else {
+        guard let url = URL(string: "https://www.instagram.com/fangeosports") else {
             return
         }
+        UIApplication.shared.open(url)
+    }
 
-        UIApplication.shared.open(appURL, options: [:]) { opened in
-            guard !opened else { return }
-            UIApplication.shared.open(webURL)
+    private func openFanGeoFacebook() {
+        guard let url = URL(string: "https://www.facebook.com/profile.php?id=61590196064767") else {
+            return
         }
+        UIApplication.shared.open(url)
     }
 
     private func profileSettingsLegalSection() -> some View {
@@ -2144,6 +2163,52 @@ struct SettingsScreen: View {
         settingsRow(title: title, subtitle: subtitle, systemImage: systemImage, tint: tint, showsChevron: showsChevron) {
             EmptyView()
         }
+    }
+
+    @ViewBuilder
+    private func settingsRow(title: String, subtitle: String?, assetImage: String, showsChevron: Bool = true) -> some View {
+        HStack(alignment: .center, spacing: FGSpacing.md) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .fill(SettingsPremiumChrome.iconSurface(colorScheme))
+                Image(assetImage)
+                    .renderingMode(.original)
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+                    .frame(width: 22, height: 22)
+                    .accessibilityHidden(true)
+            }
+            .frame(width: SettingsPremiumChrome.rowIconSize, height: SettingsPremiumChrome.rowIconSize)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .foregroundStyle(SettingsPremiumChrome.primaryText(colorScheme))
+                    .lineLimit(2)
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                        .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Spacer(minLength: 0)
+
+            if showsChevron {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(SettingsPremiumChrome.mutedText(colorScheme))
+                    .frame(width: 14, height: 14, alignment: .center)
+            }
+        }
+        .padding(.horizontal, FGSpacing.md)
+        .padding(.vertical, 10)
+        .frame(minHeight: SettingsPremiumChrome.rowMinHeight, alignment: .center)
+        .contentShape(Rectangle())
     }
 
     @ViewBuilder

@@ -1,6 +1,10 @@
 import SwiftUI
 import UIKit
 
+private func localizedWholePercent(_ percent: Int) -> String {
+    (Double(percent) / 100).formatted(.percent.precision(.fractionLength(0)))
+}
+
 private enum InlineScoreSaveState: Equatable {
     case idle
     case saving
@@ -535,7 +539,7 @@ struct VenueEventPredictionModule: View {
 
                             Spacer(minLength: 4)
 
-                            Text("\(pick.percent)%")
+                            Text(verbatim: localizedWholePercent(pick.percent))
                                 .font(.caption2.weight(.black))
                                 .foregroundStyle(FGColor.accentGreen)
                                 .monospacedDigit()
@@ -1418,7 +1422,7 @@ private struct PredictionMatchupTeamCard: View {
                     .minimumScaleFactor(0.78)
                     .frame(maxWidth: .infinity, minHeight: PredictionCardMetrics.matchupNameHeight, maxHeight: PredictionCardMetrics.matchupNameHeight)
 
-                Text("\(option.percent)%")
+                Text(verbatim: localizedWholePercent(option.percent))
                     .font(.system(size: 22, weight: .black, design: .rounded))
                     .foregroundStyle(isSelected ? FGColor.accentGreen : FGColor.secondaryText(colorScheme))
                     .monospacedDigit()
@@ -1487,7 +1491,7 @@ private struct PredictionDrawChip: View {
             HStack(spacing: 7) {
                 Text(option.title)
                     .font(.caption.weight(.heavy))
-                Text("\(option.percent)%")
+                Text(verbatim: localizedWholePercent(option.percent))
                     .font(.caption.weight(.black))
                     .monospacedDigit()
                 if isSaving {
@@ -1567,7 +1571,7 @@ private struct PredictionOptionVotingCard: View {
                             .foregroundStyle(FGColor.accentGreen)
                     }
 
-                    Text("\(option.percent)%")
+                    Text(verbatim: localizedWholePercent(option.percent))
                         .font(.system(size: 22, weight: .black, design: .rounded))
                         .foregroundStyle(isSelected ? FGColor.accentGreen : FGColor.primaryText(colorScheme))
                         .monospacedDigit()
