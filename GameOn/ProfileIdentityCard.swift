@@ -125,9 +125,11 @@ struct ProfileIdentityCard: View {
     private static let profileHeroAvatarOuterPadding: CGFloat = 4
     private static let profileHeroCameraButtonDiameter: CGFloat = 31
     private static let profileHeroCameraIconSize: CGFloat = 11.5
+    private static let profileHomeCrowdAccent = Color(red: 0.56, green: 0.32, blue: 0.96)
+    private static let profileTealAccent = Color(red: 0.08, green: 0.72, blue: 0.74)
     private static let favoriteTeamsCarouselHeight: CGFloat = 178
     private static let favoriteTeamsHomeCrowdBottomSpacing: CGFloat = 8
-    private static let profileMajorSectionSpacing: CGFloat = 22
+    private static let profileMajorSectionSpacing: CGFloat = 26
     private static let sponsoredPlacementRefreshDebounceSeconds: TimeInterval = 0.75
     private static let sponsoredPlacementDebugDateFormatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
@@ -341,7 +343,7 @@ struct ProfileIdentityCard: View {
                     heroBlock
                 }
 
-                profileSectionContainer(.primary) {
+                profileSectionContainer(.primary, accent: [FGColor.accentGreen, FGColor.accentBlue]) {
                     nationalTeamSection
                 }
 
@@ -351,32 +353,32 @@ struct ProfileIdentityCard: View {
                     }
                 }
 
-                profileSectionContainer(.primary) {
+                profileSectionContainer(.primary, accent: [FGColor.accentBlue, Self.profileHomeCrowdAccent]) {
                     favoriteTeamsSection
                 }
 
                 if canShowSuggestedFans {
-                    profileSectionContainer(.secondary) {
+                    profileSectionContainer(.secondary, accent: [FGColor.accentBlue, Self.profileTealAccent]) {
                         suggestedFansSection
                     }
                 }
 
                 if let slot = sponsoredProfileSlotContent {
-                    profileSectionContainer(.secondary) {
+                    profileSectionContainer(.secondary, accent: [FGColor.accentGreen]) {
                         sponsoredProfileSlotView(slot)
                             .id(slot.stableIdentity)
                     }
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
 
-                profileSectionContainer(.secondary) {
+                profileSectionContainer(.secondary, accent: [Self.profileHomeCrowdAccent]) {
                     homeCrowdSection
                 }
 
-                profileSectionContainer(.secondary) {
+                profileSectionContainer(.secondary, accent: [FGColor.accentBlue]) {
                     openToPreviewSection
                 }
-                .padding(.bottom, 16)
+                .padding(.bottom, 24)
             }
             .padding(.top, 14)
             .background(cardShellBackground)
@@ -582,6 +584,7 @@ struct ProfileIdentityCard: View {
 
     private func profileSectionContainer<Content: View>(
         _ hierarchy: ProfileSectionHierarchy,
+        accent: [Color]? = nil,
         @ViewBuilder content: () -> Content
     ) -> some View {
         content()
@@ -589,6 +592,11 @@ struct ProfileIdentityCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(profileSectionBackground(for: hierarchy))
             .clipShape(RoundedRectangle(cornerRadius: profileSectionCornerRadius(for: hierarchy), style: .continuous))
+            .overlay(alignment: .top) {
+                if let accent {
+                    profileSectionTopAccent(accent)
+                }
+            }
             .overlay(profileSectionBorder(for: hierarchy))
             .shadow(
                 color: profileSectionShadowColor(for: hierarchy),
@@ -599,6 +607,25 @@ struct ProfileIdentityCard: View {
             .padding(.horizontal, 16)
     }
 
+    private func profileSectionTopAccent(_ accent: [Color]) -> some View {
+        let baseColors = accent.isEmpty ? [FGColor.accentBlue] : accent
+        let gradientColors = baseColors.count == 1 ? [baseColors[0], baseColors[0]] : baseColors
+        return RoundedRectangle(cornerRadius: 3, style: .continuous)
+            .fill(
+                LinearGradient(
+                    colors: gradientColors.map {
+                        $0.opacity(colorScheme == .dark ? 0.76 : 0.58)
+                    },
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .frame(height: 4)
+            .frame(maxWidth: .infinity)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+
     private func profileSectionInnerPadding(for hierarchy: ProfileSectionHierarchy) -> EdgeInsets {
         switch hierarchy {
         case .hero:
@@ -606,7 +633,7 @@ struct ProfileIdentityCard: View {
         case .primary:
             EdgeInsets(top: 16, leading: 14, bottom: 16, trailing: 14)
         case .secondary:
-            EdgeInsets(top: 14, leading: 13, bottom: 14, trailing: 13)
+            EdgeInsets(top: 16, leading: 13, bottom: 16, trailing: 13)
         case .utility:
             EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0)
         }
@@ -2522,12 +2549,12 @@ struct ProfileIdentityCard: View {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(L10n.t("open_to", languageCode: appLanguageRaw))
-                        .font(.system(size: 10.5, weight: .semibold, design: .rounded))
-                        .foregroundStyle(FGColor.mutedText(colorScheme))
+                        .font(.system(size: 11, weight: .heavy, design: .rounded))
+                        .foregroundStyle(FGColor.accentBlue)
                         .textCase(.uppercase)
-                        .tracking(0.7)
+                        .tracking(0.78)
                     Text(previewItems.isEmpty ? "Tell fans what you're up for" : "What you're open to")
-                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .font(.system(size: 10.5, weight: .medium, design: .rounded))
                         .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.82))
                 }
                 Spacer(minLength: 0)
@@ -2605,12 +2632,12 @@ struct ProfileIdentityCard: View {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(NationalTeamCopy.text("national_team", languageCode: appLanguageRaw))
-                        .font(.system(size: 10.5, weight: .semibold, design: .rounded))
-                        .foregroundStyle(FGColor.mutedText(colorScheme))
+                        .font(.system(size: 11, weight: .heavy, design: .rounded))
+                        .foregroundStyle(FGColor.accentGreen)
                         .textCase(.uppercase)
-                        .tracking(0.7)
+                        .tracking(0.78)
                     Text(NationalTeamCopy.text("national_team_subtitle", languageCode: appLanguageRaw))
-                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .font(.system(size: 10.5, weight: .medium, design: .rounded))
                         .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.82))
                 }
                 Spacer(minLength: 0)
@@ -2670,12 +2697,12 @@ struct ProfileIdentityCard: View {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(L10n.t("favorite_teams", languageCode: appLanguageRaw))
-                        .font(.system(size: 10.5, weight: .semibold, design: .rounded))
-                        .foregroundStyle(FGColor.mutedText(colorScheme))
+                        .font(.system(size: 11, weight: .heavy, design: .rounded))
+                        .foregroundStyle(FGColor.accentBlue)
                         .textCase(.uppercase)
-                        .tracking(0.7)
+                        .tracking(0.78)
                     Text(selectedTeams.isEmpty ? "Shape your fan identity" : "Show off your fan colors")
-                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .font(.system(size: 10.5, weight: .medium, design: .rounded))
                         .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.82))
                 }
                 Spacer(minLength: 0)
@@ -4016,10 +4043,10 @@ private struct SponsoredProfileFallbackPromotionCard: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 Text(promotion.eyebrow)
-                    .font(.system(size: 10.5, weight: .heavy, design: .rounded))
+                    .font(.system(size: 11, weight: .heavy, design: .rounded))
                     .foregroundStyle(FGColor.accentGreen.opacity(0.92))
                     .textCase(.uppercase)
-                    .tracking(0.7)
+                    .tracking(0.78)
 
                 Text(promotion.title)
                     .font(.system(size: 18, weight: .heavy, design: .rounded))
@@ -4218,13 +4245,13 @@ private struct ProfileSuggestedFansSection: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(L10n.t("suggested_fans", languageCode: appLanguageRaw))
-                .font(.system(size: 10.5, weight: .semibold, design: .rounded))
-                .foregroundStyle(FGColor.mutedText(colorScheme))
+                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                .foregroundStyle(FGColor.accentBlue)
                 .textCase(.uppercase)
-                .tracking(0.7)
+                .tracking(0.78)
 
             Text(L10n.t("suggested_fans_subtitle", languageCode: appLanguageRaw))
-                .font(.system(size: 10, weight: .medium, design: .rounded))
+                .font(.system(size: 10.5, weight: .medium, design: .rounded))
                 .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.82))
         }
     }

@@ -228,9 +228,9 @@ struct HomeCrowdProfileCardView: View {
 
     private var homeCrowdTitleLabel: some View {
         Text("HOME CROWD")
-            .font(.system(size: 9, weight: .heavy, design: .rounded))
+            .font(.system(size: 9.5, weight: .heavy, design: .rounded))
             .foregroundStyle(homeCrowdAccent)
-            .tracking(1.0)
+            .tracking(1.08)
     }
 
     private var homeCrowdPlaceholderVisual: some View {
