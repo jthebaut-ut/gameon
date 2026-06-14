@@ -19,6 +19,11 @@ extension MapViewModel {
         fanGeoIdentifier: String? = nil
     ) async {
         guard notificationSettingsStore.syncGoingGamesToAppleCalendar else { return }
+        let displayTitle = calendarSyncDisplayTitle(
+            title: title,
+            location: location,
+            fanGeoIdentifier: fanGeoIdentifier
+        )
 
         let granted = await requestCalendarAccess()
         guard granted else {
@@ -32,15 +37,20 @@ extension MapViewModel {
             location: location,
             fanGeoIdentifier: fanGeoIdentifier
         ) {
-            existingEvent.title = title
+            existingEvent.title = displayTitle
             existingEvent.startDate = date
             existingEvent.endDate = date.addingTimeInterval(2 * 60 * 60)
             existingEvent.location = location
-            existingEvent.notes = calendarSyncNotes(fanGeoIdentifier: fanGeoIdentifier)
+            existingEvent.notes = calendarSyncNotes(
+                title: title,
+                date: date,
+                location: location,
+                fanGeoIdentifier: fanGeoIdentifier
+            )
             do {
                 try eventStore.save(existingEvent, span: .thisEvent)
                 calendarSyncMessage = "Updated in Apple Calendar"
-                print("Event updated in Apple Calendar:", title)
+                print("Event updated in Apple Calendar:", displayTitle)
             } catch {
                 calendarSyncMessage = "Could not update Apple Calendar"
                 print("Error updating event:", error)
@@ -49,17 +59,22 @@ extension MapViewModel {
         }
 
         let event = EKEvent(eventStore: eventStore)
-        event.title = title
+        event.title = displayTitle
         event.startDate = date
         event.endDate = date.addingTimeInterval(2 * 60 * 60)
         event.location = location
-        event.notes = calendarSyncNotes(fanGeoIdentifier: fanGeoIdentifier)
+        event.notes = calendarSyncNotes(
+            title: title,
+            date: date,
+            location: location,
+            fanGeoIdentifier: fanGeoIdentifier
+        )
         event.calendar = eventStore.defaultCalendarForNewEvents
 
         do {
             try eventStore.save(event, span: .thisEvent)
             calendarSyncMessage = "Added to Apple Calendar"
-            print("Event added to Apple Calendar:", title)
+            print("Event added to Apple Calendar:", displayTitle)
         } catch {
             calendarSyncMessage = "Could not add to Apple Calendar"
             print("Error saving event:", error)
@@ -213,6 +228,11 @@ extension MapViewModel {
         location: String,
         fanGeoIdentifier: String?
     ) -> EKEvent? {
+        let displayTitle = calendarSyncDisplayTitle(
+            title: title,
+            location: location,
+            fanGeoIdentifier: fanGeoIdentifier
+        )
         if let fanGeoIdentifier,
            !fanGeoIdentifier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             let predicate = eventStore.predicateForEvents(
@@ -236,7 +256,7 @@ extension MapViewModel {
         )
 
         return eventStore.events(matching: predicate).first { event in
-            event.title == title &&
+            (event.title == title || event.title == displayTitle) &&
                 event.location == location
         }
     }
@@ -245,16 +265,119 @@ extension MapViewModel {
         event.notes?.contains(calendarSyncIdentifierLine(fanGeoIdentifier: identifier)) == true
     }
 
-    private func calendarSyncNotes(fanGeoIdentifier: String?) -> String {
+    private func calendarSyncDisplayTitle(
+        title: String,
+        location: String,
+        fanGeoIdentifier: String?
+    ) -> String {
+        let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let baseTitle = cleanTitle.isEmpty ? "Game" : cleanTitle
+        guard !calendarSyncTitle(baseTitle, hasCaseInsensitivePrefix: "FanGeo:"),
+              !calendarSyncTitle(baseTitle, hasCaseInsensitivePrefix: "FanGeo Pickup:")
+        else {
+            return baseTitle
+        }
+
+        switch calendarSyncEventKind(fanGeoIdentifier: fanGeoIdentifier) {
+        case .pickup:
+            return "FanGeo Pickup: \(baseTitle)"
+        case .venue:
+            let venueName = location.trimmingCharacters(in: .whitespacesAndNewlines)
+            if venueName.isEmpty || venueName.localizedCaseInsensitiveCompare("Venue") == .orderedSame {
+                return "FanGeo: \(baseTitle)"
+            }
+            return "FanGeo: \(baseTitle) @ \(venueName)"
+        case .pro, .general:
+            return "FanGeo: \(baseTitle)"
+        }
+    }
+
+    private func calendarSyncNotes(
+        title: String,
+        date: Date,
+        location: String,
+        fanGeoIdentifier: String?
+    ) -> String {
+        var lines = ["Added by FanGeo"]
+        let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanLocation = location.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        switch calendarSyncEventKind(fanGeoIdentifier: fanGeoIdentifier) {
+        case .pro:
+            if !cleanTitle.isEmpty {
+                lines.append("Teams: \(cleanTitle)")
+            }
+            if !cleanLocation.isEmpty {
+                lines.append("Competition: \(cleanLocation)")
+            }
+        case .venue:
+            if !cleanTitle.isEmpty {
+                lines.append("Teams: \(cleanTitle)")
+            }
+            if !cleanLocation.isEmpty {
+                lines.append("Venue: \(cleanLocation)")
+            }
+        case .pickup:
+            if !cleanTitle.isEmpty {
+                lines.append("Pickup Game: \(cleanTitle)")
+            }
+            if !cleanLocation.isEmpty {
+                lines.append("Location: \(cleanLocation)")
+            }
+        case .general:
+            if !cleanTitle.isEmpty {
+                lines.append("Event: \(cleanTitle)")
+            }
+            if !cleanLocation.isEmpty {
+                lines.append("Location: \(cleanLocation)")
+            }
+        }
+
+        lines.append("Start: \(calendarSyncNotesDateFormatter.string(from: date))")
         guard let fanGeoIdentifier,
               !fanGeoIdentifier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return "Added by FanGeo"
+            return lines.joined(separator: "\n")
         }
-        return "Added by FanGeo\n\(calendarSyncIdentifierLine(fanGeoIdentifier: fanGeoIdentifier))"
+        lines.append(calendarSyncIdentifierLine(fanGeoIdentifier: fanGeoIdentifier))
+        return lines.joined(separator: "\n")
     }
 
     private func calendarSyncIdentifierLine(fanGeoIdentifier: String) -> String {
         "FanGeo ID: \(fanGeoIdentifier)"
+    }
+
+    private enum CalendarSyncEventKind {
+        case venue
+        case pickup
+        case pro
+        case general
+    }
+
+    private func calendarSyncEventKind(fanGeoIdentifier: String?) -> CalendarSyncEventKind {
+        let normalized = fanGeoIdentifier?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased() ?? ""
+        if normalized.hasPrefix("venue|") { return .venue }
+        if normalized.hasPrefix("pickup|") { return .pickup }
+        if normalized.hasPrefix("pro|") { return .pro }
+        return .general
+    }
+
+    private func calendarSyncTitle(_ title: String, hasCaseInsensitivePrefix prefix: String) -> Bool {
+        title.range(
+            of: prefix,
+            options: [.caseInsensitive, .anchored],
+            range: title.startIndex..<title.endIndex,
+            locale: .current
+        ) != nil
+    }
+
+    private var calendarSyncNotesDateFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        formatter.timeZone = .current
+        return formatter
     }
 
     private func calendarSyncVenueStartDate(for row: VenueEventRow) -> Date? {

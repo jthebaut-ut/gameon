@@ -461,7 +461,8 @@ extension MapViewModel {
             await addGameToCalendar(
                 title: gameTitle,
                 date: eventDate,
-                location: bar.address
+                location: bar.name,
+                fanGeoIdentifier: "venue|\(wireEventID.uuidString.lowercased())"
             )
         }
 

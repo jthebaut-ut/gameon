@@ -119,7 +119,6 @@ struct ProfileIdentityCard: View {
     @AppStorage("profileSponsoredPlacement.lastVenueId") private var lastSponsoredProfileVenueIDRaw = ""
     @AppStorage("profileSponsoredPlacement.lastPlacementId") private var lastSponsoredProfilePlacementIDRaw = ""
     @AppStorage("profileSponsoredPlacement.repeatCount") private var sponsoredProfileVenueRepeatCount = 0
-    @AppStorage("profileVenuePromotion.dismissed") private var profileVenuePromotionDismissed = false
 
     private static let bioCharacterLimit = 160
     private static let incomingPokesHighlightsLimit = 50
@@ -1399,6 +1398,9 @@ struct ProfileIdentityCard: View {
         if let recommendation = sponsoredProfileRecommendation, recommendation.isSponsored {
             return .venue(recommendation)
         }
+        if let promotion = sponsoredProfileFallbackPromotion() {
+            return .fallback(promotion)
+        }
         return nil
     }
 
@@ -1419,11 +1421,6 @@ struct ProfileIdentityCard: View {
                 colorScheme: colorScheme,
                 onTap: {
                     handleSponsoredProfileFallbackTap(promotion)
-                },
-                onDismiss: {
-                    withAnimation(.spring(response: 0.30, dampingFraction: 0.86)) {
-                        profileVenuePromotionDismissed = true
-                    }
                 }
             )
         }
@@ -1723,19 +1720,16 @@ struct ProfileIdentityCard: View {
             || viewModel.isVenueOwnerLoggedIn
             || viewModel.hasAuthenticatedVenueOwnerSession
             || viewModel.venueOwnerMode
-        return SponsoredProfileFallbackPromotion.businessGrowthCard(isBusinessAccount: isBusinessAccount)
+        guard !isBusinessAccount else { return nil }
+        return SponsoredProfileFallbackPromotion.businessGrowthCard()
     }
 
     private func handleSponsoredProfileFallbackTap(_ promotion: SponsoredProfileFallbackPromotion) {
 #if DEBUG
         print("[SponsoredProfileDebug] fallbackCardTapped=true")
-        print("[SponsoredProfileDebug] fallbackBusinessAccount=\(promotion.isBusinessAccount)")
+        print("[SponsoredProfileDebug] fallbackId=\(promotion.id)")
 #endif
-        if promotion.isBusinessAccount {
-            showSponsoredPromotionSupportSheet = true
-        } else {
-            routeSponsoredFallbackToVenueOwnerTools()
-        }
+        routeSponsoredFallbackToVenueOwnerTools()
     }
 
     private func routeSponsoredFallbackToVenueOwnerTools() {
@@ -3593,21 +3587,17 @@ private struct SponsoredProfileFallbackPromotion: Identifiable {
     let subtitle: String
     let ctaLabel: String
     let systemImage: String
-    let isBusinessAccount: Bool
 
     var stableIdentity: String { "fallback.\(id)" }
 
-    static func businessGrowthCard(isBusinessAccount: Bool) -> SponsoredProfileFallbackPromotion {
+    static func businessGrowthCard() -> SponsoredProfileFallbackPromotion {
         SponsoredProfileFallbackPromotion(
-            id: isBusinessAccount ? "business-promotion" : "fan-claim-venue",
+            id: "fangeo-house-business-growth",
             eyebrow: "FanGeo for Venues",
-            title: isBusinessAccount ? "Promote your venue to local fans nearby." : "Own a sports venue?",
-            subtitle: isBusinessAccount
-                ? "Get featured in FanGeo recommendations and reach fans looking for game-day spots."
-                : "Claim and promote your business on FanGeo so local sports fans can find you.",
-            ctaLabel: isBusinessAccount ? "Create Sponsored Placement" : "Claim Your Venue",
-            systemImage: isBusinessAccount ? "megaphone.fill" : "building.2.fill",
-            isBusinessAccount: isBusinessAccount
+            title: "Grow Your Crowd",
+            subtitle: "Own a sports bar, club, or venue? Promote your watch parties on FanGeo.",
+            ctaLabel: "Learn More",
+            systemImage: "megaphone.fill"
         )
     }
 }
@@ -4035,7 +4025,6 @@ private struct SponsoredProfileFallbackPromotionCard: View {
     let promotion: SponsoredProfileFallbackPromotion
     let colorScheme: ColorScheme
     let onTap: () -> Void
-    let onDismiss: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hasRevealed = false
@@ -4093,25 +4082,8 @@ private struct SponsoredProfileFallbackPromotionCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(14)
-        .padding(.trailing, 28)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(cardBackground)
-        .overlay(alignment: .topTrailing) {
-            Button(action: onDismiss) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(FGColor.secondaryText(colorScheme))
-                    .frame(width: 24, height: 24)
-                    .background(Color.white.opacity(colorScheme == .dark ? 0.10 : 0.84), in: Circle())
-                    .overlay {
-                        Circle()
-                            .strokeBorder(Color.black.opacity(colorScheme == .dark ? 0.0 : 0.06), lineWidth: 0.75)
-                    }
-            }
-            .buttonStyle(.plain)
-            .padding(8)
-            .accessibilityLabel("Hide venue promotion")
-        }
         .overlay(alignment: .leading) {
             RoundedRectangle(cornerRadius: 3, style: .continuous)
                 .fill(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.92 : 0.78))
