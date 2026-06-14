@@ -16,11 +16,21 @@ extension MapViewModel {
         }
     }
 
+    func setProGameRemindersEnabled(_ enabled: Bool) async {
+        if await notificationSettingsStore.setProGameRemindersEnabled(enabled) {
+            await rescheduleAvailableProGameReminders(reason: "settingsEnabled")
+        }
+    }
+
     func gameReminderPreferenceDidChange() async {
-        print("[NotificationSettingsDebug] save reminderPreference notifyBeforeGame=\(notifyBeforeGame) reminderMinutesBefore=\(reminderMinutesBefore) repeatGameReminder=\(repeatGameReminder) repeatEveryMinutes=\(repeatEveryMinutes)")
+        print("[NotificationSettingsDebug] save reminderPreference notifyBeforeGame=\(notifyBeforeGame) proGameReminderNotifications=\(proGameReminderNotifications) reminderMinutesBefore=\(reminderMinutesBefore) repeatGameReminder=\(repeatGameReminder) repeatEveryMinutes=\(repeatEveryMinutes)")
         print("[NotificationDebug] reminderPreference=\(reminderMinutesBefore)")
-        guard notifyBeforeGame else { return }
-        await rescheduleAvailableGameReminders(reason: "preferenceChanged")
+        if notifyBeforeGame {
+            await rescheduleAvailableGameReminders(reason: "preferenceChanged")
+        }
+        if proGameReminderNotifications {
+            await rescheduleAvailableProGameReminders(reason: "preferenceChanged")
+        }
     }
 
     func scheduleGameReminderIfPossible(venueEventID: UUID) async {
@@ -60,11 +70,46 @@ extension MapViewModel {
         }
     }
 
+    func scheduleProGameReminderIfPossible(_ savedGame: SavedProGame) async {
+        guard proGameReminderNotifications else { return }
+        guard savedProGames.contains(where: { $0.stableKey == savedGame.stableKey }) else { return }
+        guard let event = proGameReminderNotificationEvent(for: savedGame) else {
+            await cancelProGameReminder(savedGameIdentifier: savedGame.stableKey)
+            return
+        }
+        await gameReminderService.scheduleProGameReminder(
+            for: event,
+            reminderMinutesBefore: reminderMinutesBefore,
+            repeatUntilStart: repeatGameReminder,
+            repeatEveryMinutes: repeatEveryMinutes
+        )
+    }
+
+    func cancelProGameReminder(savedGameIdentifier: String) async {
+        await gameReminderService.cancelProGameReminder(identifier: savedGameIdentifier)
+    }
+
+    func cancelAllProGameReminders() async {
+        await gameReminderService.cancelAllProGameReminders()
+    }
+
+    func reconcileSavedProGameReminders(reason: String) async {
+        guard proGameReminderNotifications else { return }
+        await rescheduleAvailableProGameReminders(reason: reason)
+    }
+
     private func rescheduleAvailableGameReminders(reason: String) async {
         let eventIDs = availableGoingVenueEventIDs()
         for eventID in eventIDs {
             print("[NotificationDebug] rescheduleReminder eventId=\(eventID.uuidString) reason=\(reason)")
             await scheduleGameReminderIfPossible(venueEventID: eventID)
+        }
+    }
+
+    private func rescheduleAvailableProGameReminders(reason: String) async {
+        for savedGame in savedProGames {
+            print("[ProGameNotificationDebug] rescheduleReminder id=\(savedGame.stableKey) reason=\(reason)")
+            await scheduleProGameReminderIfPossible(savedGame)
         }
     }
 
@@ -114,6 +159,23 @@ extension MapViewModel {
             title: row.event_title,
             venueName: venueName,
             startDate: startDate
+        )
+    }
+
+    private func proGameReminderNotificationEvent(for savedGame: SavedProGame) -> ProGameReminderNotificationEvent? {
+        let now = Date()
+        guard savedGame.startTime > now else { return nil }
+        let reminderFireDate = savedGame.startTime.addingTimeInterval(TimeInterval(-reminderMinutesBefore * 60))
+        guard reminderFireDate > now else { return nil }
+
+        let title = [savedGame.awayTeam, savedGame.homeTeam]
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: " vs ")
+        return ProGameReminderNotificationEvent(
+            identifier: savedGame.stableKey,
+            title: title.isEmpty ? "Saved Pro Game" : title,
+            startDate: savedGame.startTime
         )
     }
 

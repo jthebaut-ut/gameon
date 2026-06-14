@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct NationalTeamIdentity: Equatable, Codable {
+struct NationalTeamIdentity: Equatable, Codable, Sendable {
     let countryCode: String
     let countryName: String
     let flag: String

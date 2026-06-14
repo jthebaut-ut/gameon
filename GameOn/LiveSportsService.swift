@@ -119,6 +119,10 @@ actor LiveSportsService {
     }
 
     func fetchLiveMatches(windowDays: Int) async throws -> [LiveMatch] {
+        try await fetchLiveMatches(windowDays: windowDays, sportFilter: nil)
+    }
+
+    func fetchLiveMatches(windowDays: Int, sportFilter: String?) async throws -> [LiveMatch] {
         let calendar = Calendar.current
         let now = Date()
         let windowStart = calendar.startOfDay(for: now)
@@ -128,9 +132,18 @@ actor LiveSportsService {
         let requestURL = try await Self.liveMatchesRequestURL(
             windowStart: windowStart,
             windowEnd: windowEnd,
-            upperBoundOperator: "lt"
+            upperBoundOperator: "lt",
+            sportFilter: sportFilter
         )
-        return try await fetchLiveMatchesFromSupabase(requestURL: requestURL, cacheSyncAttempted: false)
+        let matches = try await fetchLiveMatchesFromSupabase(requestURL: requestURL, cacheSyncAttempted: false)
+        let sport = sportFilter?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return matches.filter { match in
+            guard !sport.isEmpty, sport.localizedCaseInsensitiveCompare("All") != .orderedSame else {
+                return true
+            }
+            return match.sport.localizedCaseInsensitiveCompare(sport) == .orderedSame
+                || SportFilterCatalog.storedSport(match.sport, matchesSearchQuery: sport)
+        }
     }
 
     func fetchLiveMatchDateDots(around month: Date) async throws -> Set<Date> {
@@ -432,7 +445,8 @@ actor LiveSportsService {
     private static func liveMatchesRequestURL(
         windowStart: Date,
         windowEnd: Date,
-        upperBoundOperator: String
+        upperBoundOperator: String,
+        sportFilter: String? = nil
     ) async throws -> URL {
         let projectURL = await supabaseProjectURL
         var components = URLComponents(
@@ -442,12 +456,17 @@ actor LiveSportsService {
                 .appendingPathComponent("live_matches"),
             resolvingAgainstBaseURL: false
         )
-        components?.queryItems = [
+        var queryItems = [
             URLQueryItem(name: "select", value: "id,source,external_id,sport,home_team,away_team,score_home,score_away,match_status,minute,league,start_time,updated_at,payload,tv_broadcasts,timeline_events,featured_event_slug"),
             URLQueryItem(name: "start_time", value: "gte.\(supabaseTimestampFormatter.string(from: windowStart))"),
             URLQueryItem(name: "start_time", value: "\(upperBoundOperator).\(supabaseTimestampFormatter.string(from: windowEnd))"),
             URLQueryItem(name: "order", value: "start_time.asc")
         ]
+        let sport = sportFilter?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !sport.isEmpty, sport.localizedCaseInsensitiveCompare("All") != .orderedSame {
+            queryItems.append(URLQueryItem(name: "sport", value: "ilike.*\(sport)*"))
+        }
+        components?.queryItems = queryItems
         guard let url = components?.url else {
             throw URLError(.badURL)
         }
@@ -641,7 +660,8 @@ private nonisolated struct LiveMatchRow: Decodable {
             scoreHome: score_home ?? 0,
             scoreAway: score_away ?? 0,
             scoresAreAvailable: score_home != nil && score_away != nil,
-            matchStatus: Self.parseMatchStatus(match_status),
+            matchStatus: MatchStatus.normalized(from: match_status),
+            rawMatchStatus: Self.clean(match_status),
             minute: minute,
             league: Self.clean(league) ?? "Live",
             sourceLeagueName: payloadLeague,
@@ -920,35 +940,6 @@ private nonisolated struct LiveMatchRow: Decodable {
         guard path.count > 1 else { return value }
         guard case .object(let nested) = value else { return nil }
         return Self.value(in: lowercasedPayload(nested), path: Array(path.dropFirst()))
-    }
-
-    private static func parseMatchStatus(_ raw: String?) -> MatchStatus {
-        let status = clean(raw)?.uppercased() ?? ""
-        if status.contains("HALF") || status == "HT" { return .halfTime }
-        if status.contains("FT") || status.contains("FINAL") || status.contains("FINISHED") || status == "AET" || status == "PEN" {
-            return .fullTime
-        }
-        if ["LIVE", "1H", "2H", "ET", "BT", "P", "OT", "Q1", "Q2", "Q3", "Q4"].contains(status) {
-            return .live
-        }
-        if status.contains("LIVE")
-            || status.contains("IN PROGRESS")
-            || status.contains("IN PLAY")
-            || status.contains("IN-PLAY")
-            || status.contains("PLAYING")
-            || status.contains("ACTIVE")
-            || status.contains("STARTED")
-            || status.contains("EXTRA INNING")
-            || status.contains("'")
-            || status.contains("Q")
-            || status.contains("PERIOD")
-            || status.contains("INNING") {
-            return .live
-        }
-        if status == "NS" || status.contains("SCHED") || status.contains("NOT STARTED") {
-            return .scheduled
-        }
-        return .scheduled
     }
 
 }

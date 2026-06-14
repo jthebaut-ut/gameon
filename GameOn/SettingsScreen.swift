@@ -323,6 +323,15 @@ struct SettingsScreen: View {
         NavigationStack {
             List {
                 Section {
+                    FanGeoPagePurposeHeader(
+                        title: "Profile",
+                        subtitle: "Build your fan identity."
+                    )
+                }
+                .listRowInsets(EdgeInsets(top: 14, leading: 16, bottom: 4, trailing: 16))
+                .listRowBackground(Color.clear)
+
+                Section {
                     if isBusinessAccountProfileContext {
                         SettingsProfileHero(
                             viewModel: viewModel,
@@ -366,6 +375,7 @@ struct SettingsScreen: View {
                         }
                     } else {
                         SettingsUnifiedAccountEntryCard(
+                            viewModel: viewModel,
                             onSignIn: {
                                 showRegisterMode = false
                                 showUserAuthSheet = true
@@ -619,8 +629,8 @@ struct SettingsScreen: View {
                                     showVenueAuthSheet = true
                                 } label: {
                                     settingsRow(
-                                        title: "Venue owner tools",
-                                        subtitle: "Sign in to manage claims, listings, games, and business tools.",
+                                        title: "Grow Your Sports Crowd",
+                                        subtitle: "Claim your venue, host watch parties, create events, and connect with local fans.",
                                         systemImage: "building.2.crop.circle"
                                     )
                                 }
@@ -653,8 +663,8 @@ struct SettingsScreen: View {
             .listSectionSpacing(10)
             .scrollContentBackground(.hidden)
             .background(SettingsPremiumChrome.screenBackground(colorScheme).ignoresSafeArea())
-            .navigationTitle(L10n.t("profile", languageCode: appLanguageRaw))
-            .navigationBarTitleDisplayMode(.large)
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -2555,7 +2565,7 @@ struct SettingsScreen: View {
             if settingsBusinessProfileHydrationInFlight {
                 return BusinessProfileVenueHydrationState(isReady: false, reason: "businessProfileHydrationInFlight", selectedVenueId: selectedVenueId, managedCount: managedCount)
             }
-            return BusinessProfileVenueHydrationState(isReady: false, reason: "managedVenuesLoading", selectedVenueId: selectedVenueId, managedCount: managedCount)
+            return BusinessProfileVenueHydrationState(isReady: false, reason: "noManagedVenues", selectedVenueId: selectedVenueId, managedCount: managedCount)
         }
         guard let selectedVenueId else {
             return BusinessProfileVenueHydrationState(isReady: false, reason: "selectedVenueNil", selectedVenueId: nil, managedCount: managedCount)
@@ -2576,7 +2586,7 @@ struct SettingsScreen: View {
 
     private var businessProfileVenueSelectorIsHydrating: Bool {
         let state = businessProfileVenueHydrationState
-        return !state.isReady && state.reason != "managedVenuesLoading"
+        return !state.isReady && state.reason != "noManagedVenues"
     }
 
     private func logBusinessProfileHydrationState() {
@@ -2626,6 +2636,9 @@ struct SettingsScreen: View {
                 openBusinessVenueToolRoute(.manageVenue)
             },
             onAddVenue: {
+                openAddLocationFromBusinessDashboard()
+            },
+            onClaimVenue: {
                 openAddLocationFromBusinessDashboard()
             },
             onTonightGames: {
@@ -2880,6 +2893,7 @@ struct SettingsScreen: View {
 
         let ownerName = viewModel.ownerVenueName.trimmingCharacters(in: .whitespacesAndNewlines)
         if !ownerName.isEmpty { return ownerName }
+        if businessProfileVenueHydrationState.reason == "noManagedVenues" { return "No venue yet" }
         return businessProfileVenueHydrationState.isReady ? "Your venue" : "Loading venues..."
     }
 
@@ -3561,12 +3575,12 @@ struct SettingsScreen: View {
     private func openBusinessVenueToolRoute(_ route: VenueOwnerDashboardSheetRoute) {
         Task {
             switch route {
-            case .manageVenue, .manageGames:
+            case .manageVenue, .manageGames, .statistics:
                 let allowed = await MainActor.run {
                     businessProfileVenueHydrationAllowsAction(route.rawValue)
                 }
                 guard allowed else { return }
-            case .businessDashboard, .statistics:
+            case .businessDashboard:
                 break
             }
 
@@ -3594,7 +3608,14 @@ struct SettingsScreen: View {
                         return
                     }
                     setVenueOwnerDashboardRoute(route, source: "openBusinessVenueToolRoute")
-                case .businessDashboard, .statistics:
+                case .statistics:
+                    guard viewModel.ensureValidSelectedManagedVenueForPresentation(source: route.rawValue) else {
+                        businessDashboardQuickActionNotice = "Statistics unlock once an active managed venue is ready."
+                        logBusinessProfileHydrationBlockedEarlyTap(action: route.rawValue, reason: "noValidSelectedVenueAfterRepair")
+                        return
+                    }
+                    setVenueOwnerDashboardRoute(route, source: "openBusinessVenueToolRoute")
+                case .businessDashboard:
                     setVenueOwnerDashboardRoute(route, source: "openBusinessVenueToolRoute")
                 }
             }
@@ -4406,6 +4427,7 @@ private struct SettingsSheetSectionLabel: View {
 }
 
 private struct SettingsUnifiedAccountEntryCard: View {
+    @ObservedObject var viewModel: MapViewModel
     let onSignIn: () -> Void
     let onCreateAccount: () -> Void
     let onVenueOwnerTools: (() -> Void)?
@@ -4414,15 +4436,8 @@ private struct SettingsUnifiedAccountEntryCard: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        FGCard {
-            FGSectionHeader(
-                "FanGeo Account",
-                subtitle: "Access your profile, favorites, chats, venues, and business tools."
-            )
-
-            Text("Sign in once to move through FanGeo as one connected account experience, then unlock venue-owner tools as needed.")
-                .font(FGTypography.caption)
-                .foregroundStyle(FGColor.secondaryText(colorScheme))
+        VStack(spacing: FGSpacing.md) {
+            heroCard
 
             if !statusMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 if DeletedAccountSupportContact.isDeletedAccountBlockMessage(statusMessage) {
@@ -4441,19 +4456,15 @@ private struct SettingsUnifiedAccountEntryCard: View {
                 }
             }
 
-            FGPrimaryButton(title: "Sign In", systemImage: "person.fill") {
-                onSignIn()
-            }
+            fanFeatureGrid
 
-            FGSecondaryButton(title: "Create Account", systemImage: "person.badge.plus") {
-                onCreateAccount()
-            }
+            liveOnFanGeoSection
 
             if let onVenueOwnerTools {
                 Button(action: onVenueOwnerTools) {
                     HStack(spacing: FGSpacing.sm) {
                         Image(systemName: "building.2.crop.circle")
-                        Text("Venue owner tools")
+                        Text("Grow Your Sports Crowd")
                             .font(FGTypography.cardTitle)
                     }
                     .foregroundStyle(FGColor.accentBlue)
@@ -4464,6 +4475,295 @@ private struct SettingsUnifiedAccountEntryCard: View {
             }
         }
     }
+
+    private var heroCard: some View {
+        VStack(alignment: .leading, spacing: FGSpacing.md) {
+            HStack(alignment: .top, spacing: FGSpacing.md) {
+                ZStack {
+                    Circle()
+                        .fill(FGColor.brandGradient)
+                        .frame(width: 62, height: 62)
+                    Image(systemName: "person.3.fill")
+                        .font(.system(size: 25, weight: .heavy))
+                        .foregroundStyle(.white)
+                    Circle()
+                        .fill(FGColor.accentGreen)
+                        .frame(width: 18, height: 18)
+                        .overlay {
+                            Circle().strokeBorder(FGColor.cardBackground(colorScheme), lineWidth: 2)
+                        }
+                        .offset(x: 25, y: 22)
+                }
+                .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: 7) {
+                    Text("Find Your Sports Community")
+                        .font(.system(size: 27, weight: .heavy, design: .rounded))
+                        .foregroundStyle(.white)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("Discover watch parties, pickup games, local fans, and sports venues around you.")
+                        .font(FGTypography.body)
+                        .foregroundStyle(.white.opacity(0.92))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            VStack(spacing: FGSpacing.sm) {
+                FGPrimaryButton(title: "Sign In", systemImage: "person.fill") {
+                    onSignIn()
+                }
+
+                FGSecondaryButton(title: "Create Account", systemImage: "person.badge.plus") {
+                    onCreateAccount()
+                }
+            }
+        }
+        .padding(FGSpacing.lg)
+        .background {
+            ZStack {
+                Image("StadiumHeroBackground")
+                    .resizable()
+                    .scaledToFill()
+                    .opacity(colorScheme == .dark ? 0.50 : 0.62)
+                LinearGradient(
+                    colors: [
+                        FGColor.accentBlue.opacity(colorScheme == .dark ? 0.84 : 0.74),
+                        FGColor.accentBlue.opacity(colorScheme == .dark ? 0.58 : 0.42),
+                        FGColor.accentGreen.opacity(colorScheme == .dark ? 0.38 : 0.24)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+            .clipShape(RoundedRectangle(cornerRadius: FGRadius.card, style: .continuous))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: FGRadius.card, style: .continuous)
+                .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.16 : 0.28), lineWidth: 1)
+        }
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.18 : 0.06), radius: 14, y: 7)
+        .clipShape(RoundedRectangle(cornerRadius: FGRadius.card, style: .continuous))
+        .accessibilityElement(children: .combine)
+    }
+
+    private var fanFeatureGrid: some View {
+        VStack(alignment: .leading, spacing: FGSpacing.sm) {
+            Text("What You Can Do on FanGeo")
+                .font(FGTypography.cardTitle.weight(.heavy))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+
+            LazyVGrid(columns: discoveryFeatureColumns, spacing: FGSpacing.sm) {
+                discoveryFeatureCard(
+                    icon: "🏟️",
+                    title: "Find Watch Parties",
+                    copy: "Discover venues showing your teams.",
+                    tint: FGColor.accentBlue
+                )
+                discoveryFeatureCard(
+                    icon: "⚽",
+                    title: "Join Pickup Games",
+                    copy: "Find local games and players.",
+                    tint: FGColor.accentGreen
+                )
+                discoveryFeatureCard(
+                    icon: "👥",
+                    title: "Connect With Fans",
+                    copy: "Meet fans who support your teams.",
+                    tint: Color.purple
+                )
+                discoveryFeatureCard(
+                    icon: "📅",
+                    title: "Follow Sports Events",
+                    copy: "Track matchups and local gatherings.",
+                    tint: FGColor.accentYellow
+                )
+            }
+        }
+    }
+
+    private var discoveryFeatureColumns: [GridItem] {
+        [
+            GridItem(.flexible(), spacing: FGSpacing.sm),
+            GridItem(.flexible(), spacing: FGSpacing.sm)
+        ]
+    }
+
+    private func discoveryFeatureCard(
+        icon: String,
+        title: String,
+        copy: String,
+        tint: Color
+    ) -> some View {
+        VStack(spacing: 9) {
+            Text(icon)
+                .font(.system(size: 30))
+                .accessibilityHidden(true)
+            Text(title)
+                .font(FGTypography.caption.weight(.heavy))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.78)
+            Text(copy)
+                .font(FGTypography.metadata)
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.78)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(minHeight: 138)
+        .padding(.horizontal, 8)
+        .padding(.vertical, FGSpacing.sm)
+        .background {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            tint.opacity(colorScheme == .dark ? 0.20 : 0.10),
+                            FGColor.cardBackground(colorScheme)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme).opacity(0.62), lineWidth: 1)
+        }
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.12 : 0.035), radius: 7, y: 3)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var liveOnFanGeoSection: some View {
+        VStack(alignment: .leading, spacing: FGSpacing.sm) {
+            Text("Live on FanGeo")
+                .font(FGTypography.cardTitle.weight(.heavy))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: FGSpacing.sm) {
+                    ForEach(liveDiscoveryCards) { card in
+                        liveDiscoveryCard(card)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+            .accessibilityLabel("Live on FanGeo")
+        }
+    }
+
+    private var liveDiscoveryCards: [LoggedOutLiveDiscoveryCard] {
+        let venueSubtitle = viewModel.bars.isEmpty
+            ? "Find venues and watch parties around you."
+            : "\(viewModel.bars.count) venues loaded near you."
+        let pickupSubtitle = viewModel.pickupGamesForDiscoverMap.isEmpty
+            ? "Discover local games and players."
+            : "\(viewModel.pickupGamesForDiscoverMap.count) pickup games loaded."
+        let fanSubtitle = viewModel.bars.isEmpty
+            ? "Fans are finding new sports spots."
+            : "Fans are exploring venues nearby."
+
+        return [
+            LoggedOutLiveDiscoveryCard(
+                title: "Watch parties near you",
+                subtitle: venueSubtitle,
+                systemImage: "mappin.and.ellipse",
+                tint: FGColor.accentGreen,
+                imageName: "StadiumHeroBackground",
+                remoteImageURL: viewModel.bars.first?.coverPhotoURL
+            ),
+            LoggedOutLiveDiscoveryCard(
+                title: "Pickup games happening",
+                subtitle: pickupSubtitle,
+                systemImage: "soccerball",
+                tint: FGColor.accentBlue,
+                imageName: "FanGeoSplashCollage",
+                remoteImageURL: nil
+            ),
+            LoggedOutLiveDiscoveryCard(
+                title: "Fans discovering venues",
+                subtitle: fanSubtitle,
+                systemImage: "person.3.fill",
+                tint: FGColor.accentYellow,
+                imageName: "StadiumHeroBackground",
+                remoteImageURL: viewModel.bars.dropFirst().first?.coverPhotoURL
+            )
+        ]
+    }
+
+    private func liveDiscoveryCard(_ card: LoggedOutLiveDiscoveryCard) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: card.systemImage)
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(card.tint)
+                    .frame(width: 30, height: 30)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(card.title)
+                        .font(FGTypography.caption.weight(.heavy))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                        .lineLimit(2)
+                    Text(card.subtitle)
+                        .font(FGTypography.metadata)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .lineLimit(2)
+                }
+            }
+
+            liveDiscoveryThumbnail(card)
+        }
+        .frame(width: 220, alignment: .topLeading)
+        .padding(FGSpacing.sm)
+        .background {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(FGColor.cardBackground(colorScheme))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme).opacity(0.7), lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder
+    private func liveDiscoveryThumbnail(_ card: LoggedOutLiveDiscoveryCard) -> some View {
+        if let remoteImageURL = card.remoteImageURL,
+           let url = URL(string: remoteImageURL) {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                default:
+                    Image(card.imageName)
+                        .resizable()
+                        .scaledToFill()
+                }
+            }
+            .frame(height: 70)
+            .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+        } else {
+            Image(card.imageName)
+                .resizable()
+                .scaledToFill()
+                .frame(height: 70)
+                .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+        }
+    }
+}
+
+private struct LoggedOutLiveDiscoveryCard: Identifiable {
+    var id: String { title }
+    let title: String
+    let subtitle: String
+    let systemImage: String
+    let tint: Color
+    let imageName: String
+    let remoteImageURL: String?
 }
 
 private struct SettingsUserAuthSheet: View {
@@ -4657,7 +4957,7 @@ private struct SettingsVenueAuthSheet: View {
                 if !viewModel.isVenueOwnerLoggedIn {
                     SettingsSheetStatusBanner(
                         title: "Approval required",
-                        message: "Claim requests are reviewed before owner tools are enabled.",
+                        message: "New venues are reviewed before owner tools are enabled.",
                         tint: FGColor.accentYellow,
                         systemImage: "clock.badge.exclamationmark"
                     )
@@ -4761,6 +5061,29 @@ private struct SettingsProfileHero: View {
 
     private var businessHeaderIsPro: Bool {
         businessMembershipStatus?.computedIsPro == true
+    }
+
+    private var businessHeaderHasPendingVenueClaim: Bool {
+        !viewModel.pendingVenueClaimsForSettings.isEmpty
+    }
+
+    private var businessStatusIconColor: Color {
+        BusinessStatusIconChrome.statusColor(
+            isPro: businessHeaderIsPro,
+            hasPendingVenueClaim: businessHeaderHasPendingVenueClaim,
+            colorScheme: colorScheme
+        )
+    }
+
+    private var businessStatusIconDeepColor: Color {
+        BusinessStatusIconChrome.deepColor(for: businessStatusIconColor)
+    }
+
+    private var businessStatusShowsPendingClaimDot: Bool {
+        BusinessStatusIconChrome.showsPendingClaimDot(
+            isPro: businessHeaderIsPro,
+            hasPendingVenueClaim: businessHeaderHasPendingVenueClaim
+        )
     }
 
     private var businessHeaderActiveVenueCount: Int {
@@ -5068,7 +5391,7 @@ private struct SettingsProfileHero: View {
 
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(spacing: 8) {
-                            businessHeaderBadge(title: "Verified Business", systemImage: "shield.checkered", tint: FGColor.accentGreen)
+                            businessHeaderBadge(title: "Verified Business", systemImage: "shield.checkered", tint: businessStatusIconColor)
                             if businessHeaderIsPro {
                                 businessHeaderBadge(title: "Pro Business", systemImage: "crown.fill", tint: SettingsPremiumChrome.proGold(colorScheme))
                             }
@@ -5084,12 +5407,12 @@ private struct SettingsProfileHero: View {
                             Image(systemName: "checkmark.seal.fill")
                                 .font(.system(size: 15, weight: .bold))
                                 .symbolRenderingMode(.hierarchical)
-                                .foregroundStyle(FGColor.accentGreen)
+                                .foregroundStyle(businessStatusIconColor)
                         }
 
                         Text("Business Account")
                             .font(FGTypography.caption.weight(.bold))
-                            .foregroundStyle(FGColor.accentGreen)
+                            .foregroundStyle(businessStatusIconColor)
 
                         businessHeaderVenueSelector
 
@@ -5148,7 +5471,7 @@ private struct SettingsProfileHero: View {
                 .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.11 : 0.14), lineWidth: 1)
         }
         .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.24 : 0.14), radius: 16, y: 9)
-        .shadow(color: FGColor.accentGreen.opacity(colorScheme == .dark ? 0.10 : 0.06), radius: 14, y: 2)
+        .shadow(color: businessStatusIconColor.opacity(colorScheme == .dark ? 0.10 : 0.06), radius: 14, y: 2)
     }
 
     @ViewBuilder
@@ -5170,8 +5493,8 @@ private struct SettingsProfileHero: View {
                 .fill(
                     LinearGradient(
                         colors: [
-                            FGColor.accentGreen.opacity(0.98),
-                            FGColor.businessGreen.opacity(0.82)
+                            businessStatusIconColor.opacity(0.98),
+                            businessStatusIconDeepColor.opacity(0.82)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -5187,16 +5510,23 @@ private struct SettingsProfileHero: View {
                 .font(.system(size: 16, weight: .bold))
                 .foregroundStyle(.white)
                 .frame(width: 28, height: 28)
-                .background(FGColor.accentGreen)
+                .background(businessStatusIconColor)
                 .clipShape(Circle())
                 .overlay {
                     Circle()
                         .strokeBorder(Color.white.opacity(0.86), lineWidth: 1.5)
                 }
                 .offset(x: 5, y: 5)
+
         }
         .frame(width: 72, height: 72)
-        .shadow(color: FGColor.accentGreen.opacity(0.25), radius: 12, y: 6)
+        .overlay(alignment: .topTrailing) {
+            if businessStatusShowsPendingClaimDot {
+                pendingVenueClaimDot(diameter: 13, borderColor: .white)
+                    .offset(x: 3, y: -3)
+            }
+        }
+        .shadow(color: businessStatusIconColor.opacity(0.25), radius: 12, y: 6)
     }
 
     private func businessHeaderBadge(title: String, systemImage: String, tint: Color) -> some View {
@@ -5240,7 +5570,7 @@ private struct SettingsProfileHero: View {
     @ViewBuilder
     private var heroAvatar: some View {
         if isBusinessProfile {
-            ZStack {
+            ZStack(alignment: .topTrailing) {
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .fill(Color.white.opacity(0.10))
 
@@ -5251,6 +5581,12 @@ private struct SettingsProfileHero: View {
             .overlay {
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .strokeBorder(Color.white.opacity(0.20), lineWidth: 1)
+            }
+            .overlay(alignment: .topTrailing) {
+                if businessStatusShowsPendingClaimDot {
+                    pendingVenueClaimDot(diameter: 13, borderColor: Color.white.opacity(0.92))
+                        .offset(x: 3, y: -3)
+                }
             }
         } else {
             UserAvatarView(
@@ -5270,8 +5606,8 @@ private struct SettingsProfileHero: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    FGColor.accentGreen.opacity(0.95),
-                    FGColor.businessGreen.opacity(0.78)
+                    businessStatusIconColor.opacity(0.95),
+                    businessStatusIconDeepColor.opacity(0.78)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -5293,13 +5629,25 @@ private struct SettingsProfileHero: View {
             .background(
                 LinearGradient(
                     colors: businessHeroShowsVerifiedVenue
-                        ? [FGColor.accentGreen.opacity(0.95), FGColor.accentBlue.opacity(0.85)]
+                        ? [businessStatusIconColor.opacity(0.95), FGColor.accentBlue.opacity(0.85)]
                         : [FGColor.accentBlue.opacity(0.86), Color.white.opacity(0.16)],
                     startPoint: .leading,
                     endPoint: .trailing
                 )
             )
             .clipShape(Capsule())
+    }
+
+    private func pendingVenueClaimDot(diameter: CGFloat, borderColor: Color) -> some View {
+        Circle()
+            .fill(Color.orange)
+            .frame(width: diameter, height: diameter)
+            .overlay {
+                Circle()
+                    .strokeBorder(borderColor, lineWidth: 2)
+            }
+            .shadow(color: Color.orange.opacity(0.28), radius: 4, y: 1)
+            .accessibilityHidden(true)
     }
 
     private func logBusinessProfileHeaderIfZeroVenues() {
@@ -5827,6 +6175,7 @@ private struct SettingsFanLoginCard: View {
     @Binding var password: String
     var onCreateAccount: () -> Void
     @State private var showFanPasswordResetSheet = false
+    @State private var showFanLoginPassword = false
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -5884,8 +6233,11 @@ private struct SettingsFanLoginCard: View {
                     .keyboardType(.emailAddress)
                     .fanGeoInputFieldStyle()
 
-                SecureField("Password", text: $password)
-                    .fanGeoInputFieldStyle()
+                fanLoginPasswordField(
+                    placeholder: "Password",
+                    text: $password,
+                    isVisible: $showFanLoginPassword
+                )
 
                 Button {
 #if DEBUG
@@ -5971,6 +6323,38 @@ private struct SettingsFanLoginCard: View {
             .presentationDragIndicator(.visible)
             .presentationBackground(FGAdaptiveSurface.sheetRoot)
         }
+    }
+
+    private func fanLoginPasswordField(
+        placeholder: String,
+        text: Binding<String>,
+        isVisible: Binding<Bool>
+    ) -> some View {
+        HStack(spacing: 10) {
+            if isVisible.wrappedValue {
+                TextField(placeholder, text: text)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .font(FGTypography.body)
+            } else {
+                SecureField(placeholder, text: text)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .font(FGTypography.body)
+            }
+
+            Button {
+                isVisible.wrappedValue.toggle()
+            } label: {
+                Image(systemName: isVisible.wrappedValue ? "eye.slash" : "eye")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(isVisible.wrappedValue ? "Hide password" : "Show password")
+        }
+        .fanGeoInputFieldStyle()
     }
 }
 
@@ -6552,42 +6936,10 @@ private struct SettingsGameNotificationsCard: View {
     @ObservedObject var notificationSettingsStore: NotificationSettingsStore
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage("venueFavoriteTeamNearbyNotifications") private var venueFavoriteTeamNearbyNotifications = true
-    @AppStorage("venueFriendsGoingNotifications") private var venueFriendsGoingNotifications = true
     @AppStorage("pickupGameReminderNotifications") private var pickupGameReminderNotifications = true
     @AppStorage("pickupJoinRequestUpdateNotifications") private var pickupJoinRequestUpdateNotifications = true
     @AppStorage("pickupPlayerJoinedNotifications") private var pickupPlayerJoinedNotifications = true
     @AppStorage("pickupGameChangeNotifications") private var pickupGameChangeNotifications = true
-
-    private enum RepeatReminderOption: Int, CaseIterable, Identifiable {
-        case never = 0
-        case every15Minutes = 15
-        case every30Minutes = 30
-        case everyHour = 60
-
-        var id: Int { rawValue }
-
-        var title: String {
-            switch self {
-            case .never:
-                "Never"
-            case .every15Minutes:
-                "Every 15 minutes"
-            case .every30Minutes:
-                "Every 30 minutes"
-            case .everyHour:
-                "Every hour"
-            }
-        }
-
-        var minutes: Int? {
-            self == .never ? nil : rawValue
-        }
-
-        static func current(isEnabled: Bool, minutes: Int) -> RepeatReminderOption {
-            guard isEnabled else { return .never }
-            return RepeatReminderOption(rawValue: minutes) ?? .every30Minutes
-        }
-    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: FGSpacing.lg) {
@@ -6615,28 +6967,18 @@ private struct SettingsGameNotificationsCard: View {
                     )
                 )
 
-                notificationToggle(
-                    title: "Friends going to same venue",
-                    subtitle: "Friends are planning around the same sports bar.",
-                    isOn: loggingBinding(
-                        key: "venueFriendsGoingNotifications",
-                        title: "Friends going to same venue",
-                        value: $venueFriendsGoingNotifications
-                    )
-                )
-
                 permissionMessage
             }
 
             notificationSection(
-                title: "Community Games",
-                subtitle: "Games you host, join, or request to join.",
+                title: "Pickup Games",
+                subtitle: "Pickup games you host, join, or request to join.",
                 systemImage: "figure.basketball",
                 tint: FGColor.accentBlue
             ) {
                 notificationToggle(
                     title: "Pickup game reminders",
-                    subtitle: "A local reminder before a pickup game starts.",
+                    subtitle: "Reminders before pickup games you host or join.",
                     isOn: loggingBinding(
                         key: "pickupGameReminderNotifications",
                         title: "Pickup game reminders",
@@ -6645,56 +6987,47 @@ private struct SettingsGameNotificationsCard: View {
                 )
 
                 notificationToggle(
-                    title: "Join request updates",
-                    subtitle: "Accepted, declined, or pending request changes.",
-                    isOn: loggingBinding(
-                        key: "pickupJoinRequestUpdateNotifications",
-                        title: "Join request updates",
-                        value: $pickupJoinRequestUpdateNotifications
-                    )
-                )
-
-                notificationToggle(
-                    title: "Player joined your game",
-                    subtitle: "Someone joins a pickup game you are hosting.",
-                    isOn: loggingBinding(
-                        key: "pickupPlayerJoinedNotifications",
-                        title: "Player joined your game",
-                        value: $pickupPlayerJoinedNotifications
-                    )
-                )
-
-                notificationToggle(
-                    title: "Game changes/cancellations",
-                    subtitle: "Time, location, capacity, or cancellation updates.",
-                    isOn: loggingBinding(
-                        key: "pickupGameChangeNotifications",
-                        title: "Game changes/cancellations",
-                        value: $pickupGameChangeNotifications
-                    )
+                    title: "Pickup game updates",
+                    subtitle: "Join requests, player activity, and game changes.",
+                    isOn: pickupGameUpdatesBinding
                 )
             }
 
             notificationSection(
-                title: "Calendar & Reminders",
-                subtitle: "Timing and calendar controls for your saved games.",
-                systemImage: "calendar.badge.clock",
-                tint: FGColor.accentGreen
+                title: "Pro Games",
+                subtitle: "Saved professional games and featured events.",
+                systemImage: "heart.text.square.fill",
+                tint: FGColor.accentYellow
             ) {
-                notificationPicker(title: "Reminder timing", selection: reminderMinutesBinding) {
-                    Text("15 minutes before").tag(15)
-                    Text("30 minutes before").tag(30)
-                    Text("1 hour before").tag(60)
-                    Text("2 hours before").tag(120)
-                    Text("3 hours before").tag(180)
-                    Text("1 day before").tag(1440)
-                }
-
-                repeatReminderMenuRow
+                notificationToggle(
+                    title: "Saved Pro Game reminders",
+                    subtitle: "Kickoff reminders for Pro Games you save.",
+                    isOn: proGameRemindersEnabledBinding
+                )
 
                 notificationToggle(
-                    title: "Apple Calendar sync",
-                    subtitle: "Add games marked Going to your Apple Calendar.",
+                    title: "Final score alerts",
+                    subtitle: "One alert when a saved Pro Game goes final.",
+                    isOn: proGameFinalScoreAlertsBinding
+                )
+
+                Text("Pro Game reminders are local notifications for games you save in Calendar, Live, or Going.")
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, FGSpacing.md)
+                    .padding(.bottom, 10)
+            }
+
+            notificationSection(
+                title: "Calendar",
+                subtitle: "Sync FanGeo plans to your device calendar.",
+                systemImage: "calendar.badge.plus",
+                tint: FGColor.accentGreen
+            ) {
+                notificationToggle(
+                    title: "Apple Calendar Sync",
+                    subtitle: "Add FanGeo games and events you're attending to your Apple Calendar.",
                     isOn: calendarSyncBinding
                 )
             }
@@ -6702,11 +7035,8 @@ private struct SettingsGameNotificationsCard: View {
         .tint(FGColor.accentGreen)
         .task {
             print("[NotificationSettingsDebug] removedSocialFanSection=true")
-            print("[NotificationSettingsDebug] appear notifyBeforeGame=\(notificationSettingsStore.notifyBeforeGame) reminderMinutesBefore=\(notificationSettingsStore.reminderMinutesBefore) repeatGameReminder=\(notificationSettingsStore.repeatGameReminder) repeatEveryMinutes=\(notificationSettingsStore.repeatEveryMinutes) calendarSync=\(notificationSettingsStore.syncGoingGamesToAppleCalendar)")
+            print("[NotificationSettingsDebug] appear notifyBeforeGame=\(notificationSettingsStore.notifyBeforeGame) proGameReminderNotifications=\(notificationSettingsStore.proGameReminderNotifications) calendarSync=\(notificationSettingsStore.syncGoingGamesToAppleCalendar)")
             await viewModel.refreshGameNotificationAuthorizationState()
-            if normalizeInvalidRepeatReminderIntervalIfNeeded() {
-                await viewModel.gameReminderPreferenceDidChange()
-            }
         }
     }
 
@@ -6733,101 +7063,38 @@ private struct SettingsGameNotificationsCard: View {
         )
     }
 
-    private var reminderMinutesBinding: Binding<Int> {
+    private var proGameRemindersEnabledBinding: Binding<Bool> {
         Binding(
-            get: { notificationSettingsStore.reminderMinutesBefore },
-            set: { minutes in
-                print("[NotificationSettingsDebug] save key=reminderMinutesBefore value=\(minutes)")
-                notificationSettingsStore.reminderMinutesBefore = minutes
-                Task { await viewModel.gameReminderPreferenceDidChange() }
+            get: { notificationSettingsStore.proGameReminderNotifications },
+            set: { enabled in
+                print("[NotificationSettingsDebug] save key=proGameReminderNotifications value=\(enabled)")
+                Task { await viewModel.setProGameRemindersEnabled(enabled) }
             }
         )
     }
 
-    private var repeatReminderOptionBinding: Binding<RepeatReminderOption> {
-        Binding(
-            get: {
-                RepeatReminderOption.current(
-                    isEnabled: notificationSettingsStore.repeatGameReminder,
-                    minutes: notificationSettingsStore.repeatEveryMinutes
-                )
-            },
-            set: { option in
-                applyRepeatReminderOption(option)
-            }
+    private var proGameFinalScoreAlertsBinding: Binding<Bool> {
+        proGameNotificationPreferenceBinding(
+            key: ProGameNotificationPreferenceKeys.finalScoreAlerts,
+            title: "Final score alerts",
+            get: { notificationSettingsStore.proGameFinalScoreNotifications },
+            set: { notificationSettingsStore.proGameFinalScoreNotifications = $0 }
         )
     }
 
-    private var repeatReminderMenuRow: some View {
-        let selectedOption = repeatReminderOptionBinding.wrappedValue
-
-        return Menu {
-            ForEach(RepeatReminderOption.allCases) { option in
-                Button {
-                    repeatReminderOptionBinding.wrappedValue = option
-                } label: {
-                    if option == selectedOption {
-                        Label(option.title, systemImage: "checkmark")
-                    } else {
-                        Text(option.title)
-                    }
-                }
+    private func proGameNotificationPreferenceBinding(
+        key: String,
+        title: String,
+        get: @escaping () -> Bool,
+        set: @escaping (Bool) -> Void
+    ) -> Binding<Bool> {
+        Binding(
+            get: get,
+            set: { enabled in
+                print("[NotificationSettingsDebug] save key=\(key) title=\"\(title)\" value=\(enabled)")
+                set(enabled)
             }
-        } label: {
-            HStack(alignment: .center, spacing: FGSpacing.md) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Repeat")
-                        .font(FGTypography.body.weight(.semibold))
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
-                    Text("Additional reminders before kickoff.")
-                        .font(FGTypography.caption)
-                        .foregroundStyle(FGColor.secondaryText(colorScheme))
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Spacer(minLength: FGSpacing.sm)
-
-                HStack(spacing: 6) {
-                    Text(selectedOption.title)
-                        .font(FGTypography.body)
-                        .foregroundStyle(FGColor.secondaryText(colorScheme))
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(FGColor.secondaryText(colorScheme))
-                }
-            }
-            .padding(.horizontal, FGSpacing.md)
-            .padding(.vertical, 10)
-            .contentShape(Rectangle())
-        }
-        .tint(FGColor.accentGreen)
-    }
-
-    private func applyRepeatReminderOption(_ option: RepeatReminderOption) {
-        switch option {
-        case .never:
-            print("[NotificationSettingsDebug] save key=repeatGameReminder value=false repeatEveryMinutes=\(notificationSettingsStore.repeatEveryMinutes)")
-            notificationSettingsStore.repeatGameReminder = false
-        case .every15Minutes, .every30Minutes, .everyHour:
-            let minutes = option.minutes ?? 30
-            print("[NotificationSettingsDebug] save key=repeatGameReminder value=true repeatEveryMinutes=\(minutes)")
-            notificationSettingsStore.repeatGameReminder = true
-            notificationSettingsStore.repeatEveryMinutes = minutes
-        }
-
-        Task { await viewModel.gameReminderPreferenceDidChange() }
-    }
-
-    private func normalizeInvalidRepeatReminderIntervalIfNeeded() -> Bool {
-        guard notificationSettingsStore.repeatGameReminder,
-              RepeatReminderOption(rawValue: notificationSettingsStore.repeatEveryMinutes)?.minutes == nil
-        else {
-            return false
-        }
-
-        print("[NotificationSettingsDebug] normalize repeatEveryMinutes invalid=\(notificationSettingsStore.repeatEveryMinutes) fallback=30")
-        notificationSettingsStore.repeatEveryMinutes = RepeatReminderOption.every30Minutes.rawValue
-        return true
+        )
     }
 
     private var calendarSyncBinding: Binding<Bool> {
@@ -6836,6 +7103,25 @@ private struct SettingsGameNotificationsCard: View {
             set: { enabled in
                 print("[NotificationSettingsDebug] save key=syncGoingGamesToAppleCalendar value=\(enabled)")
                 notificationSettingsStore.syncGoingGamesToAppleCalendar = enabled
+                if enabled {
+                    Task { await viewModel.syncFanGeoAttendingEventsToAppleCalendar(reason: "settingsEnabled") }
+                }
+            }
+        )
+    }
+
+    private var pickupGameUpdatesBinding: Binding<Bool> {
+        Binding(
+            get: {
+                pickupJoinRequestUpdateNotifications
+                    || pickupPlayerJoinedNotifications
+                    || pickupGameChangeNotifications
+            },
+            set: { enabled in
+                print("[NotificationSettingsDebug] save key=pickupGameUpdates value=\(enabled)")
+                pickupJoinRequestUpdateNotifications = enabled
+                pickupPlayerJoinedNotifications = enabled
+                pickupGameChangeNotifications = enabled
             }
         )
     }
@@ -6918,24 +7204,6 @@ private struct SettingsGameNotificationsCard: View {
         .padding(.vertical, 10)
     }
 
-    private func notificationPicker<Content: View>(
-        title: String,
-        selection: Binding<Int>,
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        HStack(alignment: .center, spacing: FGSpacing.md) {
-            Text(title)
-                .font(FGTypography.body.weight(.semibold))
-                .foregroundStyle(FGColor.primaryText(colorScheme))
-            Spacer(minLength: FGSpacing.sm)
-            Picker(title, selection: selection, content: content)
-                .pickerStyle(.menu)
-                .tint(FGColor.accentGreen)
-                .foregroundStyle(FGColor.primaryText(colorScheme))
-        }
-        .padding(.horizontal, FGSpacing.md)
-        .padding(.vertical, 10)
-    }
 }
 
 private struct SettingsSavedGamesCard: View {
@@ -6990,6 +7258,43 @@ private struct SettingsAccountProfileImage: View {
 
 /// Venue owner sign-in or combined business + first-location signup (inside ``SettingsVenueAuthSheet`` while logged out).
 private struct SettingsVenueOwnerCard: View {
+    private enum BusinessSignupStep: Int, CaseIterable {
+        case account = 1
+        case venue = 2
+        case experience = 3
+        case review = 4
+
+        var title: String {
+            switch self {
+            case .account: return "Create your business account"
+            case .venue: return "Add your first venue"
+            case .experience: return "What makes your venue special?"
+            case .review: return "Show fans your venue"
+            }
+        }
+
+        var subtitle: String {
+            switch self {
+            case .account:
+                return "Manage your venues, watch parties, and sports events on FanGeo."
+            case .venue:
+                return "Businesses can add more venues later from the dashboard."
+            case .experience:
+                return "Help fans understand the match-day experience before they arrive."
+            case .review:
+                return "Add photos and proof so FanGeo can review your first location."
+            }
+        }
+
+        var previous: BusinessSignupStep? {
+            BusinessSignupStep(rawValue: rawValue - 1)
+        }
+
+        var next: BusinessSignupStep? {
+            BusinessSignupStep(rawValue: rawValue + 1)
+        }
+    }
+
     @ObservedObject var viewModel: MapViewModel
     @Binding var venuePassword: String
     @Binding var showVenueRegisterMode: Bool
@@ -6997,6 +7302,15 @@ private struct SettingsVenueOwnerCard: View {
     @State private var venueSignupLegalDocument: SettingsLegalDocumentKind?
     @State private var isSignupSubmitting = false
     @State private var showBusinessPasswordResetSheet = false
+    @State private var businessSignupStep: BusinessSignupStep = .account
+    @State private var businessSignupStepMessage: String?
+    @State private var isCheckingBusinessSignupEmail = false
+    @State private var businessSignupEmailInlineError: String?
+    @State private var confirmVenuePassword = ""
+    @State private var businessSignupPasswordInlineError: String?
+    @State private var showBusinessSignupPassword = false
+    @State private var showBusinessSignupConfirmPassword = false
+    @State private var showBusinessLoginPassword = false
 
     @State private var signupBusinessName = ""
     @State private var signupLocationName = ""
@@ -7068,6 +7382,12 @@ private struct SettingsVenueOwnerCard: View {
         isSignupSubmitting || (showVenueRegisterMode && businessSignupMissingRequirementMessage != nil)
     }
 
+    private var businessSignupPrimaryTitle: String {
+        if isSignupSubmitting { return "Submitting..." }
+        if businessSignupStep == .account, isCheckingBusinessSignupEmail { return "Checking email..." }
+        return businessSignupStep == .review ? "Create account & submit location" : "Continue"
+    }
+
     private var signupAddressLabels: BusinessLocationAddressLabels {
         BusinessLocationCountryPolicy.labels(for: signupCountry)
     }
@@ -7102,173 +7422,14 @@ private struct SettingsVenueOwnerCard: View {
 
     var body: some View {
         FGCard {
-            FGSectionHeader(
-                showVenueRegisterMode ? "Create business owner account" : "Business owner access",
-                subtitle: showVenueRegisterMode
-                    ? "Create your business account and submit your first location in one step. Owner tools unlock after FanGeo reviews and approves the location."
-                    : "Sign in to manage listings after your business and location are set up."
-            ) {
-                FGStatusPill(
-                    title: showVenueRegisterMode ? "Review required" : "Owner tools",
-                    kind: .custom(tint: showVenueRegisterMode ? FGColor.accentYellow : FGColor.accentBlue)
-                )
-            }
-
-            FanGeoAppleSignInButton(viewModel: viewModel, accountMode: .business)
-
-            if !viewModel.appleAuthBusinessMessage.isEmpty {
-                SettingsSheetStatusBanner(
-                    title: viewModel.appleAuthBusinessMessageIsError ? "Apple Sign In" : nil,
-                    message: viewModel.appleAuthBusinessMessage,
-                    tint: viewModel.appleAuthBusinessMessageIsError ? FGColor.dangerRed : FGColor.accentBlue,
-                    systemImage: viewModel.appleAuthBusinessMessageIsError ? "exclamationmark.triangle.fill" : "person.crop.circle.badge.checkmark"
-                )
-            }
-
-            TextField("Business email", text: $viewModel.venueOwnerEmail)
-                .textInputAutocapitalization(.never)
-                .keyboardType(.emailAddress)
-                .fanGeoInputFieldStyle()
-
-            SecureField("Business owner password", text: $venuePassword)
-                .fanGeoInputFieldStyle()
-
-            if !showVenueRegisterMode {
-                Button {
-#if DEBUG
-                    print("[BusinessPasswordResetDebug] forgotPasswordTapped=true")
-#endif
-                    guard viewModel.canPresentPasswordResetRequestSheet() else {
-                        showBusinessPasswordResetSheet = false
-                        return
-                    }
-                    viewModel.venuePasswordResetMessage = ""
-                    viewModel.venuePasswordResetError = ""
-                    showBusinessPasswordResetSheet = true
-                } label: {
-                    Text("Forgot password?")
-                        .font(FGTypography.caption.weight(.semibold))
-                        .foregroundStyle(FGColor.accentBlue)
-                }
-                .buttonStyle(.plain)
-                .frame(maxWidth: .infinity, alignment: .trailing)
-            }
-
             if showVenueRegisterMode {
-                signupRegistrationFields
-            }
-
-            VStack(alignment: .leading, spacing: FGSpacing.sm) {
-                FGPrimaryButton(
-                    title: showVenueRegisterMode ? "Create account & submit location" : "Sign In as Business Owner",
-                    isDisabled: signupPrimarySubmitDisabled
-                ) {
-#if DEBUG
-                    print("[BusinessSignup] button tapped primaryAction registerMode=\(showVenueRegisterMode)")
-                    logSignupSubmitGates(reason: "immediate_after_tap")
-#endif
-                    Task {
-#if DEBUG
-                        print("[BusinessSignup] async Task entered registerMode=\(showVenueRegisterMode)")
-#endif
-                        if showVenueRegisterMode {
-#if DEBUG
-                            logSignupSubmitGates(reason: "register_branch_before_flags")
-#endif
-                            await MainActor.run {
-                                viewModel.clearAppleAuthMessage(accountMode: .business, reason: "emailPasswordSignUp")
-                            }
-                            isSignupSubmitting = true
-#if DEBUG
-                            print("[BusinessSignup] set isSignupSubmitting=true")
-#endif
-                            let form = AddLocationClaimForm(
-                                venueName: signupLocationName,
-                                address: signupStreet,
-                                addressLine2: signupAddressLine2,
-                                city: signupCity,
-                                state: signupState,
-                                country: signupCountry,
-                                zip: signupZip,
-                                phone: BusinessPhoneFields.combinedStorage(iso: signupPhoneDialISO, local: signupPhoneLocal)
-                                    .trimmingCharacters(in: .whitespacesAndNewlines),
-                                website: signupWebsite,
-                                description: signupDescription,
-                                proofNote: signupProof,
-                                screenCount: signupScreenCount,
-                                servesFood: signupServesFood,
-                                hasWifi: signupHasWifi,
-                                hasGarden: signupHasGarden,
-                                hasProjector: signupHasProjector,
-                                petFriendly: signupPetFriendly,
-                                familyFriendly: signupFamilyFriendly,
-                                parkingAvailable: signupParking,
-                                easyParking: signupEasyParking,
-                                handicapParking: signupHandicapParking,
-                                liveMusic: signupLiveMusic,
-                                poolTables: signupPoolTables,
-                                rooftop: signupRooftop,
-                                djNights: signupDJNights,
-                                karaoke: signupKaraoke,
-                                cocktails: signupCocktails,
-                                craftBeer: signupCraftBeer,
-                                coverPhotoURL: "",
-                                menuPhotoURL: "",
-                                latitude: signupLatitude,
-                                longitude: signupLongitude,
-                                formattedAddress: signupFormattedAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : signupFormattedAddress
-                            )
-#if DEBUG
-                            print("[VenueFeatureDebug] selectedFeatures=\(form.mergedVenueFeaturesLine())")
-#endif
-                            let payload = BusinessOwnerSignupPayload(
-                                businessDisplayName: signupBusinessName,
-                                firstLocation: form
-                            )
-#if DEBUG
-                            print("[BusinessSignup] calling registerVenueOwner coverBytes=\(signupCoverData?.count ?? 0) menuBytes=\(signupMenuData?.count ?? 0)")
-#endif
-                            await viewModel.registerVenueOwner(
-                                email: viewModel.venueOwnerEmail,
-                                password: venuePassword,
-                                signup: payload,
-                                coverPhotoJPEGData: signupCoverData,
-                                menuPhotoJPEGData: signupMenuData,
-                                recordVenueGuidelinesAcceptance: venueSignupPoliciesAccepted
-                            )
-#if DEBUG
-                            print("[BusinessSignup] registerVenueOwner returned isSignupSubmitting clearing")
-#endif
-                            await MainActor.run {
-                                isSignupSubmitting = false
-                                venuePassword = ""
-                            }
-                        } else {
-                            await MainActor.run {
-                                viewModel.clearAppleAuthMessage(accountMode: .business, reason: "emailPasswordSignIn")
-                            }
-                            await viewModel.loginVenueOwner(
-                                email: viewModel.venueOwnerEmail,
-                                password: venuePassword
-                            )
-                            await MainActor.run {
-                                venuePassword = ""
-                            }
-                        }
-                    }
-                }
-
-                if showVenueRegisterMode, !isSignupSubmitting, let hint = businessSignupMissingRequirementMessage {
-                    SettingsSheetStatusBanner(
-                        title: nil,
-                        message: hint,
-                        tint: FGColor.accentYellow,
-                        systemImage: "info.circle"
-                    )
-                }
+                businessSignupWizard
+            } else {
+                businessOwnerSignInContent
             }
 #if DEBUG
-            .onAppear {
+            Group { EmptyView() }
+                .onAppear {
                 logSignupSubmitGates(reason: "submit_button_onAppear")
             }
             .onChange(of: venueSignupPoliciesAccepted) { _, _ in
@@ -7294,9 +7455,17 @@ private struct SettingsVenueOwnerCard: View {
             Button {
                 showVenueRegisterMode.toggle()
             } label: {
-                Text(showVenueRegisterMode ? "Already have an account? Sign in" : "New business owner? Register")
-                    .font(FGTypography.caption.weight(.semibold))
-                    .foregroundStyle(FGColor.accentBlue)
+                HStack(spacing: 8) {
+                    Image(systemName: showVenueRegisterMode ? "arrow.left" : "building.2.crop.circle")
+                        .font(.caption.weight(.bold))
+                    Text(showVenueRegisterMode ? "Already have an account? Sign in" : "Create Business Account")
+                        .font(FGTypography.caption.weight(.bold))
+                }
+                .foregroundStyle(FGColor.accentBlue)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 11)
+                .background(FGAdaptiveSurface.controlFill)
+                .clipShape(Capsule(style: .continuous))
             }
             .buttonStyle(.plain)
 
@@ -7315,6 +7484,14 @@ private struct SettingsVenueOwnerCard: View {
             viewModel.venueAuthErrorMessage = ""
             viewModel.venuePasswordResetMessage = ""
             viewModel.venuePasswordResetError = ""
+            businessSignupStep = .account
+            businessSignupStepMessage = nil
+            businessSignupEmailInlineError = nil
+            businessSignupPasswordInlineError = nil
+            isCheckingBusinessSignupEmail = false
+            confirmVenuePassword = ""
+            showBusinessSignupPassword = false
+            showBusinessSignupConfirmPassword = false
             if !isRegister {
                 venueSignupPoliciesAccepted = false
                 signupBusinessName = ""
@@ -7361,6 +7538,17 @@ private struct SettingsVenueOwnerCard: View {
         }
         .onChange(of: venuePassword) { _, _ in
             viewModel.clearAppleAuthMessage(accountMode: .business, reason: "passwordEdited")
+            if businessSignupStep == .account {
+                businessSignupPasswordInlineError = nil
+                businessSignupStepMessage = nil
+            }
+        }
+        .onChange(of: confirmVenuePassword) { _, _ in
+            viewModel.clearAppleAuthMessage(accountMode: .business, reason: "passwordEdited")
+            if businessSignupStep == .account {
+                businessSignupPasswordInlineError = nil
+                businessSignupStepMessage = nil
+            }
         }
         .onDisappear {
             viewModel.clearAppleAuthMessage(accountMode: .business, reason: "sheetClosed")
@@ -7416,6 +7604,568 @@ private struct SettingsVenueOwnerCard: View {
             .presentationDragIndicator(.visible)
             .presentationBackground(FGAdaptiveSurface.sheetRoot)
         }
+    }
+
+    private var businessOwnerSignInContent: some View {
+        VStack(alignment: .leading, spacing: FGSpacing.md) {
+            FGSectionHeader(
+                "Grow your sports crowd",
+                subtitle: "Manage your venues, host watch parties, and bring local fans to your business."
+            ) {
+                FGStatusPill(title: "Owner tools", kind: .custom(tint: FGColor.accentBlue))
+            }
+
+            FanGeoAppleSignInButton(viewModel: viewModel, accountMode: .business)
+            appleBusinessMessageBanner
+
+            TextField("Business email", text: $viewModel.venueOwnerEmail)
+                .textInputAutocapitalization(.never)
+                .keyboardType(.emailAddress)
+                .fanGeoInputFieldStyle()
+
+            businessSignupPasswordField(
+                placeholder: "Business owner password",
+                text: $venuePassword,
+                isVisible: $showBusinessLoginPassword
+            )
+
+            Button {
+#if DEBUG
+                print("[BusinessPasswordResetDebug] forgotPasswordTapped=true")
+#endif
+                guard viewModel.canPresentPasswordResetRequestSheet() else {
+                    showBusinessPasswordResetSheet = false
+                    return
+                }
+                viewModel.venuePasswordResetMessage = ""
+                viewModel.venuePasswordResetError = ""
+                showBusinessPasswordResetSheet = true
+            } label: {
+                Text("Forgot password?")
+                    .font(FGTypography.caption.weight(.semibold))
+                    .foregroundStyle(FGColor.accentBlue)
+            }
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity, alignment: .trailing)
+
+            FGPrimaryButton(title: "Sign In as Business Owner") {
+                Task {
+                    await MainActor.run {
+                        viewModel.clearAppleAuthMessage(accountMode: .business, reason: "emailPasswordSignIn")
+                    }
+                    await viewModel.loginVenueOwner(
+                        email: viewModel.venueOwnerEmail,
+                        password: venuePassword
+                    )
+                    await MainActor.run {
+                        venuePassword = ""
+                    }
+                }
+            }
+
+            businessVenueToolsPreview
+        }
+    }
+
+    private var businessVenueToolsPreview: some View {
+        VStack(alignment: .leading, spacing: FGSpacing.sm) {
+            Text("Venue tools include")
+                .font(FGTypography.caption.weight(.heavy))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .textCase(.uppercase)
+                .tracking(0.7)
+
+            FGWrappingLayout(horizontalSpacing: 8, verticalSpacing: 8) {
+                businessToolChip(title: "Host watch parties", systemImage: "sportscourt.fill", tint: FGColor.accentGreen)
+                businessToolChip(title: "Manage venue listings", systemImage: "building.2.fill", tint: FGColor.accentBlue)
+                businessToolChip(title: "Track fans going", systemImage: "person.3.fill", tint: FGColor.accentYellow)
+                businessToolChip(title: "Promote events", systemImage: "megaphone.fill", tint: Color.purple)
+            }
+        }
+        .padding(FGSpacing.sm + 2)
+        .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.52 : 0.82))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme).opacity(0.7), lineWidth: 1)
+        }
+    }
+
+    private func businessToolChip(title: String, systemImage: String, tint: Color) -> some View {
+        HStack(spacing: 7) {
+            Image(systemName: systemImage)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(tint)
+            Text(title)
+                .font(FGTypography.caption.weight(.semibold))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(FGAdaptiveSurface.controlFill)
+        .clipShape(Capsule(style: .continuous))
+    }
+
+    private var businessSignupWizard: some View {
+        VStack(alignment: .leading, spacing: FGSpacing.md) {
+            businessSignupProgressHeader
+
+            wizardStepCard {
+                switch businessSignupStep {
+                case .account:
+                    businessSignupAccountStep
+                case .venue:
+                    businessSignupVenueStep
+                case .experience:
+                    businessSignupExperienceStep
+                case .review:
+                    businessSignupReviewStep
+                }
+            }
+
+            if let businessSignupStepMessage {
+                SettingsSheetStatusBanner(
+                    title: nil,
+                    message: businessSignupStepMessage,
+                    tint: FGColor.accentYellow,
+                    systemImage: "info.circle"
+                )
+            }
+
+            businessSignupNavigation
+        }
+    }
+
+    private var businessSignupProgressHeader: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Step \(businessSignupStep.rawValue) of \(BusinessSignupStep.allCases.count)")
+                    .font(FGTypography.metadata.weight(.bold))
+                    .foregroundStyle(FGColor.accentBlue)
+                Spacer(minLength: 0)
+                FGStatusPill(title: "Review required", kind: .custom(tint: FGColor.accentYellow))
+            }
+
+            HStack(spacing: 7) {
+                ForEach(BusinessSignupStep.allCases, id: \.rawValue) { step in
+                    Capsule(style: .continuous)
+                        .fill(
+                            step.rawValue <= businessSignupStep.rawValue
+                                ? AnyShapeStyle(FGColor.brandGradient)
+                                : AnyShapeStyle(FGColor.divider(colorScheme).opacity(0.9))
+                        )
+                        .frame(height: 4)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(businessSignupStep.title)
+                    .font(.system(size: 25, weight: .heavy, design: .rounded))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(businessSignupStep.subtitle)
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func wizardStepCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: FGSpacing.md) {
+            content()
+        }
+        .padding(FGSpacing.md)
+        .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.72 : 0.97))
+        .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+        }
+    }
+
+    @ViewBuilder
+    private var businessSignupAccountStep: some View {
+        FanGeoAppleSignInButton(viewModel: viewModel, accountMode: .business)
+        appleBusinessMessageBanner
+
+        TextField("Business email", text: $viewModel.venueOwnerEmail)
+            .textInputAutocapitalization(.never)
+            .keyboardType(.emailAddress)
+            .fanGeoInputFieldStyle()
+            .onChange(of: viewModel.venueOwnerEmail) { _, _ in
+                businessSignupEmailInlineError = nil
+                if businessSignupStep == .account {
+                    businessSignupStepMessage = nil
+                }
+            }
+
+        if let businessSignupEmailInlineError {
+            Text(businessSignupEmailInlineError)
+                .font(FGTypography.caption.weight(.semibold))
+                .foregroundStyle(FGColor.dangerRed)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+
+        businessSignupPasswordField(
+            placeholder: "Business owner password",
+            text: $venuePassword,
+            isVisible: $showBusinessSignupPassword
+        )
+        businessSignupPasswordField(
+            placeholder: "Confirm business owner password",
+            text: $confirmVenuePassword,
+            isVisible: $showBusinessSignupConfirmPassword
+        )
+        if let businessSignupPasswordInlineError {
+            Text(businessSignupPasswordInlineError)
+                .font(FGTypography.caption.weight(.semibold))
+                .foregroundStyle(FGColor.dangerRed)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+
+        TextField("Business / brand name", text: $signupBusinessName)
+            .textInputAutocapitalization(.words)
+            .fanGeoInputFieldStyle()
+    }
+
+    @ViewBuilder
+    private var businessSignupVenueStep: some View {
+        TextField("Location name", text: $signupLocationName)
+            .textInputAutocapitalization(.words)
+            .fanGeoInputFieldStyle()
+
+        signupAddressFields
+
+        BusinessPhoneNumberField(dialISO: $signupPhoneDialISO, localNumber: $signupPhoneLocal)
+
+        TextField("Website (optional)", text: $signupWebsite)
+            .textInputAutocapitalization(.never)
+            .keyboardType(.URL)
+            .fanGeoInputFieldStyle()
+    }
+
+    private var businessSignupExperienceStep: some View {
+        AddLocationVenueFeaturesGrid(
+            screenCount: $signupScreenCount,
+            servesFood: $signupServesFood,
+            hasWifi: $signupHasWifi,
+            hasGarden: $signupHasGarden,
+            hasProjector: $signupHasProjector,
+            petFriendly: $signupPetFriendly,
+            parkingAvailable: $signupParking,
+            easyParking: $signupEasyParking,
+            familyFriendly: $signupFamilyFriendly,
+            handicapParking: $signupHandicapParking,
+            liveMusic: $signupLiveMusic,
+            poolTables: $signupPoolTables,
+            rooftop: $signupRooftop,
+            djNights: $signupDJNights,
+            karaoke: $signupKaraoke,
+            cocktails: $signupCocktails,
+            craftBeer: $signupCraftBeer,
+            maxScreenCount: 40
+        )
+    }
+
+    @ViewBuilder
+    private var businessSignupReviewStep: some View {
+        VenueOwnerListingPhotoPickerCard(
+            title: "Business Photo",
+            subtitle: "Main photo of your business",
+            pickerSelection: $signupCoverPicker,
+            remotePreviewURL: "",
+            localPreviewData: signupCoverData,
+            usesFanGeoSheetChrome: true
+        )
+
+        VenueOwnerListingPhotoPickerCard(
+            title: "Others",
+            subtitle: "Examples: menu, gym, patio, bar, seating, entrance",
+            pickerSelection: $signupMenuPicker,
+            remotePreviewURL: "",
+            localPreviewData: signupMenuData,
+            usesFanGeoSheetChrome: true
+        )
+
+        TextField("Description", text: $signupDescription, axis: .vertical)
+            .lineLimit(3...8)
+            .fanGeoInputFieldStyle()
+
+        TextField("Proof note (how you operate this location)", text: $signupProof, axis: .vertical)
+            .lineLimit(2...6)
+            .fanGeoInputFieldStyle()
+
+        signupPolicyAgreement
+    }
+
+    private var appleBusinessMessageBanner: some View {
+        Group {
+            if !viewModel.appleAuthBusinessMessage.isEmpty {
+                SettingsSheetStatusBanner(
+                    title: viewModel.appleAuthBusinessMessageIsError ? "Apple Sign In" : nil,
+                    message: viewModel.appleAuthBusinessMessage,
+                    tint: viewModel.appleAuthBusinessMessageIsError ? FGColor.dangerRed : FGColor.accentBlue,
+                    systemImage: viewModel.appleAuthBusinessMessageIsError ? "exclamationmark.triangle.fill" : "person.crop.circle.badge.checkmark"
+                )
+            }
+        }
+    }
+
+    private func businessSignupPasswordField(
+        placeholder: String,
+        text: Binding<String>,
+        isVisible: Binding<Bool>
+    ) -> some View {
+        HStack(spacing: 10) {
+            if isVisible.wrappedValue {
+                TextField(placeholder, text: text)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .font(FGTypography.body)
+            } else {
+                SecureField(placeholder, text: text)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .font(FGTypography.body)
+            }
+
+            Button {
+                isVisible.wrappedValue.toggle()
+            } label: {
+                Image(systemName: isVisible.wrappedValue ? "eye.slash" : "eye")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(isVisible.wrappedValue ? "Hide password" : "Show password")
+        }
+        .fanGeoInputFieldStyle()
+    }
+
+    private var businessSignupNavigation: some View {
+        VStack(spacing: FGSpacing.sm) {
+            HStack(spacing: FGSpacing.sm) {
+                if businessSignupStep != .account {
+                    Button {
+                        guard let previous = businessSignupStep.previous else { return }
+                        withAnimation(.spring(response: 0.28, dampingFraction: 0.88)) {
+                            businessSignupStep = previous
+                            businessSignupStepMessage = nil
+                        }
+                    } label: {
+                        Text("Back")
+                            .font(FGTypography.body.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 13)
+                            .background(FGAdaptiveSurface.controlFill)
+                            .clipShape(Capsule(style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isSignupSubmitting)
+                }
+
+                FGPrimaryButton(
+                    title: businessSignupPrimaryTitle,
+                    isDisabled: isSignupSubmitting || isCheckingBusinessSignupEmail
+                ) {
+                    Task { await advanceBusinessSignupWizard() }
+                }
+            }
+
+            if businessSignupStep == .review, !isSignupSubmitting, let hint = businessSignupMissingRequirementMessage {
+                Text(hint)
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    @MainActor
+    private func advanceBusinessSignupWizard() async {
+        guard !isCheckingBusinessSignupEmail else { return }
+        businessSignupStepMessage = nil
+        if businessSignupStep == .account {
+            businessSignupEmailInlineError = nil
+        }
+        guard validateBusinessSignupStep(businessSignupStep) else { return }
+        if businessSignupStep == .account {
+            let email = OwnerBusinessEmail.normalized(viewModel.venueOwnerEmail)
+            isCheckingBusinessSignupEmail = true
+            let conflictMessage = await viewModel.businessSignupStep1EmailConflictMessage(for: email)
+            isCheckingBusinessSignupEmail = false
+            guard OwnerBusinessEmail.normalized(viewModel.venueOwnerEmail) == email else {
+                businessSignupEmailInlineError = nil
+                businessSignupStepMessage = nil
+                return
+            }
+            if let conflictMessage {
+                businessSignupEmailInlineError = conflictMessage
+                return
+            }
+        }
+        if let next = businessSignupStep.next {
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.88)) {
+                businessSignupStep = next
+            }
+            return
+        }
+        await submitBusinessSignup()
+    }
+
+    @MainActor
+    private func validateBusinessSignupStep(_ step: BusinessSignupStep) -> Bool {
+        func block(_ message: String) -> Bool {
+            businessSignupStepMessage = message
+            return false
+        }
+
+        switch step {
+        case .account:
+            let email = OwnerBusinessEmail.normalized(viewModel.venueOwnerEmail)
+            guard OwnerBusinessEmail.isValidStrict(email) else {
+                return block(email.isEmpty ? "Business email missing" : OwnerBusinessEmail.invalidOwnerEmailUserMessage)
+            }
+            businessSignupPasswordInlineError = nil
+            guard !venuePassword.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                businessSignupPasswordInlineError = "Password missing"
+                return block("Password missing")
+            }
+            guard !confirmVenuePassword.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                businessSignupPasswordInlineError = "Confirm password missing"
+                return block("Confirm password missing")
+            }
+            guard venuePassword == confirmVenuePassword else {
+                businessSignupPasswordInlineError = "Passwords do not match."
+                return block("Passwords do not match.")
+            }
+            guard !signupBusinessName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                return block("Business name missing")
+            }
+            return true
+        case .venue:
+            guard !signupLocationName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                return block("Location name missing")
+            }
+            guard !signupStreet.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                return block("Address line 1 missing")
+            }
+            let normalizedCountry = BusinessLocationCountryPolicy.normalizedStoredCountryCode(signupCountry)
+            let labels = BusinessLocationCountryPolicy.labels(for: normalizedCountry)
+            guard BusinessLocationCountryPolicy.supportedCountryCodes.contains(normalizedCountry) else {
+                return block("Country missing")
+            }
+            if labels.localityRequired, signupCity.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return block("\(labels.locality) missing")
+            }
+            if labels.regionRequired, signupState.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return block("\(labels.region) missing")
+            }
+            let phone = BusinessPhoneFields.combinedStorage(iso: signupPhoneDialISO, local: signupPhoneLocal)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if BusinessPhoneFields.storageValidationError(combined: phone) != nil {
+                return block(BusinessPhoneFields.storageValidationError(iso: signupPhoneDialISO, local: signupPhoneLocal) ?? "Phone number missing")
+            }
+            return true
+        case .experience:
+            return true
+        case .review:
+            guard !signupDescription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                return block("Description missing")
+            }
+            guard !signupProof.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                return block("Proof note missing")
+            }
+            guard signupCoverData.map({ !$0.isEmpty }) == true else {
+                return block("Business photo missing")
+            }
+            guard venueSignupPoliciesAccepted else {
+                return block("Agree to the Terms of Service, Privacy Policy, and Community Guidelines")
+            }
+            return true
+        }
+    }
+
+    @MainActor
+    private func submitBusinessSignup() async {
+#if DEBUG
+        print("[BusinessSignup] button tapped primaryAction registerMode=true")
+        logSignupSubmitGates(reason: "immediate_after_tap")
+        logSignupSubmitGates(reason: "register_branch_before_flags")
+#endif
+        guard businessSignupMissingRequirementMessage == nil else {
+            businessSignupStepMessage = businessSignupMissingRequirementMessage
+            return
+        }
+
+        viewModel.clearAppleAuthMessage(accountMode: .business, reason: "emailPasswordSignUp")
+        isSignupSubmitting = true
+#if DEBUG
+        print("[BusinessSignup] set isSignupSubmitting=true")
+#endif
+        let form = AddLocationClaimForm(
+            venueName: signupLocationName,
+            address: signupStreet,
+            addressLine2: signupAddressLine2,
+            city: signupCity,
+            state: signupState,
+            country: signupCountry,
+            zip: signupZip,
+            phone: BusinessPhoneFields.combinedStorage(iso: signupPhoneDialISO, local: signupPhoneLocal)
+                .trimmingCharacters(in: .whitespacesAndNewlines),
+            website: signupWebsite,
+            description: signupDescription,
+            proofNote: signupProof,
+            screenCount: signupScreenCount,
+            servesFood: signupServesFood,
+            hasWifi: signupHasWifi,
+            hasGarden: signupHasGarden,
+            hasProjector: signupHasProjector,
+            petFriendly: signupPetFriendly,
+            familyFriendly: signupFamilyFriendly,
+            parkingAvailable: signupParking,
+            easyParking: signupEasyParking,
+            handicapParking: signupHandicapParking,
+            liveMusic: signupLiveMusic,
+            poolTables: signupPoolTables,
+            rooftop: signupRooftop,
+            djNights: signupDJNights,
+            karaoke: signupKaraoke,
+            cocktails: signupCocktails,
+            craftBeer: signupCraftBeer,
+            coverPhotoURL: "",
+            menuPhotoURL: "",
+            latitude: signupLatitude,
+            longitude: signupLongitude,
+            formattedAddress: signupFormattedAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : signupFormattedAddress
+        )
+#if DEBUG
+        print("[VenueFeatureDebug] selectedFeatures=\(form.mergedVenueFeaturesLine())")
+#endif
+        let payload = BusinessOwnerSignupPayload(
+            businessDisplayName: signupBusinessName,
+            firstLocation: form
+        )
+#if DEBUG
+        print("[BusinessSignup] calling registerVenueOwner coverBytes=\(signupCoverData?.count ?? 0) menuBytes=\(signupMenuData?.count ?? 0)")
+#endif
+        await viewModel.registerVenueOwner(
+            email: viewModel.venueOwnerEmail,
+            password: venuePassword,
+            signup: payload,
+            coverPhotoJPEGData: signupCoverData,
+            menuPhotoJPEGData: signupMenuData,
+            recordVenueGuidelinesAcceptance: venueSignupPoliciesAccepted
+        )
+#if DEBUG
+        print("[BusinessSignup] registerVenueOwner returned isSignupSubmitting clearing")
+#endif
+        isSignupSubmitting = false
+        venuePassword = ""
+        confirmVenuePassword = ""
+        businessSignupPasswordInlineError = nil
     }
 
     @ViewBuilder

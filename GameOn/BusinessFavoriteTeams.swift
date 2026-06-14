@@ -63,13 +63,27 @@ extension MapViewModel {
 
         do {
             let matches = try await LiveSportsService.shared.fetchLiveMatches(windowDays: windowDays)
-            businessFavoriteTeamProGames = Self.favoriteTeamProGames(from: matches, favoriteTeams: teams)
+            let previous = businessFavoriteTeamProGames
+            let autoFollowMatches = Self.favoriteTeamProGames(from: matches, favoriteTeams: teams)
+            businessFavoriteTeamProGames = autoFollowMatches
+            handleFavoriteTeamProGameStatusUpdates(
+                previous: previous,
+                current: autoFollowMatches,
+                reason: "businessFavoriteTeamAutoFollowFetch"
+            )
             mergeBusinessFavoriteTeamMatchesIntoLiveMatches(matches)
         } catch {
 #if DEBUG
             print("[BusinessFavoriteTeams] proGameFetchFailed error=\(error.localizedDescription)")
 #endif
-            businessFavoriteTeamProGames = Self.favoriteTeamProGames(from: liveMatches, favoriteTeams: teams)
+            let previous = businessFavoriteTeamProGames
+            let autoFollowMatches = Self.favoriteTeamProGames(from: liveMatches, favoriteTeams: teams)
+            businessFavoriteTeamProGames = autoFollowMatches
+            handleFavoriteTeamProGameStatusUpdates(
+                previous: previous,
+                current: autoFollowMatches,
+                reason: "businessFavoriteTeamAutoFollowFallback"
+            )
         }
     }
 
@@ -86,9 +100,11 @@ extension MapViewModel {
         for match in matches {
             byKey[SavedProGame.stableKey(for: match)] = match
         }
-        liveMatches = byKey.values.sorted {
+        let merged = byKey.values.sorted {
             if $0.startTime == $1.startTime { return $0.id < $1.id }
             return $0.startTime < $1.startTime
         }
+        handleSavedProGameStatusUpdates(from: matches, reason: "businessFavoriteTeamWindowMerge")
+        liveMatches = merged
     }
 }

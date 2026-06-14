@@ -134,7 +134,7 @@ struct LiveScreen: View {
     }
 
     private var displayedLiveMatches: [LiveMatch] {
-        let matches = viewModel.liveTabLiveMatchesDisplayed(
+        let matches = viewModel.liveTabTodayMatchesDisplayed(
             searchQuery: "",
             sportFilter: selectedLiveFeaturedEvent == nil ? liveGamesSportFilter : nil,
             calendarDay: liveCalendarToday
@@ -153,9 +153,36 @@ struct LiveScreen: View {
         return liveMatchesFilteredBySelectedCountries(featuredFiltered)
     }
 
+    private var displayedLiveNowMatches: [LiveMatch] {
+        displayedLiveMatches.filter(\.matchStatus.isHappeningNow)
+    }
+
+    private var displayedTodayUpcomingMatches: [LiveMatch] {
+        let cal = Calendar.current
+        return displayedLiveMatches
+            .filter { $0.matchStatus == .scheduled || $0.matchStatus == .fullTime }
+            .filter { cal.isDate($0.startTime, inSameDayAs: liveCalendarToday) }
+            .sorted(by: todayUpcomingLiveMatchSort)
+    }
+
+    private func todayUpcomingLiveMatchSort(_ lhs: LiveMatch, _ rhs: LiveMatch) -> Bool {
+        let lhsRank = todayUpcomingStatusSortRank(lhs.matchStatus)
+        let rhsRank = todayUpcomingStatusSortRank(rhs.matchStatus)
+        if lhsRank != rhsRank { return lhsRank < rhsRank }
+        if lhs.startTime != rhs.startTime { return lhs.startTime < rhs.startTime }
+        return "\(lhs.awayTeam) \(lhs.homeTeam)".localizedCaseInsensitiveCompare("\(rhs.awayTeam) \(rhs.homeTeam)") == .orderedAscending
+    }
+
+    private func todayUpcomingStatusSortRank(_ status: MatchStatus) -> Int {
+        if status.isHappeningNow { return 0 }
+        if status == .scheduled { return 1 }
+        if status == .fullTime { return 2 }
+        return 3
+    }
+
     private var liveGamesSportFilterOptions: [LiveSportVisualType] {
         let present = Set(
-            viewModel.liveTabLiveMatchesDisplayed(searchQuery: "", sportFilter: nil, calendarDay: liveCalendarToday)
+            viewModel.liveTabTodayMatchesDisplayed(searchQuery: "", sportFilter: nil, calendarDay: liveCalendarToday)
                 .map(\.liveSportVisualType)
         )
         return LiveSportVisualType.allCases.filter { present.contains($0) }
@@ -199,7 +226,7 @@ struct LiveScreen: View {
     }
 
     private var liveLeagueCountryOptions: [String] {
-        let allMatches = viewModel.liveTabLiveMatchesDisplayed(searchQuery: "", sportFilter: nil, calendarDay: liveCalendarToday)
+        let allMatches = viewModel.liveTabTodayMatchesDisplayed(searchQuery: "", sportFilter: nil, calendarDay: liveCalendarToday)
         let detected = allMatches.compactMap(\.leagueCountry)
         return Array(Set(LiveLeagueCountryResolver.presetCountries + detected + Array(selectedLiveLeagueCountries))).sorted()
     }
@@ -318,13 +345,16 @@ struct LiveScreen: View {
     private var liveFeedLayer: some View {
         let showPersonalLiveSections = canShowPersonalLiveSections
         let rankedItems = liveRankedItems(for: liveCalendarToday)
+        let liveTabMatches = displayedLiveMatches
+        let liveNowMatches = displayedLiveNowMatches
+        let todayUpcomingMatches = displayedTodayUpcomingMatches
         let showVenuesAndPickupToday = !isBusinessLiveAudienceUser
         let venuesAndPickupToday = showVenuesAndPickupToday ? venuesAndPickupTodayRows(from: rankedItems) : []
         let friendsGoing = showPersonalLiveSections ? Array(rankedItems.filter { $0.energy.friendGoingCount > 0 }.prefix(6)) : []
         let crowdBuilding = liveCrowdBuildingMoments(from: rankedItems)
         let favoriteTeamItems = showPersonalLiveSections ? favoriteTeamsLiveItems(rankedItems: rankedItems) : []
         let visibleSectionCount = visibleLiveSectionCount(
-            matches: displayedLiveMatches,
+            matches: liveTabMatches,
             venuesAndPickupToday: venuesAndPickupToday,
             friendsGoing: friendsGoing,
             crowdBuilding: crowdBuilding
@@ -342,11 +372,11 @@ struct LiveScreen: View {
             ScrollViewReader { scrollProxy in
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 22) {
-                        liveHeroHeader(totalCount: rankedItems.count)
+                        liveHeroHeader
 
                         liveSummaryChips(
                             liveNowCount: liveSummaryLiveNowCount(
-                                matches: displayedLiveMatches,
+                                matches: liveNowMatches,
                                 venuesAndPickup: venuesAndPickupToday
                             ),
                             todayCount: venuesAndPickupToday.count,
@@ -369,7 +399,12 @@ struct LiveScreen: View {
                                 }
                             )
                         }
-                        liveGamesSection(matches: displayedLiveMatches, rankedItems: rankedItems)
+                        liveGamesSection(
+                            matches: liveTabMatches,
+                            liveNowMatches: liveNowMatches,
+                            todayUpcomingMatches: todayUpcomingMatches,
+                            rankedItems: rankedItems
+                        )
                             .id(LiveScrollSection.liveGames.rawValue)
                         if showVenuesAndPickupToday {
                             liveVenuesAndPickupTodaySection(rows: venuesAndPickupToday)
@@ -431,18 +466,12 @@ struct LiveScreen: View {
         }
     }
 
-    private func liveHeroHeader(totalCount: Int) -> some View {
+    private var liveHeroHeader: some View {
         HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Live")
-                    .font(.system(size: 36, weight: .bold, design: .rounded))
-                    .foregroundStyle(FGColor.primaryText(colorScheme))
-
-                Text(liveHeroSubtitle(totalCount: totalCount))
-                    .font(FGTypography.caption)
-                    .foregroundStyle(FGColor.secondaryText(colorScheme))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            FanGeoPagePurposeHeader(
+                title: "Live",
+                subtitle: "Find live games and watch parties happening now."
+            )
 
             Spacer(minLength: 0)
 
@@ -481,15 +510,6 @@ struct LiveScreen: View {
         .buttonStyle(.plain)
         .disabled(viewModel.isLoadingLiveMatches)
         .accessibilityLabel("Refresh live games")
-    }
-
-    private func liveHeroSubtitle(totalCount: Int) -> String {
-        if isBusinessLiveAudienceUser {
-            return "Scores, venues, and fan activity — organized for a quick scan."
-        }
-        return totalCount > 0
-            ? "Tap a section below to jump in."
-            : "Your live feed fills in as games and fans get active."
     }
 
     private func liveSummaryLiveNowCount(
@@ -761,26 +781,39 @@ struct LiveScreen: View {
         return energy.energyLabel == nil ? nil : "Venue activity signal"
     }
 
-    private func liveGamesSection(matches: [LiveMatch], rankedItems: [LiveFeedItem]) -> some View {
-        let allLiveGames = viewModel.liveTabLiveMatchesDisplayed(
+    private func liveGamesSection(
+        matches: [LiveMatch],
+        liveNowMatches: [LiveMatch],
+        todayUpcomingMatches: [LiveMatch],
+        rankedItems: [LiveFeedItem]
+    ) -> some View {
+        let allLiveGames = viewModel.liveTabTodayMatchesDisplayed(
             searchQuery: "",
             sportFilter: nil,
             calendarDay: liveCalendarToday
         )
         let worldCupMatches = allLiveGames.filter(LiveMatchFilters.isFifaWorldCupMatch)
+        let liveFeedRows = LiveFeedAdPlacement.listItems(for: liveNowMatches)
+        let upcomingFeedRows = LiveFeedAdPlacement.listItems(for: todayUpcomingMatches)
         let _: Void = logLiveWorldCupFilterDebug(
             selected: selectedLiveFeaturedEvent?.isFifaWorldCupDefinition == true,
             totalLiveGames: allLiveGames.count,
             matchedWorldCupGames: worldCupMatches
         )
-        let _: Void = logLiveNowSectionDebug(liveNowExpanded: liveNowExpanded, liveNowCount: matches.count)
-        let feedRows = LiveFeedAdPlacement.listItems(for: matches)
-        let _: Void = LiveFeedAdPlacement.logPlan(matchCount: matches.count)
+        let _: Void = logLiveFeaturedEventDebug(
+            selectedFeaturedEvent: selectedLiveFeaturedEvent,
+            allMatches: allLiveGames,
+            returnedMatches: matches,
+            liveNowCount: liveNowMatches.count,
+            todayUpcomingMatches: todayUpcomingMatches
+        )
+        let _: Void = logLiveNowSectionDebug(liveNowExpanded: liveNowExpanded, liveNowCount: liveNowMatches.count)
+        let _: Void = LiveFeedAdPlacement.logPlan(matchCount: liveNowMatches.count)
 
         return liveCollapsiblePanelSection(
             kind: .liveGames,
             title: "Live Now",
-            count: matches.count,
+            count: liveNowMatches.count,
             subtitle: "Pro scores on TV right now",
             isExpanded: liveNowExpanded,
             toggle: toggleLiveNowExpanded
@@ -803,12 +836,27 @@ struct LiveScreen: View {
                     }
                 } else {
                     VStack(spacing: 10) {
-                        ForEach(feedRows) { row in
-                            switch row {
-                            case .match(let match):
-                                liveMatchCard(match, relatedItems: liveMatchRelatedItems(for: match, in: rankedItems))
-                            case .nativeAd(let slotIndex, _):
-                                liveFeedNativeAdCard(slotIndex: slotIndex)
+                        if !liveNowMatches.isEmpty {
+                            liveMatchSubsectionHeader("Live Now")
+                            ForEach(liveFeedRows) { row in
+                                switch row {
+                                case .match(let match):
+                                    liveMatchCard(match, relatedItems: liveMatchRelatedItems(for: match, in: rankedItems))
+                                case .nativeAd(let slotIndex, _):
+                                    liveFeedNativeAdCard(slotIndex: slotIndex)
+                                }
+                            }
+                        }
+
+                        if !todayUpcomingMatches.isEmpty {
+                            liveMatchSubsectionHeader("Today / Upcoming")
+                            ForEach(upcomingFeedRows) { row in
+                                switch row {
+                                case .match(let match):
+                                    liveMatchCard(match, relatedItems: liveMatchRelatedItems(for: match, in: rankedItems))
+                                case .nativeAd(let slotIndex, _):
+                                    liveFeedNativeAdCard(slotIndex: slotIndex)
+                                }
                             }
                         }
                     }
@@ -819,13 +867,23 @@ struct LiveScreen: View {
         }
     }
 
+    private func liveMatchSubsectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(FGTypography.caption.weight(.heavy))
+            .foregroundStyle(FGColor.secondaryText(colorScheme))
+            .textCase(.uppercase)
+            .tracking(0.7)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 2)
+    }
+
     private func toggleLiveNowExpanded() {
         withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
             liveNowExpanded.toggle()
         }
 #if DEBUG
         print("[LiveTabDebug] liveNowExpanded=\(liveNowExpanded)")
-        print("[LiveTabDebug] liveNowCount=\(displayedLiveMatches.count)")
+        print("[LiveTabDebug] liveNowCount=\(displayedLiveNowMatches.count)")
 #endif
     }
 
@@ -893,6 +951,7 @@ struct LiveScreen: View {
                 liveGamesSportFilter = nil
                 updateSelectedLiveLeagueCountries([])
                 liveFeaturedEventFilterSlug = selectedLiveFeaturedEvent?.slug == featuredEvent.slug ? nil : featuredEvent.slug
+                liveNowExpanded = true
             }
         }
     }
@@ -1041,6 +1100,67 @@ struct LiveScreen: View {
         }
 #endif
     }
+
+    private func logLiveFeaturedEventDebug(
+        selectedFeaturedEvent: FeaturedEvent?,
+        allMatches: [LiveMatch],
+        returnedMatches: [LiveMatch],
+        liveNowCount: Int,
+        todayUpcomingMatches: [LiveMatch]
+    ) {
+#if DEBUG
+        let cal = Calendar.current
+        let windowStart = cal.startOfDay(for: liveCalendarToday)
+        let windowEnd = cal.date(byAdding: .day, value: 1, to: windowStart)
+            ?? windowStart.addingTimeInterval(24 * 60 * 60)
+        let formatter = Self.liveFeaturedEventDebugDateFormatter
+        let selectedKey = liveFeaturedEventDebugSelectedKey(selectedFeaturedEvent)
+        let todayAllMatches = allMatches.filter { cal.isDate($0.startTime, inSameDayAs: windowStart) }
+        let scheduledCount = todayUpcomingMatches.filter { $0.matchStatus == .scheduled }.count
+        let finalCount = todayUpcomingMatches.filter { $0.matchStatus == .fullTime }.count
+        print("[LiveFeaturedEventDebug] provider=\(LiveSportsService.providerDescription)")
+        print("[LiveFeaturedEventDebug] selectedChipKey=\(selectedKey)")
+        print("[LiveFeaturedEventDebug] localTimeZone=\(cal.timeZone.identifier)")
+        print("[LiveFeaturedEventDebug] dateWindowStart=\(formatter.string(from: windowStart))")
+        print("[LiveFeaturedEventDebug] dateWindowEnd=\(formatter.string(from: windowEnd))")
+        print("[LiveFeaturedEventDebug] candidateCount=\(allMatches.count)")
+        print("[LiveFeaturedEventDebug] returnedCount=\(returnedMatches.count)")
+        print("[LiveFeaturedEventDebug] totalTodayMatches=\(todayAllMatches.count)")
+        print("[LiveFeaturedEventDebug] liveNowCount=\(liveNowCount)")
+        print("[LiveFeaturedEventDebug] scheduledCount=\(scheduledCount)")
+        print("[LiveFeaturedEventDebug] finalCount=\(finalCount)")
+        print("[LiveFeaturedEventDebug] todayUpcomingCount=\(todayUpcomingMatches.count)")
+        for match in returnedMatches.prefix(8) {
+            print("[LiveFeaturedEventDebug] match=\(match.awayTeam) at \(match.homeTeam) league=\(match.league) status=\(match.matchStatus.rawValue) start=\(formatter.string(from: match.startTime)) featuredEventSlug=\(match.featuredEventSlug ?? "nil")")
+        }
+#endif
+    }
+
+    private func liveFeaturedEventDebugSelectedKey(_ selectedFeaturedEvent: FeaturedEvent?) -> String {
+        if let selectedFeaturedEvent {
+            return [
+                "featured_slug=\(selectedFeaturedEvent.slug)",
+                "title=\(selectedFeaturedEvent.title)",
+                "shortTitle=\(selectedFeaturedEvent.shortTitle ?? "nil")"
+            ].joined(separator: " ")
+        }
+        if let liveGamesSportFilter {
+            return "sport=\(liveGamesSportFilter.rawValue)"
+        }
+        if liveLeagueCountryFilterIsActive {
+            return "countries=\(selectedLiveLeagueCountries.sorted().joined(separator: ","))"
+        }
+        return "all"
+    }
+
+    private static let liveFeaturedEventDebugDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone.current
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss ZZZZ"
+        return formatter
+    }()
 
     private func logLiveNowSectionDebug(liveNowExpanded: Bool, liveNowCount: Int) {
 #if DEBUG
@@ -1250,7 +1370,7 @@ struct LiveScreen: View {
                     .foregroundStyle(FGColor.primaryText(colorScheme))
                 Text(isBusinessLiveAudienceUser
                     ? "Check Crowd Momentum or open the map to find active watch spots."
-                    : "Check Venues & Community Games Today or open the map to find watch spots.")
+                    : "Check Venues & Pickup Games Today or open the map to find watch spots.")
                     .font(FGTypography.caption)
                     .foregroundStyle(FGColor.secondaryText(colorScheme))
                     .fixedSize(horizontal: false, vertical: true)
@@ -1546,6 +1666,8 @@ struct LiveScreen: View {
     private func liveMatchCard(_ match: LiveMatch, relatedItems: [LiveFeedItem]) -> some View {
         let sportType = match.liveSportVisualType
         let accent = sportType.catalogAccent
+        let isFinalMatch = match.matchStatus == .fullTime
+        let cardAccent = isFinalMatch ? FGColor.mutedText(colorScheme) : accent
         let catalogSportKey = sportType.sportFilterCatalogKey
         let watchSpotItems = liveFindVenuesSortedRelatedItems(relatedItems).items
         let hasWatchSpots = !watchSpotItems.isEmpty
@@ -1575,16 +1697,16 @@ struct LiveScreen: View {
 
                 VStack(alignment: .leading, spacing: 9) {
                     HStack(spacing: 7) {
-                        liveStatusPill(match, accent: accent)
+                        liveStatusPill(match, accent: cardAccent)
 
                         Text(sportType.filterChipLabel)
                             .font(.caption2.weight(.bold))
-                            .foregroundStyle(accent)
+                            .foregroundStyle(cardAccent)
                             .padding(.horizontal, 7)
                             .padding(.vertical, 3)
                             .background(
                                 Capsule(style: .continuous)
-                                    .fill(accent.opacity(colorScheme == .dark ? 0.18 : 0.10))
+                                    .fill(cardAccent.opacity(colorScheme == .dark ? 0.18 : 0.10))
                             )
 
                         Text(liveMatchLeagueCompetitionText(for: match))
@@ -1594,10 +1716,10 @@ struct LiveScreen: View {
                             .truncationMode(.tail)
                     }
 
-                    liveMatchScoreboard(match, accent: accent)
+                    liveMatchScoreboard(match, accent: cardAccent)
                     liveVenueLine(match)
-                    liveBroadcastLine(match, accent: accent)
-                    liveScorerSummaryLine(match, accent: accent)
+                    liveBroadcastLine(match, accent: cardAccent)
+                    liveScorerSummaryLine(match, accent: cardAccent)
                 }
 
                 Spacer(minLength: 0)
@@ -1624,17 +1746,29 @@ struct LiveScreen: View {
 
                 Spacer(minLength: 8)
 
-                Button {
-                    liveFindVenuesTapped(match: match, relatedItems: relatedItems)
-                } label: {
-                    Text(findVenuesButtonTitle)
+                if isFinalMatch {
+                    Text("Game Final")
                         .font(.caption2.weight(.bold))
-                        .foregroundStyle(accent)
+                        .foregroundStyle(FGColor.mutedText(colorScheme))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
-                        .background(Capsule(style: .continuous).fill(accent.opacity(colorScheme == .dark ? 0.16 : 0.10)))
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(FGColor.mutedText(colorScheme).opacity(colorScheme == .dark ? 0.14 : 0.08))
+                        )
+                } else {
+                    Button {
+                        liveFindVenuesTapped(match: match, relatedItems: relatedItems)
+                    } label: {
+                        Text(findVenuesButtonTitle)
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(accent)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Capsule(style: .continuous).fill(accent.opacity(colorScheme == .dark ? 0.16 : 0.10)))
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
         }
         .padding(12)
@@ -1647,7 +1781,7 @@ struct LiveScreen: View {
                     .strokeBorder(FGColor.dangerRed.opacity(colorScheme == .dark ? 0.34 : 0.22), lineWidth: 1)
             } else {
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .strokeBorder(accent.opacity(colorScheme == .dark ? 0.46 : 0.28), lineWidth: 1)
+                    .strokeBorder(cardAccent.opacity(colorScheme == .dark ? 0.46 : 0.28), lineWidth: 1)
             }
         }
         .onAppear {
@@ -1808,7 +1942,7 @@ struct LiveScreen: View {
         let statusTint = match.matchStatus.isHappeningNow ? FGColor.dangerRed : accent
         return HStack(spacing: 5) {
             Circle()
-                .fill(match.matchStatus.isHappeningNow ? FGColor.dangerRed : Color.white)
+                .fill(match.matchStatus.isHappeningNow ? FGColor.dangerRed : statusTint.opacity(0.75))
                 .frame(width: 5, height: 5)
                 .scaleEffect(match.matchStatus.isHappeningNow && liveIndicatorPulse ? 1.45 : 0.9)
                 .opacity(match.matchStatus.isHappeningNow && liveIndicatorPulse ? 0.55 : 1.0)
@@ -1840,8 +1974,14 @@ struct LiveScreen: View {
     }
 
     private func liveStatusText(_ match: LiveMatch) -> String {
+        if match.matchStatus == .fullTime {
+            return "FINAL"
+        }
         if match.matchStatus == .halfTime {
             return "HT"
+        }
+        if match.matchStatus == .scheduled {
+            return Calendar.current.isDate(match.startTime, inSameDayAs: liveCalendarToday) ? "TODAY" : "UPCOMING"
         }
         if let minute = match.minute {
             return "LIVE \(minute)'"
@@ -1945,7 +2085,7 @@ struct LiveScreen: View {
     private func liveVenuesAndPickupTodaySection(rows: [LiveVenuesPickupRow]) -> some View {
         livePanelSection(
             kind: .venuesPickup,
-            title: "Venues & Community Games Today",
+            title: "Venues & Pickup Games Today",
             subtitle: "Watch parties, pickup runs, and plans near you"
         ) {
             if rows.isEmpty {

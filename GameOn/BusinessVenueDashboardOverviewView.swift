@@ -173,6 +173,7 @@ struct BusinessVenueDashboardOverviewView: View {
     let onMenu: () -> Void
     let onAddGame: () -> Void
     let onAddVenue: () -> Void
+    let onClaimVenue: () -> Void
     let onTonightGames: () -> Void
     let onPredictions: () -> Void
     let onAnalytics: () -> Void
@@ -195,6 +196,14 @@ struct BusinessVenueDashboardOverviewView: View {
 
     private var hasManagedVenues: Bool {
         data.managedVenueCount > 0
+    }
+
+    private var needsBusinessVenueSetup: Bool {
+        !hasManagedVenues && data.pendingVenues.isEmpty
+    }
+
+    private var hasPendingVenueSetupReview: Bool {
+        !hasManagedVenues && !data.pendingVenues.isEmpty
     }
 
     private var venueActionLoadingSubtitle: String? {
@@ -221,6 +230,11 @@ struct BusinessVenueDashboardOverviewView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            if needsBusinessVenueSetup {
+                completeBusinessSetupCard
+            } else if hasPendingVenueSetupReview {
+                pendingBusinessSetupCard
+            }
             quickActions
             tonightSection
             if showsManagedVenuesSection {
@@ -241,6 +255,97 @@ struct BusinessVenueDashboardOverviewView: View {
         .onChange(of: businessId) { _, _ in
             logBusinessUsageStatusDebug()
         }
+    }
+
+    private var completeBusinessSetupCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "building.2.crop.circle.badge.plus")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundStyle(FGColor.accentBlue)
+                    .frame(width: 42, height: 42)
+                    .background(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.18 : 0.10))
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("Complete your business setup")
+                        .font(FGTypography.cardTitle.weight(.bold))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                    Text("Add or claim your first venue so fans can find your watch parties and events.")
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            HStack(spacing: 10) {
+                setupActionButton(title: "Add Venue", systemImage: "plus.circle.fill", action: onAddVenue)
+                setupActionButton(title: "Claim Venue", systemImage: "checkmark.seal.fill", action: onClaimVenue)
+            }
+        }
+        .padding(14)
+        .background(
+            LinearGradient(
+                colors: [
+                    FGColor.accentBlue.opacity(colorScheme == .dark ? 0.16 : 0.10),
+                    FGColor.accentGreen.opacity(colorScheme == .dark ? 0.12 : 0.07),
+                    FGColor.cardBackground(colorScheme)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.28 : 0.16), lineWidth: 1)
+        }
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.20 : 0.05), radius: 12, y: 6)
+    }
+
+    private var pendingBusinessSetupCard: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "hourglass.circle.fill")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(.orange)
+                .frame(width: 40, height: 40)
+                .background(Color.orange.opacity(colorScheme == .dark ? 0.18 : 0.10))
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text("Venue setup pending review")
+                    .font(FGTypography.cardTitle.weight(.bold))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                Text("Your venue claim is being reviewed. Venue tools unlock once a venue is approved.")
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(14)
+        .background(Color.orange.opacity(colorScheme == .dark ? 0.14 : 0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(Color.orange.opacity(colorScheme == .dark ? 0.30 : 0.18), lineWidth: 1)
+        }
+    }
+
+    private func setupActionButton(title: String, systemImage: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 7) {
+                Image(systemName: systemImage)
+                    .font(.caption.weight(.bold))
+                Text(title)
+                    .font(FGTypography.caption.weight(.bold))
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 9)
+            .background(FGColor.brandGradient)
+            .clipShape(Capsule(style: .continuous))
+        }
+        .buttonStyle(.plain)
     }
 
     private var quickActions: some View {
@@ -453,7 +558,7 @@ struct BusinessVenueDashboardOverviewView: View {
 
     private var managedVenuesSection: some View {
         Group {
-            if isVenueHydrationReady {
+            if isVenueHydrationReady || venueHydrationReason == "noManagedVenues" {
                 managedVenuesReadySection
             } else {
                 managedVenuesLoadingPlaceholder

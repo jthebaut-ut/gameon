@@ -31,9 +31,6 @@ struct ChatInboxNativeAdSlot: Hashable {
 enum ChatInboxAdPlacement {
     /// Dedicated AdMob in-flight slot id (separate from venue comment ad slots 0/1).
     static let nativeAdSlotIndex = 2
-    private static let firstAdAfterConversationPosition = 3
-    private static let secondAdAdditionalConversationCount = 5
-    private static let recurringAdditionalConversationCount = 7
 
     static var debugOverrideEnabled: Bool {
 #if DEBUG
@@ -48,18 +45,12 @@ enum ChatInboxAdPlacement {
     }
 
     static func skippedReason(conversationCount: Int) -> String? {
-        shouldInsertNativeAd(conversationCount: conversationCount) ? nil : "notEnoughRows"
+        shouldInsertNativeAd(conversationCount: conversationCount) ? nil : "noConversations"
     }
 
     static func insertionPositions(for conversationCount: Int) -> [Int] {
-        guard conversationCount >= firstAdAfterConversationPosition else { return [] }
-        var positions = [firstAdAfterConversationPosition]
-        var nextPosition = firstAdAfterConversationPosition + secondAdAdditionalConversationCount
-        while nextPosition <= conversationCount {
-            positions.append(nextPosition)
-            nextPosition += recurringAdditionalConversationCount
-        }
-        return positions
+        guard conversationCount > 0 else { return [] }
+        return [conversationCount]
     }
 
     static func nativeAdSlots(for conversationCount: Int) -> [ChatInboxNativeAdSlot] {

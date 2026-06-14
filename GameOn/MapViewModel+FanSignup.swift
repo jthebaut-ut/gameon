@@ -7,6 +7,7 @@ struct FanSignupProfileInput: Sendable {
     let bio: String
     let avatarData: Data?
     let favoriteTeamIDs: [String]
+    let nationalTeamIdentity: NationalTeamIdentity?
 }
 
 enum FanSignupFailureStep: String, Sendable {
@@ -129,6 +130,18 @@ extension MapViewModel {
 
         await MainActor.run { authErrorMessage = "" }
 
+        if await businessAccountExistsForOwnerEmailOnly(fanEmail) {
+            let message = Self.fanLoginBlockedBecauseBusinessMessage
+            await MainActor.run { authErrorMessage = message }
+            print("[SignupUX] submitFailed step=auth error=\(message)")
+            return FanSignupSubmitOutcome(
+                succeeded: false,
+                failureStep: .auth,
+                errorMessage: message,
+                authSucceeded: false
+            )
+        }
+
         print("[EmailConfirmDebug] formValidationPassed=true")
 
         let signUpResponse: AuthResponse
@@ -169,7 +182,11 @@ extension MapViewModel {
                     profile: profile,
                     recordFanGuidelinesAcceptance: recordFanGuidelinesAcceptance
                 )
-                markEmailVerificationPending(email: fanEmail, kind: .fan)
+                markEmailVerificationPending(
+                    email: fanEmail,
+                    kind: .fan,
+                    includeEmailDeliveryGuidance: true
+                )
             }
             print("[EmailConfirmDebug] authUserCreatedPending=true")
             print("[EmailConfirmDebug] profileCreationDeferred=true")
@@ -185,6 +202,17 @@ extension MapViewModel {
             await undoPartialSupabaseSessionAfterAccountTypeMismatch()
             let message = Self.fanLoginBlockedBecauseBusinessMessage
             await MainActor.run { authErrorMessage = message }
+            print("[SignupUX] submitFailed step=auth error=\(message)")
+            return FanSignupSubmitOutcome(
+                succeeded: false,
+                failureStep: .auth,
+                errorMessage: message,
+                authSucceeded: false
+            )
+        }
+
+        guard await claimAccountIdentity(.fan, context: "registerFanAccountWithProfile") else {
+            let message = await MainActor.run { authErrorMessage }
             print("[SignupUX] submitFailed step=auth error=\(message)")
             return FanSignupSubmitOutcome(
                 succeeded: false,
@@ -326,6 +354,16 @@ extension MapViewModel {
             )
         }
 
+        guard await claimAccountIdentity(.fan, context: "completeApplePendingFanSignup") else {
+            let message = await MainActor.run { authErrorMessage }
+            return FanSignupSubmitOutcome(
+                succeeded: false,
+                failureStep: .auth,
+                errorMessage: message,
+                authSucceeded: false
+            )
+        }
+
         await MainActor.run {
             currentUserAuthId = session.user.id
             currentUserEmail = fanEmail
@@ -387,6 +425,11 @@ extension MapViewModel {
             await undoPartialSupabaseSessionAfterAccountTypeMismatch()
             let message = Self.fanLoginBlockedBecauseBusinessMessage
             await MainActor.run { authErrorMessage = message }
+            return true
+        }
+
+        guard await claimAccountIdentity(.fan, context: "completePendingEmailFanSignupAfterConfirmation") else {
+            await MainActor.run { emailVerificationError = authErrorMessage }
             return true
         }
 
@@ -488,6 +531,15 @@ extension MapViewModel {
             print("[SignupUX] favoriteTeamsSaved count=\(sorted.count) synced=\(synced)")
         } else {
             print("[SignupUX] favoriteTeamsSaved count=0")
+        }
+
+        if let nationalTeamIdentity = profile.nationalTeamIdentity {
+            if let err = await saveNationalTeamIdentity(nationalTeamIdentity) {
+                return err
+            }
+            print("[SignupUX] nationalTeamSaved country=\(nationalTeamIdentity.countryCode)")
+        } else {
+            print("[SignupUX] nationalTeamSaved skipped=true")
         }
 
         return nil

@@ -113,6 +113,7 @@ extension MapViewModel {
 
     static let hostedGameRPCDebugDetailsUserInfoKey = "BusinessHostedGameRPCDebugDetails"
     static let businessLocationRPCDebugDetailsUserInfoKey = "BusinessLocationRPCDebugDetails"
+    private static let venueClaimAdminEmailQueuedClaimIDsKey = "GameOn.venueClaimAdminEmailQueuedClaimIDs"
 
     // MARK: - Discover → claim this business (Phase A; no `venue_id` on insert yet)
 
@@ -257,6 +258,11 @@ extension MapViewModel {
             return
         }
 
+        if await blockBusinessSignupIfEmailAlreadyReserved(ownerEmail) {
+            print("[BusinessAccountConflict] email=\(ownerEmail) blocked_before_auth_signup=true")
+            return
+        }
+
 #if DEBUG
         print("[BusinessSignup] validation passed proceeding to auth.signUp")
 #endif
@@ -268,19 +274,26 @@ extension MapViewModel {
             print("[BusinessSignup] auth signup started email=\(ownerEmail)")
 #endif
             print("[EmailConfirmDebug] callingAuthSignUp=true")
+            print("[BusinessEmailVerification] signUpStarted email=\(ownerEmail) redirect_to=\(Self.emailVerificationRedirectURL.absoluteString)")
             signUpResponse = try await supabase.auth.signUp(
                 email: ownerEmail,
                 password: password,
                 redirectTo: Self.emailVerificationRedirectURL
             )
             print("[EmailConfirmDebug] authSignUpSucceeded=true")
-            print("[EmailConfirmDebug] authSignUpUserId=\(signUpResponse.user.id.uuidString.lowercased())")
-            print("[EmailConfirmDebug] authSignUpSessionNil=\(signUpResponse.session == nil)")
+            for line in Self.businessEmailVerificationSignupDebugLines(
+                response: signUpResponse,
+                redirectURL: Self.emailVerificationRedirectURL
+            ) {
+                print(line)
+            }
         } catch {
 #if DEBUG
             print("[BusinessSignup] auth signup error localized=\(error.localizedDescription) full=\(error)")
 #endif
+            let nsError = error as NSError
             print("[EmailConfirmDebug] authSignUpFailed error=\(String(reflecting: error)) localized=\(error.localizedDescription)")
+            print("[BusinessEmailVerification] signUpFailed email=\(ownerEmail) domain=\(nsError.domain) code=\(nsError.code) localized=\(error.localizedDescription) raw=\(String(reflecting: error)) userInfo=\(nsError.userInfo)")
             await MainActor.run {
                 let message = error.localizedDescription.lowercased()
 
@@ -301,6 +314,17 @@ extension MapViewModel {
 
         let signUpSession = signUpResponse.session
         let restoredSession = try? await supabase.auth.session
+        if let session = signUpSession ?? restoredSession {
+            print("[EmailConfirmDebug] postSignUpSessionAvailable=true emailConfirmed=\(Self.userEmailConfirmed(session.user)) confirmedAt=\((session.user.emailConfirmedAt ?? session.user.confirmedAt)?.description ?? "nil")")
+            print("[BusinessEmailVerification] postSignUpSessionAvailable=true email_confirmed_at=\((session.user.emailConfirmedAt ?? session.user.confirmedAt)?.description ?? "nil") confirmation_sent_at=\(session.user.confirmationSentAt?.description ?? "nil") \(Self.authUserProviderDebugSummary(session.user))")
+            if Self.userEmailConfirmed(session.user) {
+                print("[EmailConfirmDebug] noEmailConfirmationRequiredBySupabase=true manualEmailPasswordSignup=true")
+                print("[BusinessEmailVerification] noEmailConfirmationRequiredBySupabase=true manualEmailPasswordSignup=true")
+            }
+        } else {
+            print("[EmailConfirmDebug] postSignUpSessionAvailable=false")
+            print("[BusinessEmailVerification] postSignUpSessionAvailable=false")
+        }
         guard let session = signUpSession ?? restoredSession,
               Self.userEmailConfirmed(session.user) else {
 #if DEBUG
@@ -308,17 +332,25 @@ extension MapViewModel {
 #endif
             await forceLogout(reason: "businessSignupNeedsEmailConfirmation", source: "MapViewModel.registerVenueOwner")
             await MainActor.run {
-                pendingBusinessEmailSignupDraft = PendingBusinessEmailSignupDraft(
+                let draft = PendingBusinessEmailSignupDraft(
                     email: ownerEmail,
                     signup: signup,
                     coverPhotoJPEGData: coverPhotoJPEGData,
                     menuPhotoJPEGData: menuPhotoJPEGData,
                     recordVenueGuidelinesAcceptance: recordVenueGuidelinesAcceptance
                 )
-                markEmailVerificationPending(email: ownerEmail, kind: .business)
+                pendingBusinessEmailSignupDraft = draft
+                persistPendingBusinessEmailSignupDraft(draft)
+                markEmailVerificationPending(
+                    email: ownerEmail,
+                    kind: .business,
+                    verificationEmailConfirmedAsSent: Self.userConfirmationEmailConfirmedAsSent(signUpResponse.user),
+                    includeEmailDeliveryGuidance: true
+                )
             }
             print("[EmailConfirmDebug] authUserCreatedPending=true")
             print("[EmailConfirmDebug] businessCreationDeferred=true")
+            print("[BusinessEmailVerification] businessCreationDeferred=true verificationEmailConfirmedAsSent=\(Self.userConfirmationEmailConfirmedAsSent(signUpResponse.user))")
             return
         }
 
@@ -338,7 +370,11 @@ extension MapViewModel {
             print("[AuthAccountTypeGate] business registration blocked fanEmail=\(ownerEmail)")
 #endif
             await undoPartialSupabaseSessionAfterAccountTypeMismatch()
-            await MainActor.run { venueAuthErrorMessage = Self.businessLoginBlockedBecauseFanMessage }
+            await MainActor.run { venueAuthErrorMessage = Self.businessSignupBlockedBecauseFanMessage }
+            return
+        }
+
+        guard await claimAccountIdentity(.business, context: "registerVenueOwner") else {
             return
         }
 
@@ -553,6 +589,8 @@ extension MapViewModel {
                 venueClaimSubmittedDate = inserted.created_at ?? ""
                 venueAuthErrorMessage = ""
                 venueOwnerJustCompletedRegistration = true
+                pendingBusinessEmailSignupDraft = nil
+                clearPersistedPendingBusinessEmailSignupDraft()
             }
 
 #if DEBUG
@@ -626,7 +664,12 @@ extension MapViewModel {
 
         if await activeFanUserProfileExistsForEmail(ownerEmail) {
             await undoPartialSupabaseSessionAfterAccountTypeMismatch()
-            await MainActor.run { venueAuthErrorMessage = Self.businessLoginBlockedBecauseFanMessage }
+            await MainActor.run { venueAuthErrorMessage = Self.businessSignupBlockedBecauseFanMessage }
+            return true
+        }
+
+        guard await claimAccountIdentity(.business, context: "completePendingBusinessSignupAfterConfirmation") else {
+            await MainActor.run { emailVerificationError = venueAuthErrorMessage }
             return true
         }
 
@@ -800,6 +843,7 @@ extension MapViewModel {
                 venueAuthErrorMessage = ""
                 venueOwnerJustCompletedRegistration = true
                 pendingBusinessEmailSignupDraft = nil
+                clearPersistedPendingBusinessEmailSignupDraft()
                 pendingEmailVerificationEmail = ""
                 pendingEmailVerificationKind = nil
                 emailVerificationError = ""
@@ -913,6 +957,10 @@ extension MapViewModel {
 #endif
                 await undoPartialSupabaseSessionAfterAccountTypeMismatch()
                 await MainActor.run { venueAuthErrorMessage = Self.businessLoginBlockedBecauseFanMessage }
+                return
+            }
+
+            guard await claimAccountIdentity(.business, context: "loginVenueOwner") else {
                 return
             }
 
@@ -1326,6 +1374,7 @@ extension MapViewModel {
                 .select("id")
                 .eq("owner_email", value: ownerEmail)
                 .eq("admin_status", value: "active")
+                .in("business_origin", values: BusinessOrigin.loginOwnedValues)
                 .order("created_at", ascending: true)
                 .limit(1)
                 .execute()
@@ -2099,9 +2148,10 @@ extension MapViewModel {
 
         return try await supabase
             .from("businesses")
-            .select("id,display_name,owner_email,owner_user_id,admin_status,created_at,entitlement_updated_at,free_active_venues_selected_at")
+            .select("id,display_name,owner_email,owner_user_id,admin_status,business_origin,created_at,entitlement_updated_at,free_active_venues_selected_at")
             .in("id", values: businessIds.map(\.uuidString))
             .eq("admin_status", value: "active")
+            .in("business_origin", values: BusinessOrigin.loginOwnedValues)
             .execute()
             .value
     }
@@ -2738,6 +2788,26 @@ extension MapViewModel {
 
     /// Fire-and-forget admin email via Edge Function ``notify-venue-claim``.
     private func notifyVenueClaimAdminEmail(payload: VenueClaimAdminNotifyPayload) {
+        let claimID = payload.claim_id.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !claimID.isEmpty else {
+#if DEBUG
+            print("[VenueClaimNotify] skipped missing claim_id")
+#endif
+            return
+        }
+
+        var persistedClaimIDs = Set(UserDefaults.standard.stringArray(forKey: Self.venueClaimAdminEmailQueuedClaimIDsKey) ?? [])
+        if venueClaimAdminEmailQueuedClaimIDs.contains(claimID) || persistedClaimIDs.contains(claimID) {
+#if DEBUG
+            print("[VenueClaimNotify] skipped duplicate notification claim_id=\(claimID)")
+#endif
+            return
+        }
+
+        venueClaimAdminEmailQueuedClaimIDs.insert(claimID)
+        persistedClaimIDs.insert(claimID)
+        UserDefaults.standard.set(Array(persistedClaimIDs), forKey: Self.venueClaimAdminEmailQueuedClaimIDsKey)
+
         let bodyData: Data
         do {
             bodyData = try JSONEncoder().encode(payload)
@@ -2745,6 +2815,9 @@ extension MapViewModel {
 #if DEBUG
             print("[VenueClaimNotify] encode failed:", error)
 #endif
+            venueClaimAdminEmailQueuedClaimIDs.remove(claimID)
+            persistedClaimIDs.remove(claimID)
+            UserDefaults.standard.set(Array(persistedClaimIDs), forKey: Self.venueClaimAdminEmailQueuedClaimIDsKey)
             return
         }
 #if DEBUG
@@ -4622,17 +4695,19 @@ extension MapViewModel {
             if let ownerEmail, OwnerBusinessEmail.isValidStrict(ownerEmail) {
                 return try await supabase
                     .from("businesses")
-                    .select("id,display_name,owner_email,owner_user_id,admin_status,created_at,entitlement_updated_at,free_active_venues_selected_at")
+                    .select("id,display_name,owner_email,owner_user_id,admin_status,business_origin,created_at,entitlement_updated_at,free_active_venues_selected_at")
                     .eq("admin_status", value: adminStatus)
                     .eq("owner_email", value: ownerEmail)
+                    .in("business_origin", values: BusinessOrigin.loginOwnedValues)
                     .execute()
                     .value
             } else if let ownerUserId {
                 return try await supabase
                     .from("businesses")
-                    .select("id,display_name,owner_email,owner_user_id,admin_status,created_at,entitlement_updated_at,free_active_venues_selected_at")
+                    .select("id,display_name,owner_email,owner_user_id,admin_status,business_origin,created_at,entitlement_updated_at,free_active_venues_selected_at")
                     .eq("admin_status", value: adminStatus)
                     .eq("owner_user_id", value: ownerUserId)
+                    .in("business_origin", values: BusinessOrigin.loginOwnedValues)
                     .execute()
                     .value
             } else {
@@ -4651,9 +4726,10 @@ extension MapViewModel {
         do {
             return try await supabase
                 .from("businesses")
-                .select("id,display_name,owner_email,owner_user_id,admin_status,created_at,entitlement_updated_at,free_active_venues_selected_at")
+                .select("id,display_name,owner_email,owner_user_id,admin_status,business_origin,created_at,entitlement_updated_at,free_active_venues_selected_at")
                 .in("id", values: ids.map(\.uuidString))
                 .eq("admin_status", value: "active")
+                .in("business_origin", values: BusinessOrigin.loginOwnedValues)
                 .execute()
                 .value
         } catch {
@@ -4787,9 +4863,10 @@ extension MapViewModel {
             if OwnerBusinessEmail.isValidStrict(emailTrimmed) {
                 businessesFromEmail = try await supabase
                     .from("businesses")
-                    .select("id,display_name,owner_email,owner_user_id,admin_status,created_at,entitlement_updated_at,free_active_venues_selected_at")
+                    .select("id,display_name,owner_email,owner_user_id,admin_status,business_origin,created_at,entitlement_updated_at,free_active_venues_selected_at")
                     .eq("owner_email", value: emailTrimmed)
                     .eq("admin_status", value: "active")
+                    .in("business_origin", values: BusinessOrigin.loginOwnedValues)
                     .execute()
                     .value
             }
@@ -4798,9 +4875,10 @@ extension MapViewModel {
             if let authUid {
                 businessesFromUser = try await supabase
                     .from("businesses")
-                    .select("id,display_name,owner_email,owner_user_id,admin_status,created_at,entitlement_updated_at,free_active_venues_selected_at")
+                    .select("id,display_name,owner_email,owner_user_id,admin_status,business_origin,created_at,entitlement_updated_at,free_active_venues_selected_at")
                     .eq("owner_user_id", value: authUid)
                     .eq("admin_status", value: "active")
+                    .in("business_origin", values: BusinessOrigin.loginOwnedValues)
                     .execute()
                     .value
             }
@@ -4814,9 +4892,10 @@ extension MapViewModel {
             if OwnerBusinessEmail.isValidStrict(emailTrimmed) {
                 archivedFromEmail = try await supabase
                     .from("businesses")
-                    .select("id,display_name,owner_email,owner_user_id,admin_status,created_at,entitlement_updated_at,free_active_venues_selected_at")
+                    .select("id,display_name,owner_email,owner_user_id,admin_status,business_origin,created_at,entitlement_updated_at,free_active_venues_selected_at")
                     .eq("owner_email", value: emailTrimmed)
                     .eq("admin_status", value: "archived")
+                    .in("business_origin", values: BusinessOrigin.loginOwnedValues)
                     .execute()
                     .value
             }
@@ -4825,9 +4904,10 @@ extension MapViewModel {
             if let authUid {
                 archivedFromUser = try await supabase
                     .from("businesses")
-                    .select("id,display_name,owner_email,owner_user_id,admin_status,created_at,entitlement_updated_at,free_active_venues_selected_at")
+                    .select("id,display_name,owner_email,owner_user_id,admin_status,business_origin,created_at,entitlement_updated_at,free_active_venues_selected_at")
                     .eq("owner_user_id", value: authUid)
                     .eq("admin_status", value: "archived")
+                    .in("business_origin", values: BusinessOrigin.loginOwnedValues)
                     .execute()
                     .value
             }
@@ -4868,9 +4948,10 @@ extension MapViewModel {
                     let idStrings = bids.map(\.uuidString)
                     let fromVenueLinks: [BusinessRow] = try await supabase
                         .from("businesses")
-                        .select("id,display_name,owner_email,owner_user_id,admin_status,created_at,entitlement_updated_at,free_active_venues_selected_at")
+                        .select("id,display_name,owner_email,owner_user_id,admin_status,business_origin,created_at,entitlement_updated_at,free_active_venues_selected_at")
                         .in("id", values: idStrings)
                         .eq("admin_status", value: "active")
+                        .in("business_origin", values: BusinessOrigin.loginOwnedValues)
                         .execute()
                         .value
                     if !fromVenueLinks.isEmpty {

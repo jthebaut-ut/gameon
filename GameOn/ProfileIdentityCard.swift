@@ -11,15 +11,23 @@ enum ProfilePhase1PersonalizationCache {
 
     static var incomingPokesLoadedAtByAuthId: [UUID: Date] = [:]
     static var suggestedFansLoadedAtByAuthId: [UUID: Date] = [:]
+    static var suggestedFansByAuthId: [UUID: [FriendSuggestionProfile]] = [:]
+
+    static func dismissCachedSuggestedFan(authId: UUID?, dismissedUserId: UUID) {
+        guard let authId else { return }
+        suggestedFansByAuthId[authId]?.removeAll { $0.userID == dismissedUserId }
+    }
 
     static func clear(for authId: UUID?) {
         guard let authId else {
             incomingPokesLoadedAtByAuthId.removeAll()
             suggestedFansLoadedAtByAuthId.removeAll()
+            suggestedFansByAuthId.removeAll()
             return
         }
         incomingPokesLoadedAtByAuthId.removeValue(forKey: authId)
         suggestedFansLoadedAtByAuthId.removeValue(forKey: authId)
+        suggestedFansByAuthId.removeValue(forKey: authId)
     }
 }
 
@@ -111,6 +119,7 @@ struct ProfileIdentityCard: View {
     @AppStorage("profileSponsoredPlacement.lastVenueId") private var lastSponsoredProfileVenueIDRaw = ""
     @AppStorage("profileSponsoredPlacement.lastPlacementId") private var lastSponsoredProfilePlacementIDRaw = ""
     @AppStorage("profileSponsoredPlacement.repeatCount") private var sponsoredProfileVenueRepeatCount = 0
+    @AppStorage("profileVenuePromotion.dismissed") private var profileVenuePromotionDismissed = false
 
     private static let bioCharacterLimit = 160
     private static let incomingPokesHighlightsLimit = 50
@@ -278,16 +287,6 @@ struct ProfileIdentityCard: View {
         max(viewModel.favoriteVenueIDs.count, viewModel.followingTabSavedVenues.count)
     }
 
-    private func logFanUpdatesStoreMigrationDebug() {
-#if DEBUG
-        print("[FanUpdatesStoreMigrationDebug] ProfileIdentityReadsStore=true")
-#endif
-    }
-
-    private func logSponsoredProfileBodyRender() {
-        print("[SponsoredPlacementDebug] profileBodyRender=true isAccountTabActive=\(isAccountTabActive) isLoggedIn=\(viewModel.isLoggedIn) authId=\(viewModel.currentUserAuthId?.uuidString.lowercased() ?? "nil") businessContext=\(shouldBlockFanIdentityCardForBusiness)")
-    }
-
     private func loadProfileStatsIfNeeded() async {
         guard isAccountTabActive, let userId = viewModel.currentUserAuthId else { return }
         let email = await viewModel.strictNormalizedSessionEmailForSocialTables()
@@ -321,9 +320,6 @@ struct ProfileIdentityCard: View {
     }
 
     var body: some View {
-        let _: Void = logFanUpdatesStoreMigrationDebug()
-        let _: Void = logSponsoredProfileBodyRender()
-
         if shouldBlockFanIdentityCardForBusiness {
             EmptyView()
                 .onAppear {
@@ -333,7 +329,7 @@ struct ProfileIdentityCard: View {
 #endif
                 }
         } else {
-            VStack(alignment: .leading, spacing: Self.profileMajorSectionSpacing) {
+            LazyVStack(alignment: .leading, spacing: Self.profileMajorSectionSpacing) {
                 if viewModel.needsFanHandleSelection && !viewModel.needsBlockingFanIdentitySetup {
                     handlePromptBanner
                         .padding(.horizontal, 16)
@@ -357,6 +353,14 @@ struct ProfileIdentityCard: View {
                     favoriteTeamsSection
                 }
 
+                profileSectionContainer(.secondary, accent: [Self.profileHomeCrowdAccent]) {
+                    homeCrowdSection
+                }
+
+                profileSectionContainer(.secondary, accent: [FGColor.accentBlue]) {
+                    openToPreviewSection
+                }
+
                 if canShowSuggestedFans {
                     profileSectionContainer(.secondary, accent: [FGColor.accentBlue, Self.profileTealAccent]) {
                         suggestedFansSection
@@ -370,17 +374,9 @@ struct ProfileIdentityCard: View {
                     }
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-
-                profileSectionContainer(.secondary, accent: [Self.profileHomeCrowdAccent]) {
-                    homeCrowdSection
-                }
-
-                profileSectionContainer(.secondary, accent: [FGColor.accentBlue]) {
-                    openToPreviewSection
-                }
-                .padding(.bottom, 24)
             }
             .padding(.top, 14)
+            .padding(.bottom, 24)
             .background(cardShellBackground)
             .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
             .overlay(cardBorder)
@@ -389,6 +385,7 @@ struct ProfileIdentityCard: View {
             .onAppear {
                 print("[SponsoredPlacementDebug] profileIdentityCardAppeared=true isAccountTabActive=\(isAccountTabActive)")
 #if DEBUG
+                print("[FanUpdatesStoreMigrationDebug] ProfileIdentityReadsStore=true")
                 print("[ProfileIdentityCardDebug] layout=modern_light_social_profile")
                 print("[ProfileBioDebug] identityCardDisplayedBio=\(bioLine)")
                 print("[ProfileHierarchyDebug] sectionSpacingApplied=\(Int(Self.profileMajorSectionSpacing))")
@@ -780,22 +777,32 @@ struct ProfileIdentityCard: View {
 
     @ViewBuilder
     private var pokesHighlightsSection: some View {
-        let _ = logPokeCompactRowState()
         if shouldShowCompactPokesRow {
+            let recentPokers = uniqueRecentPokersForAvatars
             Button {
 #if DEBUG
                 print("[PokeUIFlowDebug] openingFullPokeSheet=true")
 #endif
                 showPokesHistorySheet = true
             } label: {
-                HStack(spacing: 10) {
+                HStack(spacing: 11) {
                     ZStack(alignment: .bottomTrailing) {
-                        compactPokesAvatarStack
+                        compactPokesAvatarStack(recentPokers: recentPokers)
                         Image(systemName: "hand.wave.fill")
-                            .font(.system(size: 9, weight: .bold))
+                            .font(.system(size: 9.5, weight: .bold))
                             .foregroundStyle(.white)
-                            .frame(width: 19, height: 19)
-                            .background(Circle().fill(FGColor.accentBlue))
+                            .frame(width: 20, height: 20)
+                            .background(
+                                LinearGradient(
+                                    colors: [
+                                        Color.orange.opacity(0.95),
+                                        FGColor.accentGreen.opacity(0.92)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                in: Circle()
+                            )
                             .overlay {
                                 Circle()
                                     .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.18 : 0.92), lineWidth: 1)
@@ -804,10 +811,10 @@ struct ProfileIdentityCard: View {
                             .pokesUnseenWaveIconEmphasis(isActive: viewModel.hasUnseenPokes)
                     }
 
-                    VStack(alignment: .leading, spacing: 3) {
+                    VStack(alignment: .leading, spacing: 4) {
                         HStack(spacing: 6) {
-                            Text(compactPokesSummaryCopy)
-                                .font(.system(size: 13, weight: .heavy, design: .rounded))
+                            Text(compactPokesSummaryCopy(recentPokers: recentPokers))
+                                .font(.system(size: 13.5, weight: .heavy, design: .rounded))
                                 .foregroundStyle(FGColor.primaryText(colorScheme))
                                 .lineLimit(1)
 
@@ -823,7 +830,7 @@ struct ProfileIdentityCard: View {
                         }
                         .pokesUnseenTitleRowEmphasis(isActive: viewModel.hasUnseenPokes)
 
-                        Text("Tap for full poke history")
+                        Text("Tap to view fan interaction")
                             .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                             .foregroundStyle(FGColor.mutedText(colorScheme))
                             .lineLimit(1)
@@ -831,12 +838,19 @@ struct ProfileIdentityCard: View {
 
                     Spacer(minLength: 0)
 
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.74))
+                    HStack(spacing: 5) {
+                        Text("History")
+                            .font(.system(size: 10, weight: .black, design: .rounded))
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 8.5, weight: .black))
+                    }
+                    .foregroundStyle(FGColor.accentBlue)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 6)
+                    .background(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.16 : 0.10), in: Capsule())
                 }
-                .padding(.horizontal, 12)
-                .frame(height: 64)
+                .padding(.horizontal, 13)
+                .frame(height: 66)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background {
                     pokesHighlightsCardBackground
@@ -844,7 +858,7 @@ struct ProfileIdentityCard: View {
                 .pokesUnseenHighlightsEmphasis(isActive: viewModel.hasUnseenPokes)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(pokesHighlightsAccessibilityLabel)
+            .accessibilityLabel(pokesHighlightsAccessibilityLabel(recentPokers: recentPokers))
             .accessibilityHint("Opens Pokes history")
         }
     }
@@ -854,9 +868,10 @@ struct ProfileIdentityCard: View {
             .fill(
                 LinearGradient(
                     colors: [
-                        Color.white.opacity(colorScheme == .dark ? 0.07 : 0.96),
-                        FGColor.accentBlue.opacity(colorScheme == .dark ? 0.10 : 0.09),
-                        FGColor.accentGreen.opacity(colorScheme == .dark ? 0.04 : 0.045)
+                        Color.white.opacity(colorScheme == .dark ? 0.08 : 0.97),
+                        Color.orange.opacity(colorScheme == .dark ? 0.10 : 0.07),
+                        FGColor.accentGreen.opacity(colorScheme == .dark ? 0.08 : 0.055),
+                        FGColor.accentBlue.opacity(colorScheme == .dark ? 0.08 : 0.055)
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -867,7 +882,8 @@ struct ProfileIdentityCard: View {
                     .strokeBorder(
                         LinearGradient(
                             colors: [
-                                FGColor.accentBlue.opacity(colorScheme == .dark ? 0.18 : 0.16),
+                                Color.orange.opacity(colorScheme == .dark ? 0.20 : 0.17),
+                                FGColor.accentGreen.opacity(colorScheme == .dark ? 0.18 : 0.14),
                                 Color.white.opacity(colorScheme == .dark ? 0.06 : 0.78)
                             ],
                             startPoint: .topLeading,
@@ -878,9 +894,9 @@ struct ProfileIdentityCard: View {
             }
     }
 
-    private var compactPokesAvatarStack: some View {
+    private func compactPokesAvatarStack(recentPokers: [ProfilePokeIncomingItem]) -> some View {
         ZStack {
-            if uniqueRecentPokersForAvatars.isEmpty {
+            if recentPokers.isEmpty {
                 Circle()
                     .fill(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.14 : 0.10))
                     .frame(width: 38, height: 38)
@@ -894,7 +910,7 @@ struct ProfileIdentityCard: View {
                             .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.10 : 0.9), lineWidth: 1)
                     }
             } else {
-                let visiblePokers = Array(uniqueRecentPokersForAvatars.prefix(4))
+                let visiblePokers = Array(recentPokers.prefix(4))
                 ZStack(alignment: .leading) {
                     ForEach(Array(visiblePokers.enumerated()), id: \.element.id) { index, poke in
                         pokesAvatar(poke)
@@ -960,16 +976,16 @@ struct ProfileIdentityCard: View {
         incomingPokeTotalCount > 0
     }
 
-    private var compactPokesSummaryCopy: String {
+    private func compactPokesSummaryCopy(recentPokers: [ProfilePokeIncomingItem]) -> String {
         let count = incomingPokeTotalCount
         guard count > 0 else { return "" }
-        let firstName = uniqueRecentPokersForAvatars.first?.pokerDisplayName
+        let firstName = recentPokers.first?.pokerDisplayName
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if !firstName.isEmpty {
             if count == 1 {
-                return "\(firstName) poked you"
+                return "\(firstName) says hello"
             }
-            return "\(firstName) and \(count - 1) \(count == 2 ? "other" : "others") poked you"
+            return "\(firstName) and \(count - 1) \(count == 2 ? "other" : "others") said hello"
         }
         if count == 1 {
             return "1 recent poke"
@@ -977,18 +993,8 @@ struct ProfileIdentityCard: View {
         return "\(count) recent pokes"
     }
 
-    private var pokesHighlightsAccessibilityLabel: String {
-        "Pokes, \(compactPokesSummaryCopy)"
-    }
-
-    private func logPokeCompactRowState() {
-#if DEBUG
-        print("[PokeUIFlowDebug] compactRowVisible=\(shouldShowCompactPokesRow)")
-        print("[PokeUIFlowDebug] pokeCount=\(incomingPokeTotalCount)")
-        if !shouldShowCompactPokesRow {
-            print("[PokeUIFlowDebug] emptyPokesHidden=true")
-        }
-#endif
+    private func pokesHighlightsAccessibilityLabel(recentPokers: [ProfilePokeIncomingItem]) -> String {
+        "Pokes, \(compactPokesSummaryCopy(recentPokers: recentPokers))"
     }
 
     private var pokesHistorySheet: some View {
@@ -1245,6 +1251,9 @@ struct ProfileIdentityCard: View {
            !ignoreCache,
            let loadedAt = ProfilePhase1PersonalizationCache.suggestedFansLoadedAtByAuthId[authId],
            Date().timeIntervalSince(loadedAt) < ProfilePhase1PersonalizationCache.ttlSeconds {
+            suggestedFans = ProfilePhase1PersonalizationCache.suggestedFansByAuthId[authId] ?? suggestedFans
+            suggestedFansMessage = nil
+            isLoadingSuggestedFans = false
 #if DEBUG
             print("[PerfPhase1C] profileCacheHit key=suggestedFans")
 #endif
@@ -1283,6 +1292,7 @@ struct ProfileIdentityCard: View {
                 isLoadingSuggestedFans = false
                 if let authId = viewModel.currentUserAuthId {
                     ProfilePhase1PersonalizationCache.suggestedFansLoadedAtByAuthId[authId] = Date()
+                    ProfilePhase1PersonalizationCache.suggestedFansByAuthId[authId] = filteredSuggestions
                 }
             }
 #if DEBUG
@@ -1329,6 +1339,10 @@ struct ProfileIdentityCard: View {
 
         suggestedFans.removeAll { $0.userID == dismissedId }
         sendingSuggestedFanRequestIds.remove(dismissedId)
+        ProfilePhase1PersonalizationCache.dismissCachedSuggestedFan(
+            authId: viewModel.currentUserAuthId,
+            dismissedUserId: dismissedId
+        )
 
         print("[SuggestedFans] dismissed user=\(dismissedId.uuidString.lowercased())")
 
@@ -1382,13 +1396,10 @@ struct ProfileIdentityCard: View {
 
     private var sponsoredProfileSlotContent: SponsoredProfileSlotContent? {
         guard isAccountTabActive, viewModel.isLoggedIn else { return nil }
-        if let recommendation = sponsoredProfileRecommendation {
+        if let recommendation = sponsoredProfileRecommendation, recommendation.isSponsored {
             return .venue(recommendation)
         }
-        if let fallback = sponsoredProfileFallbackPromotion() {
-            return .fallback(fallback)
-        }
-        return organicProfileRecommendation().map { .venue($0) }
+        return nil
     }
 
     @ViewBuilder
@@ -1408,6 +1419,11 @@ struct ProfileIdentityCard: View {
                 colorScheme: colorScheme,
                 onTap: {
                     handleSponsoredProfileFallbackTap(promotion)
+                },
+                onDismiss: {
+                    withAnimation(.spring(response: 0.30, dampingFraction: 0.86)) {
+                        profileVenuePromotionDismissed = true
+                    }
                 }
             )
         }
@@ -1464,8 +1480,8 @@ struct ProfileIdentityCard: View {
                     print("[SponsoredProfileDebug] source=\(recommendation.sourceDebugLabel)")
                     print("[SponsoredProfileDebug] sponsoredVenue=\(recommendation.venue.name)")
                 } else {
-                    print("[SponsoredProfileDebug] source=fallback")
-                    print("[SponsoredProfileDebug] fallbackBusinessPromotion=true")
+                    print("[SponsoredProfileDebug] source=none")
+                    print("[SponsoredProfileDebug] noActiveSponsoredPlacement=true")
                 }
 #endif
             }
@@ -1478,8 +1494,8 @@ struct ProfileIdentityCard: View {
                     print("[SponsoredPlacementDebug] exclusionReason=loadFailed error=\(error.localizedDescription)")
                 }
 #if DEBUG
-                print("[SponsoredProfileDebug] source=fallback")
-                print("[SponsoredProfileDebug] fallbackBusinessPromotion=true")
+                print("[SponsoredProfileDebug] source=none")
+                print("[SponsoredProfileDebug] noActiveSponsoredPlacement=true")
                 print("[SponsoredProfileDebug] loadFailed=\(error.localizedDescription)")
 #endif
             }
@@ -2668,11 +2684,6 @@ struct ProfileIdentityCard: View {
                 .buttonStyle(.plain)
             }
         }
-        .onAppear {
-#if DEBUG
-            print("[NationalTeamDebug] profileSectionVisible=true")
-#endif
-        }
     }
 
     private func openNationalTeamPicker() {
@@ -2693,6 +2704,9 @@ struct ProfileIdentityCard: View {
     // MARK: - Favorite teams
 
     private var favoriteTeamsSection: some View {
+        let teams = selectedTeams
+        let primaryID = FavoriteTeamsStore.normalizedPrimaryTeamID(primaryFavoriteTeamIDRaw, within: teams.map(\.id))
+
         return VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 3) {
@@ -2701,7 +2715,7 @@ struct ProfileIdentityCard: View {
                         .foregroundStyle(FGColor.accentBlue)
                         .textCase(.uppercase)
                         .tracking(0.78)
-                    Text(selectedTeams.isEmpty ? "Shape your fan identity" : "Show off your fan colors")
+                    Text(teams.isEmpty ? "Shape your fan identity" : "Show off your fan colors")
                         .font(.system(size: 10.5, weight: .medium, design: .rounded))
                         .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.82))
                 }
@@ -2712,7 +2726,7 @@ struct ProfileIdentityCard: View {
                     HStack(spacing: 4) {
                         Image(systemName: "pencil")
                             .font(.system(size: 9, weight: .bold))
-                        Text(selectedTeams.isEmpty ? "Add Teams" : "Edit Teams")
+                        Text(teams.isEmpty ? "Add Teams" : "Edit Teams")
                             .font(.system(size: 10, weight: .semibold, design: .rounded))
                     }
                     .foregroundStyle(FGColor.accentBlue)
@@ -2726,26 +2740,24 @@ struct ProfileIdentityCard: View {
                 .buttonStyle(.plain)
             }
 
-            if selectedTeams.isEmpty {
+            if teams.isEmpty {
                 addTeamSocialCard
                     .frame(height: Self.favoriteTeamsCarouselHeight, alignment: .topLeading)
             } else {
-                favoriteTeamsCardRow
+                favoriteTeamsCardRow(teams: teams, primaryFavoriteTeamID: primaryID)
             }
         }
         .padding(.bottom, Self.favoriteTeamsHomeCrowdBottomSpacing)
-        .onAppear {
-#if DEBUG
-            print("[ProfileLayoutDebug] favoriteTeamsHomeCrowdSpacingFixed=true")
-#endif
-        }
     }
 
-    private var favoriteTeamsCardRow: some View {
+    private func favoriteTeamsCardRow(teams: [FavoriteTeam], primaryFavoriteTeamID: String?) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .top, spacing: 10) {
-                ForEach(selectedTeams) { team in
-                    favoriteTeamSocialCard(team: team)
+            LazyHStack(alignment: .top, spacing: 10) {
+                ForEach(teams) { team in
+                    favoriteTeamSocialCard(
+                        team: team,
+                        primaryFavoriteTeamID: primaryFavoriteTeamID
+                    )
                 }
 
                 addTeamSocialCard
@@ -2755,7 +2767,10 @@ struct ProfileIdentityCard: View {
         .frame(height: Self.favoriteTeamsCarouselHeight, alignment: .topLeading)
     }
 
-    private func favoriteTeamSocialCard(team: FavoriteTeam) -> some View {
+    private func favoriteTeamSocialCard(
+        team: FavoriteTeam,
+        primaryFavoriteTeamID: String?
+    ) -> some View {
         let isPrimary = team.id == primaryFavoriteTeamID
         let isAnimatingSelection = animatedTrophyTeamID == team.id
         let isAnimatingDemotion = demotedTrophyTeamID == team.id && !isPrimary
@@ -2853,13 +2868,6 @@ struct ProfileIdentityCard: View {
         )
         .animation(trophyVisualTransitionAnimation, value: isPrimary)
         .animation(trophyVisualTransitionAnimation, value: isAnimatingDemotion)
-        .onAppear {
-#if DEBUG
-            print("[FavoriteTeamsDebug] favoriteTeamsCount=\(selectedTeams.count)")
-            print("[FavoriteTeamsDebug] sportAccentRendered sport=\(team.sport.chipTitle)")
-            print("[FavoriteTeamsDebug] sportAccentColorApplied=true")
-#endif
-        }
     }
 
     private func favoriteTeamSportAccentStripe(color: Color, cornerRadius: CGFloat) -> some View {
@@ -2905,12 +2913,6 @@ struct ProfileIdentityCard: View {
                 .truncationMode(.tail)
                 .minimumScaleFactor(0.72)
                 .fixedSize(horizontal: false, vertical: true)
-        }
-        .onAppear {
-#if DEBUG
-            print("[FavoriteTeamsDebug] userFacingPrimaryLabel=MyTeam")
-            print("[FavoriteTeamsDebug] primaryTeamDisplayUpdated=true")
-#endif
         }
     }
 
@@ -4033,41 +4035,42 @@ private struct SponsoredProfileFallbackPromotionCard: View {
     let promotion: SponsoredProfileFallbackPromotion
     let colorScheme: ColorScheme
     let onTap: () -> Void
+    let onDismiss: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hasRevealed = false
 
     var body: some View {
-        HStack(alignment: .center, spacing: 16) {
+        HStack(alignment: .center, spacing: 12) {
             iconTile
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(promotion.eyebrow)
-                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .font(.system(size: 10, weight: .heavy, design: .rounded))
                     .foregroundStyle(FGColor.accentGreen.opacity(0.92))
                     .textCase(.uppercase)
                     .tracking(0.78)
 
                 Text(promotion.title)
-                    .font(.system(size: 18, weight: .heavy, design: .rounded))
+                    .font(.system(size: 15.5, weight: .heavy, design: .rounded))
                     .foregroundStyle(FGColor.primaryText(colorScheme))
                     .lineLimit(2)
 
                 Text(promotion.subtitle)
-                    .font(.system(size: 12.5, weight: .semibold, design: .rounded))
+                    .font(.system(size: 11.5, weight: .semibold, design: .rounded))
                     .foregroundStyle(FGColor.secondaryText(colorScheme))
-                    .lineLimit(3)
+                    .lineLimit(2)
 
                 Button(action: onTap) {
                     HStack(spacing: 8) {
                         Text(promotion.ctaLabel)
-                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
                         Image(systemName: "arrow.right")
-                            .font(.system(size: 11, weight: .heavy))
+                            .font(.system(size: 10, weight: .heavy))
                     }
                     .foregroundStyle(.white)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 9)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
                     .background(
                         LinearGradient(
                             colors: [
@@ -4089,19 +4092,36 @@ private struct SponsoredProfileFallbackPromotionCard: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(18)
+        .padding(14)
+        .padding(.trailing, 28)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(cardBackground)
+        .overlay(alignment: .topTrailing) {
+            Button(action: onDismiss) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .frame(width: 24, height: 24)
+                    .background(Color.white.opacity(colorScheme == .dark ? 0.10 : 0.84), in: Circle())
+                    .overlay {
+                        Circle()
+                            .strokeBorder(Color.black.opacity(colorScheme == .dark ? 0.0 : 0.06), lineWidth: 0.75)
+                    }
+            }
+            .buttonStyle(.plain)
+            .padding(8)
+            .accessibilityLabel("Hide venue promotion")
+        }
         .overlay(alignment: .leading) {
             RoundedRectangle(cornerRadius: 3, style: .continuous)
                 .fill(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.92 : 0.78))
                 .frame(width: 5)
-                .padding(.vertical, 20)
+                .padding(.vertical, 16)
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
         }
         .overlay {
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .strokeBorder(
                     LinearGradient(
                         colors: [
@@ -4115,8 +4135,8 @@ private struct SponsoredProfileFallbackPromotionCard: View {
                     lineWidth: 1
                 )
         }
-        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.18 : 0.055), radius: 16, y: 9)
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.14 : 0.045), radius: 10, y: 6)
         .offset(y: hasRevealed || reduceMotion ? 0 : 24)
         .opacity(hasRevealed || reduceMotion ? 1 : 0)
         .onAppear {
@@ -4138,7 +4158,7 @@ private struct SponsoredProfileFallbackPromotionCard: View {
 
     private var iconTile: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: [
@@ -4150,25 +4170,25 @@ private struct SponsoredProfileFallbackPromotionCard: View {
                     )
                 )
             Image(systemName: promotion.systemImage)
-                .font(.system(size: 30, weight: .bold))
+                .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.95 : 0.88))
         }
-        .frame(width: 82, height: 82)
+        .frame(width: 56, height: 56)
         .overlay {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.12 : 0.48), lineWidth: 0.8)
         }
     }
 
     private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: 26, style: .continuous)
+        RoundedRectangle(cornerRadius: 22, style: .continuous)
             .fill(.ultraThinMaterial)
             .overlay {
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .fill((colorScheme == .dark ? Color(red: 0.07, green: 0.10, blue: 0.09) : Color.white).opacity(colorScheme == .dark ? 0.24 : 0.72))
             }
             .overlay {
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .fill(
                         LinearGradient(
                             colors: [
@@ -4181,6 +4201,346 @@ private struct SponsoredProfileFallbackPromotionCard: View {
                         )
                     )
             }
+    }
+}
+
+struct SuggestedFanCard: View {
+    let suggestion: FriendSuggestionProfile
+    let context: String
+    let isSending: Bool
+    let chipKind: ChatViewModel.FriendshipChipKind
+    let onAdd: (FriendSuggestionProfile) -> Void
+    let onDismiss: (FriendSuggestionProfile) -> Void
+
+    @Environment(\.colorScheme) private var colorScheme
+    @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
+
+    enum Metrics {
+        static let width: CGFloat = 130
+        static let minHeight: CGFloat = 166
+        static let avatarSize: CGFloat = 50
+        static let buttonHeight: CGFloat = 28
+        static let verticalSpacing: CGFloat = 6
+        static let infoHeight: CGFloat = 36
+        static let reasonRowHeight: CGFloat = 20
+        static let cardTopPadding: CGFloat = 9
+        static let cardHorizontalPadding: CGFloat = 9
+        static let cardBottomPadding: CGFloat = 9
+    }
+
+    private static let allowedReasonLabels: Set<String> = [
+        "Same pickup game",
+        "Same watch party",
+        "Same team",
+        "Same venue",
+        "Mutual friends",
+        "Active fan",
+        "High reputation"
+    ]
+
+    var body: some View {
+        VStack(spacing: Metrics.verticalSpacing) {
+            PublicProfileAvatarTap(userId: suggestion.userID, context: context) {
+                VStack(spacing: Metrics.verticalSpacing) {
+                    avatar
+
+                    VStack(spacing: 3) {
+                        Text(displayName)
+                            .font(.system(size: 12.5, weight: .bold, design: .rounded))
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+
+                        reasonRow
+                    }
+                    .frame(height: Metrics.infoHeight, alignment: .top)
+                }
+                .frame(maxWidth: .infinity)
+                .contentShape(Rectangle())
+            }
+
+            Spacer(minLength: 0)
+
+            addButton
+        }
+        .padding(.top, Metrics.cardTopPadding)
+        .padding(.horizontal, Metrics.cardHorizontalPadding)
+        .padding(.bottom, Metrics.cardBottomPadding)
+        .frame(width: Metrics.width, alignment: .top)
+        .frame(height: Metrics.minHeight, alignment: .top)
+        .background(cardBackground)
+        .overlay(alignment: .topTrailing) {
+            dismissButton
+        }
+        .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.10 : 0.055), radius: 8, y: 4)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var avatar: some View {
+        UserAvatarView(
+            avatarThumbnailURL: suggestion.avatarThumbnailURL,
+            avatarURL: suggestion.avatarURL ?? "",
+            avatarDisplayRefreshToken: ProfileAvatarRefreshToken.stable(
+                userId: suggestion.userID,
+                thumbnailURL: suggestion.avatarThumbnailURL,
+                avatarURL: suggestion.avatarURL
+            ),
+            displayName: displayName,
+            email: "",
+            size: Metrics.avatarSize,
+            fallbackStyle: .lightOnWhiteChrome,
+            imagePlaceholderTint: FGColor.accentBlue
+        )
+        .overlay {
+            Circle()
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            FGColor.accentBlue.opacity(0.78),
+                            FGColor.accentGreen.opacity(0.72)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 2
+                )
+        }
+        .padding(2)
+        .background(Circle().fill(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.96)))
+    }
+
+    private var reasonRow: some View {
+        reasonBadge(mutualOrReasonLabel)
+            .frame(height: Metrics.reasonRowHeight)
+    }
+
+    private func reasonBadge(_ label: String) -> some View {
+        Text(label)
+            .font(.system(size: 8.8, weight: .bold, design: .rounded))
+            .foregroundStyle(FGColor.accentGreen)
+            .lineLimit(1)
+            .truncationMode(.tail)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .background {
+                Capsule()
+                    .fill(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.16 : 0.11))
+            }
+    }
+
+    private var addButton: some View {
+        let state = buttonState
+        return Button {
+            onAdd(suggestion)
+        } label: {
+            HStack(spacing: 5) {
+                if isSending {
+                    ProgressView()
+                        .controlSize(.mini)
+                        .tint(state.foreground)
+                } else if let systemImage = state.systemImage {
+                    Image(systemName: systemImage)
+                        .font(.system(size: 8.8, weight: .bold))
+                }
+
+                Text(state.title)
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+            }
+            .foregroundStyle(state.foreground)
+            .frame(maxWidth: .infinity)
+            .frame(height: Metrics.buttonHeight)
+            .background {
+                Capsule()
+                    .fill(state.fill)
+                    .overlay {
+                        Capsule()
+                            .strokeBorder(state.stroke, lineWidth: 1)
+                    }
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(!state.isEnabled)
+        .opacity(state.isEnabled ? 1 : 0.88)
+        .accessibilityLabel(state.title)
+    }
+
+    private var dismissButton: some View {
+        Button {
+            onDismiss(suggestion)
+        } label: {
+            Image(systemName: "xmark")
+                .font(.system(size: 8, weight: .bold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .frame(width: 19, height: 19)
+                .background {
+                    Circle()
+                        .fill(Color.white.opacity(colorScheme == .dark ? 0.14 : 0.92))
+                        .overlay {
+                            Circle()
+                                .strokeBorder(Color.black.opacity(colorScheme == .dark ? 0.0 : 0.06), lineWidth: 0.75)
+                        }
+                }
+        }
+        .buttonStyle(.plain)
+        .padding(4)
+        .accessibilityLabel("Remove suggestion")
+    }
+
+    private var cardBackground: some View {
+        RoundedRectangle(cornerRadius: 18, style: .continuous)
+            .fill(
+                LinearGradient(
+                    colors: [
+                        Color.white.opacity(colorScheme == .dark ? 0.065 : 0.96),
+                        FGColor.accentBlue.opacity(colorScheme == .dark ? 0.07 : 0.06),
+                        FGColor.accentGreen.opacity(colorScheme == .dark ? 0.045 : 0.055)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(colorScheme == .dark ? 0.10 : 0.82),
+                                FGColor.accentBlue.opacity(colorScheme == .dark ? 0.12 : 0.14)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 0.75
+                    )
+            }
+    }
+
+    private var displayName: String {
+        let trimmed = (suggestion.displayName ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "Fan" : trimmed
+    }
+
+    private var mutualOrReasonLabel: String {
+        if suggestion.mutualFriendCount > 0 {
+            return suggestion.mutualFriendCount == 1 ? "Mutual fan" : "Mutual fans"
+        }
+        return localizedReasonLabel(safeReasonLabel)
+    }
+
+    private var safeReasonLabel: String {
+        if let reasonLabel = suggestion.reasonLabel?.trimmingCharacters(in: .whitespacesAndNewlines),
+           Self.allowedReasonLabels.contains(reasonLabel) {
+            return reasonLabel
+        }
+
+        let normalizedType = (suggestion.reasonType ?? "")
+            .lowercased()
+            .replacingOccurrences(of: "-", with: "_")
+            .replacingOccurrences(of: " ", with: "_")
+
+        switch normalizedType {
+        case "pickup_game", "pickup", "shared_pickup", "pickup_player":
+            return "Same pickup game"
+        case "venue_event", "watch_party", "shared_event", "event_interest", "event":
+            return "Same watch party"
+        case "same_team", "shared_team", "team", "favorite_team", "favorite_teams":
+            return "Same team"
+        case "favorite_venue", "shared_venue", "venue":
+            return "Same venue"
+        case "mutual_friends", "mutual_friend":
+            return "Mutual friends"
+        case "recent_activity", "active_fan", "activity":
+            return "Active fan"
+        case "reputation", "fan_level", "high_reputation":
+            return "High reputation"
+        default:
+            if suggestion.sharedPickupGameCount > 0 { return "Same pickup game" }
+            if suggestion.sharedEventInterestCount > 0 { return "Same watch party" }
+            if suggestion.sharedFavoriteTeamsCount > 0 { return "Same team" }
+            return suggestion.score >= 400 ? "High reputation" : "Active fan"
+        }
+    }
+
+    private func localizedReasonLabel(_ label: String) -> String {
+        switch label {
+        case "Same pickup game":
+            return L10n.t("same_pickup_game", languageCode: appLanguageRaw)
+        case "Same watch party":
+            return L10n.t("same_watch_party", languageCode: appLanguageRaw)
+        case "Same team":
+            return L10n.t("same_team", languageCode: appLanguageRaw)
+        case "Same venue":
+            return L10n.t("same_venue", languageCode: appLanguageRaw)
+        case "Mutual friends":
+            return L10n.t("mutual_friends", languageCode: appLanguageRaw)
+        case "High reputation":
+            return L10n.t("high_reputation", languageCode: appLanguageRaw)
+        case "Active fan":
+            return L10n.t("active_fan", languageCode: appLanguageRaw)
+        default:
+            return label
+        }
+    }
+
+    private var buttonState: ButtonState {
+        if isSending {
+            return ButtonState(
+                title: "Adding",
+                systemImage: nil,
+                isEnabled: false,
+                foreground: FGColor.accentBlue,
+                fill: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.16 : 0.10),
+                stroke: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.24 : 0.28)
+            )
+        }
+
+        switch chipKind {
+        case .addFriend, .declinedOutgoing:
+            return ButtonState(
+                title: "Add",
+                systemImage: "person.badge.plus",
+                isEnabled: true,
+                foreground: .white,
+                fill: FGColor.accentBlue,
+                stroke: FGColor.accentBlue.opacity(0.18)
+            )
+        case .pendingOutgoing:
+            return ButtonState(
+                title: "Requested",
+                systemImage: "clock.fill",
+                isEnabled: false,
+                foreground: FGColor.secondaryText(colorScheme),
+                fill: Color.white.opacity(colorScheme == .dark ? 0.07 : 0.72),
+                stroke: Color.black.opacity(colorScheme == .dark ? 0.0 : 0.05)
+            )
+        case .pendingIncoming:
+            return ButtonState(
+                title: "In Chat",
+                systemImage: "tray.full.fill",
+                isEnabled: false,
+                foreground: FGColor.secondaryText(colorScheme),
+                fill: Color.white.opacity(colorScheme == .dark ? 0.07 : 0.72),
+                stroke: Color.black.opacity(colorScheme == .dark ? 0.0 : 0.05)
+            )
+        case .friends:
+            return ButtonState(
+                title: "Friends",
+                systemImage: "checkmark",
+                isEnabled: false,
+                foreground: FGColor.accentGreen,
+                fill: FGColor.accentGreen.opacity(colorScheme == .dark ? 0.16 : 0.11),
+                stroke: FGColor.accentGreen.opacity(colorScheme == .dark ? 0.20 : 0.18)
+            )
+        }
+    }
+
+    private struct ButtonState {
+        let title: String
+        let systemImage: String?
+        let isEnabled: Bool
+        let foreground: Color
+        let fill: Color
+        let stroke: Color
     }
 }
 
@@ -4197,21 +4557,31 @@ private struct ProfileSuggestedFansSection: View {
     @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
 
     private enum CardMetrics {
-        static let width: CGFloat = 168
-        static let minHeight: CGFloat = 244
-        static let avatarSize: CGFloat = 74
-        static let mutualAvatarSize: CGFloat = 18
-        static let buttonHeight: CGFloat = 34
-        static let verticalSpacing: CGFloat = 9
-        static let infoHeight: CGFloat = 48
-        static let reasonRowHeight: CGFloat = 24
-        static let cardTopPadding: CGFloat = 12
-        static let cardHorizontalPadding: CGFloat = 12
-        static let cardBottomPadding: CGFloat = 20
-        static let rowTopPadding: CGFloat = 4
-        static let rowBottomPadding: CGFloat = 22
+        static let width: CGFloat = 130
+        static let minHeight: CGFloat = 166
+        static let avatarSize: CGFloat = 50
+        static let mutualAvatarSize: CGFloat = 15
+        static let buttonHeight: CGFloat = 28
+        static let verticalSpacing: CGFloat = 6
+        static let infoHeight: CGFloat = 36
+        static let reasonRowHeight: CGFloat = 20
+        static let cardTopPadding: CGFloat = 9
+        static let cardHorizontalPadding: CGFloat = 9
+        static let cardBottomPadding: CGFloat = 9
+        static let rowTopPadding: CGFloat = 2
+        static let rowBottomPadding: CGFloat = 8
         static let rowMinHeight: CGFloat = minHeight + rowTopPadding + rowBottomPadding
     }
+
+    private static let allowedReasonLabels: Set<String> = [
+        "Same pickup game",
+        "Same watch party",
+        "Same team",
+        "Same venue",
+        "Mutual friends",
+        "Active fan",
+        "High reputation"
+    ]
 
     private var suggestionsAvatarFingerprint: String {
         suggestions.map { suggestion in
@@ -4225,7 +4595,7 @@ private struct ProfileSuggestedFansSection: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             header
 
             if isLoading && suggestions.isEmpty {
@@ -4243,24 +4613,38 @@ private struct ProfileSuggestedFansSection: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(L10n.t("suggested_fans", languageCode: appLanguageRaw))
-                .font(.system(size: 11, weight: .heavy, design: .rounded))
-                .foregroundStyle(FGColor.accentBlue)
-                .textCase(.uppercase)
-                .tracking(0.78)
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(L10n.t("suggested_fans", languageCode: appLanguageRaw))
+                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .foregroundStyle(FGColor.accentBlue)
+                    .textCase(.uppercase)
+                    .tracking(0.78)
 
-            Text(L10n.t("suggested_fans_subtitle", languageCode: appLanguageRaw))
-                .font(.system(size: 10.5, weight: .medium, design: .rounded))
-                .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.82))
+                Text(L10n.t("suggested_fans_subtitle", languageCode: appLanguageRaw))
+                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                    .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.82))
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 0)
+
+            if !suggestions.isEmpty {
+                Text("\(suggestions.count)")
+                    .font(.system(size: 10, weight: .black, design: .rounded))
+                    .foregroundStyle(FGColor.accentBlue)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.16 : 0.10), in: Capsule())
+            }
         }
     }
 
     private var loadingRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(spacing: 14) {
+            LazyHStack(spacing: 10) {
                 ForEach(0..<3, id: \.self) { _ in
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
                         .fill(Color.white.opacity(colorScheme == .dark ? 0.05 : 0.72))
                         .frame(width: CardMetrics.width, height: CardMetrics.minHeight)
                         .redacted(reason: .placeholder)
@@ -4301,7 +4685,7 @@ private struct ProfileSuggestedFansSection: View {
 
     private var suggestionsRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(alignment: .top, spacing: 14) {
+            LazyHStack(alignment: .top, spacing: 10) {
                 ForEach(suggestions) { suggestion in
                     suggestionCard(suggestion)
                 }
@@ -4340,13 +4724,6 @@ private struct ProfileSuggestedFansSection: View {
                 full: suggestion.avatarURL,
                 userId: suggestion.userID
             )
-            for avatar in suggestion.mutualFriendAvatars.prefix(3) {
-                appendURL(
-                    thumbnail: avatar.avatarThumbnailURL,
-                    full: avatar.avatarURL,
-                    userId: avatar.userID
-                )
-            }
         }
 
         guard !urls.isEmpty else {
@@ -4365,53 +4742,14 @@ private struct ProfileSuggestedFansSection: View {
     }
 
     private func suggestionCard(_ suggestion: FriendSuggestionProfile) -> some View {
-        VStack(spacing: CardMetrics.verticalSpacing) {
-            PublicProfileAvatarTap(userId: suggestion.userID, context: "profile_suggested_fans") {
-                VStack(spacing: CardMetrics.verticalSpacing) {
-                    avatar(for: suggestion)
-
-                    VStack(spacing: 4) {
-                        Text(displayName(for: suggestion))
-                            .font(.system(size: 14.5, weight: .bold, design: .rounded))
-                            .foregroundStyle(FGColor.primaryText(colorScheme))
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-
-                        mutualOrReasonRow(for: suggestion)
-                    }
-                    .frame(height: CardMetrics.infoHeight, alignment: .top)
-                }
-                .frame(maxWidth: .infinity)
-                .contentShape(Rectangle())
-            }
-            .simultaneousGesture(
-                TapGesture().onEnded {
-#if DEBUG
-                    print("[SuggestedFansUI] tapped user_id=\(suggestion.userID.uuidString.lowercased())")
-#endif
-                }
-            )
-
-            Spacer(minLength: 0)
-
-            addButton(for: suggestion)
-        }
-        .padding(.top, CardMetrics.cardTopPadding)
-        .padding(.horizontal, CardMetrics.cardHorizontalPadding)
-        .padding(.bottom, CardMetrics.cardBottomPadding)
-        .frame(width: CardMetrics.width, alignment: .top)
-        .frame(minHeight: CardMetrics.minHeight, alignment: .top)
-        .background(cardBackground)
-        .overlay(alignment: .topTrailing) {
-            dismissButton(for: suggestion)
-        }
-        .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.12 : 0.085), radius: 14, y: 8)
-        .accessibilityElement(children: .combine)
-        .onAppear {
-#if DEBUG
-            print("[FriendSuggestionsDebug] cardSize=width:\(Int(CardMetrics.width)),minHeight:\(Int(CardMetrics.minHeight)),avatar:\(Int(CardMetrics.avatarSize)),buttonHeight:\(Int(CardMetrics.buttonHeight))")
-#endif
-        }
+        SuggestedFanCard(
+            suggestion: suggestion,
+            context: "profile_suggested_fans",
+            isSending: sendingRequestIds.contains(suggestion.userID),
+            chipKind: chipKind(suggestion.userID),
+            onAdd: onAdd,
+            onDismiss: onDismiss
+        )
     }
 
     private func dismissButton(for suggestion: FriendSuggestionProfile) -> some View {
@@ -4419,9 +4757,9 @@ private struct ProfileSuggestedFansSection: View {
             onDismiss(suggestion)
         } label: {
             Image(systemName: "xmark")
-                .font(.system(size: 9, weight: .bold))
+                .font(.system(size: 8, weight: .bold))
                 .foregroundStyle(FGColor.secondaryText(colorScheme))
-                .frame(width: 22, height: 22)
+                .frame(width: 19, height: 19)
                 .background {
                     Circle()
                         .fill(Color.white.opacity(colorScheme == .dark ? 0.14 : 0.92))
@@ -4432,7 +4770,7 @@ private struct ProfileSuggestedFansSection: View {
                 }
         }
         .buttonStyle(.plain)
-        .padding(6)
+        .padding(4)
         .accessibilityLabel("Remove suggestion")
     }
 
@@ -4472,7 +4810,8 @@ private struct ProfileSuggestedFansSection: View {
     @ViewBuilder
     private func mutualOrReasonRow(for suggestion: FriendSuggestionProfile) -> some View {
         if suggestion.mutualFriendCount > 0 {
-            mutualFansRow(for: suggestion)
+            reasonBadge(mutualFanBadgeLabel(for: suggestion.mutualFriendCount))
+                .frame(height: CardMetrics.reasonRowHeight)
         } else {
             reasonPill(for: suggestion)
                 .frame(height: CardMetrics.reasonRowHeight)
@@ -4496,7 +4835,7 @@ private struct ProfileSuggestedFansSection: View {
             }
 
             Text(mutualFansLabel(for: suggestion.mutualFriendCount))
-                .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                .font(.system(size: 9.5, weight: .semibold, design: .rounded))
                 .foregroundStyle(FGColor.secondaryText(colorScheme))
                 .lineLimit(1)
                 .truncationMode(.tail)
@@ -4531,14 +4870,22 @@ private struct ProfileSuggestedFansSection: View {
         "\(count) mutual \(count == 1 ? "fan" : "fans")"
     }
 
+    private func mutualFanBadgeLabel(for count: Int) -> String {
+        count == 1 ? "Mutual fan" : "Mutual fans"
+    }
+
     private func reasonPill(for suggestion: FriendSuggestionProfile) -> some View {
-        Text(localizedReasonLabel(safeReasonLabel(for: suggestion)))
-            .font(.system(size: 9.5, weight: .bold, design: .rounded))
+        reasonBadge(localizedReasonLabel(safeReasonLabel(for: suggestion)))
+    }
+
+    private func reasonBadge(_ label: String) -> some View {
+        Text(label)
+            .font(.system(size: 8.8, weight: .bold, design: .rounded))
             .foregroundStyle(FGColor.accentGreen)
             .lineLimit(1)
             .truncationMode(.tail)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
             .background {
                 Capsule()
                     .fill(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.16 : 0.11))
@@ -4560,11 +4907,11 @@ private struct ProfileSuggestedFansSection: View {
                         .tint(state.foreground)
                 } else if let systemImage = state.systemImage {
                     Image(systemName: systemImage)
-                        .font(.system(size: 9.5, weight: .bold))
+                        .font(.system(size: 8.8, weight: .bold))
                 }
 
                 Text(state.title)
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
             }
             .foregroundStyle(state.foreground)
             .frame(maxWidth: .infinity)
@@ -4585,7 +4932,7 @@ private struct ProfileSuggestedFansSection: View {
     }
 
     private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: 24, style: .continuous)
+        RoundedRectangle(cornerRadius: 18, style: .continuous)
             .fill(
                 LinearGradient(
                     colors: [
@@ -4598,7 +4945,7 @@ private struct ProfileSuggestedFansSection: View {
                 )
             )
             .overlay {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .strokeBorder(
                         LinearGradient(
                             colors: [
@@ -4625,17 +4972,8 @@ private struct ProfileSuggestedFansSection: View {
     }
 
     private func safeReasonLabel(for suggestion: FriendSuggestionProfile) -> String {
-        let allowedLabels: Set<String> = [
-            "Same pickup game",
-            "Same watch party",
-            "Same team",
-            "Same venue",
-            "Mutual friends",
-            "Active fan",
-            "High reputation"
-        ]
         if let reasonLabel = suggestion.reasonLabel?.trimmingCharacters(in: .whitespacesAndNewlines),
-           allowedLabels.contains(reasonLabel) {
+           Self.allowedReasonLabels.contains(reasonLabel) {
             return reasonLabel
         }
 

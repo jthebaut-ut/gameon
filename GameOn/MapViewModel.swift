@@ -233,6 +233,7 @@ final class MapViewModel: ObservableObject {
     @Published var emailVerificationError = ""
     var pendingFanEmailSignupDraft: PendingFanEmailSignupDraft?
     var pendingBusinessEmailSignupDraft: PendingBusinessEmailSignupDraft?
+    var venueClaimAdminEmailQueuedClaimIDs: Set<String> = []
     /// Set after a venue-owner password-reset email is requested (same Auth API, separate UI feedback).
     @Published var venuePasswordResetMessage = ""
     @Published var venuePasswordResetError = ""
@@ -461,6 +462,11 @@ final class MapViewModel: ObservableObject {
     var syncGoingGamesToAppleCalendar: Bool {
         get { notificationSettingsStore.syncGoingGamesToAppleCalendar }
         set { notificationSettingsStore.syncGoingGamesToAppleCalendar = newValue }
+    }
+
+    var proGameReminderNotifications: Bool {
+        get { notificationSettingsStore.proGameReminderNotifications }
+        set { notificationSettingsStore.proGameReminderNotifications = newValue }
     }
     
     @Published var events: [SportsEvent] = SampleData.events
@@ -919,6 +925,7 @@ final class MapViewModel: ObservableObject {
         #if DEBUG
         print("[FanUpdatesStoreMigrationDebug] RemovedMapViewModelBridge=true")
         #endif
+        restorePendingBusinessEmailSignupDraftIfNeeded()
         clearSavedProGamesForSessionBoundary()
     }
 

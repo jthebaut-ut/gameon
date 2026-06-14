@@ -1926,6 +1926,7 @@ extension MapViewModel {
                 gameById: mergedGameRowById,
                 statusByGameId: statusByGameId
             )
+            await syncPickupGamesToAppleCalendarIfNeeded(reason: "joinedPickupLoad")
 
             let activeCards = cards.filter { $0.pill != .canceledByOrganizer }
             let ratingOrganizerIds = Array(Set(activeCards.map(\.organizerUserId)))

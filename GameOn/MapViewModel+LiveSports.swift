@@ -62,6 +62,7 @@ extension MapViewModel {
 #if DEBUG
             print("[LiveRefreshDebug] replace_not_append=true previous_count=\(liveMatches.count) incoming_count=\(matches.count)")
 #endif
+            handleSavedProGameStatusUpdates(from: matches, reason: "liveRefresh")
             liveMatches = matches
             liveMatchesLoadError = nil
             liveMatchesEmptyDebugHint = Self.makeLiveMatchesEmptyDebugHint(
@@ -126,13 +127,15 @@ extension MapViewModel {
             mergedByID[match.id] = match
         }
 
-        liveMatches = mergedByID.values.sorted { lhs, rhs in
+        let mergedMatches = mergedByID.values.sorted { lhs, rhs in
             if lhs.matchStatus.isHappeningNow != rhs.matchStatus.isHappeningNow {
                 return lhs.matchStatus.isHappeningNow && !rhs.matchStatus.isHappeningNow
             }
             if lhs.startTime != rhs.startTime { return lhs.startTime < rhs.startTime }
             return lhs.league.localizedCaseInsensitiveCompare(rhs.league) == .orderedAscending
         }
+        handleSavedProGameStatusUpdates(from: matches, reason: "calendarProGamesRefresh")
+        liveMatches = mergedMatches
     }
 
     private static func makeLiveMatchesEmptyDebugHint(
@@ -183,6 +186,30 @@ extension MapViewModel {
             calendarDay: nil,
             statuses: [.live, .halfTime]
         )
+    }
+
+    func liveTabTodayMatchesDisplayed(
+        searchQuery: String,
+        sportFilter: LiveSportVisualType? = nil,
+        calendarDay: Date = Calendar.current.startOfDay(for: Date())
+    ) -> [LiveMatch] {
+        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cal = Calendar.current
+        return liveMatches
+            .filter { match in
+                if match.matchStatus.isHappeningNow { return true }
+                guard match.matchStatus == .scheduled || match.matchStatus == .fullTime else { return false }
+                return cal.isDate(match.startTime, inSameDayAs: calendarDay)
+            }
+            .filter { sportFilter == nil || $0.liveSportVisualType == sportFilter }
+            .filter { query.isEmpty || Self.liveMatch($0, matchesSearchQuery: query) }
+            .sorted { lhs, rhs in
+                if lhs.matchStatus.isHappeningNow != rhs.matchStatus.isHappeningNow {
+                    return lhs.matchStatus.isHappeningNow && !rhs.matchStatus.isHappeningNow
+                }
+                if lhs.startTime != rhs.startTime { return lhs.startTime < rhs.startTime }
+                return "\(lhs.awayTeam) \(lhs.homeTeam)".localizedCaseInsensitiveCompare("\(rhs.awayTeam) \(rhs.homeTeam)") == .orderedAscending
+            }
     }
 
     func calendarLiveMatchesDisplayed(searchQuery: String) -> [LiveMatch] {

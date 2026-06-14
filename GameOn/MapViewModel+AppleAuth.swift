@@ -137,6 +137,14 @@ extension MapViewModel {
             return
         }
 
+        guard await claimAccountIdentity(.fan, context: "appleFanSignIn") else {
+            await MainActor.run {
+                appleAuthFanMessage = authErrorMessage
+                appleAuthFanMessageIsError = true
+            }
+            return
+        }
+
         if entryPoint == .fanSignup,
            !(await appleCurrentFanProfileExists(session: session)) {
             await MainActor.run {
@@ -232,6 +240,14 @@ extension MapViewModel {
         if await shouldBlockBusinessOwnerLogin(sessionEmail: sessionEmail, userId: session.user.id) {
             await undoPartialSupabaseSessionAfterAccountTypeMismatch()
             await MainActor.run { venueAuthErrorMessage = Self.businessLoginBlockedBecauseFanMessage }
+            return
+        }
+
+        guard await claimAccountIdentity(.business, context: "appleBusinessSignIn") else {
+            await MainActor.run {
+                appleAuthBusinessMessage = venueAuthErrorMessage
+                appleAuthBusinessMessageIsError = true
+            }
             return
         }
 
@@ -404,9 +420,10 @@ extension MapViewModel {
         do {
             let rowsByUser: [BusinessRow] = try await supabase
                 .from("businesses")
-                .select("id,display_name,owner_email,owner_user_id,admin_status,created_at")
+                .select("id,display_name,owner_email,owner_user_id,admin_status,business_origin,created_at")
                 .eq("owner_user_id", value: session.user.id)
                 .eq("admin_status", value: "active")
+                .in("business_origin", values: BusinessOrigin.loginOwnedValues)
                 .limit(1)
                 .execute()
                 .value
@@ -418,9 +435,10 @@ extension MapViewModel {
 
             let rowsByEmail: [BusinessRow] = try await supabase
                 .from("businesses")
-                .select("id,display_name,owner_email,owner_user_id,admin_status,created_at")
+                .select("id,display_name,owner_email,owner_user_id,admin_status,business_origin,created_at")
                 .eq("owner_email", value: email)
                 .eq("admin_status", value: "active")
+                .in("business_origin", values: BusinessOrigin.loginOwnedValues)
                 .limit(1)
                 .execute()
                 .value

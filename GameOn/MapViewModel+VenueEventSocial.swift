@@ -1036,8 +1036,10 @@ extension MapViewModel {
         if isInterested {
             FanGeoAnalyticsService.recordGameJoined(gameId: venueEventID)
             await scheduleGameReminderIfPossible(venueEventID: venueEventID)
+            await syncVenueGameToAppleCalendarIfNeeded(venueEventID: venueEventID)
         } else {
             await cancelGameReminder(venueEventID: venueEventID)
+            await removeGameFromAppleCalendar(fanGeoIdentifier: "venue|\(venueEventID.uuidString.lowercased())")
         }
 
         return true

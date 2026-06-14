@@ -11,15 +11,21 @@ struct EmailVerificationPendingView: View {
 
     private var title: String {
         kind == .business
-            ? "Check your email to verify your business account."
+            ? "Verify your business email."
             : "Check your email to verify your FanGeo account."
+    }
+
+    private var subtitle: String {
+        kind == .business
+            ? "Your business verification email address:"
+            : "We sent a verification link to:"
     }
 
     var body: some View {
         FGCard {
             FGSectionHeader(
                 title,
-                subtitle: "We sent a verification link to:"
+                subtitle: subtitle
             )
 
             Text(email)

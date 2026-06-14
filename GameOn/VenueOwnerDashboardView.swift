@@ -2246,6 +2246,9 @@ struct VenueOwnerDashboardView: View {
             onAddVenue: {
                 openAddLocationFromBusinessDashboard()
             },
+            onClaimVenue: {
+                openAddLocationFromBusinessDashboard()
+            },
             onTonightGames: {
                 openBusinessDashboardGames(tab: .scheduled)
             },

@@ -810,6 +810,7 @@ extension MapViewModel {
             await loadOrganizerPickupRequestSummaries(gameIds: rows.map(\.id))
             await loadOrganizerWithdrawnPickupRequestsForSettings(gameIds: rows.map(\.id))
             await loadOrganizerApprovedPickupJoinersForSettings(gameIds: rows.map(\.id))
+            await syncPickupGamesToAppleCalendarIfNeeded(reason: "hostedPickupLoad")
             lastMyPickupGamesLightweightLoadAt = Date()
 #if DEBUG
             print("[PickupPerf] screen=Going mode=Hosting rowCount=\(activeRows.count + myRemovedPickupGamesForSettings.count) renderPath=loadMyPickupGamesForSettings freshnessSkip=false forcedReload=false reason=\(reason)")

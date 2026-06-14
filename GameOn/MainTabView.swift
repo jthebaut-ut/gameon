@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Composition root: presents Discover, Live, Calendar, Going, Chat, and Account tabs using shared view models from the root container.
+/// Composition root: presents Discover, Live, Schedule, Going, Chat, and Account tabs using shared view models from the root container.
 ///
 /// Inactive tabs stay in the hierarchy with opacity and hit testing disabled so map and list state survive tab switches. The root bootstrap container usually preloads startup data first; this view keeps a fallback ``.task`` only for timeout / degraded-entry cases.
 struct MainTabView: View {
@@ -873,7 +873,7 @@ struct MainTabView: View {
 
     private func logBottomTabStructure() {
 #if DEBUG
-        print("[NavigationDebug] bottomTabStructure=Discover|Live|Calendar|Going|Chat|Profile")
+        print("[NavigationDebug] bottomTabStructure=Discover|Live|Schedule|Going|Chat|Profile")
 #endif
     }
 
@@ -1027,26 +1027,36 @@ struct MainTabView: View {
             .animation(.easeInOut(duration: 0.18), value: isSelected)
     }
     
-    /// Business tab building icon: orange while any location claim is pending; green when every managed venue is active and nothing is pending.
-    private var venueOwnerBusinessTabAccentColor: Color {
-        if !viewModel.pendingVenueClaimsForSettings.isEmpty {
-            return .orange
-        }
-        if viewModel.hasActiveVenueClaimRejectionForBusinessUI {
-            return .red
-        }
-        let managed = viewModel.managedVenuesForOwner()
-        guard !managed.isEmpty else { return .orange }
-        let allActive = managed.allSatisfy { row in
-            let s = row.admin_status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
-            return s.isEmpty || s == "active"
-        }
-        return allActive ? .green : .orange
+    private var isBusinessAccountTabContext: Bool {
+        viewModel.isVenueOwnerLoggedIn || viewModel.venueOwnerMode || viewModel.currentUserIsBusinessAccount
+    }
+
+    private var businessTabIsPro: Bool {
+        viewModel.businessDashboardPreloadSnapshot?.entitlementStatus?.computedIsPro == true
+    }
+
+    private var businessTabHasPendingVenueClaim: Bool {
+        !viewModel.pendingVenueClaimsForSettings.isEmpty
+    }
+
+    private var businessTabShowsPendingClaimDot: Bool {
+        BusinessStatusIconChrome.showsPendingClaimDot(
+            isPro: businessTabIsPro,
+            hasPendingVenueClaim: businessTabHasPendingVenueClaim
+        )
+    }
+
+    private var businessTabStatusColor: Color {
+        BusinessStatusIconChrome.statusColor(
+            isPro: businessTabIsPro,
+            hasPendingVenueClaim: businessTabHasPendingVenueClaim,
+            colorScheme: colorScheme
+        )
     }
 
     private var accountIconColor: Color {
-        if viewModel.isVenueOwnerLoggedIn {
-            return venueOwnerBusinessTabAccentColor
+        if isBusinessAccountTabContext {
+            return businessTabStatusColor
         }
 
         if viewModel.isLoggedIn {
@@ -1058,7 +1068,7 @@ struct MainTabView: View {
 
     private var accountIconName: String {
 
-        if viewModel.isVenueOwnerLoggedIn {
+        if isBusinessAccountTabContext {
             return "building.2.fill"
         }
 
@@ -1194,7 +1204,7 @@ struct MainTabView: View {
                     Image(systemName: "calendar")
 
                     if selectedTab == .calendar {
-                        Text(localized("calendar"))
+                        Text(localized("Schedule"))
                     }
                 }
                 .font(.caption)
@@ -1278,7 +1288,7 @@ struct MainTabView: View {
     }
     
     private var accountTabIcon: String {
-        if viewModel.isVenueOwnerLoggedIn {
+        if isBusinessAccountTabContext {
             return "building.2.fill"
         }
 
@@ -1290,7 +1300,7 @@ struct MainTabView: View {
     }
 
     private var accountTabTitle: String {
-        if viewModel.isVenueOwnerLoggedIn {
+        if isBusinessAccountTabContext {
             return localized("business")
         }
 
@@ -1526,6 +1536,11 @@ struct MainTabView: View {
                 PokesUnseenAvatarBadge(style: .tab)
                     .offset(x: 0, y: -2)
             }
+
+            if businessTabShowsPendingClaimDot {
+                businessPendingClaimDot
+                    .offset(x: -4, y: 2)
+            }
         }
         .frame(width: 52, height: 52)
         .accessibilityLabel(accountTabPokesBadgeVisible ? "Account, new Pokes" : accountTabTitle)
@@ -1543,7 +1558,13 @@ struct MainTabView: View {
 
     private var accountTabAvatarCircleOnly: some View {
         Group {
-            if viewModel.isLoggedIn {
+            if isBusinessAccountTabContext {
+                Image(systemName: accountIconName)
+                    .font(.title3)
+                    .foregroundStyle(accountIconColor)
+                    .frame(width: 44, height: 44)
+                    .background(accountIconBackgroundColor)
+            } else if viewModel.isLoggedIn {
                 UserAvatarView(
                     avatarThumbnailURL: viewModel.currentUserAvatarThumbnailURL,
                     avatarURL: viewModel.currentUserAvatarURL,
@@ -1573,5 +1594,17 @@ struct MainTabView: View {
                     .background(accountIconBackgroundColor)
             }
         }
+    }
+
+    private var businessPendingClaimDot: some View {
+        Circle()
+            .fill(Color.orange)
+            .frame(width: 10, height: 10)
+            .overlay {
+                Circle()
+                    .strokeBorder(accountIconBackgroundColor.opacity(0.96), lineWidth: 2)
+            }
+            .shadow(color: Color.orange.opacity(0.24), radius: 4, y: 1)
+            .accessibilityHidden(true)
     }
 }

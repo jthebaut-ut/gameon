@@ -1,3 +1,4 @@
+import Combine
 import CoreLocation
 import SwiftUI
 import MapKit
@@ -60,6 +61,240 @@ private struct DiscoverPredictionSheetContext: Identifiable {
 
     var id: String {
         "\(venueEventID.uuidString.lowercased())|\(predictionType.rawValue)"
+    }
+}
+
+private enum DiscoverSearchSuggestionSource: String, Codable, Sendable {
+    case city
+    case place
+    case recent
+}
+
+private struct DiscoverSearchSuggestion: Identifiable, Hashable, Codable, Sendable {
+    let title: String
+    let subtitle: String
+    let latitude: Double?
+    let longitude: Double?
+    let source: DiscoverSearchSuggestionSource
+
+    var id: String {
+        [
+            source.rawValue,
+            Self.normalizedText(title),
+            Self.normalizedText(subtitle)
+        ].joined(separator: "|")
+    }
+
+    var coordinate: CLLocationCoordinate2D? {
+        guard let latitude, let longitude else { return nil }
+        return CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+    }
+
+    var displayQuery: String {
+        let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanSubtitle = subtitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanSubtitle.isEmpty else { return cleanTitle }
+        guard !cleanTitle.localizedCaseInsensitiveContains(cleanSubtitle) else { return cleanTitle }
+        return "\(cleanTitle), \(cleanSubtitle)"
+    }
+
+    static func normalizedText(_ raw: String) -> String {
+        raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .lowercased()
+    }
+}
+
+private enum DiscoverRecentSearchStore {
+    private static let storageKey = "fangeo.discover.recentSearches"
+    private static let maxCount = 5
+
+    static func load() -> [DiscoverSearchSuggestion] {
+        guard let data = UserDefaults.standard.data(forKey: storageKey),
+              let decoded = try? JSONDecoder().decode([DiscoverSearchSuggestion].self, from: data) else {
+            return []
+        }
+        return Array(decoded.prefix(maxCount)).map {
+            DiscoverSearchSuggestion(
+                title: $0.title,
+                subtitle: $0.subtitle,
+                latitude: $0.latitude,
+                longitude: $0.longitude,
+                source: .recent
+            )
+        }
+    }
+
+    @discardableResult
+    static func save(_ suggestion: DiscoverSearchSuggestion, into existing: [DiscoverSearchSuggestion]) -> [DiscoverSearchSuggestion] {
+        let title = suggestion.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty else { return existing }
+
+        let recent = DiscoverSearchSuggestion(
+            title: title,
+            subtitle: suggestion.subtitle.trimmingCharacters(in: .whitespacesAndNewlines),
+            latitude: suggestion.latitude,
+            longitude: suggestion.longitude,
+            source: .recent
+        )
+        let key = DiscoverSearchSuggestion.normalizedText(recent.displayQuery)
+        let deduped = existing.filter {
+            DiscoverSearchSuggestion.normalizedText($0.displayQuery) != key
+        }
+        let next = Array(([recent] + deduped).prefix(maxCount))
+        if let data = try? JSONEncoder().encode(next) {
+            UserDefaults.standard.set(data, forKey: storageKey)
+        }
+        return next
+    }
+}
+
+@MainActor
+private final class DiscoverSearchSuggestionController: NSObject, ObservableObject, MKLocalSearchCompleterDelegate {
+    @Published private(set) var suggestions: [DiscoverSearchSuggestion] = []
+    @Published private(set) var recentSearches: [DiscoverSearchSuggestion] = DiscoverRecentSearchStore.load()
+    @Published private(set) var isLoading = false
+
+    private let completer = MKLocalSearchCompleter()
+    private var debounceTask: Task<Void, Never>?
+    private var suggestionCache: [String: [DiscoverSearchSuggestion]] = [:]
+    private var activeQueryKey = ""
+    private var wantsSuggestions = false
+
+    private static let minimumQueryLength = 2
+    private static let suggestionLimit = 5
+    private static let debounceMilliseconds: UInt64 = 350
+
+    override init() {
+        super.init()
+        completer.delegate = self
+        completer.resultTypes = [.address]
+    }
+
+    func refresh(query: String, isFocused: Bool, region: MKCoordinateRegion?) {
+        debounceTask?.cancel()
+
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let key = DiscoverSearchSuggestion.normalizedText(trimmed)
+        wantsSuggestions = isFocused && key.count >= Self.minimumQueryLength
+
+        guard isFocused else {
+            activeQueryKey = ""
+            suggestions = []
+            isLoading = false
+            return
+        }
+
+        guard key.count >= Self.minimumQueryLength else {
+            activeQueryKey = ""
+            suggestions = []
+            isLoading = false
+            return
+        }
+
+        if let cached = suggestionCache[key] {
+            activeQueryKey = key
+            suggestions = cached
+            isLoading = false
+            return
+        }
+
+        activeQueryKey = key
+        suggestions = []
+        isLoading = true
+
+        debounceTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: Self.debounceMilliseconds * 1_000_000)
+            guard let self, !Task.isCancelled else { return }
+            guard self.activeQueryKey == key, self.wantsSuggestions else { return }
+            if let region {
+                self.completer.region = region
+            }
+            self.completer.queryFragment = trimmed
+        }
+    }
+
+    func clearSuggestions() {
+        debounceTask?.cancel()
+        activeQueryKey = ""
+        wantsSuggestions = false
+        suggestions = []
+        isLoading = false
+    }
+
+    func remember(_ suggestion: DiscoverSearchSuggestion) {
+        recentSearches = DiscoverRecentSearchStore.save(suggestion, into: recentSearches)
+    }
+
+    func rememberSearchText(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        remember(
+            DiscoverSearchSuggestion(
+                title: trimmed,
+                subtitle: "",
+                latitude: nil,
+                longitude: nil,
+                source: .recent
+            )
+        )
+    }
+
+    nonisolated func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            let key = DiscoverSearchSuggestion.normalizedText(completer.queryFragment)
+            guard self.wantsSuggestions, key == self.activeQueryKey else { return }
+
+            var seen = Set<String>()
+            let mapped = completer.results.compactMap { completion -> DiscoverSearchSuggestion? in
+                let title = completion.title.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !title.isEmpty else { return nil }
+                let subtitle = completion.subtitle.trimmingCharacters(in: .whitespacesAndNewlines)
+                let normalized = DiscoverSearchSuggestion.normalizedText("\(title), \(subtitle)")
+                guard seen.insert(normalized).inserted else { return nil }
+
+                return DiscoverSearchSuggestion(
+                    title: title,
+                    subtitle: subtitle,
+                    latitude: nil,
+                    longitude: nil,
+                    source: Self.suggestionSource(title: title, subtitle: subtitle)
+                )
+            }
+            .prefix(Self.suggestionLimit)
+
+            let next = Array(mapped)
+            self.suggestionCache[key] = next
+            self.suggestions = next
+            self.isLoading = false
+        }
+    }
+
+    nonisolated func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: Error) {
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            let key = DiscoverSearchSuggestion.normalizedText(completer.queryFragment)
+            guard key == self.activeQueryKey else { return }
+            self.suggestions = []
+            self.isLoading = false
+#if DEBUG
+            print("[DiscoverSearchSuggestions] autocompleteFailed query=\(completer.queryFragment) error=\(error.localizedDescription)")
+#endif
+        }
+    }
+
+    private static func suggestionSource(title: String, subtitle: String) -> DiscoverSearchSuggestionSource {
+        let subtitleLower = subtitle.lowercased()
+        let cityLikeSubtitleTokens = [
+            "united states", "usa", "france", "spain", "mexico", "canada", "brazil",
+            "united kingdom", "england", "germany", "italy", "portugal", "japan"
+        ]
+        if cityLikeSubtitleTokens.contains(where: { subtitleLower.contains($0) }) {
+            return .city
+        }
+        return .place
     }
 }
 
@@ -526,6 +761,7 @@ struct DiscoverScreen: View {
     @ObservedObject var viewModel: MapViewModel
     @ObservedObject private var fanUpdatesStore: FanUpdatesRealtimeStore
     @ObservedObject var chatViewModel: ChatViewModel
+    @StateObject private var searchSuggestionController = DiscoverSearchSuggestionController()
     @Binding var isCalendarOverlayPresented: Bool
     let isDiscoverTabSelected: Bool
     @Environment(\.colorScheme) private var colorScheme
@@ -2954,6 +3190,7 @@ struct DiscoverScreen: View {
             }
 
             discoverFloatingSearchBar
+            discoverSearchAssistPanel
             discoverSportsFilterGlassCard
             HStack(spacing: 10) {
                 discoverWeatherPill
@@ -3286,6 +3523,130 @@ struct DiscoverScreen: View {
         .frame(maxWidth: .infinity)
         .frame(height: 52)
         .discoverLightGlassCard(cornerRadius: discoverLightGlassCornerRadius, style: .searchBar)
+        .onChange(of: viewModel.searchText) { _, _ in
+            refreshDiscoverSearchSuggestions()
+        }
+        .onChange(of: isSearchFocused) { _, _ in
+            refreshDiscoverSearchSuggestions()
+        }
+    }
+
+    @ViewBuilder
+    private var discoverSearchAssistPanel: some View {
+        if isSearchFocused && (!discoverSearchAssistRows.isEmpty || discoverShouldShowSuggestionLoading) {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Text(discoverSearchAssistTitle)
+                        .font(FGTypography.caption.weight(.heavy))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .textCase(.uppercase)
+                        .tracking(0.7)
+                    Spacer(minLength: 0)
+                    if discoverShouldShowSuggestionLoading {
+                        ProgressView()
+                            .controlSize(.small)
+                    }
+                }
+                .padding(.horizontal, FGSpacing.md)
+                .padding(.top, 12)
+                .padding(.bottom, discoverSearchAssistRows.isEmpty ? 12 : 4)
+
+                ForEach(discoverSearchAssistRows) { suggestion in
+                    Button {
+                        selectDiscoverSearchSuggestion(suggestion)
+                    } label: {
+                        discoverSearchAssistRow(suggestion)
+                    }
+                    .buttonStyle(.plain)
+
+                    if suggestion.id != discoverSearchAssistRows.last?.id {
+                        Divider()
+                            .padding(.leading, 50)
+                            .opacity(colorScheme == .dark ? 0.26 : 0.46)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .discoverLightGlassCard(cornerRadius: 20, style: .overlay)
+            .transition(.opacity.combined(with: .move(edge: .top)))
+            .zIndex(4)
+        }
+    }
+
+    private var discoverSearchAssistRows: [DiscoverSearchSuggestion] {
+        let trimmed = viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard isSearchFocused else { return [] }
+        if trimmed.isEmpty {
+            return searchSuggestionController.recentSearches
+        }
+        guard DiscoverSearchSuggestion.normalizedText(trimmed).count >= 2 else { return [] }
+        return searchSuggestionController.suggestions
+    }
+
+    private var discoverShouldShowSuggestionLoading: Bool {
+        let trimmed = viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return isSearchFocused
+            && DiscoverSearchSuggestion.normalizedText(trimmed).count >= 2
+            && searchSuggestionController.isLoading
+            && searchSuggestionController.suggestions.isEmpty
+    }
+
+    private var discoverSearchAssistTitle: String {
+        viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? "Recent Searches"
+            : "Suggestions"
+    }
+
+    private func discoverSearchAssistRow(_ suggestion: DiscoverSearchSuggestion) -> some View {
+        HStack(spacing: FGSpacing.sm) {
+            Image(systemName: discoverSearchSuggestionIcon(for: suggestion))
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(suggestion.source == .recent ? FGColor.mutedText(colorScheme) : FGColor.accentBlue)
+                .frame(width: 30, height: 30)
+                .background {
+                    Circle()
+                        .fill((suggestion.source == .recent ? FGColor.mutedText(colorScheme) : FGColor.accentBlue).opacity(colorScheme == .dark ? 0.18 : 0.11))
+                }
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(suggestion.title)
+                    .font(FGTypography.cardTitle.weight(.semibold))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .lineLimit(1)
+
+                if !suggestion.subtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text(suggestion.subtitle)
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .lineLimit(1)
+                } else if suggestion.source == .recent {
+                    Text("Recent search")
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            Image(systemName: "arrow.up.left")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(FGColor.mutedText(colorScheme))
+        }
+        .contentShape(Rectangle())
+        .padding(.horizontal, FGSpacing.md)
+        .padding(.vertical, 10)
+    }
+
+    private func discoverSearchSuggestionIcon(for suggestion: DiscoverSearchSuggestion) -> String {
+        switch suggestion.source {
+        case .recent:
+            return "clock"
+        case .city:
+            return "mappin.and.ellipse"
+        case .place:
+            return "location.circle"
+        }
     }
 
     private var discoverIntegratedLocationButton: some View {
@@ -3817,10 +4178,34 @@ struct DiscoverScreen: View {
 
     private func dismissDiscoverSearchKeyboard() {
         isSearchFocused = false
+        searchSuggestionController.clearSuggestions()
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 
-    private func submitDiscoverSearchFromReturn() {
+    private func refreshDiscoverSearchSuggestions() {
+        searchSuggestionController.refresh(
+            query: viewModel.searchText,
+            isFocused: isSearchFocused,
+            region: viewModel.cameraPosition.region
+        )
+    }
+
+    private func selectDiscoverSearchSuggestion(_ suggestion: DiscoverSearchSuggestion) {
+        let query = suggestion.displayQuery
+        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+
+        viewModel.searchText = query
+        searchSuggestionController.remember(suggestion)
+        searchSuggestionController.clearSuggestions()
+        dismissDiscoverSearchKeyboard()
+        submitDiscoverSearchFromReturn(rememberRecent: false)
+    }
+
+    private func submitDiscoverSearchFromReturn(rememberRecent: Bool = true) {
+        if rememberRecent {
+            let submittedQuery = viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+            searchSuggestionController.rememberSearchText(submittedQuery)
+        }
         dismissDiscoverSearchKeyboard()
         Task { @MainActor in
             let oldRegion = lastMapVenueReloadRegion ?? viewModel.cameraPosition.region

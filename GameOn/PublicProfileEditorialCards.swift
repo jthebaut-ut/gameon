@@ -232,9 +232,13 @@ struct PublicProfileEditorialHero: View {
         Self.resolvedAvatarDiameter(containerWidth: containerWidth)
     }
 
-    private var statColumnWidth: CGFloat {
-        guard containerWidth > 0 else { return 96 }
-        return min(104, max(88, containerWidth * 0.26))
+    private var identityMetaText: String {
+        let reputation = localizedReputationTitle(data.reputation.title)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let teamName = data.primaryFavoriteTeam?.name.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !teamName.isEmpty else { return reputation }
+        guard !reputation.isEmpty else { return teamName }
+        return "\(reputation) • \(teamName)"
     }
 
     private var trimmedBio: String {
@@ -253,14 +257,14 @@ struct PublicProfileEditorialHero: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 14) {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 16) {
                 avatar(diameter: avatarDiameter)
 
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 7) {
                     HStack(alignment: .firstTextBaseline, spacing: 5) {
                         Text(data.displayName)
-                            .font(.system(size: 21, weight: .bold, design: .rounded))
+                            .font(.system(size: 24, weight: .black, design: .rounded))
                             .foregroundStyle(FGColor.primaryText(colorScheme))
                             .lineLimit(2)
                             .minimumScaleFactor(0.82)
@@ -273,37 +277,29 @@ struct PublicProfileEditorialHero: View {
                     }
 
                     Text(data.publicHandleLine)
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .font(.system(size: 13.5, weight: .semibold, design: .rounded))
                         .foregroundStyle(FGColor.secondaryText(colorScheme))
 
-                    if !data.reputation.profileSubtitle.isEmpty {
-                        Text(data.reputation.profileSubtitle)
-                            .font(.system(size: 11, weight: .semibold, design: .rounded))
-                            .foregroundStyle(Color(red: 0.58, green: 0.36, blue: 0.92).opacity(0.92))
-                            .lineLimit(2)
-                    }
-
-                    if let primaryTeam = data.primaryFavoriteTeam {
-                        heroPrimaryFavoriteTeam(primaryTeam)
-                            .padding(.top, 2)
-                    }
+                    heroIdentityMetaLine
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.top, 4)
+                .padding(.top, 3)
+            }
 
-                heroStatColumn
-                    .frame(width: statColumnWidth)
+            if let primaryTeam = data.primaryFavoriteTeam {
+                heroMyTeamCard(primaryTeam)
+                    .padding(.top, 2)
             }
 
             Text(displayBio)
-                .font(.system(size: 13, weight: .medium, design: .rounded))
+                .font(.system(size: 14, weight: .medium, design: .rounded))
                 .foregroundStyle(
                     FGColor.mutedText(colorScheme).opacity(isDefaultBio ? 0.88 : 0.94)
                 )
-                .multilineTextAlignment(.center)
+                .multilineTextAlignment(.leading)
                 .lineSpacing(4)
                 .lineLimit(3)
-                .frame(maxWidth: .infinity, alignment: .center)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.top, 2)
                 .onAppear {
 #if DEBUG
@@ -314,11 +310,12 @@ struct PublicProfileEditorialHero: View {
 
             if let memberSince = data.memberSinceLabel, !memberSince.isEmpty {
                 heroMemberSinceRow(memberSince)
-                    .frame(maxWidth: .infinity, alignment: .center)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.top, 2)
             }
         }
-        .padding(16)
+        .padding(18)
+        .background(heroSoftBackground)
         .background {
             GeometryReader { geo in
                 Color.clear
@@ -336,23 +333,44 @@ struct PublicProfileEditorialHero: View {
         }
     }
 
-    private var heroStatColumn: some View {
-        VStack(spacing: 8) {
-            if data.mutualFansCount > 0 {
-                PublicProfileHeroStatCard(
-                    value: "\(data.mutualFansCount)",
-                    label: data.mutualFansCount == 1 ? "Mutual fan" : "Mutual fans",
-                    icon: "person.2.fill",
-                    tint: Color(red: 0.58, green: 0.36, blue: 0.92)
+    private var heroSoftBackground: some View {
+        RoundedRectangle(cornerRadius: PublicProfileSheetLayout.editorialCardRadius, style: .continuous)
+            .fill(
+                LinearGradient(
+                    colors: [
+                        FGColor.accentBlue.opacity(colorScheme == .dark ? 0.16 : 0.12),
+                        FGColor.accentGreen.opacity(colorScheme == .dark ? 0.11 : 0.075),
+                        Color.white.opacity(colorScheme == .dark ? 0.04 : 0.72)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
                 )
-            }
-            PublicProfileHeroStatCard(
-                value: localizedReputationTitle(data.reputation.title),
-                label: L10n.t("fan_reputation", languageCode: appLanguageRaw),
-                icon: data.reputation.privileges.isVerifiedOrganizer ? "checkmark.seal.fill" : "bolt.heart.fill",
-                tint: FGColor.accentGreen
             )
+            .overlay(alignment: .topLeading) {
+                Circle()
+                    .fill(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.12 : 0.10))
+                    .frame(width: 130, height: 130)
+                    .blur(radius: 34)
+                    .offset(x: -38, y: -42)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+    }
+
+    private var heroIdentityMetaLine: some View {
+        HStack(spacing: 6) {
+            Image(systemName: data.reputation.privileges.isVerifiedOrganizer ? "checkmark.seal.fill" : "bolt.heart.fill")
+                .font(.system(size: 10.5, weight: .bold))
+                .foregroundStyle(FGColor.accentGreen)
+                .accessibilityHidden(true)
+
+            Text(identityMetaText)
+                .font(.system(size: 13, weight: .heavy, design: .rounded))
+                .foregroundStyle(Color(red: 0.58, green: 0.36, blue: 0.92).opacity(0.94))
+                .lineLimit(2)
+                .minimumScaleFactor(0.82)
         }
+        .accessibilityLabel(identityMetaText)
     }
 
     private func localizedReputationTitle(_ title: String) -> String {
@@ -368,46 +386,50 @@ struct PublicProfileEditorialHero: View {
         }
     }
 
-    private func heroPrimaryFavoriteTeam(_ team: FavoriteTeam) -> some View {
-        HStack(spacing: 9) {
+    private func heroMyTeamCard(_ team: FavoriteTeam) -> some View {
+        HStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(FGColor.accentYellow.opacity(colorScheme == .dark ? 0.18 : 0.13))
-                    .frame(width: 34, height: 34)
+                    .fill(FGColor.accentYellow.opacity(colorScheme == .dark ? 0.18 : 0.14))
+                    .frame(width: 44, height: 44)
                     .overlay {
                         Circle()
                             .strokeBorder(FGColor.accentYellow.opacity(colorScheme == .dark ? 0.34 : 0.24), lineWidth: 1)
                     }
                 Image(systemName: "trophy.fill")
-                    .font(.system(size: 15, weight: .heavy))
+                    .font(.system(size: 21, weight: .heavy))
                     .foregroundStyle(FGColor.accentYellow)
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(L10n.t("my_team", languageCode: appLanguageRaw))
-                    .font(.system(size: 9, weight: .heavy, design: .rounded))
+                    .font(.system(size: 10, weight: .heavy, design: .rounded))
                     .foregroundStyle(FGColor.accentYellow.opacity(0.96))
                     .textCase(.uppercase)
-                    .tracking(0.7)
+                    .tracking(0.9)
                     .lineLimit(1)
 
                 Text(team.name)
-                    .font(.system(size: 15, weight: .heavy, design: .rounded))
+                    .font(.system(size: 17, weight: .black, design: .rounded))
                     .foregroundStyle(FGColor.primaryText(colorScheme))
                     .lineLimit(2)
                     .minimumScaleFactor(0.82)
                     .fixedSize(horizontal: false, vertical: true)
+
+                publicFavoriteTeamSportLine(team)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+
+            FavoriteTeamLogoBadge(team: team, diameter: 52)
         }
-        .padding(.horizontal, 9)
-        .padding(.vertical, 7)
+        .padding(.horizontal, 13)
+        .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
-            Capsule(style: .continuous)
-                .fill(FGColor.accentYellow.opacity(colorScheme == .dark ? 0.12 : 0.08))
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(FGColor.accentYellow.opacity(colorScheme == .dark ? 0.14 : 0.09))
                 .overlay {
-                    Capsule(style: .continuous)
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
                         .strokeBorder(FGColor.accentYellow.opacity(colorScheme == .dark ? 0.34 : 0.22), lineWidth: 1)
                 }
         }
@@ -417,7 +439,18 @@ struct PublicProfileEditorialHero: View {
             print("[FavoriteTeamsDebug] primaryTeamDisplayUpdated=true")
 #endif
         }
-        .shadow(color: FGColor.accentYellow.opacity(colorScheme == .dark ? 0.20 : 0.12), radius: 9, y: 3)
+        .shadow(color: FGColor.accentYellow.opacity(colorScheme == .dark ? 0.20 : 0.13), radius: 14, y: 5)
+    }
+
+    private func publicFavoriteTeamSportLine(_ team: FavoriteTeam) -> some View {
+        HStack(spacing: 6) {
+            Text(sportIcon(for: team.sport.chipTitle))
+                .font(.system(size: 12))
+            Text(team.sport.chipTitle)
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .lineLimit(1)
+        }
     }
 
     private func heroMemberSinceRow(_ label: String) -> some View {
@@ -466,46 +499,11 @@ struct PublicProfileEditorialHero: View {
         .frame(width: diameter, height: diameter)
     }
 
-    /// ~30% of hero width, clamped for premium anchor on phone / SE-safe compact floor.
+    /// ~35% of hero width, clamped for premium anchor on phone / SE-safe compact floor.
     static func resolvedAvatarDiameter(containerWidth: CGFloat) -> CGFloat {
-        guard containerWidth > 0 else { return 120 }
-        let scaled = containerWidth * 0.30
-        return min(132, max(100, scaled))
-    }
-}
-
-struct PublicProfileHeroStatCard: View {
-    let value: String
-    let label: String
-    let icon: String
-    let tint: Color
-    @Environment(\.colorScheme) private var colorScheme
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Image(systemName: icon)
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(tint)
-            Text(value)
-                .font(.system(size: 14, weight: .bold, design: .rounded))
-                .foregroundStyle(FGColor.primaryText(colorScheme))
-                .lineLimit(2)
-                .minimumScaleFactor(0.7)
-            Text(label)
-                .font(.system(size: 9, weight: .semibold, design: .rounded))
-                .foregroundStyle(FGColor.mutedText(colorScheme))
-                .lineLimit(2)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(10)
-        .background {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.white.opacity(colorScheme == .dark ? 0.10 : 0.96))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .strokeBorder(FGColor.divider(colorScheme).opacity(0.85), lineWidth: 0.75)
-                }
-        }
+        guard containerWidth > 0 else { return 136 }
+        let scaled = containerWidth * 0.35
+        return min(150, max(116, scaled))
     }
 }
 
@@ -596,11 +594,16 @@ struct PublicProfileFavoriteTeamsCard: View {
             if shownTeams.isEmpty {
                 emptyFavoriteTeamsState
             } else {
-                VStack(spacing: 8) {
-                    ForEach(shownTeams) { team in
-                        favoriteTeamRow(team, isPrimary: team.id == data.primaryFavoriteTeam?.id)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(alignment: .top, spacing: 10) {
+                        ForEach(shownTeams) { team in
+                            favoriteTeamCard(team, isPrimary: team.id == data.primaryFavoriteTeam?.id)
+                        }
                     }
+                    .padding(.vertical, 2)
+                    .padding(.trailing, 2)
                 }
+                .scrollClipDisabled()
             }
         }
         .padding(14)
@@ -615,55 +618,73 @@ struct PublicProfileFavoriteTeamsCard: View {
         }
     }
 
-    private func favoriteTeamRow(_ team: FavoriteTeam, isPrimary: Bool) -> some View {
-        let rowFill = isPrimary
-            ? FGColor.accentYellow.opacity(colorScheme == .dark ? 0.10 : 0.06)
-            : team.badgeColor.opacity(colorScheme == .dark ? 0.14 : 0.08)
+    private func favoriteTeamCard(_ team: FavoriteTeam, isPrimary: Bool) -> some View {
+        let cardFill = isPrimary
+            ? FGColor.accentYellow.opacity(colorScheme == .dark ? 0.13 : 0.08)
+            : team.badgeColor.opacity(colorScheme == .dark ? 0.16 : 0.09)
         let sportAccent = sportAccentColor(for: team.sport.chipTitle)
 
-        return HStack(spacing: 10) {
-            FavoriteTeamLogoBadge(team: team, diameter: 34)
+        return VStack(alignment: .leading, spacing: 9) {
+            HStack(alignment: .top, spacing: 10) {
+                FavoriteTeamLogoBadge(team: team, diameter: 42)
+                Spacer(minLength: 0)
+                Image(systemName: isPrimary ? "trophy.fill" : "trophy")
+                    .font(.system(size: 16, weight: .heavy))
+                    .foregroundStyle(isPrimary ? FGColor.accentYellow : FGColor.secondaryText(colorScheme).opacity(0.72))
+                    .padding(.top, 2)
+            }
 
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(team.name)
-                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                    .font(.system(size: 16, weight: .black, design: .rounded))
                     .foregroundStyle(FGColor.primaryText(colorScheme))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.82)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.78)
+                    .fixedSize(horizontal: false, vertical: true)
+
                 publicFavoriteTeamSportBadge(team)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Spacer(minLength: 0)
 
             if isPrimary {
-                HStack(spacing: 4) {
+                HStack(spacing: 5) {
                     Image(systemName: "trophy.fill")
-                        .font(.system(size: 11, weight: .heavy))
+                        .font(.system(size: 10, weight: .heavy))
                     Text(L10n.t("my_team", languageCode: appLanguageRaw))
                         .font(.system(size: 10, weight: .heavy, design: .rounded))
                 }
                 .foregroundStyle(FGColor.accentYellow.opacity(0.96))
                 .padding(.horizontal, 8)
-                .padding(.vertical, 4)
+                .padding(.vertical, 5)
                 .background {
                     Capsule(style: .continuous)
-                        .fill(FGColor.accentYellow.opacity(colorScheme == .dark ? 0.16 : 0.10))
+                        .fill(FGColor.accentYellow.opacity(colorScheme == .dark ? 0.16 : 0.11))
                 }
-            } else {
-                Image(systemName: "trophy")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(FGColor.secondaryText(colorScheme).opacity(0.72))
             }
         }
-        .padding(9)
+        .padding(.top, 12)
+        .padding(.horizontal, 12)
+        .padding(.bottom, 14)
+        .frame(width: 214, height: 180, alignment: .topLeading)
         .background {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(rowFill)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            cardFill,
+                            Color.white.opacity(colorScheme == .dark ? 0.06 : 0.84)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
                 .overlay {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
                         .strokeBorder(
                             isPrimary
-                                ? FGColor.accentYellow.opacity(colorScheme == .dark ? 0.30 : 0.20)
-                                : team.badgeColor.opacity(colorScheme == .dark ? 0.24 : 0.14),
+                                ? FGColor.accentYellow.opacity(colorScheme == .dark ? 0.34 : 0.22)
+                                : team.badgeColor.opacity(colorScheme == .dark ? 0.26 : 0.16),
                             lineWidth: 1
                         )
                 }
@@ -671,10 +692,11 @@ struct PublicProfileFavoriteTeamsCard: View {
         .overlay(alignment: .topLeading) {
             publicFavoriteTeamSportAccent(color: sportAccent)
         }
+        .shadow(color: sportAccent.opacity(colorScheme == .dark ? 0.18 : 0.08), radius: 12, y: 5)
         .onAppear {
 #if DEBUG
             print("[FavoriteTeamsDebug] sportAccentRendered sport=\(team.sport.chipTitle)")
-            print("[FavoriteTeamsDebug] sportAccentColorApplied=true")
+            print("[FavoriteTeamsDebug] favoriteTeamCardSportIconVisible=true")
 #endif
         }
     }

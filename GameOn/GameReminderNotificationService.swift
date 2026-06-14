@@ -8,11 +8,32 @@ struct GameReminderNotificationEvent {
     let startDate: Date
 }
 
+struct ProGameReminderNotificationEvent {
+    let identifier: String
+    let title: String
+    let startDate: Date
+}
+
+struct ProGameFinalNotificationEvent {
+    let identifier: String
+    let body: String
+}
+
+struct ProGameScoreUpdateNotificationEvent {
+    let identifier: String
+    let scoreToken: String
+    let title: String
+    let body: String
+}
+
 final class GameReminderNotificationService {
     static let shared = GameReminderNotificationService()
 
     private let center: UNUserNotificationCenter
     private let identifierPrefix = "fangeo.gameReminder."
+    private let proGameIdentifierPrefix = "fangeo.proGameReminder."
+    private let proGameFinalIdentifierPrefix = "fangeo.proGameFinal."
+    private let proGameScoreUpdateIdentifierPrefix = "fangeo.proGameScoreUpdate."
 
     private init(center: UNUserNotificationCenter = .current()) {
         self.center = center
@@ -125,6 +146,146 @@ final class GameReminderNotificationService {
         center.removePendingNotificationRequests(withIdentifiers: identifiers)
     }
 
+    func scheduleProGameReminder(
+        for event: ProGameReminderNotificationEvent,
+        reminderMinutesBefore: Int,
+        repeatUntilStart: Bool = false,
+        repeatEveryMinutes: Int = 30
+    ) async {
+        print("[ProGameNotificationDebug] reminderPreference=\(reminderMinutesBefore)")
+        print("[ProGameNotificationDebug] schedulingReminder id=\(event.identifier)")
+
+        guard await requestAuthorizationIfNeeded() else {
+            print("[ProGameNotificationDebug] permissionDenied=true")
+            return
+        }
+
+        let fireDate = event.startDate.addingTimeInterval(TimeInterval(-reminderMinutesBefore * 60))
+
+        await cancelProGameReminder(identifier: event.identifier)
+
+        let fireDates = reminderFireDates(
+            firstFireDate: fireDate,
+            eventStartDate: event.startDate,
+            repeatUntilStart: repeatUntilStart,
+            repeatEveryMinutes: repeatEveryMinutes
+        )
+
+        guard !fireDates.isEmpty else { return }
+
+        for (index, scheduledDate) in fireDates.enumerated() {
+            let minutesUntilStart = max(1, Int(event.startDate.timeIntervalSince(scheduledDate) / 60))
+            let content = UNMutableNotificationContent()
+            content.title = event.title
+            content.body = "Your saved Pro Game starts in \(Self.leadDescription(minutes: minutesUntilStart))."
+            content.sound = .default
+
+            let components = Calendar.current.dateComponents(
+                [.year, .month, .day, .hour, .minute, .second],
+                from: scheduledDate
+            )
+            let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+            let request = UNNotificationRequest(
+                identifier: proGameReminderIdentifier(for: event.identifier, repeatIndex: index),
+                content: content,
+                trigger: trigger
+            )
+
+            do {
+                try await center.add(request)
+            } catch {
+                print("[ProGameNotificationDebug] schedulingFailed id=\(event.identifier) error=\(error.localizedDescription)")
+            }
+        }
+    }
+
+    func cancelProGameReminder(identifier: String) async {
+        print("[ProGameNotificationDebug] cancelReminder id=\(identifier)")
+        let baseIdentifier = proGameReminderIdentifier(for: identifier)
+        let identifiers = await center.pendingNotificationRequests()
+            .map(\.identifier)
+            .filter { $0 == baseIdentifier || $0.hasPrefix("\(baseIdentifier).") }
+        center.removePendingNotificationRequests(withIdentifiers: identifiers.isEmpty ? [baseIdentifier] : identifiers)
+    }
+
+    func cancelAllProGameReminders() async {
+        let requests = await center.pendingNotificationRequests()
+        let identifiers = requests
+            .map(\.identifier)
+            .filter {
+                $0.hasPrefix(proGameIdentifierPrefix)
+                    || $0.hasPrefix(proGameFinalIdentifierPrefix)
+                    || $0.hasPrefix(proGameScoreUpdateIdentifierPrefix)
+            }
+        center.removePendingNotificationRequests(withIdentifiers: identifiers)
+    }
+
+    func cancelProGameFinalNotification(identifier: String) async {
+        center.removePendingNotificationRequests(withIdentifiers: [proGameFinalIdentifier(for: identifier)])
+    }
+
+    func cancelProGameScoreUpdateNotifications(identifier: String) async {
+        let baseIdentifier = proGameScoreUpdateIdentifierPrefix + identifier
+        let identifiers = await center.pendingNotificationRequests()
+            .map(\.identifier)
+            .filter { $0.hasPrefix(baseIdentifier) }
+        center.removePendingNotificationRequests(withIdentifiers: identifiers)
+    }
+
+    func scheduleProGameFinalNotification(for event: ProGameFinalNotificationEvent) async {
+        print("[ProGameNotificationDebug] schedulingFinal id=\(event.identifier)")
+
+        guard await requestAuthorizationIfNeeded() else {
+            print("[ProGameNotificationDebug] finalPermissionDenied=true")
+            return
+        }
+
+        let content = UNMutableNotificationContent()
+        content.title = "Game Final"
+        content.body = event.body
+        content.sound = .default
+
+        let identifier = proGameFinalIdentifier(for: event.identifier)
+        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+        let request = UNNotificationRequest(
+            identifier: identifier,
+            content: content,
+            trigger: UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        )
+
+        do {
+            try await center.add(request)
+        } catch {
+            print("[ProGameNotificationDebug] finalSchedulingFailed id=\(event.identifier) error=\(error.localizedDescription)")
+        }
+    }
+
+    func scheduleProGameScoreUpdateNotification(for event: ProGameScoreUpdateNotificationEvent) async {
+        print("[ProGameNotificationDebug] schedulingScoreUpdate id=\(event.identifier) score=\(event.scoreToken)")
+
+        guard await requestAuthorizationIfNeeded() else {
+            print("[ProGameNotificationDebug] scoreUpdatePermissionDenied=true")
+            return
+        }
+
+        let content = UNMutableNotificationContent()
+        content.title = event.title
+        content.body = event.body
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: proGameScoreUpdateIdentifier(for: event.identifier, scoreToken: event.scoreToken),
+            content: content,
+            trigger: UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        )
+
+        do {
+            try await center.add(request)
+        } catch {
+            print("[ProGameNotificationDebug] scoreUpdateSchedulingFailed id=\(event.identifier) error=\(error.localizedDescription)")
+        }
+    }
+
     private func reminderIdentifier(for eventId: UUID) -> String {
         "\(identifierPrefix)\(eventId.uuidString.lowercased())"
     }
@@ -132,6 +293,23 @@ final class GameReminderNotificationService {
     private func reminderIdentifier(for eventId: UUID, repeatIndex: Int) -> String {
         let base = reminderIdentifier(for: eventId)
         return repeatIndex == 0 ? base : "\(base).repeat\(repeatIndex)"
+    }
+
+    private func proGameReminderIdentifier(for identifier: String) -> String {
+        "\(proGameIdentifierPrefix)\(identifier)"
+    }
+
+    private func proGameReminderIdentifier(for identifier: String, repeatIndex: Int) -> String {
+        let base = proGameReminderIdentifier(for: identifier)
+        return repeatIndex == 0 ? base : "\(base).repeat\(repeatIndex)"
+    }
+
+    private func proGameFinalIdentifier(for identifier: String) -> String {
+        "\(proGameFinalIdentifierPrefix)\(identifier)"
+    }
+
+    private func proGameScoreUpdateIdentifier(for identifier: String, scoreToken: String) -> String {
+        "\(proGameScoreUpdateIdentifierPrefix)\(identifier).\(scoreToken)"
     }
 
     private func reminderFireDates(

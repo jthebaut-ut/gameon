@@ -114,6 +114,29 @@ enum FGTypography {
     static let metadata = Font.system(size: 12, weight: .medium, design: .rounded)
 }
 
+struct FanGeoPagePurposeHeader: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(FGTypography.screenTitle)
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+                .lineLimit(1)
+
+            Text(subtitle)
+                .font(FGTypography.caption)
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 enum FGSpacing {
     static let xs: CGFloat = 4
     static let sm: CGFloat = 8

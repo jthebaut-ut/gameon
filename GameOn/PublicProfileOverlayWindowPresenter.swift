@@ -271,6 +271,7 @@ struct PublicProfileOverlayContainer: View {
     @ObservedObject var session: PublicProfileOverlaySession
     @ObservedObject var viewModel: MapViewModel
     @ObservedObject var chatViewModel: ChatViewModel
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         GeometryReader { geo in
@@ -313,7 +314,11 @@ struct PublicProfileOverlayContainer: View {
         }
         .frame(maxWidth: .infinity)
         .frame(maxHeight: maxHeight)
-        .background(Color(red: 0.04, green: 0.05, blue: 0.07))
+        .background(
+            colorScheme == .dark
+                ? Color(red: 0.04, green: 0.05, blue: 0.07)
+                : Color(red: 0.94, green: 0.95, blue: 0.97)
+        )
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .shadow(color: .black.opacity(0.45), radius: 24, y: -4)
         .padding(.bottom, bottomInset)
@@ -322,7 +327,7 @@ struct PublicProfileOverlayContainer: View {
     private var dragHandle: some View {
         VStack(spacing: 0) {
             Capsule(style: .continuous)
-                .fill(Color.white.opacity(0.32))
+                .fill(colorScheme == .dark ? Color.white.opacity(0.32) : Color.black.opacity(0.18))
                 .frame(width: 40, height: 5)
                 .padding(.top, 4)
         }

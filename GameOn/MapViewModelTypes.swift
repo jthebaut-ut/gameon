@@ -138,9 +138,9 @@ enum CalendarTabGameFilter: String, CaseIterable, Identifiable, Equatable {
 
     var segmentTitle: String {
         switch self {
-        case .venueGames: return "Venue Games"
-        case .pickupGames: return "Community Games"
-        case .proGames: return "Pro Games"
+        case .venueGames: return "Venues"
+        case .pickupGames: return "Pickup"
+        case .proGames: return "Pro"
         }
     }
 }
@@ -301,9 +301,22 @@ struct BusinessRow: Decodable, Equatable, Identifiable {
     let owner_email: String?
     let owner_user_id: UUID?
     let admin_status: String
+    let business_origin: String?
     let created_at: String?
     let entitlement_updated_at: String?
     let free_active_venues_selected_at: String?
+}
+
+enum BusinessOrigin {
+    static let ownedAccount = "owned_account"
+    static let communitySeed = "community_seed"
+    static let claimedCommunity = "claimed_community"
+
+    static let loginOwnedValues = [ownedAccount, claimedCommunity]
+
+    static func isLoginOwned(_ rawValue: String?) -> Bool {
+        loginOwnedValues.contains(rawValue?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? "")
+    }
 }
 
 struct AdminBusinessVenueOverrideSummary: Decodable, Identifiable, Equatable {
@@ -632,7 +645,7 @@ enum DiscoverMapDisplayMode: String, CaseIterable, Equatable {
 }
 
 /// Full-field payload for Settings → Add location → ``venue_claims`` (no public ``venues`` row until admin approval).
-struct AddLocationClaimForm: Sendable {
+struct AddLocationClaimForm: Codable, Sendable {
     let venueName: String
     let address: String
     let addressLine2: String
@@ -757,7 +770,7 @@ struct AddLocationClaimForm: Sendable {
 }
 
 /// Combined signup: organization display name plus the first `venue_claims` row (`venue_id` nil until admin links a venue).
-struct BusinessOwnerSignupPayload: Sendable {
+struct BusinessOwnerSignupPayload: Codable, Sendable {
     let businessDisplayName: String
     let firstLocation: AddLocationClaimForm
 }
@@ -768,7 +781,7 @@ struct PendingFanEmailSignupDraft: Sendable {
     let recordFanGuidelinesAcceptance: Bool
 }
 
-struct PendingBusinessEmailSignupDraft: Sendable {
+struct PendingBusinessEmailSignupDraft: Codable, Sendable {
     let email: String
     let signup: BusinessOwnerSignupPayload
     let coverPhotoJPEGData: Data?

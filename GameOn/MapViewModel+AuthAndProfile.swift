@@ -14,9 +14,28 @@ extension MapViewModel {
 
     static let fanPasswordResetRedirectURL = URL(string: "fangeo://reset-password")!
     static let emailVerificationRedirectURL = URL(string: "fangeo://email-confirmed")!
+    private static let emailDeliveryGuidanceMessage = "We sent you an email. If you don’t see it, check your Spam or Junk folder and mark FanGeo as safe."
 
     private static let storedAccountModeKey = "GameOn.storedAccountMode"
     private static let storedAccountAuthUserIdKey = "GameOn.storedAccountAuthUserId"
+    private static let pendingBusinessEmailSignupDraftFilename = "pending-business-email-signup-draft.json"
+
+    private static var pendingBusinessEmailSignupDraftURL: URL? {
+        do {
+            let directory = try FileManager.default.url(
+                for: .applicationSupportDirectory,
+                in: .userDomainMask,
+                appropriateFor: nil,
+                create: true
+            )
+            return directory.appendingPathComponent(pendingBusinessEmailSignupDraftFilename)
+        } catch {
+#if DEBUG
+            print("[BusinessSignupDraft] applicationSupportURLFailed error=\(error.localizedDescription)")
+#endif
+            return nil
+        }
+    }
 
     /// When true, cold-start must not treat a still-cached Supabase session as a signed-in user until the next successful manual sign-in.
     private static let didExplicitlyLogoutKey = "didExplicitlyLogout"
@@ -30,14 +49,31 @@ extension MapViewModel {
     }
 
     @MainActor
-    func markEmailVerificationPending(email: String, kind: EmailVerificationAccountKind) {
+    func markEmailVerificationPending(
+        email: String,
+        kind: EmailVerificationAccountKind,
+        verificationEmailConfirmedAsSent: Bool = true,
+        includeEmailDeliveryGuidance: Bool = false
+    ) {
         pendingEmailVerificationEmail = OwnerBusinessEmail.normalized(email)
         pendingEmailVerificationKind = kind
         emailVerificationError = ""
-        emailVerificationMessage = kind == .business
-            ? "Check your email to verify your business account."
-            : "Check your email to verify your FanGeo account."
+        if kind == .business, !verificationEmailConfirmedAsSent {
+            emailVerificationMessage = ""
+            emailVerificationError = "Account created, but verification email was not confirmed as sent. Try resend."
+        } else {
+            let successMessage = kind == .business
+                ? "Verification email sent. Check your business email to continue."
+                : "Check your email to verify your FanGeo account."
+            emailVerificationMessage = includeEmailDeliveryGuidance
+                ? Self.withEmailDeliveryGuidance(successMessage)
+                : successMessage
+        }
         print("[EmailVerifyDebug] signupNeedsConfirmation=true")
+    }
+
+    private static func withEmailDeliveryGuidance(_ message: String) -> String {
+        "\(message)\n\n\(emailDeliveryGuidanceMessage)"
     }
 
     @MainActor
@@ -48,6 +84,72 @@ extension MapViewModel {
         emailVerificationMessage = ""
         pendingFanEmailSignupDraft = nil
         pendingBusinessEmailSignupDraft = nil
+        clearPersistedPendingBusinessEmailSignupDraft()
+    }
+
+    func restorePendingBusinessEmailSignupDraftIfNeeded() {
+        guard let url = Self.pendingBusinessEmailSignupDraftURL,
+              FileManager.default.fileExists(atPath: url.path) else {
+            return
+        }
+
+        do {
+            let data = try Data(contentsOf: url)
+            let draft = try JSONDecoder().decode(PendingBusinessEmailSignupDraft.self, from: data)
+            pendingBusinessEmailSignupDraft = draft
+            pendingEmailVerificationEmail = OwnerBusinessEmail.normalized(draft.email)
+            pendingEmailVerificationKind = .business
+            if emailVerificationMessage.isEmpty {
+                emailVerificationMessage = ""
+                emailVerificationError = "Account created, but verification email was not confirmed as sent. Try resend."
+            }
+#if DEBUG
+            print("[BusinessSignupDraft] restoredPendingBusinessEmailSignupDraft=true email=\(pendingEmailVerificationEmail)")
+#endif
+        } catch {
+#if DEBUG
+            print("[BusinessSignupDraft] restoreFailed error=\(error.localizedDescription)")
+#endif
+            try? FileManager.default.removeItem(at: url)
+        }
+    }
+
+    func persistPendingBusinessEmailSignupDraft(_ draft: PendingBusinessEmailSignupDraft) {
+        guard let url = Self.pendingBusinessEmailSignupDraftURL else { return }
+
+        do {
+            try FileManager.default.createDirectory(
+                at: url.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            let data = try JSONEncoder().encode(draft)
+            try data.write(to: url, options: [.atomic])
+#if DEBUG
+            print("[BusinessSignupDraft] persistedPendingBusinessEmailSignupDraft=true email=\(OwnerBusinessEmail.normalized(draft.email)) bytes=\(data.count)")
+#endif
+        } catch {
+#if DEBUG
+            print("[BusinessSignupDraft] persistFailed error=\(error.localizedDescription)")
+#endif
+        }
+    }
+
+    func clearPersistedPendingBusinessEmailSignupDraft() {
+        guard let url = Self.pendingBusinessEmailSignupDraftURL,
+              FileManager.default.fileExists(atPath: url.path) else {
+            return
+        }
+
+        do {
+            try FileManager.default.removeItem(at: url)
+#if DEBUG
+            print("[BusinessSignupDraft] clearedPersistedPendingBusinessEmailSignupDraft=true")
+#endif
+        } catch {
+#if DEBUG
+            print("[BusinessSignupDraft] clearPersistedFailed error=\(error.localizedDescription)")
+#endif
+        }
     }
 
     static func isUnconfirmedEmailAuthError(_ error: Error) -> Bool {
@@ -60,6 +162,36 @@ extension MapViewModel {
 
     static func userEmailConfirmed(_ user: User) -> Bool {
         user.emailConfirmedAt != nil || user.confirmedAt != nil
+    }
+
+    static func userConfirmationEmailConfirmedAsSent(_ user: User) -> Bool {
+        user.confirmationSentAt != nil
+    }
+
+    static func authUserProviderDebugSummary(_ user: User) -> String {
+        let provider = user.appMetadata["provider"].map { String(describing: $0) } ?? "nil"
+        let providers = user.appMetadata["providers"].map { String(describing: $0) } ?? "nil"
+        let identityProviders = user.identities?
+            .map(\.provider)
+            .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            .joined(separator: ",") ?? "nil"
+        return "appProvider=\(provider) appProviders=\(providers) identityProviders=\(identityProviders) identityCount=\(user.identities?.count ?? 0)"
+    }
+
+    static func businessEmailVerificationSignupDebugLines(
+        response: AuthResponse,
+        redirectURL: URL
+    ) -> [String] {
+        let user = response.user
+        return [
+            "[BusinessEmailVerification] signUpResponse user_id=\(user.id.uuidString.lowercased())",
+            "[BusinessEmailVerification] signUpResponse session_nil=\(response.session == nil)",
+            "[BusinessEmailVerification] signUpResponse email_confirmed_at=\((user.emailConfirmedAt ?? user.confirmedAt)?.description ?? "nil")",
+            "[BusinessEmailVerification] signUpResponse confirmation_sent_at=\(user.confirmationSentAt?.description ?? "nil")",
+            "[BusinessEmailVerification] signUpResponse confirmation_email_confirmed_as_sent=\(userConfirmationEmailConfirmedAsSent(user))",
+            "[BusinessEmailVerification] signUpResponse \(authUserProviderDebugSummary(user))",
+            "[BusinessEmailVerification] signUpRequest redirect_to=\(redirectURL.absoluteString)"
+        ]
     }
 
     private func readPersistedAccountMode() -> (mode: StoredAccountMode, authUserId: String?) {
@@ -126,6 +258,7 @@ extension MapViewModel {
         let owner_email: String?
         let owner_user_id: UUID?
         let admin_status: String?
+        let business_origin: String?
     }
 
     private func logBusinessSessionRestoreDebug(_ message: String) {
@@ -224,12 +357,18 @@ extension MapViewModel {
         guard OwnerBusinessEmail.isValidStrict(normalized) else { return .inactive }
 
         if ownedBusinesses.contains(where: {
-            OwnerBusinessEmail.normalized($0.owner_email ?? "") == normalized && $0.admin_status == "active"
+            OwnerBusinessEmail.normalized($0.owner_email ?? "") == normalized
+                && $0.admin_status == "active"
+                && BusinessOrigin.isLoginOwned($0.business_origin)
         }) {
             return .active
         }
         if let ownerUserId,
-           ownedBusinesses.contains(where: { $0.owner_user_id == ownerUserId && $0.admin_status == "active" }) {
+           ownedBusinesses.contains(where: {
+               $0.owner_user_id == ownerUserId
+                   && $0.admin_status == "active"
+                   && BusinessOrigin.isLoginOwned($0.business_origin)
+           }) {
             return .active
         }
 
@@ -243,6 +382,7 @@ extension MapViewModel {
                 .select("id")
                 .eq("owner_email", value: normalized)
                 .eq("admin_status", value: "active")
+                .in("business_origin", values: BusinessOrigin.loginOwnedValues)
                 .limit(1)
                 .execute()
                 .value
@@ -254,6 +394,7 @@ extension MapViewModel {
                     .select("id")
                     .eq("owner_user_id", value: ownerUserId)
                     .eq("admin_status", value: "active")
+                    .in("business_origin", values: BusinessOrigin.loginOwnedValues)
                     .limit(1)
                     .execute()
                     .value
@@ -279,8 +420,9 @@ extension MapViewModel {
             if let ownerUserId {
                 rowsById = try await supabase
                     .from("businesses")
-                    .select("id,owner_email,owner_user_id,admin_status")
+                    .select("id,owner_email,owner_user_id,admin_status,business_origin")
                     .eq("owner_user_id", value: ownerUserId)
+                    .in("business_origin", values: BusinessOrigin.loginOwnedValues)
                     .limit(5)
                     .execute()
                     .value
@@ -289,8 +431,9 @@ extension MapViewModel {
             if OwnerBusinessEmail.isValidStrict(normalized) {
                 rowsByEmail = try await supabase
                     .from("businesses")
-                    .select("id,owner_email,owner_user_id,admin_status")
+                    .select("id,owner_email,owner_user_id,admin_status,business_origin")
                     .eq("owner_email", value: normalized)
+                    .in("business_origin", values: BusinessOrigin.loginOwnedValues)
                     .limit(5)
                     .execute()
                     .value
@@ -528,6 +671,11 @@ extension MapViewModel {
             return false
         }
 
+        guard await claimAccountIdentity(.business, context: context) else {
+            logBusinessOwnerSessionFlags(context: "\(context)_account_identity_blocked")
+            return false
+        }
+
         venueOwnerEmail = sessionEmail
         isVenueOwnerLoggedIn = true
         venueOwnerMode = true
@@ -600,6 +748,7 @@ extension MapViewModel {
         currentUserAuthId = nil
         clearUnseenPokesBadgeState()
 
+        Task { await GameReminderNotificationService.shared.cancelAllProGameReminders() }
         savedProGames = []
         favoriteTeamProGames = []
         FavoriteTeamsStore.clearAppStorage()
@@ -1373,7 +1522,11 @@ extension MapViewModel {
                   Self.userEmailConfirmed(activeSession.user) else {
                 await forceLogout(reason: "registerUserNeedsEmailConfirmation", source: "MapViewModel.registerUser")
                 await MainActor.run {
-                    markEmailVerificationPending(email: fanEmail, kind: .fan)
+                    markEmailVerificationPending(
+                        email: fanEmail,
+                        kind: .fan,
+                        includeEmailDeliveryGuidance: true
+                    )
                 }
                 return
             }
@@ -1384,6 +1537,10 @@ extension MapViewModel {
 #endif
                 await undoPartialSupabaseSessionAfterAccountTypeMismatch()
                 await MainActor.run { authErrorMessage = Self.fanLoginBlockedBecauseBusinessMessage }
+                return
+            }
+
+            guard await claimAccountIdentity(.fan, context: "registerUser") else {
                 return
             }
 
@@ -1467,6 +1624,10 @@ extension MapViewModel {
                 return
             }
 
+            guard await claimAccountIdentity(.fan, context: "loginUser") else {
+                return
+            }
+
             if !(await checkCurrentUserAdminStatus()) {
                 return
             }
@@ -1535,6 +1696,7 @@ extension MapViewModel {
         }
 
         print("[EmailVerifyDebug] resendStarted=true")
+        print("[BusinessVerificationResend] resendStarted kind=\(targetKind.rawValue) email=\(targetEmail) type=signup redirect_to=\(Self.emailVerificationRedirectURL.absoluteString)")
         do {
             try await supabase.auth.resend(
                 email: targetEmail,
@@ -1545,16 +1707,30 @@ extension MapViewModel {
                 pendingEmailVerificationEmail = targetEmail
                 pendingEmailVerificationKind = targetKind
                 emailVerificationError = ""
-                emailVerificationMessage = targetKind == .business
+                let successMessage = targetKind == .business
                     ? "Verification email sent. Check your business email to continue."
                     : "Verification email sent. Check your email to continue."
+                emailVerificationMessage = Self.withEmailDeliveryGuidance(successMessage)
             }
             print("[EmailVerifyDebug] resendSuccess=true")
+            print("[BusinessVerificationResend] resendSuccess=true kind=\(targetKind.rawValue) email=\(targetEmail)")
         } catch {
             await MainActor.run {
-                emailVerificationError = "Could not resend verification email. Please try again."
+                let message = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+                let lowercased = message.lowercased()
+                if lowercased.contains("email rate limit") || lowercased.contains("rate limit") {
+                    emailVerificationError = "Verification emails are being rate limited. Please wait a few minutes and try again."
+                } else if lowercased.contains("email signups are disabled") || lowercased.contains("provider") {
+                    emailVerificationError = "Email verification is not available right now. Please contact support."
+                } else if !message.isEmpty {
+                    emailVerificationError = "Could not resend verification email: \(message)"
+                } else {
+                    emailVerificationError = "Could not resend verification email. Please try again."
+                }
             }
             print("[EmailVerifyDebug] resendSuccess=false error=\(error.localizedDescription)")
+            let nsError = error as NSError
+            print("[BusinessVerificationResend] resendSuccess=false kind=\(targetKind.rawValue) email=\(targetEmail) domain=\(nsError.domain) code=\(nsError.code) localized=\(error.localizedDescription) raw=\(String(reflecting: error)) userInfo=\(nsError.userInfo)")
         }
     }
 
@@ -1806,6 +1982,10 @@ extension MapViewModel {
         sessionEmail: String,
         clearVenueOwnerCaches: Bool
     ) async {
+        guard await claimAccountIdentity(.fan, context: "fanSessionRestore") else {
+            return
+        }
+
         await MainActor.run {
             currentUserDisplayName = UserDefaults.standard.string(forKey: "cachedUserDisplayName") ?? ""
             currentUserUsername = UserDefaults.standard.string(forKey: "cachedUserUsername") ?? ""
@@ -3386,14 +3566,14 @@ extension MapViewModel {
             await MainActor.run {
                 switch accountKind {
                 case .fan:
-                    userPasswordResetMessage = "If an account exists for this email, we sent a password reset link."
+                    userPasswordResetMessage = Self.withEmailDeliveryGuidance("If an account exists for this email, we sent a password reset link.")
                     userPasswordResetError = ""
                     print("[PasswordResetDebug] success=true step=send_reset_link")
 #if DEBUG
                     print("[FanPasswordResetDebug] resetLinkSent=true")
 #endif
                 case .venueOwner:
-                    venuePasswordResetMessage = "If an account exists for this email, we sent a password reset link."
+                    venuePasswordResetMessage = Self.withEmailDeliveryGuidance("If an account exists for this email, we sent a password reset link.")
                     venuePasswordResetError = ""
                     print("[PasswordResetDebug] success=true step=send_reset_link")
 #if DEBUG

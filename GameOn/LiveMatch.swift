@@ -97,6 +97,98 @@ nonisolated enum MatchStatus: String, Codable, CaseIterable, Equatable {
     var isHappeningNow: Bool {
         self == .live || self == .halfTime
     }
+
+    static func normalized(from raw: String?) -> MatchStatus {
+        let status = normalizedStatusText(raw)
+        guard !status.isEmpty else { return .scheduled }
+
+        if status == "HT" || status == "HALF TIME" || status == "HALFTIME" {
+            return .halfTime
+        }
+
+        if finalStatusTokens.contains(status)
+            || status.contains("FINAL")
+            || status.contains("FINISHED")
+            || status.contains("COMPLETED")
+            || status.contains("FULL TIME")
+            || status.contains("MATCH FINISHED") {
+            return .fullTime
+        }
+
+        if liveStatusTokens.contains(status)
+            || status.contains("LIVE")
+            || status.contains("IN PROGRESS")
+            || status.contains("IN PLAY")
+            || status.contains("PLAYING")
+            || status.contains("ACTIVE")
+            || status.contains("STARTED")
+            || status.contains("EXTRA INNING")
+            || status.contains("'")
+            || status.contains("Q")
+            || status.contains("PERIOD")
+            || status.contains("INNING") {
+            return .live
+        }
+
+        if scheduledStatusTokens.contains(status)
+            || status.contains("SCHED")
+            || status.contains("NOT STARTED") {
+            return .scheduled
+        }
+
+        return .scheduled
+    }
+
+    private static let finalStatusTokens: Set<String> = [
+        "FT",
+        "FINAL",
+        "FINAL TIME",
+        "FULL TIME",
+        "FULLTIME",
+        "COMPLETED",
+        "COMPLETE",
+        "FINISHED",
+        "MATCH FINISHED",
+        "AET",
+        "PEN",
+        "AFTER EXTRA TIME",
+        "AFTER PENALTIES",
+        "ENDED",
+        "END",
+        "GAME OVER"
+    ]
+
+    private static let liveStatusTokens: Set<String> = [
+        "LIVE",
+        "1H",
+        "2H",
+        "ET",
+        "BT",
+        "P",
+        "OT",
+        "Q1",
+        "Q2",
+        "Q3",
+        "Q4"
+    ]
+
+    private static let scheduledStatusTokens: Set<String> = [
+        "NS",
+        "TBD",
+        "SCHEDULED",
+        "POSTPONED",
+        "DELAYED"
+    ]
+
+    private static func normalizedStatusText(_ raw: String?) -> String {
+        let folded = (raw ?? "")
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .uppercased()
+        return folded
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+    }
 }
 
 nonisolated struct LiveTVBroadcast: Codable, Equatable {
@@ -625,6 +717,7 @@ nonisolated struct LiveMatch: Identifiable, Equatable, Codable {
     let scoreAway: Int
     let scoresAreAvailable: Bool
     let matchStatus: MatchStatus
+    let rawMatchStatus: String?
     let minute: Int?
     let league: String
     let sourceLeagueName: String?

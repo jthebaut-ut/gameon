@@ -1,6 +1,10 @@
 import Combine
 import SwiftUI
 
+nonisolated enum ProGameNotificationPreferenceKeys {
+    static let finalScoreAlerts = "proGameFinalScoreNotifications"
+}
+
 @MainActor
 final class NotificationSettingsStore: ObservableObject {
     @AppStorage("notifyBeforeGame")
@@ -25,6 +29,16 @@ final class NotificationSettingsStore: ObservableObject {
 
     @AppStorage("syncGoingGamesToAppleCalendar")
     var syncGoingGamesToAppleCalendar: Bool = false {
+        willSet { objectWillChange.send() }
+    }
+
+    @AppStorage("proGameReminderNotifications")
+    var proGameReminderNotifications: Bool = true {
+        willSet { objectWillChange.send() }
+    }
+
+    @AppStorage(ProGameNotificationPreferenceKeys.finalScoreAlerts)
+    var proGameFinalScoreNotifications: Bool = true {
         willSet { objectWillChange.send() }
     }
 
@@ -60,17 +74,21 @@ final class NotificationSettingsStore: ObservableObject {
 
     private func performGameNotificationAuthorizationRefresh() async {
         let startedAt = Date()
-        print("[NotificationSettingsDebug] load authorizationState notifyBeforeGame=\(notifyBeforeGame) reminderMinutesBefore=\(reminderMinutesBefore) repeatGameReminder=\(repeatGameReminder) repeatEveryMinutes=\(repeatEveryMinutes)")
+        print("[NotificationSettingsDebug] load authorizationState notifyBeforeGame=\(notifyBeforeGame) proGameReminderNotifications=\(proGameReminderNotifications) reminderMinutesBefore=\(reminderMinutesBefore) repeatGameReminder=\(repeatGameReminder) repeatEveryMinutes=\(repeatEveryMinutes)")
         let status = await gameReminderService.authorizationStatus()
         switch status {
         case .denied:
             notifyBeforeGame = false
+            proGameReminderNotifications = false
             await gameReminderService.cancelAllGameReminders()
+            await gameReminderService.cancelAllProGameReminders()
             notificationPermissionMessage = "Notifications are off for FanGeo. Turn them on in iOS Settings to receive game reminders."
         case .authorized, .provisional, .ephemeral:
             notificationPermissionMessage = ""
         case .notDetermined:
-            notificationPermissionMessage = notifyBeforeGame ? "FanGeo will ask for notification permission before scheduling game reminders." : ""
+            notificationPermissionMessage = (notifyBeforeGame || proGameReminderNotifications || proGameFinalScoreNotifications)
+                ? "FanGeo will ask for notification permission before scheduling game reminders."
+                : ""
         @unknown default:
             notificationPermissionMessage = "Could not read notification permission status."
         }
@@ -95,6 +113,28 @@ final class NotificationSettingsStore: ObservableObject {
             notifyBeforeGame = false
             notificationPermissionMessage = ""
             await gameReminderService.cancelAllGameReminders()
+            return false
+        }
+    }
+
+    func setProGameRemindersEnabled(_ enabled: Bool) async -> Bool {
+        print("[NotificationSettingsDebug] save proGameReminderNotifications requested=\(enabled)")
+        if enabled {
+            let granted = await gameReminderService.requestAuthorizationIfNeeded()
+            guard granted else {
+                proGameReminderNotifications = false
+                notificationPermissionMessage = "Notifications are off for FanGeo. Turn them on in iOS Settings to receive game reminders."
+                print("[NotificationSettingsDebug] save proGameReminderNotifications deniedBySystem")
+                return false
+            }
+
+            proGameReminderNotifications = true
+            notificationPermissionMessage = ""
+            return true
+        } else {
+            proGameReminderNotifications = false
+            notificationPermissionMessage = ""
+            await gameReminderService.cancelAllProGameReminders()
             return false
         }
     }

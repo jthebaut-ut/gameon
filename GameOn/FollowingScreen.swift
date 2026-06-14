@@ -7,6 +7,10 @@ enum WatchingExpiredVenueGameDiagnostics {
     nonisolated static let enabled = false
 }
 
+enum SavedProGameStatusDiagnostics {
+    nonisolated static let enabled = true
+}
+
 struct FollowingScreen: View {
     @ObservedObject var viewModel: MapViewModel
     @EnvironmentObject private var chatViewModel: ChatViewModel
@@ -23,6 +27,7 @@ struct FollowingScreen: View {
     @AppStorage(FavoriteTeamsStore.appStorageKey) private var favoriteTeamIDsRaw: String = ""
     @AppStorage(ProGamesFavoriteTeamAutoFollowPreference.enabledKey) private var proGamesAutoFollowFavoriteTeams = false
     @AppStorage(ProGamesFavoriteTeamAutoFollowPreference.windowDaysKey) private var proGamesFavoriteTeamWindowDays = ProGamesFavoriteTeamAutoFollowPreference.Window.next30.rawValue
+    @AppStorage("gameon.going.completedFavoriteTeamProGamesCleared.v1") private var clearedCompletedFavoriteTeamProGamesRaw: String = ""
     @State private var pickupDetailNav: PickupDetailNavigationToken?
     @State private var followingPickupWithdrawConfirm: PickupJoinWithdrawConfirmState?
     @State private var followingPickupWithdrawInFlight = false
@@ -441,17 +446,11 @@ struct FollowingScreen: View {
     private var goingHubHeader: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Going")
-                        .font(FGTypography.screenTitle)
-                        .foregroundStyle(FGColor.primaryText(followingColorScheme))
-                        .padding(.top, 8)
-
-                    Text(goingHubHeaderSubtitle)
-                        .font(FGTypography.caption)
-                        .foregroundStyle(FGColor.secondaryText(followingColorScheme))
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                FanGeoPagePurposeHeader(
+                    title: "Going",
+                    subtitle: goingHubHeaderSubtitle
+                )
+                .padding(.top, 8)
 
                 Spacer(minLength: 8)
 
@@ -661,8 +660,9 @@ struct FollowingScreen: View {
         let proGames = GameOnSegmentedTab(
             id: GoingParticipationMode.proGames,
             title: GoingParticipationMode.proGames.title,
+            systemImage: GoingParticipationMode.proGames.systemImage,
             badge: savedProGamesTabBadge,
-            tint: GoingParticipationMode.proGames.tint,
+            tint: FGColor.accentGreen,
             accessibilityLabel: "Saved pro games"
         )
         if isBusinessProGamesOnly {
@@ -672,13 +672,17 @@ struct FollowingScreen: View {
             GameOnSegmentedTab(
                 id: GoingParticipationMode.venueGames,
                 title: GoingParticipationMode.venueGames.title,
-                tint: GoingParticipationMode.venueGames.tint,
+                systemImage: GoingParticipationMode.venueGames.systemImage,
+                badge: venueGamesTabBadge,
+                tint: FGColor.accentGreen,
                 accessibilityLabel: "Venue-hosted games"
             ),
             GameOnSegmentedTab(
                 id: GoingParticipationMode.pickupGames,
                 title: GoingParticipationMode.pickupGames.title,
-                tint: GoingParticipationMode.pickupGames.tint,
+                systemImage: GoingParticipationMode.pickupGames.systemImage,
+                badge: pickupGamesTabBadge,
+                tint: FGColor.accentGreen,
                 showsActivityDot: viewModel.pendingPickupGameJoinRequestCount > 0 || !viewModel.incomingPickupGameInvites.isEmpty,
                 accessibilityLabel: "Pickup and community games",
                 activityAccessibilityLabel: "Pickup activity waiting"
@@ -803,7 +807,11 @@ struct FollowingScreen: View {
                                 savedProGameCard(
                                     autoGame.game,
                                     badges: favoriteTeamProGameBadges(),
-                                    showsUnsaveButton: false
+                                    showsUnsaveButton: false,
+                                    showsScoreUpdatesControl: true,
+                                    onClearCompleted: {
+                                        clearCompletedFavoriteTeamProGame(autoGame.game, scope: "fan")
+                                    }
                                 )
                             }
                         }
@@ -888,7 +896,11 @@ struct FollowingScreen: View {
                     savedProGameCard(
                         autoGame.game,
                         badges: businessMyTeamProGameBadges(),
-                        showsUnsaveButton: false
+                        showsUnsaveButton: false,
+                        showsScoreUpdatesControl: true,
+                        onClearCompleted: {
+                            clearCompletedFavoriteTeamProGame(autoGame.game, scope: "business")
+                        }
                     )
                 }
             }
@@ -916,12 +928,18 @@ struct FollowingScreen: View {
     }
 
     private var manualSavedProGamesForDisplay: [SavedProGame] {
-        viewModel.savedProGames.map { viewModel.currentSavedProGameSnapshot($0) }
+        viewModel.savedProGames
+            .map { viewModel.currentSavedProGameSnapshot($0) }
+            .sorted(by: SavedProGame.displaySort)
     }
 
     private var favoriteTeamProGamesForDisplay: [FavoriteTeamProGame] {
         let manualKeys = Set(manualSavedProGamesForDisplay.map(\.stableKey))
-        return viewModel.favoriteTeamProGames.filter { !manualKeys.contains($0.game.stableKey) }
+        return viewModel.favoriteTeamProGames
+            .map(currentFavoriteTeamProGameSnapshot)
+            .filter { !manualKeys.contains($0.game.stableKey) }
+            .filter { !isCompletedFavoriteTeamProGameCleared($0.game, scope: "fan") }
+            .sorted { SavedProGame.displaySort($0.game, $1.game) }
     }
 
     private var businessFavoriteTeamsForDisplay: [FavoriteTeam] {
@@ -938,7 +956,19 @@ struct FollowingScreen: View {
 
     private var businessMyTeamProGamesForDisplay: [FavoriteTeamProGame] {
         let manualKeys = Set(manualSavedProGamesForDisplay.map(\.stableKey))
-        return viewModel.businessFavoriteTeamProGames.filter { !manualKeys.contains($0.game.stableKey) }
+        return viewModel.businessFavoriteTeamProGames
+            .map(currentFavoriteTeamProGameSnapshot)
+            .filter { !manualKeys.contains($0.game.stableKey) }
+            .filter { !isCompletedFavoriteTeamProGameCleared($0.game, scope: "business") }
+            .sorted { SavedProGame.displaySort($0.game, $1.game) }
+    }
+
+    private func currentFavoriteTeamProGameSnapshot(_ item: FavoriteTeamProGame) -> FavoriteTeamProGame {
+        FavoriteTeamProGame(
+            game: viewModel.currentSavedProGameSnapshot(item.game),
+            favoriteTeamID: item.favoriteTeamID,
+            favoriteTeamName: item.favoriteTeamName
+        )
     }
 
     private var businessAllProGamesBadge: String? {
@@ -1130,10 +1160,26 @@ struct FollowingScreen: View {
         return count > 9 ? "9+" : "\(count)"
     }
 
+    private var venueGamesTabBadge: String? {
+        compactTabBadgeCount(goingVenueGameItems.count + viewModel.followingTabSavedVenues.count)
+    }
+
+    private var pickupGamesTabBadge: String? {
+        compactTabBadgeCount(
+            playingGameCards.count
+                + viewModel.myPickupGamesForSettings.count
+                + viewModel.incomingPickupGameInvites.count
+        )
+    }
+
     private var savedProGamesTabBadge: String? {
         let count = isBusinessProGamesOnly
             ? manualSavedProGamesForDisplay.count + businessMyTeamProGamesForDisplay.count
             : manualSavedProGamesForDisplay.count + favoriteTeamProGamesForDisplay.count
+        return compactTabBadgeCount(count)
+    }
+
+    private func compactTabBadgeCount(_ count: Int) -> String? {
         guard count > 0 else { return nil }
         return count > 9 ? "9+" : "\(count)"
     }
@@ -1461,10 +1507,16 @@ struct FollowingScreen: View {
     private func savedProGameCard(
         _ game: SavedProGame,
         badges: [String],
-        showsUnsaveButton: Bool = true
+        showsUnsaveButton: Bool = true,
+        showsScoreUpdatesControl: Bool = true,
+        onClearCompleted: (() -> Void)? = nil
     ) -> some View {
         let sportType = game.liveSportVisualType
         let accent = sportType.catalogAccent
+        let cardAccent = game.isFinal ? FGColor.mutedText(followingColorScheme) : accent
+        let borderOpacity = game.isFinal
+            ? (followingColorScheme == .dark ? 0.28 : 0.18)
+            : (followingColorScheme == .dark ? 0.38 : 0.22)
         let featuredEvent = savedProGameFeaturedEvent(game)
 
         return HStack(alignment: .top, spacing: 14) {
@@ -1478,22 +1530,22 @@ struct FollowingScreen: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .firstTextBaseline, spacing: 7) {
                     if let featuredEvent {
-                        savedProGameFeaturedBadge(featuredEvent, accent: accent)
+                        savedProGameFeaturedBadge(featuredEvent, accent: cardAccent)
                     }
 
                     Text(savedProGameStatusText(game))
                         .font(.caption2.weight(.bold))
-                        .foregroundStyle(statusTint(for: game, fallback: accent))
+                        .foregroundStyle(statusTint(for: game, fallback: cardAccent))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
                         .background(
                             Capsule(style: .continuous)
-                                .fill(statusTint(for: game, fallback: accent).opacity(followingColorScheme == .dark ? 0.18 : 0.10))
+                                .fill(statusTint(for: game, fallback: cardAccent).opacity(followingColorScheme == .dark ? 0.18 : 0.10))
                         )
                 }
 
                 if !badges.isEmpty {
-                    savedProGameStatusBadges(badges, accent: accent)
+                    savedProGameStatusBadges(badges, accent: cardAccent)
                 }
 
                 Text(savedProGameTitle(game))
@@ -1513,17 +1565,22 @@ struct FollowingScreen: View {
                     .lineLimit(1)
                     .truncationMode(.tail)
 
-                if let scoreLine = savedProGameScoreLine(game) {
-                    Text(scoreLine)
-                        .font(FGTypography.caption.weight(.semibold))
-                        .foregroundStyle(FGColor.primaryText(followingColorScheme))
-                        .lineLimit(1)
+                if showsScoreUpdatesControl, !game.isFinal {
+                    savedProGameScoreUpdatesControl(
+                        game,
+                        accent: cardAccent,
+                        defaultsToEnabled: showsUnsaveButton
+                    )
+                }
+
+                if savedProGameShouldShowScore(game) {
+                    savedProGameScoreBlock(game)
                 }
 
                 if let tv = game.tvSummary, !tv.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     Label(tv, systemImage: "tv.fill")
                         .font(FGTypography.metadata.weight(.semibold))
-                        .foregroundStyle(accent)
+                        .foregroundStyle(cardAccent)
                         .lineLimit(1)
                 }
             }
@@ -1531,11 +1588,47 @@ struct FollowingScreen: View {
             Spacer(minLength: 0)
 
             if showsUnsaveButton {
+                savedProGameClearControl(game)
+            } else if game.isFinal, let onClearCompleted {
+                completedFavoriteTeamProGameClearControl(onClearCompleted)
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(game.isFinal ? Color(.secondarySystemGroupedBackground).opacity(followingColorScheme == .dark ? 0.28 : 0.68) : Color.clear)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(cardAccent.opacity(borderOpacity), lineWidth: 1)
+        )
+        .opacity(game.isFinal ? 0.86 : 1)
+        .onAppear {
+            logSavedProGameStatusDebug(game)
+        }
+    }
+
+    private func savedProGameClearControl(_ game: SavedProGame) -> some View {
+        VStack(spacing: 7) {
+            if game.isFinal {
+                Button("Clear") {
+                    clearSavedProGame(game)
+                }
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(FGColor.mutedText(followingColorScheme))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(FGColor.mutedText(followingColorScheme).opacity(followingColorScheme == .dark ? 0.14 : 0.08))
+                )
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear completed pro game")
+            } else {
                 Button {
-                    withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
-                        viewModel.removeSavedProGame(id: game.stableKey)
-                        viewModel.showSocialActionToast("Removed from Pro Games.", isError: false)
-                    }
+                    clearSavedProGame(game)
                 } label: {
                     Image(systemName: "heart.fill")
                         .font(.system(size: 14, weight: .bold))
@@ -1548,13 +1641,94 @@ struct FollowingScreen: View {
                 .accessibilityLabel("Unsave pro game")
             }
         }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(accent.opacity(followingColorScheme == .dark ? 0.38 : 0.22), lineWidth: 1)
+    }
+
+    private func completedFavoriteTeamProGameClearControl(_ action: @escaping () -> Void) -> some View {
+        Button("Clear") {
+            action()
+        }
+        .font(.caption2.weight(.bold))
+        .foregroundStyle(FGColor.mutedText(followingColorScheme))
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(
+            Capsule(style: .continuous)
+                .fill(FGColor.mutedText(followingColorScheme).opacity(followingColorScheme == .dark ? 0.14 : 0.08))
         )
+        .buttonStyle(.plain)
+        .accessibilityLabel("Clear completed favorite team pro game")
+    }
+
+    private func savedProGameScoreUpdatesControl(
+        _ game: SavedProGame,
+        accent: Color,
+        defaultsToEnabled: Bool = true
+    ) -> some View {
+        let isEnabled = defaultsToEnabled
+            ? viewModel.savedProGameScoreUpdatesEnabled(for: game)
+            : viewModel.favoriteTeamProGameScoreUpdatesEnabled(for: game)
+
+        return Button {
+            viewModel.setSavedProGameScoreUpdatesEnabled(!isEnabled, for: game)
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: isEnabled ? "bell.fill" : "bell.slash")
+                    .font(.system(size: 11, weight: .bold))
+                Text("Score Updates \(isEnabled ? "ON" : "OFF")")
+                    .font(.caption2.weight(.bold))
+            }
+            .foregroundStyle(isEnabled ? accent : FGColor.mutedText(followingColorScheme))
+            .padding(.horizontal, 9)
+            .padding(.vertical, 5)
+            .background(
+                Capsule(style: .continuous)
+                    .fill((isEnabled ? accent : FGColor.mutedText(followingColorScheme)).opacity(followingColorScheme == .dark ? 0.16 : 0.09))
+            )
+            .overlay(
+                Capsule(style: .continuous)
+                    .strokeBorder((isEnabled ? accent : FGColor.mutedText(followingColorScheme)).opacity(followingColorScheme == .dark ? 0.28 : 0.18), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Score updates \(isEnabled ? "on" : "off")")
+    }
+
+    private func clearSavedProGame(_ game: SavedProGame) {
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+            viewModel.removeSavedProGame(id: game.stableKey)
+            viewModel.showSocialActionToast("Removed from Pro Games.", isError: false)
+        }
+    }
+
+    private func clearCompletedFavoriteTeamProGame(_ game: SavedProGame, scope: String) {
+        guard game.isFinal else { return }
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+            var tokens = clearedCompletedFavoriteTeamProGameTokens()
+            tokens.insert(completedFavoriteTeamProGameClearToken(for: game, scope: scope))
+            clearedCompletedFavoriteTeamProGamesRaw = tokens.sorted().joined(separator: "\n")
+            viewModel.showSocialActionToast("Cleared completed Pro Game.", isError: false)
+        }
+    }
+
+    private func isCompletedFavoriteTeamProGameCleared(_ game: SavedProGame, scope: String) -> Bool {
+        guard game.isFinal else { return false }
+        return clearedCompletedFavoriteTeamProGameTokens().contains(
+            completedFavoriteTeamProGameClearToken(for: game, scope: scope)
+        )
+    }
+
+    private func clearedCompletedFavoriteTeamProGameTokens() -> Set<String> {
+        Set(
+            clearedCompletedFavoriteTeamProGamesRaw
+                .split(whereSeparator: \.isNewline)
+                .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+        )
+    }
+
+    private func completedFavoriteTeamProGameClearToken(for game: SavedProGame, scope: String) -> String {
+        let userScope = viewModel.currentUserAuthId?.uuidString.lowercased() ?? "guest"
+        return "\(userScope)|\(scope)|\(game.stableKey)"
     }
 
     private func savedProGameStatusBadges(_ badges: [String], accent: Color) -> some View {
@@ -1627,19 +1801,64 @@ struct FollowingScreen: View {
         case .halfTime:
             return "HT"
         case .fullTime:
-            return "Final"
+            return "FINAL"
         case .scheduled:
             return "Scheduled"
         }
     }
 
-    private func savedProGameScoreLine(_ game: SavedProGame) -> String? {
-        guard game.matchStatus.isHappeningNow || game.matchStatus == .fullTime else { return nil }
-        return "\(game.awayTeam) \(game.scoreAway) · \(game.homeTeam) \(game.scoreHome)"
+    private func logSavedProGameStatusDebug(_ game: SavedProGame) {
+#if DEBUG
+        guard SavedProGameStatusDiagnostics.enabled else { return }
+        let resolved = viewModel.savedProGameDisplayStatusDebugSource(for: game)
+        let resolvedGame = resolved.game
+        print(
+            "[SavedProGameStatusDebug] " +
+            "gameId=\(resolvedGame.stableKey) " +
+            "teams=\"\(resolvedGame.awayTeam) at \(resolvedGame.homeTeam)\" " +
+            "rawStatus=\(resolvedGame.rawMatchStatus ?? "nil") " +
+            "normalizedStatus=\(resolvedGame.matchStatus.rawValue) " +
+            "score=\(resolvedGame.scoreAway)-\(resolvedGame.scoreHome) " +
+            "sourceUsed=\"\(resolved.source)\""
+        )
+#endif
+    }
+
+    private func savedProGameShouldShowScore(_ game: SavedProGame) -> Bool {
+        game.matchStatus.isHappeningNow || game.isFinal
+    }
+
+    private func savedProGameScoreBlock(_ game: SavedProGame) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            savedProGameScoreRow(team: game.awayTeam, score: game.scoreAway, isFinal: game.isFinal)
+            savedProGameScoreRow(team: game.homeTeam, score: game.scoreHome, isFinal: game.isFinal)
+        }
+        .padding(.vertical, 2)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityLabel(game.finalScoreSummary)
+    }
+
+    private func savedProGameScoreRow(team: String, score: Int, isFinal: Bool) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(savedProGameTeamName(team))
+                .font(FGTypography.caption.weight(.semibold))
+                .foregroundStyle(FGColor.primaryText(followingColorScheme))
+                .lineLimit(1)
+                .truncationMode(.tail)
+
+            Spacer(minLength: 8)
+
+            Text("\(score)")
+                .font(.system(size: isFinal ? 17 : 16, weight: .black, design: .rounded).monospacedDigit())
+                .foregroundStyle(isFinal ? FGColor.primaryText(followingColorScheme) : FGColor.dangerRed)
+                .frame(width: 28, alignment: .trailing)
+        }
     }
 
     private func statusTint(for game: SavedProGame, fallback: Color) -> Color {
-        game.matchStatus.isHappeningNow ? FGColor.dangerRed : fallback
+        if game.matchStatus.isHappeningNow { return FGColor.dangerRed }
+        if game.isFinal { return FGColor.mutedText(followingColorScheme) }
+        return fallback
     }
 
     private var joinedGamesListContent: some View {
@@ -3340,8 +3559,16 @@ private enum GoingParticipationMode: Hashable {
     var title: String {
         switch self {
         case .venueGames: return "Venues"
-        case .pickupGames: return "Pickup Games"
-        case .proGames: return "Pro Games"
+        case .pickupGames: return "Pickup"
+        case .proGames: return "Pro"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .venueGames: return "storefront.fill"
+        case .pickupGames: return "person.3.fill"
+        case .proGames: return "trophy.fill"
         }
     }
 

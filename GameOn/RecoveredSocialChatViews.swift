@@ -168,6 +168,8 @@ struct FriendsTabView: View {
     @State private var chatConversationFriendsSnapshot: [ChatViewModel.FriendDisplay] = []
     @State private var friendsDirectoryItemsSnapshot: [ChatViewModel.FriendDisplay] = []
     @State private var filteredFriendsDirectoryItemsSnapshot: [ChatViewModel.FriendDisplay] = []
+    @State private var sendingSuggestedFanRequestIds: Set<UUID> = []
+    @State private var dismissedChatSuggestedFanIds: Set<UUID> = []
     /// Programmatic push (in-app DM banner → Chat tab → ``DirectChatView``).
     @State private var dmBannerNavigationFriend: UserPreview?
 
@@ -222,33 +224,8 @@ struct FriendsTabView: View {
             .navigationDestination(item: $dmBannerNavigationFriend) { friend in
                 DirectChatView(friend: friend)
             }
-            .navigationTitle("Chat")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: 10) {
-                        if mapViewModel.canUsePrivateChat {
-                            Button {
-                                showingAddFriendSheet = true
-                            } label: {
-                                Image(systemName: "person.badge.plus")
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .symbolRenderingMode(.hierarchical)
-                            }
-                            .accessibilityLabel("Add friend")
-                        }
-
-                        Button {
-                            showingBlockedUsersSheet = true
-                        } label: {
-                            Image(systemName: "ellipsis.circle")
-                                .font(.system(size: 18, weight: .semibold))
-                                .symbolRenderingMode(.hierarchical)
-                        }
-                        .accessibilityLabel("Chat options")
-                    }
-                }
-            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.hidden, for: .navigationBar)
         }
         .background(chatRootBackground.ignoresSafeArea())
         .sheet(isPresented: $showingAddFriendSheet) {
@@ -402,11 +379,13 @@ struct FriendsTabView: View {
         } else if viewModel.isLoading && viewModel.friends.isEmpty && viewModel.incomingRequests.isEmpty {
             ProgressView("Loading…")
         } else {
-            VStack(spacing: 12) {
+            VStack(spacing: 10) {
+                chatHeader
                 chatSectionPicker
                 selectedChatSectionContent
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .padding(.top, 10)
         }
     }
 
@@ -431,15 +410,131 @@ struct FriendsTabView: View {
 #endif
     }
 
-    private var chatSectionPicker: some View {
-        Picker("", selection: $selectedSection) {
-            Text("Chats").tag(ChatSection.chats)
-            Text("Friends").tag(ChatSection.friends)
-            Text("Requests").tag(ChatSection.requests)
+    private var chatHeader: some View {
+        HStack(alignment: .top, spacing: 14) {
+            FanGeoPagePurposeHeader(
+                title: "Chat",
+                subtitle: "Connect with fans, friends, and venues."
+            )
+
+            Spacer(minLength: 0)
+
+            HStack(spacing: 10) {
+                if mapViewModel.canUsePrivateChat {
+                    chatHeaderButton(systemImage: "person.badge.plus", accessibilityLabel: "Add friend") {
+                        showingAddFriendSheet = true
+                    }
+                }
+
+                chatHeaderButton(systemImage: "ellipsis", accessibilityLabel: "Chat options") {
+                    showingBlockedUsersSheet = true
+                }
+            }
         }
-        .pickerStyle(.segmented)
         .padding(.horizontal, 16)
-        .padding(.top, 4)
+    }
+
+    private func chatHeaderButton(systemImage: String, accessibilityLabel: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+                .frame(width: 38, height: 38)
+                .background(FGColor.cardBackground(colorScheme).opacity(colorScheme == .dark ? 0.74 : 0.96), in: Circle())
+                .overlay {
+                    Circle()
+                        .strokeBorder(FGColor.divider(colorScheme).opacity(0.55), lineWidth: 1)
+                }
+                .softCardShadow()
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    private var chatSectionPicker: some View {
+        HStack(spacing: 6) {
+            ForEach(ChatSection.allCases) { section in
+                chatSectionButton(section)
+            }
+        }
+        .padding(4)
+        .background {
+            Capsule(style: .continuous)
+                .fill(Color(.secondarySystemGroupedBackground).opacity(colorScheme == .dark ? 0.36 : 0.72))
+        }
+        .overlay {
+            Capsule(style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme).opacity(0.55), lineWidth: 1)
+        }
+        .softCardShadow()
+        .padding(.horizontal, 16)
+    }
+
+    private func chatSectionButton(_ section: ChatSection) -> some View {
+        let isSelected = selectedSection == section
+        let count = chatSectionCount(section)
+        return Button {
+            withAnimation(.spring(response: 0.30, dampingFraction: 0.86)) {
+                selectedSection = section
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: chatSectionIcon(section))
+                    .font(.system(size: 12, weight: .bold))
+
+                Text(section.rawValue)
+                    .font(.system(size: 12.5, weight: isSelected ? .bold : .semibold, design: .rounded))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+
+                if count > 0 {
+                    Text("\(count)")
+                        .font(.system(size: 10, weight: .black, design: .rounded))
+                        .foregroundStyle(Color.white)
+                        .frame(minWidth: 18, minHeight: 18)
+                        .padding(.horizontal, count > 99 ? 5 : 0)
+                        .background(FGColor.accentGreen, in: Capsule())
+                }
+            }
+            .foregroundStyle(isSelected ? FGColor.primaryText(colorScheme) : FGColor.secondaryText(colorScheme))
+            .frame(maxWidth: .infinity)
+            .frame(height: 36)
+            .background {
+                Capsule(style: .continuous)
+                    .fill(isSelected ? FGColor.cardBackground(colorScheme) : Color.clear)
+            }
+            .overlay(alignment: .bottom) {
+                Capsule(style: .continuous)
+                    .fill(isSelected ? FGColor.accentGreen : Color.clear)
+                    .frame(width: 26, height: 2)
+                    .offset(y: -2)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(section.rawValue), \(count)")
+        .accessibilityValue(isSelected ? "Selected" : "Not selected")
+    }
+
+    private func chatSectionCount(_ section: ChatSection) -> Int {
+        switch section {
+        case .chats:
+            return chatConversationFriends.count
+        case .friends:
+            return friendsDirectoryItems.count
+        case .requests:
+            return viewModel.incomingRequests.count + viewModel.outgoingRequests.count
+        }
+    }
+
+    private func chatSectionIcon(_ section: ChatSection) -> String {
+        switch section {
+        case .chats:
+            return "bubble.left.and.bubble.right.fill"
+        case .friends:
+            return "person.2.fill"
+        case .requests:
+            return "person.badge.plus"
+        }
     }
 
     @ViewBuilder
@@ -464,15 +559,35 @@ struct FriendsTabView: View {
         viewModel.pendingDmOpenPreview = nil
     }
 
+    private var cachedSuggestedFansForChat: [FriendSuggestionProfile] {
+        guard let authId = mapViewModel.currentUserAuthId,
+              let suggestions = ProfilePhase1PersonalizationCache.suggestedFansByAuthId[authId] else {
+            return []
+        }
+        return Array(
+            suggestions
+                .filter { viewModel.chipKind(forOtherUserId: $0.userID) != .friends }
+                .filter { !dismissedChatSuggestedFanIds.contains($0.userID) }
+                .prefix(6)
+        )
+    }
+
     private var chatsList: some View {
         Group {
             if chatConversationFriends.isEmpty {
-                ContentUnavailableView(
-                    "No conversations yet",
-                    systemImage: "bubble.left.and.bubble.right",
-                    description: Text("Accept a friend request or start chatting from a venue.")
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 16) {
+                        if !cachedSuggestedFansForChat.isEmpty {
+                            chatSuggestedFansSection
+                        }
+
+                        chatEmptyState
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 4)
+                    .padding(.bottom, 110)
+                }
+                .background(chatRootBackground)
             } else {
                 GeometryReader { layoutGeo in
                     chatsInboxList(layoutWidth: layoutGeo.size.width)
@@ -487,8 +602,19 @@ struct FriendsTabView: View {
     private func chatsInboxList(layoutWidth: CGFloat) -> some View {
         let inboxItems = ChatInboxAdPlacement.listItems(for: chatConversationFriends)
         return List {
-            ForEach(inboxItems) { item in
-                chatInboxListRow(item, layoutWidth: layoutWidth)
+            Section {
+                ForEach(inboxItems) { item in
+                    chatInboxListRow(item, layoutWidth: layoutWidth)
+                }
+            } header: {
+                chatListHeader(title: "Recent Chats", trailingTitle: chatConversationFriends.count > 3 ? "See all" : nil)
+            }
+
+            if !cachedSuggestedFansForChat.isEmpty {
+                chatSuggestedFansSection
+                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
             }
         }
         .listStyle(.plain)
@@ -504,15 +630,145 @@ struct FriendsTabView: View {
         }
     }
 
+    private func chatListHeader(title: String, trailingTitle: String?) -> some View {
+        HStack {
+            Text(title)
+                .font(.headline.weight(.bold))
+                .textCase(nil)
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+            Spacer()
+            if let trailingTitle {
+                Text(trailingTitle)
+                    .font(.caption.weight(.bold))
+                    .textCase(nil)
+                    .foregroundStyle(FGColor.accentGreen)
+            }
+        }
+        .padding(.horizontal, 0)
+    }
+
+    private var chatEmptyState: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Image(systemName: "bubble.left.and.bubble.right.fill")
+                .font(.system(size: 28, weight: .semibold))
+                .foregroundStyle(FGColor.accentGreen)
+                .frame(width: 52, height: 52)
+                .background(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.18 : 0.10), in: Circle())
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Start a conversation with fans, friends, or venues.")
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+
+                Text("Find local fans or explore sports venues to start planning your next game day.")
+                    .font(.subheadline)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+            }
+
+            HStack(spacing: 10) {
+                Button {
+                    showingAddFriendSheet = true
+                } label: {
+                    Label("Find Fans", systemImage: "person.badge.plus")
+                        .font(.subheadline.weight(.bold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.white)
+                .background(FGColor.accentGreen, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                Button {
+                    mapViewModel.requestDiscoverTabForHomeCrowd = true
+                } label: {
+                    Label("Explore Venues", systemImage: "map.fill")
+                        .font(.subheadline.weight(.bold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(FGColor.accentGreen)
+                .background(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.16 : 0.10), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(FGColor.cardBackground(colorScheme).opacity(colorScheme == .dark ? 0.72 : 0.96))
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme).opacity(0.55), lineWidth: 1)
+        }
+        .softCardShadow()
+    }
+
+    private var chatSuggestedFansSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Suggested Fans")
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                Spacer()
+                Button("See all") {
+                    showingAddFriendSheet = true
+                }
+                .font(.caption.weight(.bold))
+                .foregroundStyle(FGColor.accentGreen)
+            }
+            .padding(.horizontal, 16)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(alignment: .top, spacing: 10) {
+                    ForEach(cachedSuggestedFansForChat) { suggestion in
+                        chatSuggestedFanCard(suggestion)
+                    }
+                }
+                .padding(.horizontal, 16)
+            }
+        }
+    }
+
+    private func chatSuggestedFanCard(_ suggestion: FriendSuggestionProfile) -> some View {
+        SuggestedFanCard(
+            suggestion: suggestion,
+            context: "chat_suggested_fans",
+            isSending: sendingSuggestedFanRequestIds.contains(suggestion.userID),
+            chipKind: viewModel.chipKind(forOtherUserId: suggestion.userID),
+            onAdd: sendChatSuggestedFanRequest,
+            onDismiss: dismissChatSuggestedFan
+        )
+    }
+
+    private func sendChatSuggestedFanRequest(_ suggestion: FriendSuggestionProfile) {
+        guard !sendingSuggestedFanRequestIds.contains(suggestion.userID) else { return }
+        sendingSuggestedFanRequestIds.insert(suggestion.userID)
+        Task {
+            await viewModel.sendFriendRequestFromComments(to: suggestion.userID)
+            await MainActor.run {
+                _ = sendingSuggestedFanRequestIds.remove(suggestion.userID)
+            }
+        }
+    }
+
+    private func dismissChatSuggestedFan(_ suggestion: FriendSuggestionProfile) {
+        dismissedChatSuggestedFanIds.insert(suggestion.userID)
+        sendingSuggestedFanRequestIds.remove(suggestion.userID)
+        ProfilePhase1PersonalizationCache.dismissCachedSuggestedFan(
+            authId: mapViewModel.currentUserAuthId,
+            dismissedUserId: suggestion.userID
+        )
+    }
+
     @ViewBuilder
     private func chatInboxListRow(_ item: ChatInboxListItem, layoutWidth: CGFloat) -> some View {
         switch item {
         case .conversation(let friend):
-            NavigationLink {
-                DirectChatView(friend: friend.preview)
+            Button {
+                dmBannerNavigationFriend = friend.preview
             } label: {
                 friendRow(friend)
             }
+            .buttonStyle(.plain)
             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                 Button(role: .destructive) {
                     Task {
@@ -522,6 +778,9 @@ struct FriendsTabView: View {
                     Label("Delete", systemImage: "trash")
                 }
             }
+            .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
         case .nativeAd(let slot):
             if isTabSelected {
                 let _ = logChatNativeAdInserted(slot)
@@ -835,6 +1094,7 @@ struct FriendsTabView: View {
 private struct ChatFriendInboxRow: View, Equatable {
     let item: ChatViewModel.FriendDisplay
     let timeLabel: String
+    @Environment(\.colorScheme) private var colorScheme
 
     static func == (lhs: ChatFriendInboxRow, rhs: ChatFriendInboxRow) -> Bool {
         lhs.item == rhs.item && lhs.timeLabel == rhs.timeLabel
@@ -842,28 +1102,62 @@ private struct ChatFriendInboxRow: View, Equatable {
 
     var body: some View {
         HStack(spacing: 12) {
-            ProfileAvatarView(preview: item.preview, size: 44)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.preview.displayName)
-                    .font(.subheadline.weight(.semibold))
-                if let subtitle = item.subtitle, !subtitle.isEmpty {
-                    Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+            ProfileAvatarView(preview: item.preview, size: 52)
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(item.preview.displayName)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
                         .lineLimit(1)
+
+                    Spacer(minLength: 4)
+
+                    if !timeLabel.isEmpty {
+                        Text(timeLabel)
+                            .font(.caption2.weight(item.unreadCount > 0 ? .bold : .medium))
+                            .foregroundStyle(item.unreadCount > 0 ? FGColor.accentGreen : FGColor.secondaryText(colorScheme))
+                            .lineLimit(1)
+                    }
                 }
-                if item.unreadCount > 0 {
-                    Text(item.unreadCount > 99 ? "99+ unread" : "\(item.unreadCount) unread")
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(.red)
+
+                HStack(alignment: .center, spacing: 8) {
+                    Text(chatPreviewLine)
+                        .font(.caption.weight(item.unreadCount > 0 ? .semibold : .medium))
+                        .foregroundStyle(item.unreadCount > 0 ? FGColor.primaryText(colorScheme) : FGColor.secondaryText(colorScheme))
+                        .lineLimit(1)
+
+                    Spacer(minLength: 0)
+
+                    if item.unreadCount > 0 {
+                        Text(item.unreadCount > 99 ? "99+" : "\(item.unreadCount)")
+                            .font(.caption2.weight(.black))
+                            .foregroundStyle(Color.white)
+                            .frame(minWidth: 21, minHeight: 21)
+                            .padding(.horizontal, item.unreadCount > 99 ? 5 : 0)
+                            .background(FGColor.accentGreen, in: Capsule())
+                    }
                 }
             }
-            Spacer(minLength: 0)
-            Text(timeLabel)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(FGColor.mutedText(colorScheme))
         }
-        .padding(.vertical, 2)
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(FGColor.cardBackground(colorScheme).opacity(colorScheme == .dark ? 0.72 : 0.96))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme).opacity(colorScheme == .dark ? 0.34 : 0.48), lineWidth: 1)
+        }
+        .softCardShadow()
+    }
+
+    private var chatPreviewLine: String {
+        let raw = item.subtitle?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return raw.isEmpty ? "Start the conversation" : raw
     }
 }
 
