@@ -7025,6 +7025,41 @@ private struct SettingsGameNotificationsCard: View {
                 systemImage: "calendar.badge.plus",
                 tint: FGColor.accentGreen
             ) {
+                Text("Calendar Alerts")
+                    .font(FGTypography.caption.weight(.bold))
+                    .foregroundStyle(FGColor.mutedText(colorScheme))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, FGSpacing.md)
+                    .padding(.top, 10)
+                    .padding(.bottom, 2)
+
+                calendarAlertPreferenceRow(
+                    title: "Venue Games",
+                    subtitle: "Reminder for watch parties and venue events.",
+                    selection: venueCalendarAlertTimingBinding
+                )
+
+                Divider()
+                    .padding(.leading, FGSpacing.md)
+
+                calendarAlertPreferenceRow(
+                    title: "Pickup Games",
+                    subtitle: "Reminder for games you host or join.",
+                    selection: pickupCalendarAlertTimingBinding
+                )
+
+                Divider()
+                    .padding(.leading, FGSpacing.md)
+
+                calendarAlertPreferenceRow(
+                    title: "Pro Games",
+                    subtitle: "Reminder for saved professional games.",
+                    selection: proCalendarAlertTimingBinding
+                )
+
+                Divider()
+                    .padding(.leading, FGSpacing.md)
+
                 notificationToggle(
                     title: "Apple Calendar Sync",
                     subtitle: "Add FanGeo games and events you're attending to your Apple Calendar.",
@@ -7078,7 +7113,15 @@ private struct SettingsGameNotificationsCard: View {
             key: ProGameNotificationPreferenceKeys.finalScoreAlerts,
             title: "Final score alerts",
             get: { notificationSettingsStore.proGameFinalScoreNotifications },
-            set: { notificationSettingsStore.proGameFinalScoreNotifications = $0 }
+            set: { enabled in
+                notificationSettingsStore.proGameFinalScoreNotifications = enabled
+                if enabled {
+                    Task {
+                        _ = await GameReminderNotificationService.shared.requestAuthorizationIfNeeded()
+                    }
+                }
+                Task { await viewModel.syncProGameFinalScorePreferenceToBackend(reason: "settingsToggle") }
+            }
         )
     }
 
@@ -7105,6 +7148,47 @@ private struct SettingsGameNotificationsCard: View {
                 notificationSettingsStore.syncGoingGamesToAppleCalendar = enabled
                 if enabled {
                     Task { await viewModel.syncFanGeoAttendingEventsToAppleCalendar(reason: "settingsEnabled") }
+                }
+            }
+        )
+    }
+
+    private var venueCalendarAlertTimingBinding: Binding<FanGeoCalendarAlertTiming> {
+        calendarAlertTimingBinding(
+            key: "venue_calendar_alert_timing",
+            get: { notificationSettingsStore.venueCalendarAlertTiming },
+            set: { notificationSettingsStore.venueCalendarAlertTiming = $0 }
+        )
+    }
+
+    private var pickupCalendarAlertTimingBinding: Binding<FanGeoCalendarAlertTiming> {
+        calendarAlertTimingBinding(
+            key: "pickup_calendar_alert_timing",
+            get: { notificationSettingsStore.pickupCalendarAlertTiming },
+            set: { notificationSettingsStore.pickupCalendarAlertTiming = $0 }
+        )
+    }
+
+    private var proCalendarAlertTimingBinding: Binding<FanGeoCalendarAlertTiming> {
+        calendarAlertTimingBinding(
+            key: "pro_calendar_alert_timing",
+            get: { notificationSettingsStore.proCalendarAlertTiming },
+            set: { notificationSettingsStore.proCalendarAlertTiming = $0 }
+        )
+    }
+
+    private func calendarAlertTimingBinding(
+        key: String,
+        get: @escaping () -> FanGeoCalendarAlertTiming,
+        set: @escaping (FanGeoCalendarAlertTiming) -> Void
+    ) -> Binding<FanGeoCalendarAlertTiming> {
+        Binding(
+            get: get,
+            set: { timing in
+                print("[NotificationSettingsDebug] save key=\(key) value=\(timing.rawValue)")
+                set(timing)
+                if notificationSettingsStore.syncGoingGamesToAppleCalendar {
+                    Task { await viewModel.syncFanGeoAttendingEventsToAppleCalendar(reason: "calendarAlertTimingChanged") }
                 }
             }
         )
@@ -7202,6 +7286,55 @@ private struct SettingsGameNotificationsCard: View {
         .toggleStyle(.switch)
         .padding(.horizontal, FGSpacing.md)
         .padding(.vertical, 10)
+    }
+
+    private func calendarAlertPreferenceRow(
+        title: String,
+        subtitle: String,
+        selection: Binding<FanGeoCalendarAlertTiming>
+    ) -> some View {
+        Menu {
+            ForEach(FanGeoCalendarAlertTiming.allCases) { timing in
+                Button {
+                    selection.wrappedValue = timing
+                } label: {
+                    if selection.wrappedValue == timing {
+                        Label(timing.displayName, systemImage: "checkmark")
+                    } else {
+                        Text(timing.displayName)
+                    }
+                }
+            }
+        } label: {
+            HStack(alignment: .center, spacing: FGSpacing.md) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(FGTypography.body.weight(.semibold))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                    Text(subtitle)
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: FGSpacing.md)
+
+                HStack(spacing: 6) {
+                    Text(selection.wrappedValue.displayName)
+                        .font(FGTypography.caption.weight(.bold))
+                        .foregroundStyle(FGColor.accentGreen)
+                        .lineLimit(1)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(FGColor.mutedText(colorScheme))
+                }
+            }
+            .padding(.horizontal, FGSpacing.md)
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(title) calendar alert \(selection.wrappedValue.displayName)")
     }
 
 }

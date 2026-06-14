@@ -406,7 +406,7 @@ actor LiveSportsService {
 
     private static func liveMatchesRequestURL() async throws -> URL {
         let now = Date()
-        let windowStart = now.addingTimeInterval(-2 * 60 * 60)
+        let windowStart = now.addingTimeInterval(-6 * 60 * 60)
         let windowEnd = now.addingTimeInterval(7 * 24 * 60 * 60)
         return try await liveMatchesRequestURL(windowStart: windowStart, windowEnd: windowEnd, upperBoundOperator: "lte")
     }

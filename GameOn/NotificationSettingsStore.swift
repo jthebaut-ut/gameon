@@ -5,6 +5,50 @@ nonisolated enum ProGameNotificationPreferenceKeys {
     static let finalScoreAlerts = "proGameFinalScoreNotifications"
 }
 
+nonisolated enum FanGeoCalendarAlertTiming: String, CaseIterable, Identifiable {
+    case none
+    case atEventTime
+    case fifteenMinutesBefore
+    case oneHourBefore
+    case oneDayBefore
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .none:
+            return "None"
+        case .atEventTime:
+            return "At time of event"
+        case .fifteenMinutesBefore:
+            return "15 minutes before"
+        case .oneHourBefore:
+            return "1 hour before"
+        case .oneDayBefore:
+            return "1 day before"
+        }
+    }
+
+    var relativeOffset: TimeInterval? {
+        switch self {
+        case .none:
+            return nil
+        case .atEventTime:
+            return 0
+        case .fifteenMinutesBefore:
+            return -15 * 60
+        case .oneHourBefore:
+            return -60 * 60
+        case .oneDayBefore:
+            return -24 * 60 * 60
+        }
+    }
+
+    static func resolved(rawValue: String) -> FanGeoCalendarAlertTiming {
+        FanGeoCalendarAlertTiming(rawValue: rawValue) ?? .oneHourBefore
+    }
+}
+
 @MainActor
 final class NotificationSettingsStore: ObservableObject {
     @AppStorage("notifyBeforeGame")
@@ -32,6 +76,21 @@ final class NotificationSettingsStore: ObservableObject {
         willSet { objectWillChange.send() }
     }
 
+    @AppStorage("venue_calendar_alert_timing")
+    private var venueCalendarAlertTimingRaw: String = FanGeoCalendarAlertTiming.oneHourBefore.rawValue {
+        willSet { objectWillChange.send() }
+    }
+
+    @AppStorage("pickup_calendar_alert_timing")
+    private var pickupCalendarAlertTimingRaw: String = FanGeoCalendarAlertTiming.oneHourBefore.rawValue {
+        willSet { objectWillChange.send() }
+    }
+
+    @AppStorage("pro_calendar_alert_timing")
+    private var proCalendarAlertTimingRaw: String = FanGeoCalendarAlertTiming.oneHourBefore.rawValue {
+        willSet { objectWillChange.send() }
+    }
+
     @AppStorage("proGameReminderNotifications")
     var proGameReminderNotifications: Bool = true {
         willSet { objectWillChange.send() }
@@ -55,6 +114,21 @@ final class NotificationSettingsStore: ObservableObject {
 
     init() {
         print("[NotificationSettingsStoreDebug] initialized")
+    }
+
+    var venueCalendarAlertTiming: FanGeoCalendarAlertTiming {
+        get { FanGeoCalendarAlertTiming.resolved(rawValue: venueCalendarAlertTimingRaw) }
+        set { venueCalendarAlertTimingRaw = newValue.rawValue }
+    }
+
+    var pickupCalendarAlertTiming: FanGeoCalendarAlertTiming {
+        get { FanGeoCalendarAlertTiming.resolved(rawValue: pickupCalendarAlertTimingRaw) }
+        set { pickupCalendarAlertTimingRaw = newValue.rawValue }
+    }
+
+    var proCalendarAlertTiming: FanGeoCalendarAlertTiming {
+        get { FanGeoCalendarAlertTiming.resolved(rawValue: proCalendarAlertTimingRaw) }
+        set { proCalendarAlertTimingRaw = newValue.rawValue }
     }
 
     func refreshGameNotificationAuthorizationState() async {

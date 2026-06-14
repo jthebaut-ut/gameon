@@ -71,6 +71,7 @@ extension MapViewModel {
                 current: autoFollowMatches,
                 reason: "businessFavoriteTeamAutoFollowFetch"
             )
+            await syncFavoriteTeamProGameSubscriptions(autoFollowMatches, reason: "businessFavoriteTeamAutoFollowFetch")
             mergeBusinessFavoriteTeamMatchesIntoLiveMatches(matches)
         } catch {
 #if DEBUG
@@ -84,6 +85,7 @@ extension MapViewModel {
                 current: autoFollowMatches,
                 reason: "businessFavoriteTeamAutoFollowFallback"
             )
+            await syncFavoriteTeamProGameSubscriptions(autoFollowMatches, reason: "businessFavoriteTeamAutoFollowFallback")
         }
     }
 

@@ -424,7 +424,12 @@ struct FollowingScreen: View {
                     logGoingHubDebug(reason: "pullToRefresh")
                     return
                 }
-                await viewModel.fetchSavedProGames()
+                if activeGoingMode == .proGames {
+                    await viewModel.refreshGoingProGames(reason: "pullToRefresh")
+                    await refreshFavoriteTeamProGames(reason: "pullToRefresh")
+                } else {
+                    await viewModel.fetchSavedProGames()
+                }
                 await viewModel.refreshFollowingTabDataGlobally()
                 await viewModel.loadMyPickupGameJoinRequestsForFollowing(
                     forceRefresh: true,
@@ -1513,9 +1518,10 @@ struct FollowingScreen: View {
     ) -> some View {
         let sportType = game.liveSportVisualType
         let accent = sportType.catalogAccent
-        let cardAccent = game.isFinal ? FGColor.mutedText(followingColorScheme) : accent
+        let completedAccent = FGColor.accentGreen
+        let cardAccent = game.isFinal ? completedAccent : accent
         let borderOpacity = game.isFinal
-            ? (followingColorScheme == .dark ? 0.28 : 0.18)
+            ? (followingColorScheme == .dark ? 0.34 : 0.22)
             : (followingColorScheme == .dark ? 0.38 : 0.22)
         let featuredEvent = savedProGameFeaturedEvent(game)
 
@@ -1574,6 +1580,9 @@ struct FollowingScreen: View {
                 }
 
                 if savedProGameShouldShowScore(game) {
+                    if game.isFinal {
+                        savedProGameFinalSummary(game, accent: cardAccent)
+                    }
                     savedProGameScoreBlock(game)
                 }
 
@@ -1597,7 +1606,7 @@ struct FollowingScreen: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(game.isFinal ? Color(.secondarySystemGroupedBackground).opacity(followingColorScheme == .dark ? 0.28 : 0.68) : Color.clear)
+                .fill(game.isFinal ? cardAccent.opacity(followingColorScheme == .dark ? 0.12 : 0.08) : Color.clear)
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         }
         .overlay(
@@ -1674,7 +1683,7 @@ struct FollowingScreen: View {
             HStack(spacing: 6) {
                 Image(systemName: isEnabled ? "bell.fill" : "bell.slash")
                     .font(.system(size: 11, weight: .bold))
-                Text("Score Updates \(isEnabled ? "ON" : "OFF")")
+                Text("Live Score Alerts \(isEnabled ? "ON" : "OFF")")
                     .font(.caption2.weight(.bold))
             }
             .foregroundStyle(isEnabled ? accent : FGColor.mutedText(followingColorScheme))
@@ -1690,7 +1699,7 @@ struct FollowingScreen: View {
             )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Score updates \(isEnabled ? "on" : "off")")
+        .accessibilityLabel("Live score alerts when FanGeo is active \(isEnabled ? "on" : "off")")
     }
 
     private func clearSavedProGame(_ game: SavedProGame) {
@@ -1801,7 +1810,7 @@ struct FollowingScreen: View {
         case .halfTime:
             return "HT"
         case .fullTime:
-            return "FINAL"
+            return "Final"
         case .scheduled:
             return "Scheduled"
         }
@@ -1838,6 +1847,31 @@ struct FollowingScreen: View {
         .accessibilityLabel(game.finalScoreSummary)
     }
 
+    private func savedProGameFinalSummary(_ game: SavedProGame, accent: Color) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Label("Final score", systemImage: "checkmark.seal.fill")
+                .font(FGTypography.metadata.weight(.bold))
+                .foregroundStyle(accent)
+
+            Text("Final: \(game.finalScoreSummary)")
+                .font(FGTypography.caption.weight(.bold))
+                .foregroundStyle(FGColor.primaryText(followingColorScheme))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(accent.opacity(followingColorScheme == .dark ? 0.16 : 0.10))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(accent.opacity(followingColorScheme == .dark ? 0.28 : 0.16), lineWidth: 1)
+        )
+        .accessibilityLabel("Final score \(game.finalScoreSummary)")
+    }
+
     private func savedProGameScoreRow(team: String, score: Int, isFinal: Bool) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(savedProGameTeamName(team))
@@ -1857,7 +1891,7 @@ struct FollowingScreen: View {
 
     private func statusTint(for game: SavedProGame, fallback: Color) -> Color {
         if game.matchStatus.isHappeningNow { return FGColor.dangerRed }
-        if game.isFinal { return FGColor.mutedText(followingColorScheme) }
+        if game.isFinal { return FGColor.accentGreen }
         return fallback
     }
 
@@ -2163,9 +2197,7 @@ struct FollowingScreen: View {
             organizerAvatarURL: viewModel.pickupOrganizerAvatarFullForDetail(userId: card.organizerUserId),
             organizerAvatarRefreshToken: viewModel.pickupOrganizerAvatarRefreshTokenForDetail(userId: card.organizerUserId),
             organizerEmail: viewModel.pickupOrganizerEmailForDetail(userId: card.organizerUserId),
-            creatorTrustStats: viewModel.pickupCreatorTrustStats(for: card.organizerUserId),
             currentUserId: viewModel.currentUserAuthId,
-            hasSubmittedCreatorRating: viewModel.hasSubmittedPickupCreatorRating(for: card.pickupGameId),
             hasUnreadActivity: viewModel.pickupFollowingUnreadActivityGameIds.contains(card.pickupGameId),
             isRefreshSpinning: viewModel.pickupFollowingCardRefreshSpinGameId == card.pickupGameId,
             isWithdrawInFlight: followingPickupWithdrawInFlight,
@@ -2241,7 +2273,11 @@ struct FollowingScreen: View {
 
     private func reloadBusinessProGamesData(reason: String) async {
         sanitizeBusinessGoingModeIfNeeded()
-        await viewModel.fetchSavedProGames()
+        if reason == "pullToRefresh" {
+            await viewModel.refreshGoingProGames(reason: reason)
+        } else {
+            await viewModel.fetchSavedProGames()
+        }
         if let businessId = await MainActor.run(body: { viewModel.currentBusinessIdForAddLocation() }) {
             await viewModel.loadBusinessFavoriteTeams(businessId: businessId)
         }
@@ -2702,7 +2738,6 @@ struct FollowingScreen: View {
             ?? false
         let isOrganizerCanceled = card.pill == .canceledByOrganizer
         let isRejected = card.pill == .declined
-        let ratingPromptEligible = resolvedGame?.isPickupCreatorRatingPromptEligible(now: now) ?? false
         let openMap = {
             openPlayingPickupGameOnDiscoverMap(card)
         }
@@ -2796,17 +2831,9 @@ struct FollowingScreen: View {
                 Spacer(minLength: 0)
             }
 
-            PickupCreatorTrustLineView(stats: viewModel.pickupCreatorTrustStats(for: card.organizerUserId))
-
-            if !isOrganizerCanceled,
-               card.pill == .approved,
-               let row = resolvedGame,
-               ratingPromptEligible,
-               let me = viewModel.currentUserAuthId,
-               me != card.organizerUserId,
-               !viewModel.hasSubmittedPickupCreatorRating(for: card.pickupGameId) {
-                PickupCreatorRatingPromptCard(viewModel: viewModel, game: row)
-            }
+            // TODO(Organizer Reputation): Re-enable organizer rating/review presentation here
+            // when reputation includes average rating, total reviews, reliability score,
+            // organizer badges, and profile reputation display.
 
             if let spots = card.spotsRemainingSummary, !spots.isEmpty, !isOrganizerCanceled {
                 Text(spots)
@@ -3832,9 +3859,7 @@ private struct PickupPlayingCardRenderToken: Equatable {
     let organizerAvatarURL: String?
     let organizerAvatarRefreshToken: UUID
     let organizerEmail: String
-    let creatorTrustStats: PickupCreatorPublicRatingStats?
     let currentUserId: UUID?
-    let hasSubmittedCreatorRating: Bool
     let hasUnreadActivity: Bool
     let isRefreshSpinning: Bool
     let isWithdrawInFlight: Bool

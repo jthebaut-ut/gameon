@@ -49,6 +49,7 @@ final class GameReminderNotificationService {
         let status = await authorizationStatus()
         switch status {
         case .authorized, .provisional, .ephemeral:
+            await PushNotificationRegistrationService.shared.registerForRemoteNotificationsIfAuthorized(reason: "alreadyAuthorized")
             return true
         case .denied:
             print("[NotificationDebug] permissionDenied=true")
@@ -60,6 +61,8 @@ final class GameReminderNotificationService {
                 let allowed = granted && Self.isAllowedStatus(updatedStatus)
                 if !allowed {
                     print("[NotificationDebug] permissionDenied=true")
+                } else {
+                    await PushNotificationRegistrationService.shared.registerForRemoteNotificationsIfAuthorized(reason: "permissionGranted")
                 }
                 return allowed
             } catch {
@@ -152,11 +155,18 @@ final class GameReminderNotificationService {
         repeatUntilStart: Bool = false,
         repeatEveryMinutes: Int = 30
     ) async {
-        print("[ProGameNotificationDebug] reminderPreference=\(reminderMinutesBefore)")
-        print("[ProGameNotificationDebug] schedulingReminder id=\(event.identifier)")
+        print("[ProGameReminderDebug] gameId=\(event.identifier)")
+        print("[ProGameReminderDebug] title=\"\(event.title)\"")
+        print("[ProGameReminderDebug] kickoffDate=\(Self.debugDateString(event.startDate))")
+        print("[ProGameReminderDebug] reminderPreferenceMinutes=\(reminderMinutesBefore)")
 
+        let permissionBefore = await authorizationStatus()
+        print("[ProGameReminderDebug] permissionStatus=\(Self.authorizationStatusDescription(permissionBefore))")
         guard await requestAuthorizationIfNeeded() else {
-            print("[ProGameNotificationDebug] permissionDenied=true")
+            let permissionAfter = await authorizationStatus()
+            print("[ProGameReminderDebug] schedulingSuccess=false")
+            print("[ProGameReminderDebug] schedulingFailure=permissionDenied")
+            print("[ProGameReminderDebug] permissionStatus=\(Self.authorizationStatusDescription(permissionAfter))")
             return
         }
 
@@ -164,20 +174,26 @@ final class GameReminderNotificationService {
 
         await cancelProGameReminder(identifier: event.identifier)
 
-        let fireDates = reminderFireDates(
-            firstFireDate: fireDate,
+        let fireDates = proGameReminderFireDates(
+            preferredFireDate: fireDate,
             eventStartDate: event.startDate,
             repeatUntilStart: repeatUntilStart,
             repeatEveryMinutes: repeatEveryMinutes
         )
 
-        guard !fireDates.isEmpty else { return }
+        guard !fireDates.isEmpty else {
+            print("[ProGameReminderDebug] schedulingSuccess=false")
+            print("[ProGameReminderDebug] schedulingFailure=noFutureFireDate")
+            return
+        }
 
         for (index, scheduledDate) in fireDates.enumerated() {
             let minutesUntilStart = max(1, Int(event.startDate.timeIntervalSince(scheduledDate) / 60))
             let content = UNMutableNotificationContent()
             content.title = event.title
-            content.body = "Your saved Pro Game starts in \(Self.leadDescription(minutes: minutesUntilStart))."
+            content.body = scheduledDate >= event.startDate
+                ? "Your saved Pro Game is starting now."
+                : "Your saved Pro Game starts in \(Self.leadDescription(minutes: minutesUntilStart))."
             content.sound = .default
 
             let components = Calendar.current.dateComponents(
@@ -185,27 +201,37 @@ final class GameReminderNotificationService {
                 from: scheduledDate
             )
             let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+            let scheduledIdentifier = proGameReminderIdentifier(for: event.identifier, repeatIndex: index)
             let request = UNNotificationRequest(
-                identifier: proGameReminderIdentifier(for: event.identifier, repeatIndex: index),
+                identifier: scheduledIdentifier,
                 content: content,
                 trigger: trigger
             )
 
             do {
                 try await center.add(request)
+                let pending = await center.pendingNotificationRequests()
+                let isPending = pending.contains { $0.identifier == scheduledIdentifier }
+                print("[ProGameReminderDebug] reminderDate=\(Self.debugDateString(scheduledDate))")
+                print("[ProGameReminderDebug] scheduledIdentifier=\(scheduledIdentifier)")
+                print("[ProGameReminderDebug] schedulingSuccess=\(isPending)")
             } catch {
-                print("[ProGameNotificationDebug] schedulingFailed id=\(event.identifier) error=\(error.localizedDescription)")
+                print("[ProGameReminderDebug] reminderDate=\(Self.debugDateString(scheduledDate))")
+                print("[ProGameReminderDebug] scheduledIdentifier=\(scheduledIdentifier)")
+                print("[ProGameReminderDebug] schedulingSuccess=false")
+                print("[ProGameReminderDebug] schedulingFailure=\(error.localizedDescription)")
             }
         }
     }
 
     func cancelProGameReminder(identifier: String) async {
-        print("[ProGameNotificationDebug] cancelReminder id=\(identifier)")
+        print("[ProGameReminderDebug] cancelReminder gameId=\(identifier)")
         let baseIdentifier = proGameReminderIdentifier(for: identifier)
         let identifiers = await center.pendingNotificationRequests()
             .map(\.identifier)
             .filter { $0 == baseIdentifier || $0.hasPrefix("\(baseIdentifier).") }
         center.removePendingNotificationRequests(withIdentifiers: identifiers.isEmpty ? [baseIdentifier] : identifiers)
+        print("[ProGameReminderDebug] canceledIdentifiers=\((identifiers.isEmpty ? [baseIdentifier] : identifiers).joined(separator: ","))")
     }
 
     func cancelAllProGameReminders() async {
@@ -338,6 +364,41 @@ final class GameReminderNotificationService {
                 break
             }
             next = advanced
+        }
+        return dates
+    }
+
+    private func proGameReminderFireDates(
+        preferredFireDate: Date,
+        eventStartDate: Date,
+        repeatUntilStart: Bool,
+        repeatEveryMinutes: Int
+    ) -> [Date] {
+        let now = Date()
+        guard eventStartDate > now else { return [] }
+
+        guard repeatUntilStart else {
+            let fireDate = preferredFireDate > now ? preferredFireDate : eventStartDate
+            print("[ProGameReminderDebug] reminderDate=\(Self.debugDateString(fireDate))")
+            return [fireDate]
+        }
+
+        let step = max(1, repeatEveryMinutes)
+        var dates: [Date] = []
+        var next = preferredFireDate
+        while next < eventStartDate {
+            if next > now {
+                print("[ProGameReminderDebug] reminderDate=\(Self.debugDateString(next))")
+                dates.append(next)
+            }
+            guard let advanced = Calendar.current.date(byAdding: .minute, value: step, to: next) else {
+                break
+            }
+            next = advanced
+        }
+        if dates.isEmpty || (dates.last ?? .distantPast) < eventStartDate {
+            print("[ProGameReminderDebug] reminderDate=\(Self.debugDateString(eventStartDate))")
+            dates.append(eventStartDate)
         }
         return dates
     }

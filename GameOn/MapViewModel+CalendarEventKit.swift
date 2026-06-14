@@ -1,6 +1,10 @@
 import Foundation
 import EventKit
 
+nonisolated enum FanGeoCalendarEventStore {
+    static let eventIdentifierMapKey = "gameon.appleCalendar.eventIdentifiers.v1"
+}
+
 extension MapViewModel {
 
     func requestCalendarAccess() async -> Bool {
@@ -40,15 +44,18 @@ extension MapViewModel {
             existingEvent.title = displayTitle
             existingEvent.startDate = date
             existingEvent.endDate = date.addingTimeInterval(2 * 60 * 60)
-            existingEvent.location = location
+            existingEvent.location = calendarSyncCleanLocation(location)
             existingEvent.notes = calendarSyncNotes(
                 title: title,
                 date: date,
                 location: location,
                 fanGeoIdentifier: fanGeoIdentifier
             )
+            calendarSyncCleanRestrictedFields(existingEvent)
+            calendarSyncApplyAlarmPreference(to: existingEvent, fanGeoIdentifier: fanGeoIdentifier)
             do {
                 try eventStore.save(existingEvent, span: .thisEvent)
+                calendarSyncStoreEventIdentifier(existingEvent.eventIdentifier, fanGeoIdentifier: fanGeoIdentifier)
                 calendarSyncMessage = "Updated in Apple Calendar"
                 print("Event updated in Apple Calendar:", displayTitle)
             } catch {
@@ -62,17 +69,20 @@ extension MapViewModel {
         event.title = displayTitle
         event.startDate = date
         event.endDate = date.addingTimeInterval(2 * 60 * 60)
-        event.location = location
+        event.location = calendarSyncCleanLocation(location)
         event.notes = calendarSyncNotes(
             title: title,
             date: date,
             location: location,
             fanGeoIdentifier: fanGeoIdentifier
         )
+        calendarSyncCleanRestrictedFields(event)
+        calendarSyncApplyAlarmPreference(to: event, fanGeoIdentifier: fanGeoIdentifier)
         event.calendar = eventStore.defaultCalendarForNewEvents
 
         do {
             try eventStore.save(event, span: .thisEvent)
+            calendarSyncStoreEventIdentifier(event.eventIdentifier, fanGeoIdentifier: fanGeoIdentifier)
             calendarSyncMessage = "Added to Apple Calendar"
             print("Event added to Apple Calendar:", displayTitle)
         } catch {
@@ -86,19 +96,13 @@ extension MapViewModel {
         guard !fanGeoIdentifier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         let granted = await requestCalendarAccess()
         guard granted else { return }
-        let predicate = eventStore.predicateForEvents(
-            withStart: Calendar.current.date(byAdding: .year, value: -1, to: Date()) ?? .distantPast,
-            end: Calendar.current.date(byAdding: .year, value: 2, to: Date()) ?? .distantFuture,
-            calendars: nil
-        )
-        guard let event = eventStore.events(matching: predicate).first(where: {
-            calendarSyncEvent($0, hasFanGeoIdentifier: fanGeoIdentifier)
-        }) else {
+        guard let event = calendarSyncEventForRemoval(fanGeoIdentifier: fanGeoIdentifier) else {
             return
         }
 
         do {
             try eventStore.remove(event, span: .thisEvent)
+            calendarSyncRemoveStoredEventIdentifier(fanGeoIdentifier: fanGeoIdentifier)
             calendarSyncMessage = "Removed from Apple Calendar"
             print("Event removed from Apple Calendar:", fanGeoIdentifier)
         } catch {
@@ -235,6 +239,11 @@ extension MapViewModel {
         )
         if let fanGeoIdentifier,
            !fanGeoIdentifier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            if let eventIdentifier = calendarSyncStoredEventIdentifier(fanGeoIdentifier: fanGeoIdentifier),
+               let event = eventStore.event(withIdentifier: eventIdentifier) {
+                return event
+            }
+
             let predicate = eventStore.predicateForEvents(
                 withStart: Calendar.current.date(byAdding: .year, value: -1, to: date) ?? date,
                 end: Calendar.current.date(byAdding: .year, value: 2, to: date) ?? date,
@@ -255,14 +264,41 @@ extension MapViewModel {
             calendars: nil
         )
 
-        return eventStore.events(matching: predicate).first { event in
-            (event.title == title || event.title == displayTitle) &&
-                event.location == location
+        return eventStore.events(matching: predicate).first {
+            calendarSyncEvent($0, matchesTitle: title, displayTitle: displayTitle, location: location)
         }
     }
 
     private func calendarSyncEvent(_ event: EKEvent, hasFanGeoIdentifier identifier: String) -> Bool {
         event.notes?.contains(calendarSyncIdentifierLine(fanGeoIdentifier: identifier)) == true
+    }
+
+    private func calendarSyncEvent(
+        _ event: EKEvent,
+        matchesTitle title: String,
+        displayTitle: String,
+        location: String
+    ) -> Bool {
+        guard event.title == title || event.title == displayTitle else { return false }
+        guard let expectedLocation = calendarSyncCleanLocation(location) else { return true }
+        let eventLocation = event.location?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return eventLocation.isEmpty || eventLocation == expectedLocation
+    }
+
+    private func calendarSyncEventForRemoval(fanGeoIdentifier: String) -> EKEvent? {
+        if let eventIdentifier = calendarSyncStoredEventIdentifier(fanGeoIdentifier: fanGeoIdentifier),
+           let event = eventStore.event(withIdentifier: eventIdentifier) {
+            return event
+        }
+
+        let predicate = eventStore.predicateForEvents(
+            withStart: Calendar.current.date(byAdding: .year, value: -1, to: Date()) ?? .distantPast,
+            end: Calendar.current.date(byAdding: .year, value: 2, to: Date()) ?? .distantFuture,
+            calendars: nil
+        )
+        return eventStore.events(matching: predicate).first(where: {
+            calendarSyncEvent($0, hasFanGeoIdentifier: fanGeoIdentifier)
+        })
     }
 
     private func calendarSyncDisplayTitle(
@@ -282,7 +318,7 @@ extension MapViewModel {
         case .pickup:
             return "FanGeo Pickup: \(baseTitle)"
         case .venue:
-            let venueName = location.trimmingCharacters(in: .whitespacesAndNewlines)
+            let venueName = calendarSyncCleanLocation(location) ?? ""
             if venueName.isEmpty || venueName.localizedCaseInsensitiveCompare("Venue") == .orderedSame {
                 return "FanGeo: \(baseTitle)"
             }
@@ -300,7 +336,7 @@ extension MapViewModel {
     ) -> String {
         var lines = ["Added by FanGeo"]
         let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let cleanLocation = location.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanLocation = calendarSyncCleanLocation(location) ?? ""
 
         switch calendarSyncEventKind(fanGeoIdentifier: fanGeoIdentifier) {
         case .pro:
@@ -334,16 +370,78 @@ extension MapViewModel {
         }
 
         lines.append("Start: \(calendarSyncNotesDateFormatter.string(from: date))")
-        guard let fanGeoIdentifier,
-              !fanGeoIdentifier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return lines.joined(separator: "\n")
-        }
-        lines.append(calendarSyncIdentifierLine(fanGeoIdentifier: fanGeoIdentifier))
         return lines.joined(separator: "\n")
     }
 
     private func calendarSyncIdentifierLine(fanGeoIdentifier: String) -> String {
         "FanGeo ID: \(fanGeoIdentifier)"
+    }
+
+    private func calendarSyncCleanRestrictedFields(_ event: EKEvent) {
+        event.url = nil
+        event.structuredLocation = nil
+    }
+
+    private func calendarSyncCleanLocation(_ raw: String) -> String? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        guard !trimmed.localizedCaseInsensitiveContains("thesportsdb") else { return nil }
+        guard !trimmed.localizedCaseInsensitiveContains("fangeo id") else { return nil }
+        guard !calendarSyncLooksLikePhoneOrProviderIdentifier(trimmed) else { return nil }
+        return trimmed
+    }
+
+    private func calendarSyncLooksLikePhoneOrProviderIdentifier(_ raw: String) -> Bool {
+        let digits = raw.filter(\.isNumber)
+        guard !digits.isEmpty else { return false }
+        let allowed = CharacterSet(charactersIn: "0123456789-+() .")
+        let containsOnlyPhoneCharacters = raw.unicodeScalars.allSatisfy { allowed.contains($0) }
+        return containsOnlyPhoneCharacters && digits.count >= 4 && digits.count <= 15
+    }
+
+    private func calendarSyncStoredEventIdentifier(fanGeoIdentifier: String) -> String? {
+        calendarSyncStoredEventIdentifiers()[fanGeoIdentifier]
+    }
+
+    private func calendarSyncStoreEventIdentifier(_ eventIdentifier: String?, fanGeoIdentifier: String?) {
+        guard let eventIdentifier,
+              let fanGeoIdentifier = fanGeoIdentifier?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !fanGeoIdentifier.isEmpty else { return }
+        var identifiers = calendarSyncStoredEventIdentifiers()
+        identifiers[fanGeoIdentifier] = eventIdentifier
+        UserDefaults.standard.set(identifiers, forKey: FanGeoCalendarEventStore.eventIdentifierMapKey)
+    }
+
+    private func calendarSyncRemoveStoredEventIdentifier(fanGeoIdentifier: String) {
+        var identifiers = calendarSyncStoredEventIdentifiers()
+        identifiers.removeValue(forKey: fanGeoIdentifier)
+        UserDefaults.standard.set(identifiers, forKey: FanGeoCalendarEventStore.eventIdentifierMapKey)
+    }
+
+    private func calendarSyncStoredEventIdentifiers() -> [String: String] {
+        UserDefaults.standard.dictionary(forKey: FanGeoCalendarEventStore.eventIdentifierMapKey) as? [String: String] ?? [:]
+    }
+
+    private func calendarSyncApplyAlarmPreference(to event: EKEvent, fanGeoIdentifier: String?) {
+        guard let timing = calendarSyncAlertTiming(fanGeoIdentifier: fanGeoIdentifier) else { return }
+        for alarm in event.alarms ?? [] {
+            event.removeAlarm(alarm)
+        }
+        guard let offset = timing.relativeOffset else { return }
+        event.addAlarm(EKAlarm(relativeOffset: offset))
+    }
+
+    private func calendarSyncAlertTiming(fanGeoIdentifier: String?) -> FanGeoCalendarAlertTiming? {
+        switch calendarSyncEventKind(fanGeoIdentifier: fanGeoIdentifier) {
+        case .venue:
+            return notificationSettingsStore.venueCalendarAlertTiming
+        case .pickup:
+            return notificationSettingsStore.pickupCalendarAlertTiming
+        case .pro:
+            return notificationSettingsStore.proCalendarAlertTiming
+        case .general:
+            return nil
+        }
     }
 
     private enum CalendarSyncEventKind {

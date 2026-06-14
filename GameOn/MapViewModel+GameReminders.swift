@@ -20,6 +20,7 @@ extension MapViewModel {
         if await notificationSettingsStore.setProGameRemindersEnabled(enabled) {
             await rescheduleAvailableProGameReminders(reason: "settingsEnabled")
         }
+        await syncProGameFinalScorePreferenceToBackend(reason: "proGameRemindersToggle")
     }
 
     func gameReminderPreferenceDidChange() async {
@@ -164,9 +165,12 @@ extension MapViewModel {
 
     private func proGameReminderNotificationEvent(for savedGame: SavedProGame) -> ProGameReminderNotificationEvent? {
         let now = Date()
-        guard savedGame.startTime > now else { return nil }
-        let reminderFireDate = savedGame.startTime.addingTimeInterval(TimeInterval(-reminderMinutesBefore * 60))
-        guard reminderFireDate > now else { return nil }
+        guard savedGame.startTime > now else {
+#if DEBUG
+            print("[ProGameReminderDebug] schedulingSkipped gameId=\(savedGame.stableKey) reason=kickoffInPast")
+#endif
+            return nil
+        }
 
         let title = [savedGame.awayTeam, savedGame.homeTeam]
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }

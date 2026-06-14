@@ -1240,6 +1240,8 @@ extension MapViewModel {
         print("[AuthForceLogoutDebug] authState=\(snapshot.authState)")
         print("[AuthForceLogoutDebug] callStack=\(Thread.callStackSymbols.joined(separator: " | "))")
 
+        await PushNotificationRegistrationService.shared.deleteCurrentTokenForCurrentSession(reason: "forceLogout")
+
         do {
             logBusinessLogoutTrace("supabaseSignOutCalled=true")
             try await supabase.auth.signOut()

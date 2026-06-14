@@ -442,6 +442,12 @@ verify_jwt = true
 import_map = "./functions/sync-live-matches/deno.json"
 entrypoint = "./functions/sync-live-matches/index.ts"
 
+[functions.pro-game-score-alert-worker]
+enabled = true
+verify_jwt = false
+import_map = "./functions/pro-game-score-alert-worker/deno.json"
+entrypoint = "./functions/pro-game-score-alert-worker/index.ts"
+
 [functions.cleanup-expired-game-social]
 enabled = true
 verify_jwt = true

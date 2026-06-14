@@ -217,7 +217,7 @@ extension MapViewModel {
         ("proGameRacingScoreUpdateNotifications", ["racing", "formula", "f1", "motorsport"], false),
         ("proGameCombatScoreUpdateNotifications", ["combat", "mma", "ufc", "boxing"], false)
     ]
-    private static let savedProGamesSelectColumns = "live_match_id,source,external_id,home_team,away_team,league,sport,start_time,match_status,score_home,score_away,featured_event_slug,tv_summary,created_at"
+    private static let savedProGamesSelectColumns = "live_match_id,source,external_id,home_team,away_team,league,sport,start_time,match_status,score_home,score_away,featured_event_slug,tv_summary,score_alerts_enabled,created_at"
 
     private struct SavedProGameHydrationMatch {
         let match: LiveMatch
@@ -264,6 +264,7 @@ extension MapViewModel {
                 .value
 
             let remoteSnapshots = rows.compactMap(\.savedProGame)
+            applyRemoteSavedProGameScoreAlertPreferences(rows)
             let remoteKeys = Set(remoteSnapshots.map(\.stableKey))
             let merged = Self.mergedSavedProGames(local: localSnapshots, remote: remoteSnapshots)
             guard currentUserAuthId == userID else {
@@ -299,6 +300,52 @@ extension MapViewModel {
         }
     }
 
+    func refreshGoingProGames(reason: String) async {
+#if DEBUG
+        print("[GoingProRefreshDebug] refresh started reason=\(reason)")
+#endif
+        var previousSnapshots: [String: SavedProGame] = [:]
+        for savedGame in savedProGames {
+            previousSnapshots[savedGame.stableKey] = currentSavedProGameSnapshot(savedGame)
+        }
+        var refreshedMatches: [LiveMatch] = []
+        var liveSyncSucceeded = false
+
+        do {
+            refreshedMatches = try await LiveSportsService.shared.fetchLiveMatches(forceRefresh: true)
+            liveSyncSucceeded = true
+            mergeGoingProRefreshMatchesIntoLiveMatches(refreshedMatches)
+        } catch {
+#if DEBUG
+            print("[GoingProRefreshDebug] live sync error=\(error.localizedDescription)")
+#endif
+            refreshedMatches = liveMatches
+        }
+
+#if DEBUG
+        print("[GoingProRefreshDebug] live sync success=\(liveSyncSucceeded)")
+#endif
+        await fetchSavedProGames()
+#if DEBUG
+        print("[GoingProRefreshDebug] saved games fetched=\(savedProGames.count)")
+#endif
+        let uiUpdated = handleSavedProGameStatusUpdates(
+            from: refreshedMatches,
+            reason: "goingProRefresh:\(reason)"
+        )
+
+#if DEBUG
+        for saved in savedProGames {
+            let previous = previousSnapshots[saved.stableKey]
+            print("[GoingProRefreshDebug] hydrated game=\(saved.stableKey)")
+            print("[GoingProRefreshDebug] old score=\(previous.map { "\($0.scoreAway)-\($0.scoreHome)" } ?? "nil")")
+            print("[GoingProRefreshDebug] new score=\(saved.scoreAway)-\(saved.scoreHome)")
+            print("[GoingProRefreshDebug] status=\(saved.matchStatus.rawValue)")
+        }
+        print("[GoingProRefreshDebug] UI updated=\(uiUpdated)")
+#endif
+    }
+
     func isProGameSaved(_ match: LiveMatch) -> Bool {
         let key = SavedProGame.stableKey(for: match)
         return savedProGames.contains { $0.stableKey == key }
@@ -319,7 +366,7 @@ extension MapViewModel {
         savedProGames.removeAll { $0.stableKey == snapshot.stableKey }
         savedProGames.append(snapshot)
         setSavedProGameScoreUpdatesEnabled(
-            false,
+            true,
             for: snapshot,
             sendsChange: false
         )
@@ -403,13 +450,17 @@ extension MapViewModel {
     }
 
     private func freshestLiveMatch(for saved: SavedProGame) -> SavedProGameHydrationMatch? {
-        if let exact = liveMatches.first(where: { SavedProGame.stableKey(for: $0) == saved.stableKey }) {
+        freshestLiveMatch(for: saved, in: liveMatches)
+    }
+
+    private func freshestLiveMatch(for saved: SavedProGame, in candidateMatches: [LiveMatch]) -> SavedProGameHydrationMatch? {
+        if let exact = candidateMatches.first(where: { SavedProGame.stableKey(for: $0) == saved.stableKey }) {
             return SavedProGameHydrationMatch(match: exact, matchedBy: "stableKey")
         }
 
         if let source = saved.source?.trimmingCharacters(in: .whitespacesAndNewlines), !source.isEmpty,
            let externalId = saved.externalId?.trimmingCharacters(in: .whitespacesAndNewlines), !externalId.isEmpty,
-           let externalMatch = liveMatches.first(where: { match in
+           let externalMatch = candidateMatches.first(where: { match in
                match.source?.caseInsensitiveCompare(source) == .orderedSame
                    && match.externalId?.caseInsensitiveCompare(externalId) == .orderedSame
            }) {
@@ -422,7 +473,7 @@ extension MapViewModel {
             source: saved.source
         )
         if !savedIdentifiers.isEmpty,
-           let providerMatch = liveMatches.first(where: { match in
+           let providerMatch = candidateMatches.first(where: { match in
                !savedIdentifiers.isDisjoint(with: savedProGameHydrationIdentifiers(
                    id: match.id,
                    externalId: match.externalId,
@@ -438,7 +489,7 @@ extension MapViewModel {
         let savedSport = LiveSportVisualType.normalize(saved.sport)
         guard !savedAway.isEmpty, !savedHome.isEmpty else { return nil }
 
-        let fallbackMatches = liveMatches.filter { match in
+        let fallbackMatches = candidateMatches.filter { match in
             let matchAway = LiveMatchFilters.normalizedSearchText(match.awayTeam)
             let matchHome = LiveMatchFilters.normalizedSearchText(match.homeTeam)
             guard matchAway == savedAway, matchHome == savedHome else { return false }
@@ -527,30 +578,101 @@ extension MapViewModel {
             "matchedBy=\(hydration?.matchedBy ?? "none")"
         )
     }
+
+    private func logProScoreRefreshDebug(
+        saved: SavedProGame,
+        previous: SavedProGame,
+        fetched: SavedProGameHydrationMatch?,
+        updated: SavedProGame,
+        cacheUpdated: Bool,
+        savedCardHydrated: Bool,
+        reason: String
+    ) {
+        let fetchedMatch = fetched?.match
+        print(
+            "[ProScoreRefreshDebug] " +
+            "gameId=\(saved.stableKey) " +
+            "providerId=\(fetchedMatch?.externalId ?? fetchedMatch?.id ?? saved.externalId ?? saved.id) " +
+            "teams=\"\(saved.awayTeam) at \(saved.homeTeam)\" " +
+            "oldScore=\(savedProGameScoreToken(for: previous)) " +
+            "fetchedScore=\(fetchedMatch.map { "\($0.scoreAway)-\($0.scoreHome)" } ?? "nil") " +
+            "providerStatus=\(fetchedMatch?.rawMatchStatus ?? "nil") " +
+            "normalizedStatus=\(updated.matchStatus.rawValue) " +
+            "cacheUpdated=\(cacheUpdated) " +
+            "savedCardHydrated=\(savedCardHydrated) " +
+            "matchedBy=\(fetched?.matchedBy ?? "none") " +
+            "reason=\(reason)"
+        )
+    }
+
+    private func logProScoreNotificationDebug(
+        game: SavedProGame,
+        previous: SavedProGame,
+        enabled: Bool,
+        sent: Bool,
+        skipReason: String?,
+        reason: String
+    ) {
+        print(
+            "[ProScoreNotificationDebug] " +
+            "gameId=\(game.stableKey) " +
+            "oldScore=\(savedProGameScoreToken(for: previous)) " +
+            "newScore=\(savedProGameScoreToken(for: game)) " +
+            "scoreUpdatesEnabled=\(enabled) " +
+            "notification=\(sent ? "sent" : "skipped") " +
+            "skipReason=\(skipReason ?? "none") " +
+            "reason=\(reason)"
+        )
+    }
 #endif
 
-    func handleSavedProGameStatusUpdates(from matches: [LiveMatch], reason: String) {
-        guard !savedProGames.isEmpty, !matches.isEmpty else { return }
+    @discardableResult
+    func handleSavedProGameStatusUpdates(from matches: [LiveMatch], reason: String) -> Bool {
+        guard !savedProGames.isEmpty, !matches.isEmpty else { return false }
 
         var changedSavedSnapshots = false
 
-        for match in matches {
-            let key = SavedProGame.stableKey(for: match)
-            guard let savedIndex = savedProGames.firstIndex(where: { $0.stableKey == key }) else { continue }
-
+        for savedIndex in savedProGames.indices {
             let previousSavedSnapshot = savedProGames[savedIndex]
-            let updatedSnapshot = SavedProGame(match: match, savedAt: previousSavedSnapshot.savedAt)
+            let previousDisplaySnapshot = currentSavedProGameSnapshot(previousSavedSnapshot)
+            guard let hydration = freshestLiveMatch(for: previousSavedSnapshot, in: matches) else {
+#if DEBUG
+                logProScoreRefreshDebug(
+                    saved: previousSavedSnapshot,
+                    previous: previousDisplaySnapshot,
+                    fetched: nil,
+                    updated: previousDisplaySnapshot,
+                    cacheUpdated: false,
+                    savedCardHydrated: false,
+                    reason: reason
+                )
+#endif
+                continue
+            }
+
+            let updatedSnapshot = hydratedSavedProGame(previousSavedSnapshot, with: hydration.match)
+#if DEBUG
+            logProScoreRefreshDebug(
+                saved: previousSavedSnapshot,
+                previous: previousDisplaySnapshot,
+                fetched: hydration,
+                updated: updatedSnapshot,
+                cacheUpdated: updatedSnapshot != previousSavedSnapshot,
+                savedCardHydrated: true,
+                reason: reason
+            )
+#endif
             if updatedSnapshot != previousSavedSnapshot {
                 savedProGames[savedIndex] = updatedSnapshot
                 changedSavedSnapshots = true
             }
 
-            if savedProGameScoreDidChange(from: previousSavedSnapshot, to: updatedSnapshot) {
-                deliverSavedProGameScoreUpdateNotificationIfNeeded(updatedSnapshot, previous: previousSavedSnapshot, reason: reason)
+            if savedProGameScoreDidChange(from: previousDisplaySnapshot, to: updatedSnapshot) {
+                deliverSavedProGameScoreUpdateNotificationIfNeeded(updatedSnapshot, previous: previousDisplaySnapshot, reason: reason)
             }
 
             guard updatedSnapshot.isFinal else { continue }
-            guard previousSavedSnapshot.matchStatus != .fullTime else { continue }
+            guard previousDisplaySnapshot.matchStatus != .fullTime else { continue }
             deliverSavedProGameFinalNotificationIfNeeded(updatedSnapshot, reason: reason)
         }
 
@@ -558,6 +680,7 @@ extension MapViewModel {
             sortSavedProGames()
             persistSavedProGames()
         }
+        return changedSavedSnapshots
     }
 
     func refreshFavoriteTeamProGames(
@@ -587,6 +710,7 @@ extension MapViewModel {
                 current: autoFollowMatches,
                 reason: "favoriteTeamAutoFollowFetch"
             )
+            await syncFavoriteTeamProGameSubscriptions(autoFollowMatches, reason: "favoriteTeamAutoFollowFetch")
             mergeFavoriteTeamWindowMatchesIntoLiveMatches(matches)
         } catch {
 #if DEBUG
@@ -600,14 +724,38 @@ extension MapViewModel {
                 current: autoFollowMatches,
                 reason: "favoriteTeamAutoFollowFallback"
             )
+            await syncFavoriteTeamProGameSubscriptions(autoFollowMatches, reason: "favoriteTeamAutoFollowFallback")
         }
     }
 
     private func upsertSavedProGameToSupabase(_ snapshot: SavedProGame, userID: UUID) async throws {
-        try await supabase
+        let userIDString = userID.uuidString.lowercased()
+        let existingRows: [SavedProGameRemoteIdentityRow] = try await supabase
             .from("saved_pro_games")
-            .upsert(SavedProGameUpsertRow(snapshot: snapshot, userID: userID), onConflict: "user_id,live_match_id")
+            .select("live_match_id")
+            .eq("user_id", value: userIDString)
+            .eq("live_match_id", value: snapshot.stableKey)
+            .limit(1)
             .execute()
+            .value
+
+        if existingRows.isEmpty {
+            try await supabase
+                .from("saved_pro_games")
+                .insert(SavedProGameInsertRow(
+                    snapshot: snapshot,
+                    userID: userID,
+                    scoreAlertsEnabled: savedProGameScoreUpdatesEnabled(for: snapshot)
+                ))
+                .execute()
+        } else {
+            try await supabase
+                .from("saved_pro_games")
+                .update(SavedProGameUpdatePatch(snapshot: snapshot))
+                .eq("user_id", value: userIDString)
+                .eq("live_match_id", value: snapshot.stableKey)
+                .execute()
+        }
     }
 
     private func deleteSavedProGameFromSupabase(liveMatchId: String, userID: UUID) async throws {
@@ -654,10 +802,38 @@ extension MapViewModel {
     }
 
     private func deliverSavedProGameScoreUpdateNotificationIfNeeded(_ game: SavedProGame, previous: SavedProGame, reason: String) {
-        guard game.matchStatus.isHappeningNow else { return }
-        guard savedProGameScoreUpdatesEnabled(for: game) else {
+        // Local score alerts are best-effort while FanGeo is running. They fire only after
+        // the app refreshes and observes a changed score; reliable closed-app score alerts
+        // require a backend APNs pipeline that polls live games and dedupes delivered scorelines.
+        // Backend design: run a scheduled Supabase Edge Function every 1-2 minutes, compare
+        // current provider scores against the last delivered scoreline for users who saved the
+        // game with Score Updates enabled, send APNs pushes, then persist delivered score tokens.
+        let oldScore = savedProGameScoreToken(for: previous)
+        let newScore = savedProGameScoreToken(for: game)
+        guard game.matchStatus.isHappeningNow else {
 #if DEBUG
-            print("[ProGameNotificationDebug] scoreUpdateDisabled id=\(game.stableKey) sport=\(game.liveSportVisualType.rawValue) source=perGame reason=\(reason)")
+            logProScoreNotificationDebug(
+                game: game,
+                previous: previous,
+                enabled: savedProGameScoreUpdatesEnabled(for: game),
+                sent: false,
+                skipReason: game.isFinal ? "gameFinal" : "notLive",
+                reason: reason
+            )
+#endif
+            return
+        }
+        let scoreUpdatesEnabled = savedProGameScoreUpdatesEnabled(for: game)
+        guard scoreUpdatesEnabled else {
+#if DEBUG
+            logProScoreNotificationDebug(
+                game: game,
+                previous: previous,
+                enabled: false,
+                sent: false,
+                skipReason: "scoreUpdatesOff",
+                reason: reason
+            )
 #endif
             return
         }
@@ -666,7 +842,7 @@ extension MapViewModel {
         var delivered = Set(UserDefaults.standard.stringArray(forKey: Self.deliveredSavedProGameScoreNotificationsKey) ?? [])
         guard delivered.insert(token).inserted else {
 #if DEBUG
-            print("[ProGameNotificationDebug] scoreUpdateAlreadyDelivered id=\(game.stableKey) score=\(savedProGameScoreToken(for: game)) reason=\(reason)")
+            print("[ProScoreNotificationDebug] gameId=\(game.stableKey) oldScore=\(oldScore) newScore=\(newScore) scoreUpdatesEnabled=true notification=skipped skipReason=duplicateScoreline reason=\(reason)")
 #endif
             return
         }
@@ -676,7 +852,14 @@ extension MapViewModel {
         let body = game.finalScoreSummary
         showSocialActionToast("\(title)\n\(body)", isError: false)
 #if DEBUG
-        print("[ProGameNotificationDebug] scoreUpdateObserved id=\(game.stableKey) reason=\(reason) title=\(title) body=\(body)")
+        logProScoreNotificationDebug(
+            game: game,
+            previous: previous,
+            enabled: true,
+            sent: true,
+            skipReason: nil,
+            reason: reason
+        )
 #endif
         Task {
             await GameReminderNotificationService.shared.scheduleProGameScoreUpdateNotification(
@@ -732,6 +915,11 @@ extension MapViewModel {
     }
 
     func setSavedProGameScoreUpdatesEnabled(_ enabled: Bool, for game: SavedProGame) {
+        if enabled {
+            Task {
+                _ = await GameReminderNotificationService.shared.requestAuthorizationIfNeeded()
+            }
+        }
         setSavedProGameScoreUpdatesEnabled(enabled, for: game, sendsChange: true)
     }
 
@@ -747,14 +935,21 @@ extension MapViewModel {
             guard let previousGame = previousByKey[item.game.stableKey] else { continue }
             let updatedGame = item.game
             guard updatedGame != previousGame else { continue }
-            guard favoriteTeamProGameScoreUpdatesEnabled(for: updatedGame) else {
-#if DEBUG
-                print("[ProGameNotificationDebug] favoriteTeamScoreUpdateDisabled id=\(updatedGame.stableKey) reason=\(reason)")
-#endif
-                continue
-            }
 
             if savedProGameScoreDidChange(from: previousGame, to: updatedGame) {
+                guard favoriteTeamProGameScoreUpdatesEnabled(for: updatedGame) else {
+#if DEBUG
+                    logProScoreNotificationDebug(
+                        game: updatedGame,
+                        previous: previousGame,
+                        enabled: false,
+                        sent: false,
+                        skipReason: "scoreUpdatesOff",
+                        reason: reason
+                    )
+#endif
+                    continue
+                }
                 deliverSavedProGameScoreUpdateNotificationIfNeeded(
                     updatedGame,
                     previous: previousGame,
@@ -773,7 +968,27 @@ extension MapViewModel {
         preferences[savedProGameScoreUpdatePreferenceToken(for: game.stableKey)] = enabled
         UserDefaults.standard.set(preferences, forKey: Self.savedProGameScoreUpdatePreferencesKey)
         if sendsChange {
+            Task { [weak self] in
+                await self?.syncProGameScoreAlertPreferenceToBackend(enabled, for: game)
+            }
             objectWillChange.send()
+        }
+    }
+
+    private func applyRemoteSavedProGameScoreAlertPreferences(_ rows: [SavedProGameSupabaseRow]) {
+        guard !rows.isEmpty else { return }
+        var preferences = savedProGameScoreUpdatePreferences()
+        var changed = false
+        for row in rows {
+            guard let enabled = row.score_alerts_enabled else { continue }
+            let token = savedProGameScoreUpdatePreferenceToken(for: row.live_match_id)
+            if preferences[token] != enabled {
+                preferences[token] = enabled
+                changed = true
+            }
+        }
+        if changed {
+            UserDefaults.standard.set(preferences, forKey: Self.savedProGameScoreUpdatePreferencesKey)
         }
     }
 
@@ -909,6 +1124,25 @@ extension MapViewModel {
         liveMatches = merged
     }
 
+    private func mergeGoingProRefreshMatchesIntoLiveMatches(_ matches: [LiveMatch]) {
+        guard !matches.isEmpty else { return }
+        var byKey: [String: LiveMatch] = [:]
+        for match in liveMatches {
+            byKey[SavedProGame.stableKey(for: match)] = match
+        }
+        for match in matches {
+            byKey[SavedProGame.stableKey(for: match)] = match
+        }
+        liveMatches = byKey.values.sorted {
+            if $0.matchStatus.isHappeningNow != $1.matchStatus.isHappeningNow {
+                return $0.matchStatus.isHappeningNow && !$1.matchStatus.isHappeningNow
+            }
+            if $0.startTime == $1.startTime { return $0.id < $1.id }
+            return $0.startTime < $1.startTime
+        }
+        invalidateCalendarTabEventsListCache()
+    }
+
     private static func savedProGamesDefaultsKey(for userID: UUID) -> String {
         "gameon.savedProGames.\(userID.uuidString.lowercased()).v1"
     }
@@ -947,6 +1181,7 @@ private nonisolated struct SavedProGameSupabaseRow: Decodable {
     let score_away: Int?
     let featured_event_slug: String?
     let tv_summary: String?
+    let score_alerts_enabled: Bool?
     let created_at: String?
 
     var savedProGame: SavedProGame? {
@@ -977,7 +1212,11 @@ private nonisolated struct SavedProGameSupabaseRow: Decodable {
     }
 }
 
-private nonisolated struct SavedProGameUpsertRow: Encodable {
+private nonisolated struct SavedProGameRemoteIdentityRow: Decodable {
+    let live_match_id: String
+}
+
+private nonisolated struct SavedProGameInsertRow: Encodable {
     let user_id: String
     let live_match_id: String
     let source: String?
@@ -992,11 +1231,66 @@ private nonisolated struct SavedProGameUpsertRow: Encodable {
     let score_away: Int
     let featured_event_slug: String?
     let tv_summary: String?
+    let score_alerts_enabled: Bool
+    let final_score_alerts_enabled: Bool
+    let last_notified_scoreline: String?
     let snapshot: [String: String?]
 
-    init(snapshot: SavedProGame, userID: UUID) {
+    init(snapshot: SavedProGame, userID: UUID, scoreAlertsEnabled: Bool) {
         self.user_id = userID.uuidString.lowercased()
         self.live_match_id = snapshot.stableKey
+        self.source = Self.clean(snapshot.source)
+        self.external_id = Self.clean(snapshot.externalId)
+        self.home_team = snapshot.homeTeam
+        self.away_team = snapshot.awayTeam
+        self.league = Self.clean(snapshot.league)
+        self.sport = Self.clean(snapshot.sport)
+        self.start_time = SupabaseTimestampParsing.encodeTimestamptz(snapshot.startTime)
+        self.match_status = snapshot.matchStatus.rawValue
+        self.score_home = snapshot.scoreHome
+        self.score_away = snapshot.scoreAway
+        self.featured_event_slug = Self.clean(snapshot.featuredEventSlug)
+        self.tv_summary = Self.clean(snapshot.tvSummary)
+        self.score_alerts_enabled = scoreAlertsEnabled
+        self.final_score_alerts_enabled = true
+        self.last_notified_scoreline = "\(snapshot.scoreAway)-\(snapshot.scoreHome)"
+        self.snapshot = [
+            "id": snapshot.id,
+            "source": snapshot.source,
+            "external_id": snapshot.externalId,
+            "home_team": snapshot.homeTeam,
+            "away_team": snapshot.awayTeam,
+            "league": snapshot.league,
+            "sport": snapshot.sport,
+            "start_time": SupabaseTimestampParsing.encodeTimestamptz(snapshot.startTime),
+            "match_status": snapshot.matchStatus.rawValue,
+            "featured_event_slug": snapshot.featuredEventSlug,
+            "tv_summary": snapshot.tvSummary
+        ]
+    }
+
+    private static func clean(_ raw: String?) -> String? {
+        let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+private nonisolated struct SavedProGameUpdatePatch: Encodable {
+    let source: String?
+    let external_id: String?
+    let home_team: String
+    let away_team: String
+    let league: String?
+    let sport: String?
+    let start_time: String
+    let match_status: String
+    let score_home: Int
+    let score_away: Int
+    let featured_event_slug: String?
+    let tv_summary: String?
+    let snapshot: [String: String?]
+
+    init(snapshot: SavedProGame) {
         self.source = Self.clean(snapshot.source)
         self.external_id = Self.clean(snapshot.externalId)
         self.home_team = snapshot.homeTeam

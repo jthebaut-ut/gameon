@@ -111,6 +111,7 @@ nonisolated enum MatchStatus: String, Codable, CaseIterable, Equatable {
             || status.contains("FINISHED")
             || status.contains("COMPLETED")
             || status.contains("FULL TIME")
+            || status.contains("FULL_TIME")
             || status.contains("MATCH FINISHED") {
             return .fullTime
         }
@@ -144,14 +145,19 @@ nonisolated enum MatchStatus: String, Codable, CaseIterable, Equatable {
         "FINAL",
         "FINAL TIME",
         "FULL TIME",
+        "FULL_TIME",
         "FULLTIME",
         "COMPLETED",
         "COMPLETE",
         "FINISHED",
         "MATCH FINISHED",
+        "MATCH_FINISHED",
         "AET",
         "PEN",
         "AFTER EXTRA TIME",
+        "AFTER_EXTRA_TIME",
+        "PENALTIES FINISHED",
+        "PENALTIES_FINISHED",
         "AFTER PENALTIES",
         "ENDED",
         "END",

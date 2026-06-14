@@ -111,15 +111,6 @@ struct DiscoverPickupGameDetailSheet: View {
         viewModel.pickupMyLatestJoinRequestByGameId[gameId]
     }
 
-    private var showPickupOrganizerRatingCard: Bool {
-        guard !isCreator, let g = game, let uid = viewModel.currentUserAuthId else { return false }
-        guard g.creator_user_id != uid else { return false }
-        guard let req = myRequest, req.requester_user_id == uid else { return false }
-        guard req.status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "approved" else { return false }
-        guard g.isPickupCreatorRatingPromptEligible() else { return false }
-        return !viewModel.hasSubmittedPickupCreatorRating(for: gameId)
-    }
-
     var body: some View {
         NavigationStack {
             Group {
@@ -169,7 +160,7 @@ struct DiscoverPickupGameDetailSheet: View {
                 }
                 await viewModel.loadMyLatestJoinRequestForPickupGame(pickupGameId: gameId)
                 if let g = viewModel.resolvedPickupGameRow(for: gameId) {
-                    await viewModel.refreshPickupCreatorRatingUIContext(pickupGameId: gameId, creatorUserId: g.creator_user_id)
+                    await viewModel.loadPickupCreatorDisplayNameIfNeeded(creatorUserId: g.creator_user_id)
                     let now = Date()
                     let creator = viewModel.currentUserAuthId == g.creator_user_id
                     let actions: String
@@ -329,9 +320,9 @@ struct DiscoverPickupGameDetailSheet: View {
                     pickupInfoBanner(text: "You’re organizing this game.")
                 }
 
-                if showPickupOrganizerRatingCard {
-                    PickupCreatorRatingPromptCard(viewModel: viewModel, game: g)
-                }
+                // TODO(Organizer Reputation): Bring organizer rating/review presentation back
+                // here when reputation includes average rating, total reviews, reliability
+                // score, organizer badges, and profile reputation display.
 
                 joinSection(for: g)
 
@@ -470,10 +461,9 @@ struct DiscoverPickupGameDetailSheet: View {
                     )
                 }
             }
-
-            pickupOrganizerTrustBadge(stats: viewModel.pickupCreatorTrustStats(for: uid))
-                .padding(.top, 2)
-                .padding(.bottom, 4)
+            // TODO(Organizer Reputation): Restore organizer trust/reputation badge here
+            // when average rating, total reviews, reliability score, organizer badges,
+            // and profile reputation display are implemented.
         }
         .padding(.horizontal, FGSpacing.sm + 2)
         .padding(.top, FGSpacing.sm + 2)

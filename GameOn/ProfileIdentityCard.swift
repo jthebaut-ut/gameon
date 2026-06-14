@@ -1394,11 +1394,11 @@ struct ProfileIdentityCard: View {
     }
 
     private var sponsoredProfileSlotContent: SponsoredProfileSlotContent? {
-        guard isAccountTabActive, viewModel.isLoggedIn else { return nil }
+        guard isAccountTabActive else { return nil }
         if let recommendation = sponsoredProfileRecommendation, recommendation.isSponsored {
             return .venue(recommendation)
         }
-        if let promotion = sponsoredProfileFallbackPromotion() {
+        if viewModel.canUseFanSocialFeatures, let promotion = sponsoredProfileFallbackPromotion() {
             return .fallback(promotion)
         }
         return nil
@@ -1716,11 +1716,7 @@ struct ProfileIdentityCard: View {
     }
 
     private func sponsoredProfileFallbackPromotion() -> SponsoredProfileFallbackPromotion? {
-        let isBusinessAccount = viewModel.currentUserIsBusinessAccount
-            || viewModel.isVenueOwnerLoggedIn
-            || viewModel.hasAuthenticatedVenueOwnerSession
-            || viewModel.venueOwnerMode
-        guard !isBusinessAccount else { return nil }
+        guard viewModel.canUseFanSocialFeatures else { return nil }
         return SponsoredProfileFallbackPromotion.businessGrowthCard()
     }
 
@@ -4026,9 +4022,6 @@ private struct SponsoredProfileFallbackPromotionCard: View {
     let colorScheme: ColorScheme
     let onTap: () -> Void
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var hasRevealed = false
-
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             iconTile
@@ -4109,17 +4102,7 @@ private struct SponsoredProfileFallbackPromotionCard: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.14 : 0.045), radius: 10, y: 6)
-        .offset(y: hasRevealed || reduceMotion ? 0 : 24)
-        .opacity(hasRevealed || reduceMotion ? 1 : 0)
         .onAppear {
-            guard !hasRevealed else { return }
-            if reduceMotion {
-                hasRevealed = true
-            } else {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.86)) {
-                    hasRevealed = true
-                }
-            }
 #if DEBUG
             print("[SponsoredProfileDebug] cardShown=true")
             print("[SponsoredProfileDebug] source=fallback")

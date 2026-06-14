@@ -113,6 +113,11 @@ final class MapViewModel: ObservableObject {
             }
             reloadSavedProGamesFromStorage(for: userID)
             Task { await fetchSavedProGames() }
+            Task {
+                await PushNotificationRegistrationService.shared.upsertCurrentTokenIfPossible(reason: "currentUserAuthIdChanged")
+                await PushNotificationRegistrationService.shared.registerForRemoteNotificationsIfAuthorized(reason: "currentUserAuthIdChanged")
+                await syncProGameFinalScorePreferenceToBackend(reason: "currentUserAuthIdChanged")
+            }
         }
     }
     @Published var activeAccountBan: FanGeoAccountBan?

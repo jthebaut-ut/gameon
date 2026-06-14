@@ -1,8 +1,16 @@
 
 import SwiftUI
+import UserNotifications
+#if canImport(UIKit)
+import UIKit
+#endif
 
 @main
 struct WatchZoneApp: App {
+    #if canImport(UIKit)
+    @UIApplicationDelegateAdaptor(FanGeoAppDelegate.self) private var appDelegate
+    #endif
+
     @AppStorage(FanGeoAppearancePreference.appStorageKey) private var appearancePreferenceRaw = FanGeoAppearancePreference.system.rawValue
     @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
 
@@ -36,6 +44,50 @@ struct WatchZoneApp: App {
         FanGeoAppearancePreference(rawValue: appearancePreferenceRaw) ?? .system
     }
 }
+
+#if canImport(UIKit)
+private final class FanGeoAppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
+        UNUserNotificationCenter.current().delegate = self
+        return true
+    }
+
+    func application(
+        _ application: UIApplication,
+        didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+    ) {
+        PushNotificationRegistrationService.shared.handleDeviceToken(deviceToken)
+    }
+
+    func application(
+        _ application: UIApplication,
+        didFailToRegisterForRemoteNotificationsWithError error: Error
+    ) {
+        PushNotificationRegistrationService.shared.handleRegistrationFailure(error)
+    }
+
+    func application(
+        _ application: UIApplication,
+        didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+        fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+    ) {
+#if DEBUG
+        print("[RemoteNotificationDebug] received userInfo=\(userInfo)")
+#endif
+        completionHandler(.noData)
+    }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification
+    ) async -> UNNotificationPresentationOptions {
+        [.banner, .list, .sound, .badge]
+    }
+}
+#endif
 
 private struct FanGeoAdConsentPrePromptHost<Content: View>: View {
     let content: Content

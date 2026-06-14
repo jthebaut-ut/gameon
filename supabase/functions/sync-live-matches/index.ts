@@ -1213,7 +1213,7 @@ async function pruneStaleMatches(
 }
 
 function currentMatchWindow(now = new Date()): MatchWindow {
-  const start = new Date(now.getTime() - 2 * 60 * 60 * 1000)
+  const start = new Date(now.getTime() - 6 * 60 * 60 * 1000)
   const end = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
   return {
     start,
@@ -1312,26 +1312,35 @@ function isWithinMatchWindow(rawStart: string, matchWindow: MatchWindow): boolea
 
 function normalizeSportsDBStatus(raw: unknown): MatchStatus {
   const status = String(raw ?? "").trim().toUpperCase()
-  if (status.includes("HALF") || status === "HT") return "HT"
-  if (status.includes("FT") || status.includes("FINAL") || status.includes("FINISHED")) return "FT"
+  const compact = status.replace(/[_-]+/g, " ")
+  if (compact.includes("HALF") || compact === "HT") return "HT"
+  if (
+    compact.includes("FT") ||
+    compact.includes("FINAL") ||
+    compact.includes("FINISHED") ||
+    compact.includes("COMPLETED") ||
+    compact.includes("FULL TIME") ||
+    compact.includes("AFTER EXTRA TIME") ||
+    compact.includes("PENALTIES FINISHED")
+  ) return "FT"
   if (["1H", "2H", "ET", "BT", "P", "OT", "Q1", "Q2", "Q3", "Q4", "LIVE"].includes(status)) return "LIVE"
   if (
-    status.includes("LIVE") ||
-    status.includes("IN PROGRESS") ||
-    status.includes("IN PLAY") ||
-    status.includes("IN-PLAY") ||
-    status.includes("PLAYING") ||
-    status.includes("ACTIVE") ||
-    status.includes("STARTED") ||
-    status.includes("EXTRA INNING") ||
-    status.includes("'") ||
-    status.includes("Q") ||
-    status.includes("PERIOD") ||
-    status.includes("INNING")
+    compact.includes("LIVE") ||
+    compact.includes("INPLAY") ||
+    compact.includes("IN PROGRESS") ||
+    compact.includes("IN PLAY") ||
+    compact.includes("PLAYING") ||
+    compact.includes("ACTIVE") ||
+    compact.includes("STARTED") ||
+    compact.includes("EXTRA INNING") ||
+    compact.includes("'") ||
+    compact.includes("Q") ||
+    compact.includes("PERIOD") ||
+    compact.includes("INNING")
   ) {
     return "LIVE"
   }
-  if (status === "NS" || status.includes("SCHED") || status.includes("NOT STARTED")) return "SCHEDULED"
+  if (compact === "NS" || compact.includes("SCHED") || compact.includes("NOT STARTED")) return "SCHEDULED"
   return "SCHEDULED"
 }
 
