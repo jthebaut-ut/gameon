@@ -862,7 +862,8 @@ struct CalendarScreen: View {
         refreshCalendarProGamesIfNeeded(reason: "calendar_tab_appear")
         guard viewModel.canFanUsePickupGamesUI else { return }
         Task {
-            await viewModel.refreshCalendarTabPickupSources()
+            await Task.yield()
+            await viewModel.refreshCalendarTabPickupSources(reason: "calendar_tab_appear")
         }
     }
 
@@ -912,7 +913,7 @@ struct CalendarScreen: View {
         guard active else { return }
         sanitizeBusinessCalendarFilterIfNeeded()
         refreshCalendarProGamesIfNeeded(reason: "calendar_tab_selected")
-        refreshCalendarPickupSourcesIfNeeded()
+        refreshCalendarPickupSourcesIfNeeded(reason: "calendar_tab_selected")
     }
 
     private func handleCalendarScenePhaseChange(_ phase: ScenePhase) {
@@ -920,7 +921,7 @@ struct CalendarScreen: View {
         guard isCalendarTabSelected else { return }
         sanitizeBusinessCalendarFilterIfNeeded()
         refreshCalendarProGamesIfNeeded(reason: "calendar_scene_active")
-        refreshCalendarPickupSourcesIfNeeded()
+        refreshCalendarPickupSourcesIfNeeded(reason: "calendar_scene_active")
     }
 
     private func handleCalendarSelectedDateChange() {
@@ -928,13 +929,14 @@ struct CalendarScreen: View {
         guard isCalendarTabSelected else { return }
         sanitizeBusinessCalendarFilterIfNeeded()
         refreshCalendarProGamesIfNeeded(reason: "calendar_selected_date_change")
-        refreshCalendarPickupSourcesIfNeeded()
+        refreshCalendarPickupSourcesIfNeeded(forceRefresh: true, reason: "calendar_selected_date_change")
     }
 
-    private func refreshCalendarPickupSourcesIfNeeded() {
+    private func refreshCalendarPickupSourcesIfNeeded(forceRefresh: Bool = false, reason: String) {
         guard viewModel.canFanUsePickupGamesUI else { return }
         Task {
-            await viewModel.refreshCalendarTabPickupSources()
+            await Task.yield()
+            await viewModel.refreshCalendarTabPickupSources(forceRefresh: forceRefresh, reason: reason)
         }
     }
 
@@ -950,7 +952,7 @@ struct CalendarScreen: View {
             )
             viewModel.loadGamesFromSupabase()
             Task {
-                await viewModel.refreshCalendarTabPickupSources()
+                await viewModel.refreshCalendarTabPickupSources(forceRefresh: true, reason: "calendar_tab_sheet_done")
             }
             showDatePicker = false
         }
@@ -1194,6 +1196,7 @@ struct CalendarScreen: View {
         print("[CalendarProGamesDebug] refreshReason=\(reason)")
 #endif
         Task {
+            await Task.yield()
             await viewModel.refreshLiveMatchesForCalendar(selectedDate: viewModel.calendarTabSelectedDate, forceRefresh: false)
         }
     }

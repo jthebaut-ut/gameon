@@ -63,6 +63,34 @@ private enum PredictionCardMetrics {
     static let matchupVerticalSpacing: CGFloat = 5
 }
 
+private actor PredictionAutoRefreshGate {
+    static let shared = PredictionAutoRefreshGate()
+
+    private var inFlight = Set<String>()
+    private var refreshedAt: [String: Date] = [:]
+
+    func begin(eventID: UUID, userKey: String, staleAfter: TimeInterval) -> String? {
+        let key = Self.key(eventID: eventID, userKey: userKey)
+        if inFlight.contains(key) { return "inFlight" }
+        if let lastRefresh = refreshedAt[key],
+           Date().timeIntervalSince(lastRefresh) < staleAfter {
+            return "notStale"
+        }
+        inFlight.insert(key)
+        return nil
+    }
+
+    func finish(eventID: UUID, userKey: String) {
+        let key = Self.key(eventID: eventID, userKey: userKey)
+        inFlight.remove(key)
+        refreshedAt[key] = Date()
+    }
+
+    private static func key(eventID: UUID, userKey: String) -> String {
+        "\(eventID.uuidString.lowercased())|\(userKey)"
+    }
+}
+
 struct VenueEventPredictionModule: View {
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
@@ -72,6 +100,8 @@ struct VenueEventPredictionModule: View {
     var sportType: String = ""
     let summary: VenueEventPredictionSummary?
     var isLocked = false
+    var lockTime: Date? = nil
+    var userPredictionReloadKey: String? = nil
     let onOpen: (VenueEventPredictionType) -> Void
     var onQuickVote: ((VenueEventPredictionType, String) async -> Bool)? = nil
     var onQuickScoreSave: ((Int, Int) async -> Bool)? = nil
@@ -88,9 +118,21 @@ struct VenueEventPredictionModule: View {
     @State private var isRefreshingSummary = false
     @State private var scoreSaveState: InlineScoreSaveState = .idle
     @State private var scoreSaveTask: Task<Void, Never>?
+    @State private var didApplyLoadedUserPrediction = false
+    @State private var missingUserRetryCount = 0
+
+    private let autoRefreshStaleAfter: TimeInterval = 45
 
     private var resolvedSummary: VenueEventPredictionSummary {
         summary ?? .empty(eventID: venueEventID)
+    }
+
+    private var summaryUserPredictions: VenueEventUserPredictions? {
+        summary?.userPredictions
+    }
+
+    private var summaryUserPredictionsLoaded: Bool {
+        summary?.userPredictionsLoaded == true
     }
 
     private var userScoreSummaryText: String? {
@@ -126,6 +168,10 @@ struct VenueEventPredictionModule: View {
         selectedHomeScore != nil && selectedAwayScore != nil
     }
 
+    private var hasVisibleUserPrediction: Bool {
+        !selectedWinner.isEmpty || !selectedFirstScore.isEmpty || hasInlineScorePrediction
+    }
+
     private var isPredictionEmptyState: Bool {
         resolvedSummary.totalCount == 0
     }
@@ -133,7 +179,15 @@ struct VenueEventPredictionModule: View {
     var body: some View {
         predictionVotingCard
         .task(id: userPredictionLoadToken) {
-            await loadUserPrediction()
+            if summaryUserPredictionsLoaded {
+                applyUserPredictionsIfIdle(summaryUserPredictions, source: "summary")
+            }
+            if onRefreshSummary == nil {
+                await loadUserPrediction()
+            }
+        }
+        .task(id: autoRefreshLoadToken) {
+            await autoRefreshPredictionsOnAppear()
         }
         .task(id: venueEventID) {
             await onStartRealtime?()
@@ -147,6 +201,8 @@ struct VenueEventPredictionModule: View {
         }
         .onAppear {
 #if DEBUG
+            print("[PredictionDebug] votingLocked=\(isLocked) eventId=\(venueEventID.uuidString.lowercased())")
+            print("[PredictionDebug] lockTime=\(lockTime.map { ISO8601DateFormatter().string(from: $0) } ?? "nil") eventId=\(venueEventID.uuidString.lowercased())")
             if VenueGameCardDiagnostics.enabled {
                 print("[PredictionUIDebug] homeTeam=\(teams.home)")
                 print("[PredictionUIDebug] awayTeam=\(teams.away)")
@@ -192,6 +248,20 @@ struct VenueEventPredictionModule: View {
             print("[RealtimeChainDebug] uiStateUpdated table=venue_event_predictions key=\(venueEventID.uuidString.lowercased()).predictionModuleWinnerPercent oldValue=\(oldValue ?? -1) newValue=\(newValue ?? -1)")
 #endif
         }
+        .onChange(of: summaryUserPredictions) { _, newValue in
+            guard summaryUserPredictionsLoaded else { return }
+            applyUserPredictionsIfIdle(newValue, source: "summary")
+        }
+        .onChange(of: summaryUserPredictionsLoaded) { _, newValue in
+            guard newValue else { return }
+            applyUserPredictionsIfIdle(summaryUserPredictions, source: "summary")
+        }
+        .onChange(of: isLocked) { _, newValue in
+#if DEBUG
+            print("[PredictionDebug] votingLocked=\(newValue) eventId=\(venueEventID.uuidString.lowercased())")
+            print("[PredictionDebug] lockTime=\(lockTime.map { ISO8601DateFormatter().string(from: $0) } ?? "nil") eventId=\(venueEventID.uuidString.lowercased())")
+#endif
+        }
         .onDisappear {
             scoreSaveTask?.cancel()
             Task { await onStopRealtime?() }
@@ -199,7 +269,11 @@ struct VenueEventPredictionModule: View {
     }
 
     private var userPredictionLoadToken: String {
-        "\(venueEventID.uuidString)|score=\(resolvedSummary.scoreMode ?? "nil")|total=\(resolvedSummary.totalCount)"
+        "\(venueEventID.uuidString)|score=\(resolvedSummary.scoreMode ?? "nil")|total=\(resolvedSummary.totalCount)|user=\(userPredictionReloadKey ?? "nil")"
+    }
+
+    private var autoRefreshLoadToken: String {
+        "\(venueEventID.uuidString)|autoRefreshUser=\(userPredictionReloadKey ?? "nil")"
     }
 
     private var predictionVotingCard: some View {
@@ -290,7 +364,7 @@ struct VenueEventPredictionModule: View {
                     .foregroundStyle(FGColor.mutedText(colorScheme))
             }
 
-            Text(isLocked ? "Predictions closed" : "Make your pre-game picks")
+            Text(isLocked ? "Voting closed" : "Voting closes 10 min after kickoff")
                 .font(.system(size: 10, weight: .medium, design: .rounded))
                 .foregroundStyle(FGColor.secondaryText(colorScheme).opacity(0.82))
                 .lineLimit(1)
@@ -440,6 +514,7 @@ struct VenueEventPredictionModule: View {
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
+                    .disabled(isLocked)
                     .accessibilityLabel("Clear score")
                 }
             }
@@ -450,8 +525,8 @@ struct VenueEventPredictionModule: View {
                     score: inlineHomeScore,
                     flag: TeamTheme.safeFlag(CountryFlagHelper.flag(for: teams.home)),
                     colorScheme: colorScheme,
-                    canDecrement: inlineHomeScore > 0,
-                    canIncrement: inlineHomeScore < 20,
+                    canDecrement: !isLocked && inlineHomeScore > 0,
+                    canIncrement: !isLocked && inlineHomeScore < 20,
                     onDecrement: { adjustInlineScore(isHome: true, delta: -1) },
                     onIncrement: { adjustInlineScore(isHome: true, delta: 1) }
                 )
@@ -466,8 +541,8 @@ struct VenueEventPredictionModule: View {
                     score: inlineAwayScore,
                     flag: TeamTheme.safeFlag(CountryFlagHelper.flag(for: teams.away)),
                     colorScheme: colorScheme,
-                    canDecrement: inlineAwayScore > 0,
-                    canIncrement: inlineAwayScore < 20,
+                    canDecrement: !isLocked && inlineAwayScore > 0,
+                    canIncrement: !isLocked && inlineAwayScore < 20,
                     onDecrement: { adjustInlineScore(isHome: false, delta: -1) },
                     onIncrement: { adjustInlineScore(isHome: false, delta: 1) }
                 )
@@ -881,13 +956,63 @@ struct VenueEventPredictionModule: View {
     }
 
     @MainActor
+    private func autoRefreshPredictionsOnAppear() async {
+        let eventReady = !venueEventID.uuidString.isEmpty
+        let normalizedUserKey = userPredictionReloadKey?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let authReady = normalizedUserKey?.isEmpty == false
+#if DEBUG
+        print("[PredictionDebug] authReady=\(authReady) eventId=\(venueEventID.uuidString.lowercased())")
+        print("[PredictionDebug] eventReady=\(eventReady) eventId=\(venueEventID.uuidString.lowercased())")
+#endif
+        guard eventReady else {
+            logAutoRefreshSkipped(reason: "eventNotReady")
+            return
+        }
+        guard let userKey = normalizedUserKey, !userKey.isEmpty else {
+            logAutoRefreshSkipped(reason: "authNotReady")
+            return
+        }
+        guard let onRefreshSummary else {
+            logAutoRefreshSkipped(reason: "missingRefreshHandler")
+            await loadUserPrediction()
+#if DEBUG
+            print("[PredictionDebug] appliedAfterAutoRefresh=\(hasVisibleUserPrediction) eventId=\(venueEventID.uuidString.lowercased())")
+#endif
+            return
+        }
+
+        if let skippedReason = await PredictionAutoRefreshGate.shared.begin(
+            eventID: venueEventID,
+            userKey: userKey,
+            staleAfter: autoRefreshStaleAfter
+        ) {
+            logAutoRefreshSkipped(reason: skippedReason)
+            return
+        }
+
+#if DEBUG
+        print("[PredictionDebug] autoRefreshOnAppear eventId=\(venueEventID.uuidString.lowercased())")
+#endif
+        await onRefreshSummary()
+        await loadUserPrediction()
+#if DEBUG
+        print("[PredictionDebug] appliedAfterAutoRefresh=\(hasVisibleUserPrediction) eventId=\(venueEventID.uuidString.lowercased())")
+#endif
+        await PredictionAutoRefreshGate.shared.finish(eventID: venueEventID, userKey: userKey)
+    }
+
+    private func logAutoRefreshSkipped(reason: String) {
+#if DEBUG
+        print("[PredictionDebug] autoRefreshSkippedReason=\(reason) eventId=\(venueEventID.uuidString.lowercased())")
+#endif
+    }
+
+    @MainActor
     private func loadUserPrediction() async {
         do {
             let prediction = try await VenueEventPredictionService.shared.fetchUserPrediction(venueEventId: venueEventID)
-            selectedWinner = prediction.winner ?? ""
-            selectedFirstScore = prediction.firstScoreTeam ?? ""
-            selectedHomeScore = prediction.homeScore
-            selectedAwayScore = prediction.awayScore
+            missingUserRetryCount = 0
+            applyUserPredictionsIfIdle(prediction, source: "fetch")
 #if DEBUG
             if !selectedWinner.isEmpty {
                 print("[PredictionUIDebug] selectedWinner=\(selectedWinner)")
@@ -903,11 +1028,58 @@ struct VenueEventPredictionModule: View {
             }
 #endif
         } catch {
+            if case VenueEventPredictionServiceError.missingUser = error, missingUserRetryCount < 2 {
+                missingUserRetryCount += 1
+#if DEBUG
+                print("[PredictionDebug] userPredictionRetry=\(missingUserRetryCount) eventId=\(venueEventID.uuidString.lowercased())")
+#endif
+                try? await Task.sleep(for: .milliseconds(700))
+                await loadUserPrediction()
+                return
+            }
 #if DEBUG
             print("[PredictionUIDebug] userPredictionLoadSkipped=\(error.localizedDescription)")
             print("[PredictionDebug] error=\(error.localizedDescription)")
 #endif
         }
+    }
+
+    @MainActor
+    private func applyUserPredictionsIfIdle(_ predictions: VenueEventUserPredictions?, source: String) {
+        let hasLoadedPrediction = predictions?.hasAnyPrediction == true
+        let isAuthoritativeFetch = source == "fetch"
+        guard savingSelectionKey == nil, scoreSaveState != .saving else {
+            logUserPredictionApplication(predictions, appliedToUI: false, source: source)
+            return
+        }
+        if !isAuthoritativeFetch, !hasLoadedPrediction, (didApplyLoadedUserPrediction || hasVisibleUserPrediction) {
+            logUserPredictionApplication(predictions, appliedToUI: false, source: source)
+            return
+        }
+        selectedWinner = predictions?.winner ?? ""
+        selectedFirstScore = predictions?.firstScoreTeam ?? ""
+        selectedHomeScore = predictions?.homeScore
+        selectedAwayScore = predictions?.awayScore
+        didApplyLoadedUserPrediction = didApplyLoadedUserPrediction || hasLoadedPrediction || isAuthoritativeFetch
+#if DEBUG
+        print("[PredictionDebug] userPredictionLoaded=\(predictions?.hasAnyPrediction == true) eventId=\(venueEventID.uuidString.lowercased()) source=summary_or_fetch")
+#endif
+        logUserPredictionApplication(predictions, appliedToUI: true, source: source)
+    }
+
+    private func logUserPredictionApplication(
+        _ predictions: VenueEventUserPredictions?,
+        appliedToUI: Bool,
+        source: String
+    ) {
+#if DEBUG
+        print("[PredictionDebug] venueEventId=\(venueEventID.uuidString.lowercased())")
+        print("[PredictionDebug] loadedWinner=\(predictions?.winner ?? "nil")")
+        print("[PredictionDebug] loadedScoreHome=\(predictions?.homeScore.map(String.init) ?? "nil")")
+        print("[PredictionDebug] loadedScoreAway=\(predictions?.awayScore.map(String.init) ?? "nil")")
+        print("[PredictionDebug] loadedFirstScoreTeam=\(predictions?.firstScoreTeam ?? "nil")")
+        print("[PredictionDebug] appliedToUI=\(appliedToUI) source=\(source)")
+#endif
     }
 
     private var participantAvatars: some View {
@@ -941,6 +1113,7 @@ struct VenueEventPredictionSheet: View {
     let teams: VenueEventPredictionTeams
     let predictionType: VenueEventPredictionType
     var unavailableMessage: String? = nil
+    var lockTime: Date? = nil
     let onSaved: () async -> Void
 
     @State private var userPrediction = VenueEventUserPredictions()
@@ -954,7 +1127,15 @@ struct VenueEventPredictionSheet: View {
     private let scoreRange = 0...20
 
     private var votingIsDisabled: Bool {
-        isSaving || isLoading || unavailableMessage != nil
+        isSaving || isLoading || unavailableMessage != nil || isLockedByTime
+    }
+
+    private var isLockedByTime: Bool {
+        lockTime.map { Date() > $0 } ?? false
+    }
+
+    private var lockMessage: String? {
+        isLockedByTime ? "Voting closed" : unavailableMessage
     }
 
     private var title: String {
@@ -988,8 +1169,8 @@ struct VenueEventPredictionSheet: View {
                         .foregroundStyle(FGColor.dangerRed)
                 }
 
-                if let unavailableMessage {
-                    Text(unavailableMessage)
+                if let lockMessage {
+                    Text(lockMessage)
                         .font(FGTypography.caption.weight(.semibold))
                         .foregroundStyle(FGColor.dangerRed)
                 }
@@ -1029,6 +1210,8 @@ struct VenueEventPredictionSheet: View {
             .task {
 #if DEBUG
                 print("[PredictionDebug] open eventId=\(venueEventID.uuidString.lowercased())")
+                print("[PredictionDebug] votingLocked=\(isLockedByTime) eventId=\(venueEventID.uuidString.lowercased())")
+                print("[PredictionDebug] lockTime=\(lockTime.map { ISO8601DateFormatter().string(from: $0) } ?? "nil") eventId=\(venueEventID.uuidString.lowercased())")
                 print("[ScorePredictionDebug] sheetOpened=\(predictionType == .score)")
 #endif
                 await loadUserPrediction()
@@ -1078,8 +1261,8 @@ struct VenueEventPredictionSheet: View {
                         score: homeScore,
                         flag: TeamTheme.safeFlag(CountryFlagHelper.flag(for: teams.home)),
                         colorScheme: colorScheme,
-                        canDecrement: homeScore > scoreRange.lowerBound,
-                        canIncrement: homeScore < scoreRange.upperBound,
+                        canDecrement: !votingIsDisabled && homeScore > scoreRange.lowerBound,
+                        canIncrement: !votingIsDisabled && homeScore < scoreRange.upperBound,
                         onDecrement: { adjustScore(isHome: true, delta: -1) },
                         onIncrement: { adjustScore(isHome: true, delta: 1) }
                     )
@@ -1094,8 +1277,8 @@ struct VenueEventPredictionSheet: View {
                         score: awayScore,
                         flag: TeamTheme.safeFlag(CountryFlagHelper.flag(for: teams.away)),
                         colorScheme: colorScheme,
-                        canDecrement: awayScore > scoreRange.lowerBound,
-                        canIncrement: awayScore < scoreRange.upperBound,
+                        canDecrement: !votingIsDisabled && awayScore > scoreRange.lowerBound,
+                        canIncrement: !votingIsDisabled && awayScore < scoreRange.upperBound,
                         onDecrement: { adjustScore(isHome: false, delta: -1) },
                         onIncrement: { adjustScore(isHome: false, delta: 1) }
                     )
@@ -1171,6 +1354,7 @@ struct VenueEventPredictionSheet: View {
             case .firstScoreTeam:
                 selectedTeam = prediction.firstScoreTeam ?? ""
             }
+            logUserPredictionApplication(prediction, appliedToUI: true)
         } catch {
             errorMessage = error.localizedDescription
 #if DEBUG
@@ -1179,10 +1363,24 @@ struct VenueEventPredictionSheet: View {
         }
     }
 
+    private func logUserPredictionApplication(
+        _ predictions: VenueEventUserPredictions,
+        appliedToUI: Bool
+    ) {
+#if DEBUG
+        print("[PredictionDebug] venueEventId=\(venueEventID.uuidString.lowercased())")
+        print("[PredictionDebug] loadedWinner=\(predictions.winner ?? "nil")")
+        print("[PredictionDebug] loadedScoreHome=\(predictions.homeScore.map(String.init) ?? "nil")")
+        print("[PredictionDebug] loadedScoreAway=\(predictions.awayScore.map(String.init) ?? "nil")")
+        print("[PredictionDebug] loadedFirstScoreTeam=\(predictions.firstScoreTeam ?? "nil")")
+        print("[PredictionDebug] appliedToUI=\(appliedToUI) source=sheet")
+#endif
+    }
+
     @MainActor
     private func savePrediction() async {
-        if let unavailableMessage {
-            errorMessage = unavailableMessage
+        if let lockMessage {
+            errorMessage = lockMessage
             return
         }
         guard predictionType != .score || scoreIsValid else {
@@ -1247,6 +1445,10 @@ struct VenueEventPredictionSheet: View {
 
     @MainActor
     private func deletePrediction() async {
+        if let lockMessage {
+            errorMessage = lockMessage
+            return
+        }
         guard !isSaving else { return }
         isSaving = true
         errorMessage = nil

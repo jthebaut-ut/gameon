@@ -27,7 +27,11 @@ extension MapViewModel {
     @MainActor
     func refreshLiveMatchesForCalendar(selectedDate: Date? = nil, forceRefresh: Bool = false) async {
         if let inFlight = liveMatchesRefreshTask {
+#if DEBUG
+            print("[TabPerfDebug] refreshCoalesced=true source=liveMatches force=\(forceRefresh)")
+#endif
             await inFlight.value
+            if !forceRefresh { return }
         }
 
         let task = Task { @MainActor [weak self] () -> Void in
@@ -87,12 +91,28 @@ extension MapViewModel {
 
     @MainActor
     private func runCalendarProGamesRefresh(selectedDate: Date, forceRefresh: Bool) async {
+        let day = Calendar.current.startOfDay(for: selectedDate)
+        let dayKey = String(Int(day.timeIntervalSince1970 / 86_400))
+        if !forceRefresh,
+           let lastRefresh = calendarProGamesRefreshAtByDay[dayKey] {
+            let age = Date().timeIntervalSince(lastRefresh)
+            if age < 90, !calendarSelectedDayHasHappeningNowProGame(day) {
+#if DEBUG
+                print("[TabPerfDebug] cacheAge=\(String(format: "%.1f", age)) tab=calendar source=proGames")
+                print("[TabPerfDebug] usedCachedData=true tab=calendar source=proGames")
+                print("[TabPerfDebug] refreshSkippedReason=fresh tab=calendar source=proGames")
+#endif
+                return
+            }
+        }
         isLoadingLiveMatches = true
         defer { isLoadingLiveMatches = false }
 
 #if DEBUG
+        print("[TabPerfDebug] refreshStarted=calendar source=proGames force=\(forceRefresh)")
         print("[CalendarProGamesDebug] selectedDateFetchStarted forceRefresh=\(forceRefresh)")
 #endif
+        let startedAt = Date()
         let featuredEventsTask = Task {
             await LiveSportsService.shared.fetchActiveFeaturedEvents(forceRefresh: forceRefresh)
         }
@@ -102,7 +122,10 @@ extension MapViewModel {
             mergeCalendarProGameMatches(matches, for: selectedDate)
             liveMatchesLoadError = nil
             invalidateCalendarTabEventsListCache()
+            calendarProGamesRefreshAtByDay[dayKey] = Date()
 #if DEBUG
+            let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
+            print("[TabPerfDebug] refreshDurationMs=\(ms) tab=calendar source=proGames")
             print("[CalendarProGamesDebug] selectedDateFetchCount=\(matches.count)")
 #endif
         } catch {
@@ -111,6 +134,13 @@ extension MapViewModel {
 #endif
             liveMatchesLoadError = "Couldn't refresh pro games. Showing the latest available results."
             activeFeaturedEvents = await featuredEventsTask.value
+        }
+    }
+
+    private func calendarSelectedDayHasHappeningNowProGame(_ day: Date) -> Bool {
+        let cal = Calendar.current
+        return liveMatches.contains { match in
+            match.matchStatus.isHappeningNow && cal.isDate(match.startTime, inSameDayAs: day)
         }
     }
 

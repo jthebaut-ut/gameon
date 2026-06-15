@@ -112,10 +112,11 @@ final class MapViewModel: ObservableObject {
                 return
             }
             reloadSavedProGamesFromStorage(for: userID)
-            Task { await fetchSavedProGames() }
+            Task { await fetchSavedProGames(reason: "currentUserAuthIdChanged") }
             Task {
                 await PushNotificationRegistrationService.shared.upsertCurrentTokenIfPossible(reason: "currentUserAuthIdChanged")
                 await PushNotificationRegistrationService.shared.registerForRemoteNotificationsIfAuthorized(reason: "currentUserAuthIdChanged")
+                await loadFavoriteTeamProGameAlertsPreferenceFromBackend(reason: "currentUserAuthIdChanged")
                 await syncProGameFinalScorePreferenceToBackend(reason: "currentUserAuthIdChanged")
             }
         }
@@ -134,6 +135,7 @@ final class MapViewModel: ObservableObject {
         isLoggedIn || isVenueOwnerLoggedIn || currentUserAuthId != nil
     }
     @Published var favoriteTeamProGames: [FavoriteTeamProGame] = []
+    @Published var favoriteTeamProGameAlertOverrides: [String: FavoriteTeamProGameAlertOverride] = [:]
     @Published var businessFavoriteTeamIDs: Set<String> = []
     @Published var businessFavoriteTeamProGames: [FavoriteTeamProGame] = []
     var businessFavoriteTeamsLoadedBusinessId: UUID?
@@ -481,6 +483,15 @@ final class MapViewModel: ObservableObject {
     @Published var liveMatches: [LiveMatch] = []
     @Published var activeFeaturedEvents: [FeaturedEvent] = FeaturedEvent.fallbackEvents
     @Published var savedProGames: [SavedProGame] = []
+    var savedProGamesFetchTask: Task<Void, Never>?
+    var lastSavedProGamesFetchAt: Date?
+    var lastSavedProGamesFetchUserId: UUID?
+    var favoriteTeamProGamesRefreshTask: Task<Void, Never>?
+    var lastFavoriteTeamProGamesRefreshAt: Date?
+    var lastFavoriteTeamProGamesRefreshKey: String?
+    var businessFavoriteTeamProGamesRefreshTask: Task<Void, Never>?
+    var lastBusinessFavoriteTeamProGamesRefreshAt: Date?
+    var lastBusinessFavoriteTeamProGamesRefreshKey: String?
     @Published var isLoadingLiveMatches: Bool = false
     @Published var liveMatchesLoadError: String?
     /// DEBUG-only hint when Live Games is empty (provider/cache diagnostics).
@@ -837,6 +848,9 @@ final class MapViewModel: ObservableObject {
     var lastMyPickupGamesLightweightLoadAt: Date?
     var incomingPickupInvitesLoadTask: Task<Void, Never>?
     var lastIncomingPickupInvitesLoadAt: Date?
+    var calendarTabPickupSourcesRefreshTask: Task<Void, Never>?
+    var lastCalendarTabPickupSourcesRefreshAt: Date?
+    var lastCalendarTabPickupSourcesRefreshKey: String?
     /// Bumped when join-request rows affecting organizer summaries may have changed (realtime / withdraw); drives ``PickupOrganizerRequestsSheet`` reload.
     @Published var pickupOrganizerRequestsSyncGeneration: UInt64 = 0
     /// Bumped after join-request mutations so pickup detail sheets reload request + counts.
@@ -981,11 +995,13 @@ final class MapViewModel: ObservableObject {
     var loadGamesCoalesceNeedsAnotherPass = false
     /// Coalesces Calendar Live refreshes; no continuous UI polling.
     var liveMatchesRefreshTask: Task<Void, Never>?
+    var calendarProGamesRefreshAtByDay: [String: Date] = [:]
     /// Fire-and-forget phase-3 Discover enrichment after pins are visible.
     var discoverFullEnrichmentTask: Task<Void, Never>?
     /// One-shot pickup calendar + map-row warmup after enrichment (not triggered by map pan).
     var discoverPickupMetadataPreloadTask: Task<Void, Never>?
     var discoverPickupMetadataPreloadCompleted = false
+    var lastDiscoverCoreRefreshAt: Date?
     var loadVenuesRequestID: UUID?
     var loadVenuesPhase1AppliedRequestID: UUID?
     var discoverSelectedDayRefreshTask: Task<Void, Never>?
@@ -999,6 +1015,12 @@ final class MapViewModel: ObservableObject {
     var pickupDiscoverEnrichmentRequestID: UUID?
     var mapStatusDismissTask: Task<Void, Never>?
     var socialActionToastDismissTask: Task<Void, Never>?
+    var appleCalendarPickupSyncTask: Task<Void, Never>?
+    var lastAppleCalendarPickupSyncAt: Date?
+    var lastAppleCalendarPickupSyncKey: String?
+    var appleCalendarGlobalSyncTask: Task<Void, Never>?
+    var lastAppleCalendarGlobalSyncAt: Date?
+    var lastAppleCalendarGlobalSyncKey: String?
 
     /// Bumped when schedule-related data changes so calendar caches and dot fingerprints invalidate cheaply.
     var scheduleDataGeneration: UInt64 = 0

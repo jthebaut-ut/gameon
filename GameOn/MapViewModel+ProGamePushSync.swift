@@ -1,5 +1,21 @@
 import Foundation
+import Combine
 import Supabase
+
+nonisolated enum FavoriteTeamProGameAlertOverride: String, Codable, Equatable {
+    case inherit
+    case on
+    case off
+    case muted
+
+    var explicitlyEnablesAlerts: Bool {
+        self == .on
+    }
+
+    var explicitlyDisablesAlerts: Bool {
+        self == .off || self == .muted
+    }
+}
 
 extension MapViewModel {
     func syncProGameFinalScorePreferenceToBackend(reason: String) async {
@@ -7,7 +23,8 @@ extension MapViewModel {
         let row = ProGameNotificationPreferenceUpsertRow(
             user_id: userID.uuidString.lowercased(),
             pro_game_reminder_notifications_enabled: notificationSettingsStore.proGameReminderNotifications,
-            pro_game_final_score_alerts_enabled: notificationSettingsStore.proGameFinalScoreNotifications
+            pro_game_final_score_alerts_enabled: notificationSettingsStore.proGameFinalScoreNotifications,
+            favorite_team_pro_game_alerts_enabled: notificationSettingsStore.favoriteTeamProGameAlertsEnabled
         )
 
         do {
@@ -38,12 +55,123 @@ extension MapViewModel {
 #endif
             return
         }
-        await upsertFavoriteTeamProGameSubscriptions([favoriteTeamGame], userID: userID, reason: "scoreAlertToggle")
+        await upsertFavoriteTeamProGameSubscriptions(
+            [favoriteTeamGame],
+            userID: userID,
+            reason: "scoreAlertToggle",
+            subscriptionSource: "manual",
+            scoreAlertsEnabledOverride: enabled,
+            finalAlertsEnabledOverride: enabled ? notificationSettingsStore.proGameFinalScoreNotifications : false
+        )
     }
 
     func syncFavoriteTeamProGameSubscriptions(_ games: [FavoriteTeamProGame], reason: String) async {
         guard let userID = currentUserAuthId, isAuthenticatedForSocialFeatures else { return }
-        await upsertFavoriteTeamProGameSubscriptions(games, userID: userID, reason: reason)
+#if DEBUG
+        print("[TeamAlertsDebug] favoriteTeamGamesEvaluated=\(games.count) reason=\(reason)")
+#endif
+        let autoGames = games.filter { item in
+            !savedProGames.contains(where: { $0.stableKey == item.game.stableKey })
+        }
+        await loadFavoriteTeamProGameAlertOverrides(for: autoGames, userID: userID, reason: reason)
+        await upsertFavoriteTeamProGameSubscriptions(
+            autoGames,
+            userID: userID,
+            reason: reason,
+            subscriptionSource: "favorite_team_auto"
+        )
+        if !notificationSettingsStore.favoriteTeamProGameAlertsEnabled {
+            await disableFavoriteTeamAutoDefaultSubscriptions(userID: userID, reason: reason)
+        }
+    }
+
+    func loadFavoriteTeamProGameAlertsPreferenceFromBackend(reason: String) async {
+        guard let userID = currentUserAuthId, isAuthenticatedForSocialFeatures else { return }
+        do {
+            let rows: [ProGameNotificationPreferenceRow] = try await supabase
+                .from("user_notification_preferences")
+                .select("favorite_team_pro_game_alerts_enabled")
+                .eq("user_id", value: userID.uuidString.lowercased())
+                .limit(1)
+                .execute()
+                .value
+            let enabled = rows.first?.favorite_team_pro_game_alerts_enabled ?? false
+            notificationSettingsStore.favoriteTeamProGameAlertsEnabled = enabled
+#if DEBUG
+            print("[TeamAlertsDebug] settingLoaded=\(enabled) reason=\(reason)")
+#endif
+        } catch {
+#if DEBUG
+            print("[TeamAlertsDebug] settingLoaded=false reason=\(reason) error=\(error.localizedDescription)")
+#endif
+        }
+    }
+
+    func setFavoriteTeamProGameAlertsEnabled(_ enabled: Bool, games: [FavoriteTeamProGame], reason: String) async {
+        guard let userID = currentUserAuthId, isAuthenticatedForSocialFeatures else { return }
+        if enabled {
+            _ = await GameReminderNotificationService.shared.requestAuthorizationIfNeeded()
+            await PushNotificationRegistrationService.shared.registerForRemoteNotificationsIfAuthorized(reason: "teamAlertsEnabled")
+        }
+        notificationSettingsStore.favoriteTeamProGameAlertsEnabled = enabled
+        objectWillChange.send()
+        await syncProGameFinalScorePreferenceToBackend(reason: "teamAlertsToggle")
+#if DEBUG
+        print("[TeamAlertsDebug] settingUpdated=\(enabled) reason=\(reason)")
+#endif
+        let autoGames = games.filter { item in
+            !savedProGames.contains(where: { $0.stableKey == item.game.stableKey })
+        }
+        await loadFavoriteTeamProGameAlertOverrides(for: autoGames, userID: userID, reason: reason)
+        await upsertFavoriteTeamProGameSubscriptions(
+            autoGames,
+            userID: userID,
+            reason: reason,
+            subscriptionSource: "favorite_team_auto"
+        )
+        if !enabled {
+            await disableFavoriteTeamAutoDefaultSubscriptions(userID: userID, reason: reason)
+        }
+    }
+
+    func favoriteTeamProGameAlertOverride(for game: SavedProGame) -> FavoriteTeamProGameAlertOverride {
+        favoriteTeamProGameAlertOverrides[game.stableKey] ?? .inherit
+    }
+
+    func favoriteTeamProGameAlertsMuted(for game: SavedProGame) -> Bool {
+        favoriteTeamProGameAlertOverride(for: game).explicitlyDisablesAlerts
+    }
+
+    func setFavoriteTeamProGameScoreUpdatesEnabled(
+        _ enabled: Bool,
+        for item: FavoriteTeamProGame,
+        reason: String
+    ) {
+        if enabled {
+            Task {
+                _ = await GameReminderNotificationService.shared.requestAuthorizationIfNeeded()
+                await PushNotificationRegistrationService.shared.registerForRemoteNotificationsIfAuthorized(reason: "favoriteTeamGameAlertEnabled")
+            }
+        }
+        setFavoriteTeamProGameAlertOverride(
+            enabled ? .on : .off,
+            for: item,
+            reason: reason
+        )
+    }
+
+    func setFavoriteTeamProGameAlertOverride(
+        _ override: FavoriteTeamProGameAlertOverride,
+        for item: FavoriteTeamProGame,
+        reason: String
+    ) {
+        let key = item.game.stableKey
+        favoriteTeamProGameAlertOverrides[key] = override
+        objectWillChange.send()
+        Task { [weak self] in
+            guard let self else { return }
+            await self.syncFavoriteTeamProGameAlertOverride(override, for: item, reason: reason)
+        }
     }
 
     private func syncSavedProGameScoreAlertPreference(_ enabled: Bool, for game: SavedProGame, userID: UUID) async {
@@ -71,13 +199,26 @@ extension MapViewModel {
         }
     }
 
-    private func upsertFavoriteTeamProGameSubscriptions(_ games: [FavoriteTeamProGame], userID: UUID, reason: String) async {
+    private func upsertFavoriteTeamProGameSubscriptions(
+        _ games: [FavoriteTeamProGame],
+        userID: UUID,
+        reason: String,
+        subscriptionSource: String,
+        scoreAlertsEnabledOverride: Bool? = nil,
+        finalAlertsEnabledOverride: Bool? = nil
+    ) async {
         let rows = games.map { item in
             let game = item.game
-            let scoreAlertsEnabled = favoriteTeamProGameScoreUpdatesEnabled(for: game)
+            let alertOverride = subscriptionSource == "favorite_team_auto"
+                ? favoriteTeamProGameAlertOverride(for: game)
+                : nil
+            let scoreAlertsEnabled = scoreAlertsEnabledOverride ?? favoriteTeamProGameScoreUpdatesEnabled(for: game)
+            let finalAlertsEnabled = finalAlertsEnabledOverride ?? (scoreAlertsEnabled && notificationSettingsStore.proGameFinalScoreNotifications)
             return FavoriteTeamProGameAlertSubscriptionUpsertRow(
                 user_id: userID.uuidString.lowercased(),
                 live_match_id: game.stableKey,
+                subscription_source: subscriptionSource,
+                alert_override: alertOverride?.rawValue,
                 favorite_team_id: item.favoriteTeamID,
                 favorite_team_name: item.favoriteTeamName,
                 source: cleanedProGamePushValue(game.source),
@@ -91,7 +232,7 @@ extension MapViewModel {
                 score_home: game.scoreHome,
                 score_away: game.scoreAway,
                 score_alerts_enabled: scoreAlertsEnabled,
-                final_score_alerts_enabled: notificationSettingsStore.proGameFinalScoreNotifications,
+                final_score_alerts_enabled: finalAlertsEnabled,
                 last_notified_scoreline: scoreAlertsEnabled ? proGameScoreline(for: game) : nil
             )
         }
@@ -104,10 +245,92 @@ extension MapViewModel {
                 .execute()
 #if DEBUG
             print("[RemoteNotificationDebug] favoriteSubscriptionSyncSucceeded count=\(rows.count) reason=\(reason)")
+            if subscriptionSource == "favorite_team_auto" {
+                print("[TeamAlertsDebug] autoSubscriptionCreated=\(rows.count) reason=\(reason)")
+            }
 #endif
         } catch {
 #if DEBUG
             print("[RemoteNotificationDebug] favoriteSubscriptionSyncFailed count=\(rows.count) reason=\(reason) error=\(error.localizedDescription)")
+#endif
+        }
+    }
+
+    private func loadFavoriteTeamProGameAlertOverrides(
+        for games: [FavoriteTeamProGame],
+        userID: UUID,
+        reason: String
+    ) async {
+        let liveMatchIDs = Array(Set(games.map(\.game.stableKey))).filter { !$0.isEmpty }
+        guard !liveMatchIDs.isEmpty else { return }
+
+        do {
+            let rows: [FavoriteTeamProGameAlertOverrideRow] = try await supabase
+                .from("pro_game_alert_subscriptions")
+                .select("live_match_id,alert_override")
+                .eq("user_id", value: userID.uuidString.lowercased())
+                .eq("subscription_source", value: "favorite_team_auto")
+                .in("live_match_id", values: liveMatchIDs)
+                .execute()
+                .value
+
+            var next = favoriteTeamProGameAlertOverrides
+            for row in rows {
+                next[row.live_match_id] = FavoriteTeamProGameAlertOverride(rawValue: row.alert_override ?? "") ?? .inherit
+            }
+            favoriteTeamProGameAlertOverrides = next
+#if DEBUG
+            print("[TeamAlertsDebug] overridesLoaded=\(rows.count) reason=\(reason)")
+#endif
+        } catch {
+#if DEBUG
+            print("[TeamAlertsDebug] overridesLoaded=false reason=\(reason) error=\(error.localizedDescription)")
+#endif
+        }
+    }
+
+    private func syncFavoriteTeamProGameAlertOverride(
+        _ override: FavoriteTeamProGameAlertOverride,
+        for item: FavoriteTeamProGame,
+        reason: String
+    ) async {
+        guard let userID = currentUserAuthId, isAuthenticatedForSocialFeatures else { return }
+        let scoreAlertsEnabled = favoriteTeamProGameScoreUpdatesEnabled(for: item.game)
+        let finalAlertsEnabled = scoreAlertsEnabled && notificationSettingsStore.proGameFinalScoreNotifications
+
+        await upsertFavoriteTeamProGameSubscriptions(
+            [item],
+            userID: userID,
+            reason: reason,
+            subscriptionSource: "favorite_team_auto",
+            scoreAlertsEnabledOverride: scoreAlertsEnabled,
+            finalAlertsEnabledOverride: finalAlertsEnabled
+        )
+#if DEBUG
+        print("[TeamAlertsDebug] overrideSynced=\(override.rawValue) id=\(item.game.stableKey) reason=\(reason)")
+#endif
+    }
+
+    private func disableFavoriteTeamAutoDefaultSubscriptions(userID: UUID, reason: String) async {
+        do {
+            try await supabase
+                .from("pro_game_alert_subscriptions")
+                .update(FavoriteTeamAutoSubscriptionDisablePatch(
+                    score_alerts_enabled: false,
+                    final_score_alerts_enabled: false,
+                    last_notified_scoreline: nil,
+                    last_notified_status: nil
+                ))
+                .eq("user_id", value: userID.uuidString.lowercased())
+                .eq("subscription_source", value: "favorite_team_auto")
+                .neq("alert_override", value: FavoriteTeamProGameAlertOverride.on.rawValue)
+                .execute()
+#if DEBUG
+            print("[TeamAlertsDebug] autoSubscriptionDisabled=true reason=\(reason)")
+#endif
+        } catch {
+#if DEBUG
+            print("[TeamAlertsDebug] autoSubscriptionDisabled=false reason=\(reason) error=\(error.localizedDescription)")
 #endif
         }
     }
@@ -136,6 +359,11 @@ private struct ProGameNotificationPreferenceUpsertRow: Encodable {
     let user_id: String
     let pro_game_reminder_notifications_enabled: Bool
     let pro_game_final_score_alerts_enabled: Bool
+    let favorite_team_pro_game_alerts_enabled: Bool
+}
+
+private struct ProGameNotificationPreferenceRow: Decodable {
+    let favorite_team_pro_game_alerts_enabled: Bool?
 }
 
 private struct SavedProGameScoreAlertPatch: Encodable {
@@ -148,7 +376,8 @@ private struct SavedProGameScoreAlertPatch: Encodable {
 private struct FavoriteTeamProGameAlertSubscriptionUpsertRow: Encodable {
     let user_id: String
     let live_match_id: String
-    let subscription_source: String = "favorite_team"
+    let subscription_source: String
+    let alert_override: String?
     let favorite_team_id: String
     let favorite_team_name: String
     let source: String?
@@ -164,4 +393,16 @@ private struct FavoriteTeamProGameAlertSubscriptionUpsertRow: Encodable {
     let score_alerts_enabled: Bool
     let final_score_alerts_enabled: Bool
     let last_notified_scoreline: String?
+}
+
+private struct FavoriteTeamProGameAlertOverrideRow: Decodable {
+    let live_match_id: String
+    let alert_override: String?
+}
+
+private struct FavoriteTeamAutoSubscriptionDisablePatch: Encodable {
+    let score_alerts_enabled: Bool
+    let final_score_alerts_enabled: Bool
+    let last_notified_scoreline: String?
+    let last_notified_status: String?
 }

@@ -211,7 +211,7 @@ enum SportsTeamPickerData {
             mode: .countries,
             region: region,
             leagueGroup: group,
-            emoji: (code ?? CountryFlagHelper.countryCode(for: name)).map { flagEmoji(forRegionCode: $0) },
+            emoji: (code ?? CountryFlagHelper.countryCode(for: name)).flatMap { CountryFlagHelper.flag(for: $0) },
             themeHint: code
         )
     }
@@ -258,6 +258,7 @@ enum SportsTeamPickerData {
         country("mexico", "Mexico", .soccer, "North America", "CONCACAF national teams", code: "MX"),
         country("canada", "Canada", .soccer, "North America", "CONCACAF national teams", code: "CA"),
         country("costa-rica", "Costa Rica", .soccer, "North America", "CONCACAF national teams", code: "CR"),
+        country("curacao", "Curaçao", .soccer, "North America", "CONCACAF national teams", code: "CW"),
         country("jamaica", "Jamaica", .soccer, "North America", "CONCACAF national teams", code: "JM"),
         country("panama", "Panama", .soccer, "North America", "CONCACAF national teams", code: "PA"),
         country("honduras", "Honduras", .soccer, "North America", "CONCACAF national teams", code: "HN"),
@@ -540,14 +541,6 @@ enum SportsTeamPickerData {
             ("memphis", "Memphis", "MEM"), ("tulane", "Tulane", "TUL"), ("navy", "Navy", "NAVY"), ("usf", "South Florida", "USF"), ("utsa", "UTSA", "UTSA")
         ])
 
-    private static func flagEmoji(forRegionCode regionCode: String) -> String {
-        regionCode
-            .uppercased()
-            .unicodeScalars
-            .compactMap { UnicodeScalar(127397 + $0.value) }
-            .map(String.init)
-            .joined()
-    }
 }
 
 private extension String {

@@ -35,7 +35,7 @@ final class PushNotificationRegistrationService {
 
     func handleDeviceToken(_ deviceToken: Data) {
         let token = deviceToken.map { String(format: "%02x", $0) }.joined()
-        let environment = Self.currentEnvironment
+        let environment = Self.resolvedEnvironment()
         UserDefaults.standard.set(token, forKey: Self.deviceTokenDefaultsKey)
         UserDefaults.standard.set(environment, forKey: Self.environmentDefaultsKey)
 #if DEBUG
@@ -64,15 +64,23 @@ final class PushNotificationRegistrationService {
             return
         }
         let userID = session.user.id
+        let environment = Self.resolvedEnvironment()
+        UserDefaults.standard.set(environment, forKey: Self.environmentDefaultsKey)
 
         let row = UserPushTokenUpsertRow(
             user_id: userID.uuidString.lowercased(),
             token: token,
-            environment: Self.storedEnvironment,
+            environment: environment,
             last_seen_at: SupabaseTimestampParsing.encodeTimestamptz(Date())
         )
 
         do {
+            await invalidateMismatchedEnvironmentRows(
+                userID: row.user_id,
+                token: token,
+                storingEnvironment: environment,
+                reason: reason
+            )
             try await supabase
                 .from("user_push_tokens")
                 .upsert(row, onConflict: "user_id,token,environment")
@@ -115,15 +123,83 @@ final class PushNotificationRegistrationService {
     }
 
     private static var storedEnvironment: String {
-        UserDefaults.standard.string(forKey: environmentDefaultsKey) ?? currentEnvironment
+        resolvedEnvironment()
     }
 
-    private static var currentEnvironment: String {
+    private static var buildConfiguration: String {
+#if DEBUG
+        return "Debug"
+#else
+        return "Release"
+#endif
+    }
+
+    private static var buildConfigurationDefaultEnvironment: String {
 #if DEBUG
         return "sandbox"
 #else
         return "production"
 #endif
+    }
+
+    private static func resolvedEnvironment() -> String {
+        let entitlement = apsEnvironmentEntitlement()
+        let environment: String
+        switch entitlement {
+        case "development":
+            environment = "sandbox"
+        case "production":
+            environment = "production"
+        default:
+            environment = buildConfigurationDefaultEnvironment
+        }
+
+        print("[PushTokenDebug] buildConfiguration=\(buildConfiguration)")
+        print("[PushTokenDebug] apsEnvironmentEntitlement=\(entitlement ?? "nil")")
+        print("[PushTokenDebug] storingEnvironment=\(environment)")
+        return environment
+    }
+
+    private static func apsEnvironmentEntitlement() -> String? {
+        guard let profileURL = Bundle.main.url(forResource: "embedded", withExtension: "mobileprovision"),
+              let data = try? Data(contentsOf: profileURL),
+              let profile = String(data: data, encoding: .ascii) ?? String(data: data, encoding: .utf8),
+              let keyRange = profile.range(of: "<key>aps-environment</key>") else {
+            return nil
+        }
+        let suffix = profile[keyRange.upperBound...]
+        guard let valueStart = suffix.range(of: "<string>")?.upperBound,
+              let valueEnd = suffix[valueStart...].range(of: "</string>")?.lowerBound else {
+            return nil
+        }
+        return String(suffix[valueStart..<valueEnd]).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func invalidateMismatchedEnvironmentRows(
+        userID: String,
+        token: String,
+        storingEnvironment: String,
+        reason: String
+    ) async {
+        do {
+            try await supabase
+                .from("user_push_tokens")
+                .update(PushTokenInvalidationPatch(
+                    is_active: false,
+                    invalidated_at: SupabaseTimestampParsing.encodeTimestamptz(Date())
+                ))
+                .eq("user_id", value: userID)
+                .eq("token", value: token)
+                .neq("environment", value: storingEnvironment)
+                .execute()
+#if DEBUG
+            print("[PushTokenDebug] invalidatedMismatchedEnvironmentRows userId=\(userID) storingEnvironment=\(storingEnvironment) reason=\(reason)")
+#endif
+        } catch {
+#if DEBUG
+            print("[PushTokenDebug] invalidateMismatchedEnvironmentRowsFailed reason=\(reason) error=\(error.localizedDescription)")
+#endif
+        }
     }
 
     private static func canRegisterRemoteNotifications(status: UNAuthorizationStatus) -> Bool {
@@ -157,4 +233,9 @@ private struct UserPushTokenUpsertRow: Encodable {
     let is_active: Bool = true
     let invalidated_at: String? = nil
     let last_seen_at: String
+}
+
+private struct PushTokenInvalidationPatch: Encodable {
+    let is_active: Bool
+    let invalidated_at: String
 }

@@ -106,13 +106,16 @@ nonisolated enum MatchStatus: String, Codable, CaseIterable, Equatable {
             return .halfTime
         }
 
-        if finalStatusTokens.contains(status)
+        if isFinalStatusText(status)
             || status.contains("FINAL")
             || status.contains("FINISHED")
             || status.contains("COMPLETED")
+            || status.contains("COMPLETE")
+            || status.contains("ENDED")
             || status.contains("FULL TIME")
             || status.contains("FULL_TIME")
-            || status.contains("MATCH FINISHED") {
+            || status.contains("MATCH FINISHED")
+            || status.contains("AFTER FULL TIME") {
             return .fullTime
         }
 
@@ -154,6 +157,8 @@ nonisolated enum MatchStatus: String, Codable, CaseIterable, Equatable {
         "MATCH_FINISHED",
         "AET",
         "PEN",
+        "AFTER FULL TIME",
+        "AFTER_FULL_TIME",
         "AFTER EXTRA TIME",
         "AFTER_EXTRA_TIME",
         "PENALTIES FINISHED",
@@ -162,6 +167,16 @@ nonisolated enum MatchStatus: String, Codable, CaseIterable, Equatable {
         "ENDED",
         "END",
         "GAME OVER"
+    ]
+
+    private static let finalStatusLeadingTokens: Set<String> = [
+        "FT",
+        "FINAL",
+        "FULLTIME",
+        "COMPLETED",
+        "COMPLETE",
+        "ENDED",
+        "FINISHED"
     ]
 
     private static let liveStatusTokens: Set<String> = [
@@ -194,6 +209,12 @@ nonisolated enum MatchStatus: String, Codable, CaseIterable, Equatable {
             .components(separatedBy: CharacterSet.alphanumerics.inverted)
             .filter { !$0.isEmpty }
             .joined(separator: " ")
+    }
+
+    private static func isFinalStatusText(_ status: String) -> Bool {
+        if finalStatusTokens.contains(status) { return true }
+        guard let firstToken = status.split(separator: " ").first.map(String.init) else { return false }
+        return finalStatusLeadingTokens.contains(firstToken)
     }
 }
 
@@ -725,6 +746,7 @@ nonisolated struct LiveMatch: Identifiable, Equatable, Codable {
     let matchStatus: MatchStatus
     let rawMatchStatus: String?
     let minute: Int?
+    let liveClockText: String?
     let league: String
     let sourceLeagueName: String?
     let eventName: String?

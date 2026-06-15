@@ -406,7 +406,7 @@ actor LiveSportsService {
 
     private static func liveMatchesRequestURL() async throws -> URL {
         let now = Date()
-        let windowStart = now.addingTimeInterval(-6 * 60 * 60)
+        let windowStart = now.addingTimeInterval(-24 * 60 * 60)
         let windowEnd = now.addingTimeInterval(7 * 24 * 60 * 60)
         return try await liveMatchesRequestURL(windowStart: windowStart, windowEnd: windowEnd, upperBoundOperator: "lte")
     }
@@ -636,9 +636,13 @@ private nonisolated struct LiveMatchRow: Decodable {
         let decodedCity = venueCity
         let payloadLeague = Self.firstString(in: payload, keys: ["strLeague", "league"])
         let payloadSport = Self.firstString(in: payload, keys: ["strSport", "sport"])
+        let normalizedStatus = MatchStatus.normalized(from: match_status)
 #if DEBUG
         print("[LiveSportNormalization] id=\(id) raw=\(rawSport ?? "nil") normalized=\(normalizedSport)")
         print("[LiveSportDetected] id=\(id) sportType=\(visualType.rawValue) label=\(normalizedSport)")
+        print("[ProGameFinalDebug] rawProviderStatus=\(match_status ?? "nil")")
+        print("[ProGameFinalDebug] normalizedStatus=\(normalizedStatus.rawValue)")
+        print("[ProGameFinalDebug] isFinal=\(normalizedStatus == .fullTime)")
         print("[LiveVenueDebug] provider=\(payloadProviderDebugDescription)")
         print("[LiveVenueDebug] title=\(title)")
         print("[LiveVenueDebug] decodedVenue=\(decodedVenue ?? "nil")")
@@ -649,6 +653,20 @@ private nonisolated struct LiveMatchRow: Decodable {
         print("[LiveVenueDebug] longitude=\(venueLongitude.map(String.init(describing:)) ?? "nil")")
         print("[LiveVenueDebug] rawVenuePayload=\(rawVenuePayloadDebugDescription)")
 #endif
+        let providerClockText = Self.firstString(
+            in: payload,
+            keys: [
+                "strProgress",
+                "strClock",
+                "clock",
+                "gameClock",
+                "periodClock",
+                "displayClock",
+                "strCurrentPeriod",
+                "currentPeriod",
+                "period"
+            ]
+        )
 
         return LiveMatch(
             id: id,
@@ -660,9 +678,10 @@ private nonisolated struct LiveMatchRow: Decodable {
             scoreHome: score_home ?? 0,
             scoreAway: score_away ?? 0,
             scoresAreAvailable: score_home != nil && score_away != nil,
-            matchStatus: MatchStatus.normalized(from: match_status),
+            matchStatus: normalizedStatus,
             rawMatchStatus: Self.clean(match_status),
             minute: minute,
+            liveClockText: providerClockText,
             league: Self.clean(league) ?? "Live",
             sourceLeagueName: payloadLeague,
             eventName: eventName,

@@ -144,6 +144,44 @@ extension MapViewModel {
 
     func syncPickupGamesToAppleCalendarIfNeeded(reason: String) async {
         guard notificationSettingsStore.syncGoingGamesToAppleCalendar else { return }
+        let key = appleCalendarPickupSyncFingerprint(reason: reason)
+        if let existing = appleCalendarPickupSyncTask {
+#if DEBUG
+            print("[TabPerfDebug] refreshCoalesced=true source=appleCalendarPickupSync reason=\(reason)")
+#endif
+            await existing.value
+            return
+        }
+        if lastAppleCalendarPickupSyncKey == key,
+           let lastAppleCalendarPickupSyncAt {
+            let age = Date().timeIntervalSince(lastAppleCalendarPickupSyncAt)
+            if age < 60 {
+#if DEBUG
+                print("[TabPerfDebug] cacheAge=\(String(format: "%.1f", age)) source=appleCalendarPickupSync")
+                print("[TabPerfDebug] refreshSkippedReason=fresh source=appleCalendarPickupSync reason=\(reason)")
+#endif
+                return
+            }
+        }
+        let startedAt = Date()
+#if DEBUG
+        print("[TabPerfDebug] refreshStarted=appleCalendarPickupSync reason=\(reason)")
+#endif
+        let task = Task<Void, Never> { @MainActor [weak self] in
+            await self?.syncPickupGamesToAppleCalendarNow(reason: reason)
+        }
+        appleCalendarPickupSyncTask = task
+        await task.value
+        appleCalendarPickupSyncTask = nil
+        lastAppleCalendarPickupSyncAt = Date()
+        lastAppleCalendarPickupSyncKey = key
+#if DEBUG
+        let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
+        print("[TabPerfDebug] refreshDurationMs=\(ms) source=appleCalendarPickupSync reason=\(reason)")
+#endif
+    }
+
+    private func syncPickupGamesToAppleCalendarNow(reason: String) async {
 #if DEBUG
         print("[CalendarSyncDebug] pickupSyncStarted reason=\(reason)")
 #endif
@@ -172,6 +210,44 @@ extension MapViewModel {
 
     func syncFanGeoAttendingEventsToAppleCalendar(reason: String) async {
         guard notificationSettingsStore.syncGoingGamesToAppleCalendar else { return }
+        let key = appleCalendarGlobalSyncFingerprint(reason: reason)
+        if let existing = appleCalendarGlobalSyncTask {
+#if DEBUG
+            print("[TabPerfDebug] refreshCoalesced=true source=appleCalendarGlobalSync reason=\(reason)")
+#endif
+            await existing.value
+            return
+        }
+        if lastAppleCalendarGlobalSyncKey == key,
+           let lastAppleCalendarGlobalSyncAt {
+            let age = Date().timeIntervalSince(lastAppleCalendarGlobalSyncAt)
+            if age < 60 {
+#if DEBUG
+                print("[TabPerfDebug] cacheAge=\(String(format: "%.1f", age)) source=appleCalendarGlobalSync")
+                print("[TabPerfDebug] refreshSkippedReason=fresh source=appleCalendarGlobalSync reason=\(reason)")
+#endif
+                return
+            }
+        }
+        let startedAt = Date()
+#if DEBUG
+        print("[TabPerfDebug] refreshStarted=appleCalendarGlobalSync reason=\(reason)")
+#endif
+        let task = Task<Void, Never> { @MainActor [weak self] in
+            await self?.syncFanGeoAttendingEventsToAppleCalendarNow(reason: reason)
+        }
+        appleCalendarGlobalSyncTask = task
+        await task.value
+        appleCalendarGlobalSyncTask = nil
+        lastAppleCalendarGlobalSyncAt = Date()
+        lastAppleCalendarGlobalSyncKey = key
+#if DEBUG
+        let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
+        print("[TabPerfDebug] refreshDurationMs=\(ms) source=appleCalendarGlobalSync reason=\(reason)")
+#endif
+    }
+
+    private func syncFanGeoAttendingEventsToAppleCalendarNow(reason: String) async {
 #if DEBUG
         print("[CalendarSyncDebug] globalSyncStarted reason=\(reason)")
 #endif
@@ -205,6 +281,67 @@ extension MapViewModel {
 #if DEBUG
         print("[CalendarSyncDebug] globalSyncFinished reason=\(reason) count=\(seen.count)")
 #endif
+    }
+
+    private func appleCalendarPickupSyncFingerprint(reason: String) -> String {
+        let hosted = myPickupGamesForSettings
+            .map { row in
+                [
+                    row.id.uuidString.lowercased(),
+                    row.game_start_at,
+                    row.end_time ?? "",
+                    row.updated_at ?? "",
+                    row.status,
+                    row.title,
+                    row.address ?? "",
+                    row.city ?? "",
+                    row.state ?? ""
+                ].joined(separator: "~")
+            }
+            .sorted()
+            .joined(separator: "|")
+        let joined = myPickupGameJoinRequestCards
+            .map { card in
+                [
+                    card.pickupGameId.uuidString.lowercased(),
+                    card.game_start_at,
+                    card.pill.rawValue,
+                    card.title,
+                    card.locationLine
+                ].joined(separator: "~")
+            }
+            .sorted()
+            .joined(separator: "|")
+        return "reason:\(reason)|hosted:\(hosted)|joined:\(joined)"
+    }
+
+    private func appleCalendarGlobalSyncFingerprint(reason: String) -> String {
+        let venue = followingTabGoingItems
+            .filter(\.isServerGoing)
+            .map { item in
+                [
+                    item.id.uuidString.lowercased(),
+                    item.venueEvent.scheduled_start_at ?? "",
+                    item.venueEvent.event_date ?? "",
+                    item.venueEvent.event_time ?? "",
+                    item.venueEvent.event_title ?? "",
+                    item.bar.name
+                ].joined(separator: "~")
+            }
+            .sorted()
+            .joined(separator: "|")
+        let proGames = savedProGames
+            .map { game in
+                [
+                    game.stableKey,
+                    "\(Int(game.startTime.timeIntervalSince1970))",
+                    game.matchStatus.rawValue,
+                    "\(game.scoreAway)-\(game.scoreHome)"
+                ].joined(separator: "~")
+            }
+            .sorted()
+            .joined(separator: "|")
+        return "\(appleCalendarPickupSyncFingerprint(reason: reason))|venue:\(venue)|pro:\(proGames)"
     }
 
     private func syncPickupGameToAppleCalendarIfNeeded(

@@ -13,6 +13,8 @@ enum CountryFlagHelper {
         "CN": ["china", "pr china"],
         "CO": ["colombia"],
         "CR": ["costa rica"],
+        "CW": ["curacao", "curaçao"],
+        "CZ": ["czech republic", "czechia", "czech"],
         "CD": ["dr congo", "d r congo", "democratic republic of congo", "congo dr", "congo kinshasa"],
         "CI": ["ivory coast", "cote d ivoire", "côte d ivoire"],
         "DE": ["germany", "deutschland"],
@@ -21,7 +23,7 @@ enum CountryFlagHelper {
         "EG": ["egypt"],
         "ES": ["spain", "españa"],
         "FR": ["france"],
-        "GB": ["great britain", "britain", "uk", "united kingdom", "england", "scotland", "wales"],
+        "GB": ["great britain", "britain", "uk", "united kingdom", "england", "scotland", "wales", "northern ireland"],
         "GH": ["ghana"],
         "HT": ["haiti"],
         "HR": ["croatia"],
@@ -31,6 +33,7 @@ enum CountryFlagHelper {
         "JO": ["jordan"],
         "JP": ["japan"],
         "KR": ["south korea", "korea", "republic of korea"],
+        "KP": ["north korea", "dpr korea", "korea dpr"],
         "MA": ["morocco"],
         "MX": ["mexico", "méxico"],
         "NL": ["netherlands", "holland"],
@@ -48,6 +51,7 @@ enum CountryFlagHelper {
         "SN": ["senegal"],
         "TN": ["tunisia"],
         "TR": ["turkey", "turkiye", "türkiye"],
+        "AE": ["united arab emirates", "uae", "u.a.e."],
         "US": ["usa", "u.s.a.", "us", "u.s.", "united states", "united states of america", "america"],
         "UY": ["uruguay"],
         "UZ": ["uzbekistan"],
@@ -61,6 +65,24 @@ enum CountryFlagHelper {
             }
         }
     }()
+
+    private static let regionCodeByProviderCode: [String: String] = [
+        "COD": "CD",
+        "CIV": "CI",
+        "CZE": "CZ",
+        "CUW": "CW",
+        "ENG": "GB",
+        "GER": "DE",
+        "KOR": "KR",
+        "MEX": "MX",
+        "NED": "NL",
+        "NIR": "GB",
+        "PRK": "KP",
+        "SCO": "GB",
+        "UAE": "AE",
+        "USA": "US",
+        "WAL": "GB"
+    ]
 
     static func flag(for teamName: String) -> String? {
         regionCode(for: teamName).map(flagEmoji)
@@ -103,6 +125,9 @@ enum CountryFlagHelper {
 
     private static func regionCode(for teamName: String) -> String? {
         let uppercasedCode = teamName.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        if let mappedCode = regionCodeByProviderCode[uppercasedCode] {
+            return mappedCode
+        }
         if aliasesByRegionCode.keys.contains(uppercasedCode) {
             return uppercasedCode
         }

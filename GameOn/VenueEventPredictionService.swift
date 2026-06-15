@@ -70,8 +70,14 @@ struct VenueEventPredictionSummary: Equatable, Sendable {
     let participantAvatars: [VenuePredictionParticipantAvatar]
     let winnerAvatarsByOption: [String: [VenuePredictionParticipantAvatar]]
     let firstScoreAvatarsByOption: [String: [VenuePredictionParticipantAvatar]]
+    let userPredictions: VenueEventUserPredictions?
+    let userPredictionsLoaded: Bool
 
-    static func empty(eventID: UUID) -> VenueEventPredictionSummary {
+    static func empty(
+        eventID: UUID,
+        userPredictions: VenueEventUserPredictions? = nil,
+        userPredictionsLoaded: Bool = false
+    ) -> VenueEventPredictionSummary {
         VenueEventPredictionSummary(
             venueEventID: eventID,
             totalCount: 0,
@@ -86,7 +92,9 @@ struct VenueEventPredictionSummary: Equatable, Sendable {
             firstScorePercents: [:],
             participantAvatars: [],
             winnerAvatarsByOption: [:],
-            firstScoreAvatarsByOption: [:]
+            firstScoreAvatarsByOption: [:],
+            userPredictions: userPredictions,
+            userPredictionsLoaded: userPredictionsLoaded
         )
     }
 }
@@ -96,6 +104,12 @@ struct VenueEventUserPredictions: Equatable, Sendable {
     var homeScore: Int?
     var awayScore: Int?
     var firstScoreTeam: String?
+
+    var hasAnyPrediction: Bool {
+        winner != nil
+            || (homeScore != nil && awayScore != nil)
+            || firstScoreTeam != nil
+    }
 }
 
 enum VenueEventPredictionServiceError: LocalizedError {
@@ -137,7 +151,7 @@ final class VenueEventPredictionService {
 
     private let client: SupabaseClient
     private let cacheTTL: TimeInterval = 45
-    private var summaryCache: [UUID: (loadedAt: Date, summary: VenueEventPredictionSummary)] = [:]
+    private var summaryCache: [UUID: (loadedAt: Date, userID: UUID?, summary: VenueEventPredictionSummary)] = [:]
 
     init(client: SupabaseClient = supabase) {
         self.client = client
@@ -148,11 +162,13 @@ final class VenueEventPredictionService {
         guard !ids.isEmpty else { return [:] }
 
         let now = Date()
+        let currentUserID = await currentUserIdIfAvailable()
         var resolved: [UUID: VenueEventPredictionSummary] = [:]
         var idsToFetch: [UUID] = []
         for id in ids {
             if !forceRefresh,
                let cached = summaryCache[id],
+               cached.userID == currentUserID,
                now.timeIntervalSince(cached.loadedAt) < cacheTTL {
                 resolved[id] = cached.summary
             } else {
@@ -163,6 +179,7 @@ final class VenueEventPredictionService {
 
         idsToFetch.forEach {
 #if DEBUG
+            print("[PredictionDebug] load eventId=\($0.uuidString.lowercased())")
             print("[VenuePredictionDebug] loadSummary eventId=\($0.uuidString.lowercased())")
 #endif
         }
@@ -177,10 +194,17 @@ final class VenueEventPredictionService {
             let avatars = await loadAvatars(for: rows)
             for eventID in idsToFetch {
                 let eventRows = rows.filter { $0.venue_event_id == eventID }
-                let summary = Self.buildSummary(eventID: eventID, rows: eventRows, avatarsByUserID: avatars)
-                summaryCache[eventID] = (Date(), summary)
+                let summary = Self.buildSummary(
+                    eventID: eventID,
+                    rows: eventRows,
+                    avatarsByUserID: avatars,
+                    currentUserID: currentUserID
+                )
+                summaryCache[eventID] = (loadedAt: Date(), userID: currentUserID, summary: summary)
                 resolved[eventID] = summary
 #if DEBUG
+                print("[PredictionDebug] aggregateLoaded=true eventId=\(eventID.uuidString.lowercased()) total=\(summary.totalCount)")
+                print("[PredictionDebug] userPredictionLoaded=\(summary.userPredictions?.hasAnyPrediction == true) eventId=\(eventID.uuidString.lowercased())")
                 print("[VenuePredictionDebug] summaryCount=\(summary.totalCount)")
                 print("[VenuePredictionDebug] avatarsLoaded=\(summary.participantAvatars.count)")
                 print("[VenuePredictionDebug] winnerPercent=\(summary.winnerPercent ?? 0)")
@@ -201,9 +225,9 @@ final class VenueEventPredictionService {
             print("[PredictionDebug] error=\(error.localizedDescription)")
 #endif
             for eventID in idsToFetch {
-                let summary = VenueEventPredictionSummary.empty(eventID: eventID)
-                summaryCache[eventID] = (Date(), summary)
-                resolved[eventID] = summary
+                if let cached = summaryCache[eventID], cached.userID == currentUserID {
+                    resolved[eventID] = cached.summary
+                }
             }
         }
 
@@ -211,6 +235,9 @@ final class VenueEventPredictionService {
     }
 
     func fetchUserPrediction(venueEventId: UUID) async throws -> VenueEventUserPredictions {
+#if DEBUG
+        print("[PredictionDebug] load eventId=\(venueEventId.uuidString.lowercased())")
+#endif
         let userID = try await currentUserId()
         let rows: [VenueEventPredictionRow] = try await client
             .from("venue_event_predictions")
@@ -219,7 +246,11 @@ final class VenueEventPredictionService {
             .eq("user_id", value: userID.uuidString.lowercased())
             .execute()
             .value
-        return Self.userPredictions(from: rows)
+        let predictions = Self.userPredictions(from: rows)
+#if DEBUG
+        print("[PredictionDebug] userPredictionLoaded=\(predictions.hasAnyPrediction) eventId=\(venueEventId.uuidString.lowercased())")
+#endif
+        return predictions
     }
 
     func upsertPrediction(
@@ -301,6 +332,10 @@ final class VenueEventPredictionService {
 #endif
             throw error
         }
+#if DEBUG
+        print("[PredictionDebug] voteSaved=true eventId=\(venueEventId.uuidString.lowercased()) type=\(predictionType.rawValue)")
+        print("[PredictionDebug] voteUpserted=true eventId=\(venueEventId.uuidString.lowercased()) type=\(predictionType.rawValue)")
+#endif
         summaryCache.removeValue(forKey: venueEventId)
     }
 
@@ -313,6 +348,9 @@ final class VenueEventPredictionService {
             .eq("user_id", value: userID.uuidString.lowercased())
             .eq("prediction_type", value: predictionType.rawValue)
             .execute()
+#if DEBUG
+        print("[PredictionDebug] voteSaved=true eventId=\(venueEventId.uuidString.lowercased()) type=\(predictionType.rawValue) deleted=true")
+#endif
         summaryCache.removeValue(forKey: venueEventId)
     }
 
@@ -327,6 +365,10 @@ final class VenueEventPredictionService {
         } catch {
             throw VenueEventPredictionServiceError.missingUser
         }
+    }
+
+    private func currentUserIdIfAvailable() async -> UUID? {
+        try? await currentUserId()
     }
 
     private func loadAvatars(for rows: [VenueEventPredictionRow]) async -> [UUID: VenuePredictionParticipantAvatar] {
@@ -432,7 +474,8 @@ final class VenueEventPredictionService {
     private static func buildSummary(
         eventID: UUID,
         rows: [VenueEventPredictionRow],
-        avatarsByUserID: [UUID: VenuePredictionParticipantAvatar]
+        avatarsByUserID: [UUID: VenuePredictionParticipantAvatar],
+        currentUserID: UUID?
     ) -> VenueEventPredictionSummary {
         let winnerRows = rows.filter { $0.prediction_type == VenueEventPredictionType.winner.rawValue }
         let scoreRows = rows.filter { $0.prediction_type == VenueEventPredictionType.score.rawValue }
@@ -474,6 +517,11 @@ final class VenueEventPredictionService {
             value: { trimmed($0.predicted_first_score_team) },
             avatarsByUserID: avatarsByUserID
         )
+        let userPredictions = currentUserID.flatMap { userID in
+            let userRows = rows.filter { $0.user_id == userID }
+            let predictions = Self.userPredictions(from: userRows)
+            return predictions.hasAnyPrediction ? predictions : nil
+        }
         return VenueEventPredictionSummary(
             venueEventID: eventID,
             totalCount: validTotalCount,
@@ -488,7 +536,9 @@ final class VenueEventPredictionService {
             firstScorePercents: firstScorePercents,
             participantAvatars: Array(avatars),
             winnerAvatarsByOption: winnerAvatars,
-            firstScoreAvatarsByOption: firstScoreAvatars
+            firstScoreAvatarsByOption: firstScoreAvatars,
+            userPredictions: userPredictions,
+            userPredictionsLoaded: currentUserID != nil
         )
     }
 

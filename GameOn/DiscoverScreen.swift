@@ -58,6 +58,7 @@ private struct DiscoverPredictionSheetContext: Identifiable {
     let teams: VenueEventPredictionTeams
     let predictionType: VenueEventPredictionType
     let unavailableMessage: String?
+    let lockTime: Date?
 
     var id: String {
         "\(venueEventID.uuidString.lowercased())|\(predictionType.rawValue)"
@@ -1293,6 +1294,7 @@ struct DiscoverScreen: View {
                     teams: context.teams,
                     predictionType: context.predictionType,
                     unavailableMessage: context.unavailableMessage,
+                    lockTime: context.lockTime,
                     onSaved: {
                         await viewModel.refreshVenueEventPredictionSummary(eventID: context.venueEventID)
                     }
@@ -1425,6 +1427,7 @@ struct DiscoverScreen: View {
             guard visible else { return }
             rebuildDiscoverAnnotationCache(reason: "discoverTabVisible")
             Task { @MainActor in
+                await Task.yield()
                 await ensureDiscoverDatasetConsistency(trigger: "tabVisible")
             }
         }
@@ -7252,6 +7255,8 @@ struct DiscoverScreen: View {
                 sportType: visibility.sportType,
                 summary: viewModel.venueEventPredictionSummaries[eventID],
                 isLocked: visibility.isLocked,
+                lockTime: visibility.lockTime,
+                userPredictionReloadKey: viewModel.currentUserAuthId?.uuidString.lowercased(),
                 onOpen: { type in
                     openDiscoverPredictionSheet(
                         eventID: eventID,
@@ -7286,7 +7291,7 @@ struct DiscoverScreen: View {
                     await viewModel.refreshVenueEventPredictionSummary(eventID: eventID)
                 },
                 onLockedTap: {
-                    fanFeatureGateAlertMessage = "Predictions closed for this game."
+                    fanFeatureGateAlertMessage = "Voting closed"
                 }
             )
         }
@@ -8429,7 +8434,7 @@ struct DiscoverScreen: View {
             return
         }
         guard !isLocked else {
-            fanFeatureGateAlertMessage = "Predictions closed for this game."
+            fanFeatureGateAlertMessage = "Voting closed"
             return
         }
         guard viewModel.isAuthenticatedForSocialFeatures else {
@@ -8448,8 +8453,14 @@ struct DiscoverScreen: View {
             venueEventID: eventID,
             teams: teams,
             predictionType: type,
-            unavailableMessage: venuePredictionUnavailableMessage(eventID: eventID, isLocked: isLocked)
+            unavailableMessage: venuePredictionUnavailableMessage(eventID: eventID, isLocked: isLocked),
+            lockTime: predictionLockTimeForDiscoverEvent(eventID)
         )
+    }
+
+    private func predictionLockTimeForDiscoverEvent(_ eventID: UUID) -> Date? {
+        guard let row = viewModel.venueEventRows.first(where: { $0.id == eventID }) else { return nil }
+        return venuePredictionStartDate(for: row)?.addingTimeInterval(10 * 60)
     }
 
     @MainActor
@@ -8464,7 +8475,7 @@ struct DiscoverScreen: View {
             return false
         }
         guard !isLocked else {
-            fanFeatureGateAlertMessage = "Predictions closed for this game."
+            fanFeatureGateAlertMessage = "Voting closed"
             return false
         }
         guard viewModel.isAuthenticatedForSocialFeatures else {
@@ -8510,7 +8521,7 @@ struct DiscoverScreen: View {
             return false
         }
         guard !isLocked else {
-            fanFeatureGateAlertMessage = "Predictions closed for this game."
+            fanFeatureGateAlertMessage = "Voting closed"
             return false
         }
         guard viewModel.isAuthenticatedForSocialFeatures else {
@@ -8553,7 +8564,7 @@ struct DiscoverScreen: View {
             return false
         }
         guard !isLocked else {
-            fanFeatureGateAlertMessage = "Predictions closed for this game."
+            fanFeatureGateAlertMessage = "Voting closed"
             return false
         }
         guard viewModel.isAuthenticatedForSocialFeatures else {
@@ -8655,7 +8666,7 @@ struct DiscoverScreen: View {
             return VenueEventPredictionUserMessage.inactiveGame
         }
         if isLocked {
-            return "Predictions closed for this game."
+            return "Voting closed"
         }
         return nil
     }

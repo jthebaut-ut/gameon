@@ -45,7 +45,8 @@ type SavedProGameRow = {
 }
 
 type FavoriteProGameSubscriptionRow = SavedProGameRow & {
-  subscription_source: "favorite_team"
+  subscription_source: "manual" | "favorite_team_auto"
+  alert_override: "inherit" | "on" | "off" | "muted" | null
   favorite_team_id: string | null
   favorite_team_name: string | null
 }
@@ -69,6 +70,8 @@ type TrackedGame = {
   lastNotifiedScoreline: string | null
   lastNotifiedStatus: string | null
   sourceKind: TrackedGameSource
+  subscriptionSource: "manual" | "favorite_team_auto" | null
+  alertOverride: "inherit" | "on" | "off" | "muted"
 }
 
 type LiveMatchRow = {
@@ -83,6 +86,25 @@ type LiveMatchRow = {
   match_status: string
   league: string
   start_time: string
+  timeline_events: TimelineEventRow[] | null
+}
+
+type TimelineEventRow = {
+  idTimeline: string | null
+  idEvent: string | null
+  strTimeline: string | null
+  strTimelineDetail: string | null
+  strHome: string | null
+  idPlayer: string | null
+  strPlayer: string | null
+  idAssist: string | null
+  strAssist: string | null
+  intTime: string | null
+  idTeam: string | null
+  strTeam: string | null
+  strComment: string | null
+  dateEvent: string | null
+  strSeason: string | null
 }
 
 type PushTokenRow = {
@@ -90,6 +112,21 @@ type PushTokenRow = {
   user_id: string
   token: string
   environment: "sandbox" | "production"
+}
+
+type ApnsSendResult = {
+  ok: boolean
+  status: number
+  endpoint: string
+  tokenEnvironment: "sandbox" | "production"
+  reason?: string
+  invalidate?: boolean
+}
+
+type PushAlertContent = {
+  title: string
+  subtitle?: string
+  body: string
 }
 
 type UserPreferenceRow = {
@@ -131,7 +168,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 }
 
-const SCORE_WINDOW_PAST_HOURS = 6
+const SCORE_WINDOW_PAST_HOURS = 24
 const SCORE_WINDOW_FUTURE_HOURS = 8
 
 serve(async (req) => {
@@ -354,7 +391,7 @@ async function loadTrackedGames(
 
   const favorite = await supabase
     .from("pro_game_alert_subscriptions")
-    .select("id,user_id,live_match_id,source,external_id,home_team,away_team,league,sport,start_time,match_status,last_notified_scoreline,last_notified_status,score_alerts_enabled,final_score_alerts_enabled,score_home,score_away,subscription_source,favorite_team_id,favorite_team_name")
+    .select("id,user_id,live_match_id,source,external_id,home_team,away_team,league,sport,start_time,match_status,last_notified_scoreline,last_notified_status,score_alerts_enabled,final_score_alerts_enabled,score_home,score_away,subscription_source,alert_override,favorite_team_id,favorite_team_name")
     .gte("start_time", windowStart)
     .lte("start_time", windowEnd)
     .or("score_alerts_enabled.eq.true,final_score_alerts_enabled.eq.true")
@@ -375,7 +412,7 @@ async function loadLiveMatches(
 ): Promise<LiveMatchRow[]> {
   const { data, error } = await supabase
     .from("live_matches")
-    .select("id,source,external_id,sport,home_team,away_team,score_home,score_away,match_status,league,start_time")
+    .select("id,source,external_id,sport,home_team,away_team,score_home,score_away,match_status,league,start_time,timeline_events")
     .gte("start_time", windowStart)
     .lte("start_time", windowEnd)
     .limit(2000)
@@ -432,8 +469,6 @@ async function maybeSendKickoffUpdate(
   preferencesByUser: Map<string, UserPreferenceRow>,
   counts: WorkerCounts,
 ) {
-  if (game.sourceKind !== "saved") return
-
   counts.kickoffCandidates += 1
   const nowMs = Date.now()
   const startMs = Date.parse(game.startTime)
@@ -443,7 +478,15 @@ async function maybeSendKickoffUpdate(
     return
   }
 
-  const remindersEnabled = preferencesByUser.get(game.userId)?.pro_game_reminder_notifications_enabled ?? true
+  if (isMutedFavoriteTeamAutoAlert(game)) {
+    counts.kickoffSkippedSettings += 1
+    console.log(`[ProScorePushWorker] kickoff skipped settings=true reason=mutedFavoriteTeamAuto live_match_id=${game.liveMatchId}`)
+    return
+  }
+
+  const remindersEnabled = game.sourceKind === "favorite_team"
+    ? true
+    : preferencesByUser.get(game.userId)?.pro_game_reminder_notifications_enabled ?? true
   if (!remindersEnabled) {
     counts.kickoffSkippedSettings += 1
     return
@@ -455,18 +498,24 @@ async function maybeSendKickoffUpdate(
     return
   }
 
-  const inserted = await insertDeliveryDedupe(supabase, game, "kickoff", "kickoff")
-  if (!inserted) {
+  const duplicate = await deliveryDedupeExists(supabase, game, "kickoff", "kickoff")
+  if (duplicate) {
     counts.kickoffSkippedDuplicate += 1
     return
   }
 
-  const title = kickoffTitle(game)
-  const body = `${game.awayTeam} vs ${game.homeTeam} starts now.`
-  const sent = await sendToUserTokens(supabase, apns, tokens, title, body, counts)
+  const sent = await sendToUserTokens(supabase, apns, tokens, kickoffNotificationContent(game), counts)
   if (sent > 0) {
-    counts.kickoffSent += sent
-    counts.notificationsSent += sent
+    const recorded = await insertDeliveryDedupe(supabase, game, "kickoff", "kickoff")
+    logDeliveryRecorded("kickoff", game, "kickoff", recorded)
+    if (recorded) {
+      counts.kickoffSent += sent
+      counts.notificationsSent += sent
+    } else {
+      counts.kickoffSkippedDuplicate += 1
+    }
+  } else {
+    logDeliveryRecorded("kickoff", game, "kickoff", false)
   }
 }
 
@@ -478,6 +527,12 @@ async function maybeSendScoreUpdate(
   tokensByUser: Map<string, PushTokenRow[]>,
   counts: WorkerCounts,
 ) {
+  if (isMutedFavoriteTeamAutoAlert(game)) {
+    counts.scoreSkippedSettings += 1
+    console.log(`[ProScorePushWorker] score skipped settings=true reason=mutedFavoriteTeamAuto live_match_id=${game.liveMatchId}`)
+    return
+  }
+
   if (!game.scoreAlertsEnabled) {
     counts.scoreSkippedSettings += 1
     return
@@ -498,26 +553,33 @@ async function maybeSendScoreUpdate(
     return
   }
 
-  const inserted = await insertDeliveryDedupe(supabase, game, "score", latestScoreline)
-  if (!inserted) {
+  const duplicate = await deliveryDedupeExists(supabase, game, "score", latestScoreline)
+  if (duplicate) {
     counts.scoreSkippedDuplicate += 1
     console.log(`[ProScorePushWorker] score skipped duplicate=true live_match_id=${game.liveMatchId} scoreline=${latestScoreline}`)
     return
   }
 
-  const title = scoringTitle(game, live, previousScoreline)
-  const body = `${live.away_team} ${live.score_away} - ${live.score_home} ${live.home_team}`
-  const sent = await sendToUserTokens(supabase, apns, tokens, title, body, counts)
+  const alert = scoringNotificationContent(game, live, previousScoreline)
+  const sent = await sendToUserTokens(supabase, apns, tokens, alert, counts)
   console.log(`[ProScorePushWorker] score notification sent=${sent}`)
   if (sent > 0) {
-    counts.scoreNotificationsSent += sent
-    counts.notificationsSent += sent
-    await updateTrackedGameNotificationState(supabase, game, {
-      last_notified_scoreline: latestScoreline,
-      match_status: live.match_status,
-      score_home: live.score_home,
-      score_away: live.score_away,
-    })
+    const recorded = await insertDeliveryDedupe(supabase, game, "score", latestScoreline)
+    logDeliveryRecorded("score", game, latestScoreline, recorded)
+    if (recorded) {
+      counts.scoreNotificationsSent += sent
+      counts.notificationsSent += sent
+      await updateTrackedGameNotificationState(supabase, game, {
+        last_notified_scoreline: latestScoreline,
+        match_status: live.match_status,
+        score_home: live.score_home,
+        score_away: live.score_away,
+      })
+    } else {
+      counts.scoreSkippedDuplicate += 1
+    }
+  } else {
+    logDeliveryRecorded("score", game, latestScoreline, false)
   }
 }
 
@@ -532,6 +594,11 @@ async function maybeSendFinalUpdate(
 ) {
   const globalFinalEnabled = preferencesByUser.get(game.userId)?.pro_game_final_score_alerts_enabled ?? true
   counts.finalCandidates += 1
+  if (isMutedFavoriteTeamAutoAlert(game)) {
+    counts.finalSkippedSettings += 1
+    console.log(`[ProScorePushWorker] final skipped settings=true reason=mutedFavoriteTeamAuto live_match_id=${game.liveMatchId}`)
+    return
+  }
   if (!globalFinalEnabled || !game.finalScoreAlertsEnabled) {
     counts.finalSkippedSettings += 1
     return
@@ -549,24 +616,31 @@ async function maybeSendFinalUpdate(
     return
   }
 
-  const inserted = await insertDeliveryDedupe(supabase, game, "final", finalScoreline)
-  if (!inserted) {
+  const duplicate = await deliveryDedupeExists(supabase, game, "final", finalScoreline)
+  if (duplicate) {
     counts.finalSkippedDuplicate += 1
     return
   }
 
-  const body = `${live.away_team} ${live.score_away} - ${live.score_home} ${live.home_team}`
-  const sent = await sendToUserTokens(supabase, apns, tokens, "FanGeo: Final score", body, counts)
+  const sent = await sendToUserTokens(supabase, apns, tokens, finalNotificationContent(game, live), counts)
   if (sent > 0) {
-    counts.finalSent += sent
-    counts.notificationsSent += sent
-    await updateTrackedGameNotificationState(supabase, game, {
-      last_notified_scoreline: finalScoreline,
-      last_notified_status: "FT",
-      match_status: live.match_status,
-      score_home: live.score_home,
-      score_away: live.score_away,
-    })
+    const recorded = await insertDeliveryDedupe(supabase, game, "final", finalScoreline)
+    logDeliveryRecorded("final", game, finalScoreline, recorded)
+    if (recorded) {
+      counts.finalSent += sent
+      counts.notificationsSent += sent
+      await updateTrackedGameNotificationState(supabase, game, {
+        last_notified_scoreline: finalScoreline,
+        last_notified_status: "FT",
+        match_status: live.match_status,
+        score_home: live.score_home,
+        score_away: live.score_away,
+      })
+    } else {
+      counts.finalSkippedDuplicate += 1
+    }
+  } else {
+    logDeliveryRecorded("final", game, finalScoreline, false)
   }
 }
 
@@ -574,17 +648,20 @@ async function sendToUserTokens(
   supabase: SupabaseClient,
   apns: ApnsClient,
   tokens: PushTokenRow[],
-  title: string,
-  body: string,
+  alert: PushAlertContent,
   counts: WorkerCounts,
 ): Promise<number> {
   let sent = 0
   for (const token of tokens) {
-    const result = await apns.send(token, title, body)
+    const result = await apns.send(token, alert)
     if (result.ok) {
       sent += 1
       continue
     }
+    console.warn(`[ProScorePushWorker] apns endpoint=${result.endpoint}`)
+    console.warn(`[ProScorePushWorker] apns tokenEnvironment=${result.tokenEnvironment}`)
+    console.warn(`[ProScorePushWorker] apns status=${result.status}`)
+    console.warn(`[ProScorePushWorker] apns reason=${result.reason ?? "unknown"}`)
     if (result.invalidate) {
       counts.invalidTokens += 1
       await supabase
@@ -595,6 +672,25 @@ async function sendToUserTokens(
     console.warn(`[ProScorePushWorker] skippedReason=apns_${result.reason ?? "unknown"} tokenId=${token.id}`)
   }
   return sent
+}
+
+async function deliveryDedupeExists(
+  supabase: SupabaseClient,
+  game: TrackedGame,
+  notificationType: NotificationType,
+  scorelineValue: string,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("pro_game_score_notification_deliveries")
+    .select("id")
+    .eq("user_id", game.userId)
+    .eq("game_id", game.liveMatchId)
+    .eq("notification_type", notificationType)
+    .eq("scoreline", scorelineValue)
+    .limit(1)
+
+  if (error) throw error
+  return (data ?? []).length > 0
 }
 
 async function insertDeliveryDedupe(
@@ -616,6 +712,18 @@ async function insertDeliveryDedupe(
   const message = `${error.code ?? ""} ${error.message ?? ""}`.toLowerCase()
   if (message.includes("23505") || message.includes("duplicate")) return false
   throw error
+}
+
+function logDeliveryRecorded(
+  notificationType: NotificationType,
+  game: TrackedGame,
+  scorelineValue: string,
+  recorded: boolean,
+) {
+  console.log(
+    `[ProScorePushWorker] delivery recorded=${recorded} type=${notificationType} ` +
+      `gameId=${game.liveMatchId} scoreline=${scorelineValue}`,
+  )
 }
 
 async function updateTrackedGameNotificationState(
@@ -715,6 +823,8 @@ function trackedFromSaved(row: SavedProGameRow): TrackedGame {
     lastNotifiedScoreline: row.last_notified_scoreline,
     lastNotifiedStatus: row.last_notified_status,
     sourceKind: "saved",
+    subscriptionSource: null,
+    alertOverride: "inherit",
   }
 }
 
@@ -738,23 +848,511 @@ function trackedFromFavorite(row: FavoriteProGameSubscriptionRow): TrackedGame {
     lastNotifiedScoreline: row.last_notified_scoreline,
     lastNotifiedStatus: row.last_notified_status,
     sourceKind: "favorite_team",
+    subscriptionSource: row.subscription_source,
+    alertOverride: favoriteTeamAlertOverride(row.alert_override),
   }
 }
 
-function scoringTitle(game: TrackedGame, live: LiveMatchRow, previousScoreline: string): string {
+function isMutedFavoriteTeamAutoAlert(game: TrackedGame): boolean {
+  return game.sourceKind === "favorite_team"
+    && game.subscriptionSource === "favorite_team_auto"
+    && ["off", "muted"].includes(game.alertOverride)
+}
+
+function favoriteTeamAlertOverride(
+  raw: FavoriteProGameSubscriptionRow["alert_override"],
+): TrackedGame["alertOverride"] {
+  if (raw === "on" || raw === "off" || raw === "muted") return raw
+  return "inherit"
+}
+
+type ScoringSide = "home" | "away"
+
+type ScoringEventMatch = {
+  player: string | null
+  minute: string | null
+  detail: string | null
+  raw: TimelineEventRow
+}
+
+function scoringNotificationContent(game: TrackedGame, live: LiveMatchRow, previousScoreline: string): PushAlertContent {
+  const fallback = fallbackScoreNotificationContent(game, live, previousScoreline)
+  const timelineEvents = Array.isArray(live.timeline_events) ? live.timeline_events : []
+  const scoreAfter = scoreline(live.score_away, live.score_home)
+  const latestGoalEvent = latestGoalTimelineEvent(timelineEvents)
+  goalNotificationLog(`timelineCount=${timelineEvents.length}`)
+  goalNotificationLog(`latestGoalEvent=${latestGoalEvent ? timelineEventDebugSummary(latestGoalEvent) : "none"}`)
+  goalNotificationLog(`scoreBefore=${previousScoreline}`)
+  goalNotificationLog(`scoreAfter=${scoreAfter}`)
+
+  if (!isSoccerMatch(game, live)) {
+    logScoringEventFallback("nonSoccer", null, fallback.title)
+    logPushFormat("score", game, live, fallback)
+    return fallback
+  }
+
   const previous = parseScoreline(previousScoreline)
-  if (!previous) return "Score update"
-  if (live.score_away > previous.away && live.score_home <= previous.home) return `${live.away_team || game.awayTeam} scored`
-  if (live.score_home > previous.home && live.score_away <= previous.away) return `${live.home_team || game.homeTeam} scored`
-  return "Score update"
+  if (!previous) {
+    logScoringEventFallback("missingPreviousScoreline", null, fallback.title)
+    logPushFormat("score", game, live, fallback)
+    return fallback
+  }
+
+  const scoringSide = scoringSideForScoreChange(previous, live)
+  if (!scoringSide) {
+    logScoringEventFallback("ambiguousScoreChange", null, fallback.title)
+    logPushFormat("score", game, live, fallback)
+    return fallback
+  }
+
+  const scoringEvent = mostRecentGoalEvent(live, timelineEvents, scoringSide, {
+    previous,
+    scoreAfter,
+  })
+  if (!scoringEvent) {
+    logScoringEventFallback("noMatchingTimelineGoal", null, fallback.title)
+    logPushFormat("score", game, live, fallback)
+    return fallback
+  }
+
+  console.log("[ProScorePushWorker] scoringEventMatched=true")
+  console.log(`[ProScorePushWorker] scoringEventPlayer=${scoringEvent.player ?? "unknown"}`)
+  console.log(`[ProScorePushWorker] scoringEventTime=${scoringEvent.minute ?? "unknown"}`)
+  console.log("[ProScorePushWorker] scoringEventFallback=false")
+  goalNotificationLog(`fallbackReason=none`)
+  goalNotificationLog(`latestGoalEvent=${timelineEventDebugSummary(scoringEvent.raw)}`)
+  goalNotificationLog(`player=${scoringEvent.player ?? "unknown"}`)
+  goalNotificationLog(`minute=${scoringEvent.minute ?? "unknown"}`)
+  const subtitle = scoringEventSubtitle(scoringEvent)
+  const alert = {
+    title: `${sportIconForGame(game, live) ?? "⚽"} GOAL! ${formattedTeamName(teamNameForSide(live, scoringSide))}`.trim(),
+    subtitle,
+    body: scoreNotificationBody(game, live),
+  }
+  goalNotificationLog(`notificationTitle=${alert.title}`)
+  logPushFormat("goal", game, live, alert)
+  return alert
 }
 
-function kickoffTitle(game: TrackedGame): string {
-  const league = (game.league ?? "").trim()
-  if (league && !["pro game", "live", "sports"].includes(league.toLowerCase())) {
-    return `FanGeo: ${league}`
+function kickoffNotificationContent(game: TrackedGame): PushAlertContent {
+  const alert = {
+    title: `${sportIconForGame(game) ?? ""} ${formattedTeamName(game.awayTeam)} vs ${formattedTeamName(game.homeTeam)}`.trim(),
+    body: "Starting now",
   }
-  return "FanGeo: Game starting"
+  logPushFormat("kickoff", game, null, alert)
+  return alert
+}
+
+function fallbackScoreNotificationContent(game: TrackedGame, live: LiveMatchRow, previousScoreline: string): PushAlertContent {
+  const previous = parseScoreline(previousScoreline)
+  const scoringSide = previous ? scoringSideForScoreChange(previous, live) : null
+  const scoringTeam = scoringSide ? formattedTeamName(teamNameForSide(live, scoringSide)) : null
+  const sportIcon = sportIconForGame(game, live)
+  const title = scoringTeam
+    ? `${sportIcon ?? ""} ${scoringTeam} scored`.trim()
+    : `${sportIcon ?? ""} Score update`.trim()
+  const alert = {
+    title,
+    body: scoreNotificationBody(game, live),
+  }
+  return alert
+}
+
+function finalNotificationContent(game: TrackedGame, live: LiveMatchRow): PushAlertContent {
+  const alert = {
+    title: "🏁 Final Score",
+    body: scoreNotificationBody(game, live),
+  }
+  logPushFormat("final", game, live, alert)
+  return alert
+}
+
+function scoreNotificationBody(game: TrackedGame, live: LiveMatchRow): string {
+  return `${formattedTeamName(live.away_team || game.awayTeam)} ${live.score_away} - ${live.score_home} ${formattedTeamName(live.home_team || game.homeTeam)}`
+}
+
+function teamNameForSide(live: LiveMatchRow, side: ScoringSide): string {
+  return side === "away" ? live.away_team : live.home_team
+}
+
+function sportIconForGame(game: TrackedGame, live?: LiveMatchRow | null): string | null {
+  const text = normalize([
+    game.sport,
+    live?.sport,
+    game.league,
+    live?.league,
+  ].filter(Boolean).join(" "))
+  if (!text) return null
+  if (text.includes("american football") || text.includes("nfl")) return "🏈"
+  if (text.includes("basketball") || text.includes("nba")) return "🏀"
+  if (text.includes("hockey") || text.includes("nhl")) return "🏒"
+  if (text.includes("baseball") || text.includes("mlb")) return "⚾"
+  if (text.includes("softball")) return "🥎"
+  if (text.includes("tennis")) return "🎾"
+  if (
+    text.includes("soccer")
+    || text.includes("football")
+    || text.includes("world cup")
+    || text.includes("fifa")
+    || text.includes("uefa")
+    || text.includes("friendly")
+    || text.includes("nations league")
+  ) return "⚽"
+  return null
+}
+
+function formattedTeamName(teamName: string | null | undefined): string {
+  const name = (teamName ?? "").trim()
+  if (!name) return ""
+  const flag = flagEmojiForTeam(name)
+  return flag ? `${flag} ${name}` : name
+}
+
+function flagEmojiForTeam(teamName: string | null | undefined): string | null {
+  const regionCode = iso2RegionCodeForTeam(teamName)
+  return regionCode ? flagEmojiForRegionCode(regionCode) : null
+}
+
+function iso2RegionCodeForTeam(teamName: string | null | undefined): string | null {
+  const trimmed = (teamName ?? "").trim()
+  if (!trimmed) return null
+
+  const upper = trimmed.toUpperCase()
+  if (upper.length === 2 && /^[A-Z]{2}$/.test(upper)) {
+    return supportedIso2RegionCodes.has(upper) ? upper : null
+  }
+  if (upper.length === 3 && /^[A-Z]{3}$/.test(upper)) {
+    return fifaOrIso3RegionCode[upper] ?? null
+  }
+
+  const normalizedName = normalizeCountryText(trimmed)
+  if (!normalizedName) return null
+  const withoutSuffix = normalizedCountryTeamSuffixRemoved(normalizedName)
+  return countryNameRegionCode[withoutSuffix] ?? countryNameRegionCode[normalizedName] ?? null
+}
+
+const fifaOrIso3RegionCode: Record<string, string | null> = {
+  COD: "CD",
+  CIV: "CI",
+  CZE: "CZ",
+  CUW: "CW",
+  ENG: null,
+  GER: "DE",
+  KOR: "KR",
+  MEX: "MX",
+  NED: "NL",
+  NIR: null,
+  PRK: "KP",
+  SCO: null,
+  UAE: "AE",
+  USA: "US",
+  WAL: null,
+}
+
+const countryNameRegionCode: Record<string, string> = {
+  argentina: "AR",
+  australia: "AU",
+  belgium: "BE",
+  bolivia: "BO",
+  brazil: "BR",
+  brasil: "BR",
+  canada: "CA",
+  chile: "CL",
+  china: "CN",
+  colombia: "CO",
+  "costa rica": "CR",
+  curacao: "CW",
+  "cote d ivoire": "CI",
+  "czech republic": "CZ",
+  czechia: "CZ",
+  "democratic republic of congo": "CD",
+  denmark: "DK",
+  "dr congo": "CD",
+  "d r congo": "CD",
+  ecuador: "EC",
+  egypt: "EG",
+  france: "FR",
+  germany: "DE",
+  deutschland: "DE",
+  ghana: "GH",
+  haiti: "HT",
+  holland: "NL",
+  iran: "IR",
+  iraq: "IQ",
+  "ivory coast": "CI",
+  japan: "JP",
+  jordan: "JO",
+  korea: "KR",
+  "korea dpr": "KP",
+  mexico: "MX",
+  morocco: "MA",
+  netherlands: "NL",
+  "north korea": "KP",
+  norway: "NO",
+  panama: "PA",
+  peru: "PE",
+  poland: "PL",
+  portugal: "PT",
+  qatar: "QA",
+  "republic of korea": "KR",
+  russia: "RU",
+  "saudi arabia": "SA",
+  senegal: "SN",
+  serbia: "RS",
+  "south africa": "ZA",
+  "south korea": "KR",
+  spain: "ES",
+  sweden: "SE",
+  switzerland: "CH",
+  tunisia: "TN",
+  turkey: "TR",
+  turkiye: "TR",
+  uae: "AE",
+  "united arab emirates": "AE",
+  "united states": "US",
+  "united states of america": "US",
+  uruguay: "UY",
+  usa: "US",
+  uzbekistan: "UZ",
+}
+
+const supportedIso2RegionCodes = new Set([
+  ...Object.values(countryNameRegionCode),
+  ...Object.values(fifaOrIso3RegionCode).filter((code): code is string => Boolean(code)),
+])
+
+function normalizedCountryTeamSuffixRemoved(normalizedName: string): string {
+  const suffixes = [
+    " national team",
+    " women",
+    " men",
+    " womens",
+    " mens",
+    " u17",
+    " u18",
+    " u19",
+    " u20",
+    " u21",
+    " u23",
+  ]
+  const suffix = suffixes.find((candidate) => normalizedName.endsWith(candidate))
+  if (!suffix) return normalizedName
+  return normalizedName.slice(0, -suffix.length).trim()
+}
+
+function normalizeCountryText(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/&/g, " and ")
+    .replace(/[^a-zA-Z0-9]+/g, " ")
+    .trim()
+    .toLowerCase()
+}
+
+function flagEmojiForRegionCode(regionCode: string): string | null {
+  const code = regionCode.trim().toUpperCase()
+  if (!/^[A-Z]{2}$/.test(code)) return null
+  return [...code]
+    .map((letter) => String.fromCodePoint(127397 + letter.charCodeAt(0)))
+    .join("")
+}
+
+function logPushFormat(context: string, game: TrackedGame, live: LiveMatchRow | null, alert: PushAlertContent): void {
+  const sportIcon = context === "final" ? "🏁" : sportIconForGame(game, live)
+  const homeTeam = live?.home_team || game.homeTeam
+  const awayTeam = live?.away_team || game.awayTeam
+  console.log(`[PushFormatDebug] context=${context}`)
+  console.log(`[PushFormatDebug] sportIcon=${sportIcon ?? ""}`)
+  console.log(`[PushFormatDebug] homeFlag=${flagEmojiForTeam(homeTeam) ?? ""}`)
+  console.log(`[PushFormatDebug] awayFlag=${flagEmojiForTeam(awayTeam) ?? ""}`)
+  console.log(`[PushFormatDebug] formattedTitle=${alert.title}`)
+  console.log(`[PushFormatDebug] formattedBody=${alert.body}`)
+}
+
+function isSoccerMatch(game: TrackedGame, live: LiveMatchRow): boolean {
+  const text = normalize(`${game.sport ?? ""} ${live.sport ?? ""} ${game.league ?? ""} ${live.league ?? ""}`)
+  if (text.includes("american football") || text.includes("nfl")) return false
+  return text.includes("soccer")
+    || text.includes("football")
+    || text.includes("fifa")
+    || text.includes("uefa")
+    || text.includes("friendly")
+    || text.includes("world cup")
+    || text.includes("nations league")
+}
+
+function scoringSideForScoreChange(
+  previous: { away: number; home: number },
+  live: LiveMatchRow,
+): ScoringSide | null {
+  const awayDelta = live.score_away - previous.away
+  const homeDelta = live.score_home - previous.home
+  if (awayDelta > 0 && homeDelta <= 0) return "away"
+  if (homeDelta > 0 && awayDelta <= 0) return "home"
+  return null
+}
+
+function mostRecentGoalEvent(
+  live: LiveMatchRow,
+  events: TimelineEventRow[],
+  scoringSide: ScoringSide,
+  scoreContext: {
+    previous: { away: number; home: number }
+    scoreAfter: string
+  },
+): ScoringEventMatch | null {
+  const goalEvents = events
+    .map((event, index) => ({ event, index }))
+    .filter(({ event }) => isGoalTimelineEvent(event))
+
+  if (goalEvents.length === 0) {
+    goalNotificationLog("fallbackReason=noGoalEventsInTimeline")
+    return null
+  }
+
+  const candidates = goalEvents.filter(({ event }) => {
+    const matches = timelineEventMatchesScoringSide(event, live, scoringSide)
+    if (!matches) {
+      goalNotificationLog(
+        `fallbackReason=sideMismatch candidate=${timelineEventDebugSummary(event)} expectedSide=${scoringSide}`,
+      )
+    }
+    return matches
+  })
+    .sort((lhs, rhs) => {
+      const lhsMinute = timelineEventMinuteNumber(lhs.event)
+      const rhsMinute = timelineEventMinuteNumber(rhs.event)
+      if (lhsMinute !== rhsMinute) return rhsMinute - lhsMinute
+      return rhs.index - lhs.index
+    })
+
+  const match = candidates[0]?.event
+  if (!match) {
+    goalNotificationLog(
+      `fallbackReason=noGoalForScoringSide expectedSide=${scoringSide} scoreBefore=${scoreContext.previous.away}-${scoreContext.previous.home} scoreAfter=${scoreContext.scoreAfter}`,
+    )
+    return null
+  }
+  return {
+    player: cleanTimelineText(match.strPlayer),
+    minute: formatTimelineMinute(match.intTime),
+    detail: scoringEventDetail(match),
+    raw: match,
+  }
+}
+
+function latestGoalTimelineEvent(events: TimelineEventRow[]): TimelineEventRow | null {
+  const candidates = events
+    .map((event, index) => ({ event, index }))
+    .filter(({ event }) => isGoalTimelineEvent(event))
+    .sort((lhs, rhs) => {
+      const lhsMinute = timelineEventMinuteNumber(lhs.event)
+      const rhsMinute = timelineEventMinuteNumber(rhs.event)
+      if (lhsMinute !== rhsMinute) return rhsMinute - lhsMinute
+      return rhs.index - lhs.index
+    })
+  return candidates[0]?.event ?? null
+}
+
+function isGoalTimelineEvent(event: TimelineEventRow): boolean {
+  const text = [
+    event.strTimeline,
+    event.strTimelineDetail,
+    event.strComment,
+  ].map((value) => normalize(value)).join(" ")
+  if (text.includes("miss") || text.includes("saved")) return false
+  return text.includes("goal") || text.includes("penalty")
+}
+
+function timelineEventMatchesScoringSide(
+  event: TimelineEventRow,
+  live: LiveMatchRow,
+  scoringSide: ScoringSide,
+): boolean {
+  const side = timelineEventSide(event, live)
+  if (!side) return true
+  if (side === scoringSide) return true
+
+  // Some feeds attach own goals to the player/team that conceded.
+  return scoringEventDetail(event) === "OG" && side !== scoringSide
+}
+
+function timelineEventSide(event: TimelineEventRow, live: LiveMatchRow): ScoringSide | null {
+  const homeFlag = normalize(event.strHome)
+  if (["yes", "true", "1", "home"].includes(homeFlag)) return "home"
+  if (["no", "false", "0", "away"].includes(homeFlag)) return "away"
+
+  const team = normalizeTeamText(event.strTeam)
+  if (!team) return null
+  if (team === normalizeTeamText(live.home_team)) return "home"
+  if (team === normalizeTeamText(live.away_team)) return "away"
+  return null
+}
+
+function scoringEventSubtitle(event: ScoringEventMatch): string | undefined {
+  const detail = event.detail ? ` (${event.detail})` : ""
+  const minute = event.minute ? ` ${event.minute}` : ""
+  if (event.player) return `${event.player}${detail}${minute}`.trim()
+  const fallback = `${detail}${minute}`.trim()
+  return fallback.length > 0 ? fallback : undefined
+}
+
+function scoringEventDetail(event: TimelineEventRow): string | null {
+  const detail = `${event.strTimelineDetail ?? ""} ${event.strComment ?? ""}`.toLowerCase()
+  if (detail.includes("own goal")) return "OG"
+  if (detail.includes("penalty")) return "P"
+  return null
+}
+
+function timelineEventMinuteNumber(event: TimelineEventRow): number {
+  const minute = cleanTimelineText(event.intTime) ?? ""
+  const firstNumber = minute.match(/\d+/)?.[0]
+  return firstNumber ? Number(firstNumber) : -1
+}
+
+function formatTimelineMinute(raw: string | null): string | null {
+  const minute = cleanTimelineText(raw)
+  if (!minute) return null
+  return minute.endsWith("'") ? minute : `${minute}'`
+}
+
+function cleanTimelineText(raw: string | null): string | null {
+  const trimmed = (raw ?? "").trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
+function normalizeTeamText(raw: string | null | undefined): string {
+  return normalize(raw).replace(/[^a-z0-9]+/g, " ").trim()
+}
+
+function logScoringEventFallback(reason: string, event: ScoringEventMatch | null, notificationTitle: string) {
+  console.log(`[ProScorePushWorker] scoringEventMatched=false`)
+  console.log(`[ProScorePushWorker] scoringEventPlayer=${event?.player ?? "unknown"}`)
+  console.log(`[ProScorePushWorker] scoringEventTime=${event?.minute ?? "unknown"}`)
+  console.log(`[ProScorePushWorker] scoringEventFallback=${reason}`)
+  goalNotificationLog(`fallbackReason=${reason}`)
+  goalNotificationLog(`latestGoalEvent=${event?.raw ? timelineEventDebugSummary(event.raw) : "none"}`)
+  goalNotificationLog(`player=${event?.player ?? "unknown"}`)
+  goalNotificationLog(`minute=${event?.minute ?? "unknown"}`)
+  goalNotificationLog(`notificationTitle=${notificationTitle}`)
+}
+
+function timelineEventDebugSummary(event: TimelineEventRow): string {
+  return [
+    `id=${event.idTimeline ?? "nil"}`,
+    `timeline=${event.strTimeline ?? "nil"}`,
+    `detail=${event.strTimelineDetail ?? "nil"}`,
+    `player=${event.strPlayer ?? "nil"}`,
+    `time=${event.intTime ?? "nil"}`,
+    `team=${event.strTeam ?? "nil"}`,
+    `home=${event.strHome ?? "nil"}`,
+    `comment=${event.strComment ?? "nil"}`,
+  ].join(" ")
+}
+
+function goalNotificationLog(message: string): void {
+  console.log(`[GoalNotificationDebug] ${message}`)
 }
 
 function parseScoreline(raw: string): { away: number; home: number } | null {
@@ -776,7 +1374,10 @@ function normalizeStatus(raw: string | null): "LIVE" | "HT" | "FT" | "SCHEDULED"
     || compact.includes("final")
     || compact.includes("finished")
     || compact.includes("completed")
+    || compact.includes("complete")
+    || compact.includes("ended")
     || compact.includes("full time")
+    || compact.includes("after full time")
   ) return "FT"
   if (
     ["live", "inplay", "in play", "in progress", "1h", "2h", "et", "bt", "p", "ot", "q1", "q2", "q3", "q4"].includes(compact)
@@ -821,14 +1422,15 @@ class ApnsClient {
 
   async send(
     token: PushTokenRow,
-    title: string,
-    body: string,
-  ): Promise<{ ok: boolean; reason?: string; invalidate?: boolean }> {
+    alert: PushAlertContent,
+  ): Promise<ApnsSendResult> {
     const authorization = await this.authorizationHeader()
-    const environment = token.environment ?? this.defaultEnvironment
+    const environment = normalizeApnsEnvironment(token.environment ?? this.defaultEnvironment)
     const host = environment === "production"
       ? "https://api.push.apple.com"
       : "https://api.sandbox.push.apple.com"
+    console.log(`[ProScorePushWorker] apns endpoint=${host}`)
+    console.log(`[ProScorePushWorker] apns tokenEnvironment=${environment}`)
     const response = await fetch(`${host}/3/device/${token.token}`, {
       method: "POST",
       headers: {
@@ -840,17 +1442,35 @@ class ApnsClient {
       },
       body: JSON.stringify({
         aps: {
-          alert: { title, body },
+          alert: compactAlertPayload(alert),
           sound: "default",
         },
       }),
     })
 
-    if (response.status === 200) return { ok: true }
+    if (response.status === 200) {
+      console.log("[ProScorePushWorker] apns status=200")
+      console.log("[ProScorePushWorker] apns reason=success")
+      return {
+        ok: true,
+        status: response.status,
+        endpoint: host,
+        tokenEnvironment: environment,
+      }
+    }
     const payload = await response.json().catch(() => ({}))
     const reason = typeof payload?.reason === "string" ? payload.reason : `status_${response.status}`
+    console.warn(`[ProScorePushWorker] apns status=${response.status}`)
+    console.warn(`[ProScorePushWorker] apns reason=${reason}`)
     const invalidate = ["BadDeviceToken", "Unregistered", "DeviceTokenNotForTopic"].includes(reason)
-    return { ok: false, reason, invalidate }
+    return {
+      ok: false,
+      status: response.status,
+      endpoint: host,
+      tokenEnvironment: environment,
+      reason,
+      invalidate,
+    }
   }
 
   private async authorizationHeader(): Promise<string> {
@@ -871,6 +1491,17 @@ class ApnsClient {
     this.jwt = { token, issuedAt: nowSeconds }
     return `bearer ${token}`
   }
+}
+
+function compactAlertPayload(alert: PushAlertContent): Record<string, string> {
+  const payload: Record<string, string> = {
+    title: alert.title,
+    body: alert.body,
+  }
+  if (alert.subtitle?.trim()) {
+    payload.subtitle = alert.subtitle.trim()
+  }
+  return payload
 }
 
 async function importPrivateKey(pem: string): Promise<CryptoKey> {

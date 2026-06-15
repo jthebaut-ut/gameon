@@ -124,6 +124,18 @@ type ScheduledFixturesCounts = {
   errors: number
 }
 
+type CompletedMatchesCounts = {
+  fetched: number
+  normalized: number
+  deduped: number
+  upserted: number
+  savedCandidateIds: number
+  subscriptionCandidateIds: number
+  leagueRowsFetched: number
+  featuredRowsFetched: number
+  errors: number
+}
+
 type FeaturedPreloadCounts = {
   featuredEventsChecked: number
   featuredFixturesFetched: number
@@ -139,6 +151,22 @@ type ScheduledLeagueConfig = {
   id: string
   sport: string
   league: string
+}
+
+type RecentCompletedCandidateRow = {
+  live_match_id: string | null
+  source: string | null
+  external_id: string | null
+  league: string | null
+  sport: string | null
+  start_time: string | null
+}
+
+type SportsDBCompletedEvent = {
+  event: Record<string, any>
+  fallbackLeague: string
+  syncKind: string
+  featuredEvent?: FeaturedEventRow
 }
 
 const corsHeaders = {
@@ -200,17 +228,33 @@ serve(async (req) => {
       apiCalls: 0,
       errors: 0,
     }
+    const supabase = createClient(supabaseUrl, serviceRoleKey)
+    const completedWindow = recentCompletedMatchWindow()
+    const completedCounts: CompletedMatchesCounts = {
+      fetched: 0,
+      normalized: 0,
+      deduped: 0,
+      upserted: 0,
+      savedCandidateIds: 0,
+      subscriptionCandidateIds: 0,
+      leagueRowsFetched: 0,
+      featuredRowsFetched: 0,
+      errors: 0,
+    }
+    completedLog(`completedWindowFrom=${completedWindow.startISO}`)
+
     const fetchResult = await fetchNormalizedMatches(matchWindow, counts)
     const scheduledMatches = await fetchScheduledFixtureMatches(matchWindow, scheduledCounts)
-    const supabase = createClient(supabaseUrl, serviceRoleKey)
-
+    const completedMatches = await fetchRecentlyCompletedMatches(supabase, completedWindow, completedCounts)
+    completedLog(`completedRowsFetched=${completedCounts.fetched}`)
     counts.pruned = await pruneStaleMatches(supabase, matchWindow)
     const protectedMatchIds = await fetchProtectedMatchIds(supabase, matchWindow)
     const featuredMatches = await fetchFeaturedEventFixtureMatches(supabase, featuredCounts)
     const featuredUpsertIds = new Set(featuredMatches.map((match) => match.id))
+    const completedUpsertIds = new Set(completedMatches.map((match) => match.id))
     const scheduledOnlyMatches = scheduledMatches.filter((match) => !featuredUpsertIds.has(match.id))
     const matchesToUpsert = mergeLiveAndScheduledMatches(
-      fetchResult.matches,
+      dedupeLiveMatchUpserts([...fetchResult.matches, ...completedMatches]),
       [...featuredMatches, ...scheduledOnlyMatches],
       protectedMatchIds,
       scheduledCounts,
@@ -235,6 +279,14 @@ serve(async (req) => {
       featuredCounts.featuredFixturesUpserted = matchesToUpsert.filter((match) =>
         featuredUpsertIds.has(match.id) && match.match_status === "SCHEDULED"
       ).length
+      completedCounts.upserted = matchesToUpsert.filter((match) =>
+        completedUpsertIds.has(match.id) && match.match_status === "FT"
+      ).length
+      for (const match of matchesToUpsert) {
+        if (completedUpsertIds.has(match.id) && match.match_status === "FT") {
+          completedLog(`completedRowUpserted=${match.id} score=${match.score_away}-${match.score_home} start=${match.start_time}`)
+        }
+      }
     }
     scheduledLog(`upserted=${scheduledCounts.upserted}`)
     featuredLog(`upserted=${featuredCounts.featuredFixturesUpserted}`)
@@ -248,6 +300,7 @@ serve(async (req) => {
       },
       counts,
       scheduledCounts,
+      completedCounts,
       featuredCounts,
     })
   } catch (error) {
@@ -575,6 +628,230 @@ function dedupeFeaturedMatches(matches: LiveMatchUpsert[]): LiveMatchUpsert[] {
     latestById.set(match.id, match)
   }
   return [...latestById.values()].sort((lhs, rhs) => lhs.start_time.localeCompare(rhs.start_time))
+}
+
+async function fetchRecentlyCompletedMatches(
+  supabase: ReturnType<typeof createClient>,
+  completedWindow: MatchWindow,
+  counts: CompletedMatchesCounts,
+): Promise<LiveMatchUpsert[]> {
+  const apiKey = Deno.env.get("THESPORTSDB_API_KEY") ?? "123"
+  const completedEvents: SportsDBCompletedEvent[] = []
+  const providerCandidates = await fetchRecentCompletedProviderCandidates(supabase, completedWindow, counts)
+
+  for (const [externalId, fallbackLeague] of providerCandidates.entries()) {
+    try {
+      const events = await fetchTheSportsDBLookupEvents(apiKey, externalId)
+      counts.fetched += events.length
+      for (const event of events) {
+        completedEvents.push({
+          event,
+          fallbackLeague,
+          syncKind: "recent_completed_lookup",
+        })
+      }
+    } catch (error) {
+      counts.errors += 1
+      const message = error instanceof Error ? error.message : String(error)
+      completedLog(`lookupError event=${externalId} error=${message}`)
+    }
+  }
+
+  for (const leagueConfig of configuredSportsDBCompletedLeagues()) {
+    try {
+      const events = await fetchTheSportsDBPastLeagueEvents(apiKey, leagueConfig.id)
+      counts.fetched += events.length
+      counts.leagueRowsFetched += events.length
+      for (const event of events) {
+        completedEvents.push({
+          event,
+          fallbackLeague: leagueConfig.league,
+          syncKind: "recent_completed_league",
+        })
+      }
+    } catch (error) {
+      counts.errors += 1
+      const message = error instanceof Error ? error.message : String(error)
+      completedLog(`leagueError leagueId=${leagueConfig.id} error=${message}`)
+    }
+  }
+
+  const featuredEvents = await fetchActiveUpcomingFeaturedEvents(supabase, {
+    featuredEventsChecked: 0,
+    featuredFixturesFetched: 0,
+    featuredFixturesNormalized: 0,
+    featuredFixturesMatched: 0,
+    featuredFixturesUpserted: 0,
+    featuredPreloadSkippedReason: null,
+    apiCalls: 0,
+    errors: 0,
+  })
+  for (const featuredEvent of featuredEvents) {
+    for (const config of configuredFeaturedEventProviderConfigs(featuredEvent)) {
+      try {
+        const events = await fetchTheSportsDBSeasonEvents(apiKey, config.leagueId, config.season)
+        counts.fetched += events.length
+        counts.featuredRowsFetched += events.length
+        for (const event of events) {
+          completedEvents.push({
+            event: {
+              ...event,
+              fangeo_featured_event_slug: featuredEvent.slug,
+            },
+            fallbackLeague: config.league ?? String(event?.strLeague ?? config.leagueId),
+            syncKind: "recent_completed_featured",
+            featuredEvent,
+          })
+        }
+      } catch (error) {
+        counts.errors += 1
+        const message = error instanceof Error ? error.message : String(error)
+        completedLog(`featuredError slug=${featuredEvent.slug} leagueId=${config.leagueId} error=${message}`)
+      }
+    }
+  }
+
+  const normalized: LiveMatchUpsert[] = []
+  for (const completedEvent of completedEvents) {
+    const match = normalizeSportsDBCompletedEvent(completedEvent, completedWindow)
+    if (!match) continue
+    normalized.push(match)
+    counts.normalized += 1
+  }
+
+  const deduped = dedupeLiveMatchUpserts(normalized)
+  counts.deduped += normalized.length - deduped.length
+  return deduped
+}
+
+async function fetchRecentCompletedProviderCandidates(
+  supabase: ReturnType<typeof createClient>,
+  completedWindow: MatchWindow,
+  counts: CompletedMatchesCounts,
+): Promise<Map<string, string>> {
+  const candidates = new Map<string, string>()
+  const savedRows = await fetchRecentCompletedCandidateRows(supabase, "saved_pro_games", completedWindow)
+  counts.savedCandidateIds = addSportsDBProviderCandidates(candidates, savedRows)
+
+  const subscriptionRows = await fetchRecentCompletedCandidateRows(supabase, "pro_game_alert_subscriptions", completedWindow)
+  counts.subscriptionCandidateIds = addSportsDBProviderCandidates(candidates, subscriptionRows)
+  return candidates
+}
+
+async function fetchRecentCompletedCandidateRows(
+  supabase: ReturnType<typeof createClient>,
+  table: "saved_pro_games" | "pro_game_alert_subscriptions",
+  completedWindow: MatchWindow,
+): Promise<RecentCompletedCandidateRow[]> {
+  const { data, error } = await supabase
+    .from(table)
+    .select("live_match_id,source,external_id,league,sport,start_time")
+    .gte("start_time", completedWindow.startISO)
+    .lte("start_time", completedWindow.endISO)
+    .limit(1000)
+
+  if (error || !Array.isArray(data)) {
+    if (error) completedLog(`candidateQueryError table=${table} error=${error.message}`)
+    return []
+  }
+  return data as RecentCompletedCandidateRow[]
+}
+
+function addSportsDBProviderCandidates(
+  candidates: Map<string, string>,
+  rows: RecentCompletedCandidateRow[],
+): number {
+  let added = 0
+  for (const row of rows) {
+    const externalId = sportsDBExternalIdFromCandidate(row)
+    if (!externalId || candidates.has(externalId)) continue
+    candidates.set(externalId, row.league?.trim() || "Sports")
+    added += 1
+  }
+  return added
+}
+
+function sportsDBExternalIdFromCandidate(row: RecentCompletedCandidateRow): string | null {
+  const source = String(row.source ?? "").trim().toLowerCase()
+  const externalId = String(row.external_id ?? "").trim()
+  if (source === "thesportsdb" && externalId) return externalId
+
+  const liveMatchId = String(row.live_match_id ?? "").trim()
+  if (liveMatchId.toLowerCase().startsWith("thesportsdb:")) {
+    return liveMatchId.split(":").pop()?.trim() || null
+  }
+  return null
+}
+
+async function fetchTheSportsDBLookupEvents(apiKey: string, externalId: string): Promise<Record<string, any>[]> {
+  const encodedEventId = encodeURIComponent(externalId)
+  const url = `https://www.thesportsdb.com/api/v1/json/${apiKey}/lookupevent.php?id=${encodedEventId}`
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+  const data = await response.json()
+  return Array.isArray(data?.events) ? data.events : []
+}
+
+async function fetchTheSportsDBPastLeagueEvents(apiKey: string, leagueId: string): Promise<Record<string, any>[]> {
+  const encodedLeagueId = encodeURIComponent(leagueId)
+  const url = `https://www.thesportsdb.com/api/v1/json/${apiKey}/eventspastleague.php?id=${encodedLeagueId}`
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+  const data = await response.json()
+  return Array.isArray(data?.events) ? data.events : []
+}
+
+async function fetchTheSportsDBSeasonEvents(
+  apiKey: string,
+  leagueId: string,
+  season: string,
+): Promise<Record<string, any>[]> {
+  const encodedLeagueId = encodeURIComponent(leagueId)
+  const encodedSeason = encodeURIComponent(season)
+  const url = `https://www.thesportsdb.com/api/v1/json/${apiKey}/eventsseason.php?id=${encodedLeagueId}&s=${encodedSeason}`
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+  const data = await response.json()
+  return Array.isArray(data?.events) ? data.events : []
+}
+
+function normalizeSportsDBCompletedEvent(
+  completedEvent: SportsDBCompletedEvent,
+  completedWindow: MatchWindow,
+): LiveMatchUpsert | null {
+  const normalized = normalizeSportsDBEvent(completedEvent.event, completedEvent.fallbackLeague)
+  if (!normalized) return null
+  if (normalized.match_status !== "FT") return null
+  if (!isWithinMatchWindow(normalized.start_time, completedWindow)) return null
+  if (completedEvent.featuredEvent && !featuredEventMatchesFixture(completedEvent.featuredEvent, normalized)) return null
+
+  return {
+    ...normalized,
+    match_status: "FT",
+    minute: null,
+    featured_event_slug: cleanString(completedEvent.event.fangeo_featured_event_slug) ?? normalized.featured_event_slug,
+    payload: {
+      ...completedEvent.event,
+      fangeo_sync_kind: completedEvent.syncKind,
+    },
+  }
+}
+
+function dedupeLiveMatchUpserts(matches: LiveMatchUpsert[]): LiveMatchUpsert[] {
+  const latestById = new Map<string, LiveMatchUpsert>()
+  for (const match of matches) {
+    const existing = latestById.get(match.id)
+    if (!existing || liveMatchUpsertPriority(match) >= liveMatchUpsertPriority(existing)) {
+      latestById.set(match.id, match)
+    }
+  }
+  return [...latestById.values()].sort((lhs, rhs) => lhs.start_time.localeCompare(rhs.start_time))
+}
+
+function liveMatchUpsertPriority(match: LiveMatchUpsert): number {
+  if (match.match_status === "FT") return 4
+  if (match.match_status === "LIVE" || match.match_status === "HT") return 3
+  return 1
 }
 
 
@@ -1150,9 +1427,9 @@ async function fetchTheSportsDBV1TimelineEvents(idEvent: string, apiKey: string)
 
 function normalizeTimelineEventRows(data: unknown, fallbackEventId: string): TimelineEventRow[] {
   const rows = extractTimelineEventRows(data)
-  return rows
+  return dedupeTimelineEventRows(rows
     .map((row) => normalizeTimelineEventRow(row, fallbackEventId))
-    .filter(isTimelineEventRow)
+    .filter(isTimelineEventRow))
 }
 
 function extractTimelineEventRows(data: unknown): unknown[] {
@@ -1191,6 +1468,29 @@ function isTimelineEventRow(row: TimelineEventRow): boolean {
   return Boolean(row.strTimeline || row.strPlayer || row.strTeam)
 }
 
+function dedupeTimelineEventRows(rows: TimelineEventRow[]): TimelineEventRow[] {
+  const seen = new Set<string>()
+  const deduped: TimelineEventRow[] = []
+  for (const row of rows) {
+    const providerId = cleanString(row.idTimeline)
+    const key = providerId
+      ? `provider:${providerId}`
+      : [
+        "fallback",
+        row.idEvent,
+        row.strTimeline,
+        row.strTimelineDetail,
+        row.strPlayer,
+        row.strTeam,
+        row.intTime,
+      ].map((value) => cleanString(value) ?? "").join("|")
+    if (seen.has(key)) continue
+    seen.add(key)
+    deduped.push(row)
+  }
+  return deduped
+}
+
 async function pruneStaleMatches(
   supabase: ReturnType<typeof createClient>,
   matchWindow: MatchWindow,
@@ -1203,7 +1503,7 @@ async function pruneStaleMatches(
     const { count, error: deleteError } = await supabase
       .from("live_matches")
       .delete({ count: "exact" })
-      .or(`start_time.lt.${matchWindow.startISO},start_time.gt.${matchWindow.endISO}`)
+      .or(`and(start_time.lt.${matchWindow.startISO},match_status.neq.FT),and(start_time.lt.${matchWindow.startISO},match_status.eq.FT,updated_at.lt.${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()}),start_time.gt.${matchWindow.endISO}`)
       .is("featured_event_slug", null)
 
     if (deleteError) throw deleteError
@@ -1213,8 +1513,19 @@ async function pruneStaleMatches(
 }
 
 function currentMatchWindow(now = new Date()): MatchWindow {
-  const start = new Date(now.getTime() - 6 * 60 * 60 * 1000)
+  const start = new Date(now.getTime() - 24 * 60 * 60 * 1000)
   const end = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+  return {
+    start,
+    end,
+    startISO: start.toISOString(),
+    endISO: end.toISOString(),
+  }
+}
+
+function recentCompletedMatchWindow(now = new Date()): MatchWindow {
+  const start = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+  const end = new Date(now.getTime() + 15 * 60 * 1000)
   return {
     start,
     end,
@@ -1249,6 +1560,17 @@ function configuredSportsDBScheduledLeagues(): ScheduledLeagueConfig[] {
     "4328": { id: "4328", sport: "Soccer", league: "English Premier League" },
   }
   return configuredSportsDBUpcomingLeagueIds().map((id) => known[id] ?? { id, sport: "Sports", league: id })
+}
+
+function configuredSportsDBCompletedLeagues(): ScheduledLeagueConfig[] {
+  const configuredIds = envList("THESPORTSDB_COMPLETED_LEAGUE_IDS", [])
+  const ids = configuredIds.length > 0 ? configuredIds : configuredSportsDBUpcomingLeagueIds()
+  const byId = new Map(configuredSportsDBScheduledLeagues().map((config) => [config.id, config]))
+  return uniqueStrings(ids).map((id) => byId.get(id) ?? { id, sport: "Sports", league: id })
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values.map((value) => value.trim()).filter(Boolean))]
 }
 
 function envList(name: string, fallback: string[]): string[] {
@@ -1319,7 +1641,10 @@ function normalizeSportsDBStatus(raw: unknown): MatchStatus {
     compact.includes("FINAL") ||
     compact.includes("FINISHED") ||
     compact.includes("COMPLETED") ||
+    compact.includes("COMPLETE") ||
+    compact.includes("ENDED") ||
     compact.includes("FULL TIME") ||
+    compact.includes("AFTER FULL TIME") ||
     compact.includes("AFTER EXTRA TIME") ||
     compact.includes("PENALTIES FINISHED")
   ) return "FT"
@@ -1402,6 +1727,10 @@ function tvLog(message: string): void {
 
 function timelineLog(message: string): void {
   console.log(`[TheSportsDBTimeline] ${message}`)
+}
+
+function completedLog(message: string): void {
+  console.log(`[SyncLiveMatchesDebug] ${message}`)
 }
 
 function redactedSecretDescription(value: string | undefined): string {

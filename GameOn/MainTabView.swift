@@ -190,6 +190,9 @@ struct MainTabView: View {
             mountTab(restoredTab, reason: "mainTabOnAppear")
 #if DEBUG
             print("[PerfLazyTab] restoredSelected tab=\(restoredTab.rawValue)")
+            print("[TabPerfDebug] tabAppeared=\(restoredTab.rawValue)")
+            print("[TabPerfDebug] cacheAge=\(tabCacheAgeDescription(restoredTab)) tab=\(restoredTab.rawValue)")
+            print("[TabPerfDebug] usedCachedData=\(tabHasCachedData(restoredTab))")
             for tab in AppTab.allCases where !mountedTabs.contains(tab) {
                 print("[PerfLazyTab] deferred tab=\(tab.rawValue)")
             }
@@ -352,6 +355,8 @@ struct MainTabView: View {
             let usedCachedData = tabSwitchCachedData ?? tabHasCachedData(tab)
 #if DEBUG
             print("[TabPerfDebug] selectedTab=\(newRaw)")
+            print("[TabPerfDebug] tabAppeared=\(newRaw)")
+            print("[TabPerfDebug] cacheAge=\(tabCacheAgeDescription(tab)) tab=\(newRaw)")
             print("[TabPerfDebug] tabSwitchStart=\(switchStartedAt.timeIntervalSince1970)")
             print("[TabPerfDebug] usedCachedData=\(usedCachedData)")
 #endif
@@ -515,6 +520,7 @@ struct MainTabView: View {
 #if DEBUG
         print("[TabPerfDebug] selectedTab=\(tab.rawValue)")
         print("[TabPerfDebug] firstContentVisibleMs=\(ms)")
+        print("[TabPerfDebug] firstPaintMs=\(ms) tab=\(tab.rawValue)")
         print("[TabPerfDebug] usedCachedData=\(usedCachedData)")
 #endif
         tabSwitchStartAt = nil
@@ -592,7 +598,7 @@ struct MainTabView: View {
             await viewModel.refreshDiscoverCoreInBackground()
         case .calendar:
             if viewModel.canFanUsePickupGamesUI {
-                await viewModel.refreshCalendarTabPickupSources()
+                await viewModel.refreshCalendarTabPickupSources(reason: "tabPreload")
             }
         case .live:
             break
@@ -641,6 +647,30 @@ struct MainTabView: View {
             return viewModel.currentUserAuthId != nil
                 || !viewModel.currentUserDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
+    }
+
+    private func tabCacheAgeDescription(_ tab: AppTab) -> String {
+        let date: Date?
+        switch tab {
+        case .discover:
+            date = viewModel.lastDiscoverCoreRefreshAt
+        case .live:
+            date = nil
+        case .calendar:
+            date = viewModel.lastCalendarTabPickupSourcesRefreshAt ?? viewModel.lastDiscoverCoreRefreshAt
+        case .following:
+            date = [
+                viewModel.lastSavedProGamesFetchAt,
+                viewModel.lastFollowingTabGlobalRefreshAt,
+                viewModel.lastSuccessfulFollowingJoinRequestsRefreshAt
+            ].compactMap { $0 }.max()
+        case .chat:
+            date = nil
+        case .account:
+            date = nil
+        }
+        guard let date else { return "nil" }
+        return String(format: "%.1f", Date().timeIntervalSince(date))
     }
 
     private func handlePendingDmOpenPreviewChange(_ preview: UserPreview?) {
@@ -1469,7 +1499,7 @@ struct MainTabView: View {
         if viewModel.canFanUsePickupGamesUI {
             await viewModel.restartPickupInviteRealtimeAfterForeground()
             if currentTab == .calendar {
-                await viewModel.refreshCalendarTabPickupSources()
+                await viewModel.refreshCalendarTabPickupSources(reason: "foregroundVisibleCalendar")
             } else if currentTab == .following {
                 await viewModel.loadMyPickupGameJoinRequestsForFollowing()
             }

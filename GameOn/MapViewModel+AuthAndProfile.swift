@@ -751,6 +751,7 @@ extension MapViewModel {
         Task { await GameReminderNotificationService.shared.cancelAllProGameReminders() }
         savedProGames = []
         favoriteTeamProGames = []
+        favoriteTeamProGameAlertOverrides = [:]
         FavoriteTeamsStore.clearAppStorage()
         clearBusinessFavoriteTeamState()
         favoriteVenueIDs = []

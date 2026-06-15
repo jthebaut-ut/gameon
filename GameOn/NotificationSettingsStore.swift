@@ -3,6 +3,7 @@ import SwiftUI
 
 nonisolated enum ProGameNotificationPreferenceKeys {
     static let finalScoreAlerts = "proGameFinalScoreNotifications"
+    static let favoriteTeamAlerts = "favoriteTeamProGameAlertsEnabled"
 }
 
 nonisolated enum FanGeoCalendarAlertTiming: String, CaseIterable, Identifiable {
@@ -98,6 +99,11 @@ final class NotificationSettingsStore: ObservableObject {
 
     @AppStorage(ProGameNotificationPreferenceKeys.finalScoreAlerts)
     var proGameFinalScoreNotifications: Bool = true {
+        willSet { objectWillChange.send() }
+    }
+
+    @AppStorage(ProGameNotificationPreferenceKeys.favoriteTeamAlerts)
+    var favoriteTeamProGameAlertsEnabled: Bool = false {
         willSet { objectWillChange.send() }
     }
 

@@ -22,6 +22,10 @@ extension MapViewModel {
     func refreshFollowingTabDataGloballyUnlessFresh() async {
         if shouldSkipFollowingTabGlobalRefresh() {
 #if DEBUG
+            let age = lastFollowingTabGlobalRefreshAt.map { Date().timeIntervalSince($0) } ?? 0
+            print("[TabPerfDebug] cacheAge=\(String(format: "%.1f", age)) tab=going source=followingGlobal")
+            print("[TabPerfDebug] usedCachedData=true tab=going source=followingGlobal")
+            print("[TabPerfDebug] refreshSkippedReason=fresh tab=going source=followingGlobal")
             print("[PerfPhase1] followingRefreshSkipped reason=fresh")
 #endif
             return
@@ -73,12 +77,17 @@ extension MapViewModel {
     func refreshFollowingTabDataGlobally() async {
         if let inFlight = followingTabGlobalRefreshTask {
 #if DEBUG
+            print("[TabPerfDebug] refreshCoalesced=true tab=going source=followingGlobal")
             print("[PerfPhase1] followingRefreshCoalesced=true")
 #endif
             await inFlight.value
             return
         }
 
+        let startedAt = Date()
+#if DEBUG
+        print("[TabPerfDebug] refreshStarted=going source=followingGlobal")
+#endif
         let task = Task<Void, Never> { [weak self] in
             guard let self else { return }
             await self.refreshFollowingTabDataGloballyNow()
@@ -86,6 +95,10 @@ extension MapViewModel {
         followingTabGlobalRefreshTask = task
         await task.value
         followingTabGlobalRefreshTask = nil
+#if DEBUG
+        let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
+        print("[TabPerfDebug] refreshDurationMs=\(ms) tab=going source=followingGlobal")
+#endif
     }
 
     private func refreshFollowingTabDataGloballyNow() async {

@@ -1030,6 +1030,10 @@ struct LiveScreen: View {
     }
 
     private func isLikelyNationalTeamName(_ rawTeam: String) -> Bool {
+        if CountryFlagHelper.isCountry(rawTeam) {
+            return true
+        }
+
         var name = normalizedWorldCupFilterText(rawTeam)
         let suffixes = [
             " national team",

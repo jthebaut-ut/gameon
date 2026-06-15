@@ -34,17 +34,56 @@ extension MapViewModel {
     }
 
     /// Calendar tab + MainTabView: refresh **public** pickup discover rows only (no fan join-request loads).
-    func refreshCalendarTabPickupSources() async {
+    func refreshCalendarTabPickupSources(forceRefresh: Bool = false, reason: String = "automatic") async {
         guard canFanUsePickupGamesUI else { return }
-#if DEBUG
-        print("[CalendarPickupPublicMode] personalStateHidden=true reason=refreshCalendarTabPickupSources")
-#endif
         let cal = Calendar.current
         let calendarDay = cal.startOfDay(for: calendarTabSelectedDate)
+        let key = "\(Int(calendarDay.timeIntervalSince1970))|\(selectedSport)|\(calendarTabGameFilter.rawValue)"
+
+        if !forceRefresh,
+           lastCalendarTabPickupSourcesRefreshKey == key,
+           let lastCalendarTabPickupSourcesRefreshAt {
+            let age = Date().timeIntervalSince(lastCalendarTabPickupSourcesRefreshAt)
+            if age < 90 {
+#if DEBUG
+                print("[TabPerfDebug] cacheAge=\(String(format: "%.1f", age)) tab=calendar source=pickupSources")
+                print("[TabPerfDebug] usedCachedData=true tab=calendar source=pickupSources")
+                print("[TabPerfDebug] refreshSkippedReason=fresh tab=calendar source=pickupSources reason=\(reason)")
+#endif
+                return
+            }
+        }
+
+        if !forceRefresh, let existing = calendarTabPickupSourcesRefreshTask {
+#if DEBUG
+            print("[TabPerfDebug] refreshCoalesced=true tab=calendar source=pickupSources reason=\(reason)")
+#endif
+            await existing.value
+            return
+        }
+
         if cal.startOfDay(for: selectedDate) != calendarDay {
             selectedDate = calendarDay
         }
-        await refreshPickupGamesForDiscoverMap(force: true, preservePickupCalendarDotDatesCache: true)
+
+        let startedAt = Date()
+#if DEBUG
+        print("[CalendarPickupPublicMode] personalStateHidden=true reason=refreshCalendarTabPickupSources")
+        print("[TabPerfDebug] refreshStarted=calendar source=pickupSources force=\(forceRefresh) reason=\(reason)")
+#endif
+        let task = Task<Void, Never> { @MainActor [weak self] in
+            guard let self else { return }
+            await self.refreshPickupGamesForDiscoverMap(force: true, preservePickupCalendarDotDatesCache: true)
+        }
+        calendarTabPickupSourcesRefreshTask = task
+        await task.value
+        calendarTabPickupSourcesRefreshTask = nil
+        lastCalendarTabPickupSourcesRefreshAt = Date()
+        lastCalendarTabPickupSourcesRefreshKey = key
+#if DEBUG
+        let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
+        print("[TabPerfDebug] refreshDurationMs=\(ms) tab=calendar source=pickupSources reason=\(reason)")
+#endif
     }
 
 #if DEBUG
@@ -222,14 +261,27 @@ extension MapViewModel {
 #if DEBUG
         print("[PerfPhase1D] calendarWorkActivated")
 #endif
-        let cal = Calendar.current
-        calendarTabSelectedDate = cal.startOfDay(for: Date())
-        calendarEventsListCache.removeAll()
         loadCalendarTabCalendarDotsAroundMonth(calendarTabSelectedDate, reason: "calendar_tab_active")
-        loadGamesFromSupabase()
+        loadGamesFromSupabaseIfCalendarScheduleStale(reason: "calendar_tab_active")
         Task {
-            await refreshCalendarTabPickupSources()
+            await refreshCalendarTabPickupSources(reason: "calendar_tab_active")
         }
+    }
+
+    func loadGamesFromSupabaseIfCalendarScheduleStale(reason: String) {
+        let age = lastDiscoverCoreRefreshAt.map { Date().timeIntervalSince($0) }
+        if let age, age < 90, !events.isEmpty {
+#if DEBUG
+            print("[TabPerfDebug] cacheAge=\(String(format: "%.1f", age)) tab=calendar source=schedule")
+            print("[TabPerfDebug] usedCachedData=true tab=calendar source=schedule")
+            print("[TabPerfDebug] refreshSkippedReason=fresh tab=calendar source=schedule reason=\(reason)")
+#endif
+            return
+        }
+#if DEBUG
+        print("[TabPerfDebug] refreshStarted=calendar source=schedule reason=\(reason)")
+#endif
+        loadGamesFromSupabase()
     }
 
     /// Calendar tab list: venue (`Venue Event`) + optional pickup synthesis; never shows days before today.

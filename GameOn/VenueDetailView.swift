@@ -314,6 +314,7 @@ struct VenueDetailView: View {
                 venueEventID: context.venueEventID,
                 teams: context.teams,
                 predictionType: context.predictionType,
+                lockTime: context.lockTime,
                 onSaved: {
                     await onRefreshVenuePredictionSummary?(context.venueEventID)
                 }
@@ -1092,6 +1093,8 @@ struct VenueDetailView: View {
                         sportType: game.sport,
                         summary: venuePredictionSummaries[eventID],
                         isLocked: game.predictionsLocked,
+                        lockTime: game.predictionLockTime,
+                        userPredictionReloadKey: livePresenceViewerUserID?.uuidString.lowercased(),
                         onOpen: { type in
                             openPredictionSheet(eventID: eventID, teams: teams, type: type, isLocked: game.predictionsLocked)
                         },
@@ -1127,7 +1130,7 @@ struct VenueDetailView: View {
                             await onStopVenuePredictionRealtime?(eventID)
                         },
                         onLockedTap: {
-                            predictionClosedMessage = "Predictions closed for this game."
+                            predictionClosedMessage = "Voting closed"
                         }
                     )
                 }
@@ -1595,7 +1598,7 @@ struct VenueDetailView: View {
     ) {
         guard type != .score else { return }
         guard !isLocked else {
-            predictionClosedMessage = "Predictions closed for this game."
+            predictionClosedMessage = "Voting closed"
             return
         }
         guard showsFanOnlyActionButtons else {
@@ -1605,8 +1608,13 @@ struct VenueDetailView: View {
         predictionSheet = VenueDetailPredictionSheetContext(
             venueEventID: eventID,
             teams: teams,
-            predictionType: type
+            predictionType: type,
+            lockTime: predictionLockTime(for: eventID)
         )
+    }
+
+    private func predictionLockTime(for eventID: UUID) -> Date? {
+        upcomingVenueGameItems.first { $0.venueEventID == eventID }?.predictionLockTime
     }
 
     @MainActor
@@ -1617,7 +1625,7 @@ struct VenueDetailView: View {
         isLocked: Bool
     ) async -> Bool {
         guard !isLocked else {
-            predictionClosedMessage = "Predictions closed for this game."
+            predictionClosedMessage = "Voting closed"
             return false
         }
         guard showsFanOnlyActionButtons else {
@@ -1645,7 +1653,7 @@ struct VenueDetailView: View {
         isLocked: Bool
     ) async -> Bool {
         guard !isLocked else {
-            predictionClosedMessage = "Predictions closed for this game."
+            predictionClosedMessage = "Voting closed"
             return false
         }
         guard showsFanOnlyActionButtons else {
@@ -1673,7 +1681,7 @@ struct VenueDetailView: View {
         isLocked: Bool
     ) async -> Bool {
         guard !isLocked else {
-            predictionClosedMessage = "Predictions closed for this game."
+            predictionClosedMessage = "Voting closed"
             return false
         }
         guard showsFanOnlyActionButtons else {
@@ -1926,8 +1934,13 @@ private struct VenueDetailGameItem: Identifiable {
     let status: VenueDetailGameStatus?
 
     var predictionsLocked: Bool {
-        guard let startsAt else { return false }
-        return Date() > startsAt.addingTimeInterval(10 * 60)
+        guard let lockTime = predictionLockTime else { return false }
+        return Date() > lockTime
+    }
+
+    var predictionLockTime: Date? {
+        guard let startsAt else { return nil }
+        return startsAt.addingTimeInterval(10 * 60)
     }
 
     var supportsPredictions: Bool {
@@ -1956,6 +1969,7 @@ private struct VenueDetailPredictionSheetContext: Identifiable {
     let venueEventID: UUID
     let teams: VenueEventPredictionTeams
     let predictionType: VenueEventPredictionType
+    let lockTime: Date?
 
     var id: String {
         "\(venueEventID.uuidString.lowercased())|\(predictionType.rawValue)"

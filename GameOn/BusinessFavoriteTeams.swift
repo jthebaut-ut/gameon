@@ -39,13 +39,17 @@ extension MapViewModel {
             teamIDs: Array(valid)
         )
         if saved {
-            await refreshBusinessFavoriteTeamProGames(businessId: businessId)
+            await refreshBusinessFavoriteTeamProGames(businessId: businessId, forceRefresh: true)
         }
         return saved
     }
 
     @MainActor
-    func refreshBusinessFavoriteTeamProGames(businessId: UUID? = nil, windowDays: Int = 30) async {
+    func refreshBusinessFavoriteTeamProGames(
+        businessId: UUID? = nil,
+        windowDays: Int = 30,
+        forceRefresh: Bool = false
+    ) async {
         guard hasAuthenticatedVenueOwnerSession else {
             businessFavoriteTeamProGames = []
             return
@@ -61,6 +65,58 @@ extension MapViewModel {
             return
         }
 
+        let refreshKey = [
+            resolvedBusinessId?.uuidString.lowercased() ?? "noBusiness",
+            "\(windowDays)",
+            Array(businessFavoriteTeamIDs).sorted().joined(separator: ",")
+        ].joined(separator: "|")
+        if !forceRefresh,
+           lastBusinessFavoriteTeamProGamesRefreshKey == refreshKey,
+           let lastBusinessFavoriteTeamProGamesRefreshAt {
+            let age = Date().timeIntervalSince(lastBusinessFavoriteTeamProGamesRefreshAt)
+            if age < 45, !businessFavoriteTeamProGames.contains(where: { $0.game.matchStatus.isHappeningNow }) {
+#if DEBUG
+                print("[TabPerfDebug] cacheAge=\(String(format: "%.1f", age)) tab=going source=businessFavoriteTeamProGames")
+                print("[TabPerfDebug] usedCachedData=true tab=going source=businessFavoriteTeamProGames")
+                print("[TabPerfDebug] refreshSkippedReason=fresh tab=going source=businessFavoriteTeamProGames")
+#endif
+                return
+            }
+        }
+        if !forceRefresh, let existing = businessFavoriteTeamProGamesRefreshTask {
+#if DEBUG
+            print("[TabPerfDebug] refreshCoalesced=true tab=going source=businessFavoriteTeamProGames")
+#endif
+            await existing.value
+            return
+        }
+
+        let startedAt = Date()
+#if DEBUG
+        print("[TabPerfDebug] refreshStarted=going source=businessFavoriteTeamProGames force=\(forceRefresh)")
+#endif
+        let task = Task<Void, Never> { @MainActor [weak self] in
+            guard let self else { return }
+            await self.refreshBusinessFavoriteTeamProGamesNow(
+                teams: teams,
+                windowDays: windowDays,
+                refreshKey: refreshKey
+            )
+        }
+        businessFavoriteTeamProGamesRefreshTask = task
+        await task.value
+        businessFavoriteTeamProGamesRefreshTask = nil
+#if DEBUG
+        let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
+        print("[TabPerfDebug] refreshDurationMs=\(ms) tab=going source=businessFavoriteTeamProGames")
+#endif
+    }
+
+    private func refreshBusinessFavoriteTeamProGamesNow(
+        teams: [FavoriteTeam],
+        windowDays: Int,
+        refreshKey: String
+    ) async {
         do {
             let matches = try await LiveSportsService.shared.fetchLiveMatches(windowDays: windowDays)
             let previous = businessFavoriteTeamProGames
@@ -73,6 +129,8 @@ extension MapViewModel {
             )
             await syncFavoriteTeamProGameSubscriptions(autoFollowMatches, reason: "businessFavoriteTeamAutoFollowFetch")
             mergeBusinessFavoriteTeamMatchesIntoLiveMatches(matches)
+            lastBusinessFavoriteTeamProGamesRefreshAt = Date()
+            lastBusinessFavoriteTeamProGamesRefreshKey = refreshKey
         } catch {
 #if DEBUG
             print("[BusinessFavoriteTeams] proGameFetchFailed error=\(error.localizedDescription)")
