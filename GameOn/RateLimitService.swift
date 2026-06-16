@@ -15,11 +15,11 @@ enum RateLimitService {
 
     // MARK: - Private chat (`DirectChatService.sendMessage`)
 
-    private static let chatMinInterval: TimeInterval = 1.5
+    private static let chatMinInterval: TimeInterval = 0
     private static let chatWindow30: TimeInterval = 30
-    private static let chatMaxPer30: Int = 5
+    private static let chatMaxPer30: Int = 30
     private static let chatWindow5m: TimeInterval = 300
-    private static let chatMaxPer5m: Int = 20
+    private static let chatMaxPer5m: Int = 120
     private static let chatDuplicateWindow: TimeInterval = 30
 
     // MARK: - Venue event comments / fan updates (`MapViewModel.addComment`)
@@ -83,7 +83,9 @@ enum RateLimitService {
 
         pruneChatSendTimes(&s.sendTimes, now: now)
 
-        if let last = s.lastSendAt, now.timeIntervalSince(last) < chatMinInterval {
+        if chatMinInterval > 0,
+           let last = s.lastSendAt,
+           now.timeIntervalSince(last) < chatMinInterval {
             return Self.slowDownMessage
         }
 

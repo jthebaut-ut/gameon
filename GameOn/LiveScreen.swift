@@ -98,9 +98,9 @@ struct LiveScreen: View {
 
     fileprivate struct LiveMatchTeamScoreRow: Identifiable {
         let id: String
-        let flag: String?
         let teamName: String
         let score: Int
+        let badgeURL: String?
     }
 
     init(
@@ -1213,7 +1213,7 @@ struct LiveScreen: View {
         let scoreRows = primaryMatch.flatMap(favoriteTeamScoreRows)
         let leagueSportText = favoriteTeamLeagueSportText(team: team, match: primaryMatch, item: primaryVenueItem)
         let tvDisplayText = primaryMatch?.tvDisplayText
-        let scorerSummaryText = primaryMatch?.scorerSummaryText
+        let scorerSummaryText = primaryMatch?.latestScoringEvent?.displayText
         let liveNow = matchingMatches.contains { $0.matchStatus.isHappeningNow } || matchingVenueItems.contains { $0.energy.isLiveNow }
         let soonMinutes = favoriteTeamSoonMinutes(matches: matchingMatches, items: matchingVenueItems)
         let startsSoon = soonMinutes != nil || matchingVenueItems.contains { $0.energy.startsSoon }
@@ -1283,22 +1283,17 @@ struct LiveScreen: View {
         return [
             LiveMatchTeamScoreRow(
                 id: "away-\(match.id)",
-                flag: nationalTeamFlag(for: match.awayTeam),
                 teamName: match.awayTeam,
-                score: match.scoreAway
+                score: match.scoreAway,
+                badgeURL: match.awayTeamBadgeURL
             ),
             LiveMatchTeamScoreRow(
                 id: "home-\(match.id)",
-                flag: nationalTeamFlag(for: match.homeTeam),
                 teamName: match.homeTeam,
-                score: match.scoreHome
+                score: match.scoreHome,
+                badgeURL: match.homeTeamBadgeURL
             )
         ]
-    }
-
-    private func nationalTeamFlag(for teamName: String) -> String? {
-        guard isLikelyNationalTeamName(teamName) else { return nil }
-        return CountryFlagHelper.flag(for: teamName)
     }
 
     private func favoriteTeamSoonMinutes(matches: [LiveMatch], items: [LiveFeedItem]) -> Int? {
@@ -1720,10 +1715,30 @@ struct LiveScreen: View {
                             .truncationMode(.tail)
                     }
 
-                    liveMatchScoreboard(match, accent: cardAccent)
-                    liveVenueLine(match)
-                    liveBroadcastLine(match, accent: cardAccent)
-                    liveScorerSummaryLine(match, accent: cardAccent)
+                    ProGameScoreBlock(
+                        awayTeam: match.awayTeam,
+                        homeTeam: match.homeTeam,
+                        awayScore: match.scoreAway,
+                        homeScore: match.scoreHome,
+                        awayBadgeURL: match.awayTeamBadgeURL,
+                        homeBadgeURL: match.homeTeamBadgeURL,
+                        source: "Live",
+                        isFinal: isFinalMatch,
+                        isLive: match.matchStatus.isHappeningNow,
+                        liveStatusText: match.matchStatus.isHappeningNow ? liveStatusText(match) : nil,
+                        league: match.league,
+                        featuredEventTitle: featuredEvent?.emptyStateTitle,
+                        accentColor: cardAccent,
+                        style: ProGameScoreboardStyle(
+                            scoreFont: .system(size: 24, weight: .black, design: .rounded).monospacedDigit(),
+                            separatorFont: .system(size: 18, weight: .bold, design: .rounded),
+                            teamNameFont: .system(size: 13, weight: .semibold, design: .rounded),
+                            emblemSize: 24
+                        ),
+                        timelineSummary: match.scoringTimelineSummary,
+                        latestScoringEvent: match.latestScoringEvent,
+                        showsFramedFinalBackground: isFinalMatch
+                    )
                 }
 
                 Spacer(minLength: 0)
@@ -1794,6 +1809,7 @@ struct LiveScreen: View {
             print("[LiveSportIconMapping] id=\(match.id) normalized=\(match.sport) catalogKey=\(catalogSportKey) systemImage=\(visual.systemImage) label=\(sportType.filterChipLabel)")
             print("[LiveSportDetected] id=\(match.id) presentationType=\(sportType.rawValue) accent=\(accent)")
 #endif
+            logLiveMatchScoringEventDebug(match)
         }
         .onTapGesture {
             liveMatchDetailSelection = match
@@ -1838,40 +1854,6 @@ struct LiveScreen: View {
         .clipped()
     }
 
-    private func liveMatchScoreboard(_ match: LiveMatch, accent: Color) -> some View {
-        VStack(spacing: 5) {
-            liveTeamScoreRow(team: match.awayTeam, score: match.scoreAway, isHome: false, accent: accent)
-            liveTeamScoreRow(team: match.homeTeam, score: match.scoreHome, isHome: true, accent: accent)
-        }
-        .padding(.vertical, 2)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func liveTeamScoreRow(team: String, score: Int, isHome: Bool, accent: Color) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(isHome ? accent.opacity(0.72) : FGColor.mutedText(colorScheme).opacity(0.55))
-                    .frame(width: 5, height: 5)
-
-                Text(team)
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
-                    .foregroundStyle(FGColor.primaryText(colorScheme))
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .minimumScaleFactor(0.78)
-            }
-
-            Spacer(minLength: 8)
-
-            Text("\(score)")
-                .font(.system(size: 20, weight: .black, design: .rounded).monospacedDigit())
-                .foregroundStyle(FGColor.primaryText(colorScheme))
-                .frame(width: 34, alignment: .trailing)
-        }
-        .contentShape(Rectangle())
-    }
-
     @ViewBuilder
     private func liveVenueLine(_ match: LiveMatch) -> some View {
         if let venueText = liveVenueDisplayText(for: match) {
@@ -1909,20 +1891,28 @@ struct LiveScreen: View {
         }
     }
 
-    @ViewBuilder
-    private func liveScorerSummaryLine(_ match: LiveMatch, accent: Color) -> some View {
-        if let scorerSummaryText = match.scorerSummaryText {
-            HStack(spacing: 6) {
-                Image(systemName: "soccerball")
-                    .font(.caption2.weight(.bold))
-                Text(scorerSummaryText)
-                    .font(FGTypography.metadata.weight(.semibold))
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-            }
-            .foregroundStyle(accent)
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
+    private func logLiveMatchScoringEventDebug(_ match: LiveMatch) {
+#if DEBUG
+        LiveScoringEventDebug.log(
+            gameId: match.id,
+            eventId: match.externalId,
+            sport: match.sport,
+            sportType: match.liveSportVisualType,
+            homeTeam: match.homeTeam,
+            awayTeam: match.awayTeam,
+            timelineEvents: match.timelineEvents,
+            timelineFetched: !match.timelineEvents.isEmpty
+        )
+        ScoringTimelineDebug.log(
+            gameId: match.id,
+            scoreHome: match.scoreHome,
+            scoreAway: match.scoreAway,
+            homeTeam: match.homeTeam,
+            awayTeam: match.awayTeam,
+            sportType: match.liveSportVisualType,
+            timelineEvents: match.timelineEvents
+        )
+#endif
     }
 
     private func liveVenueDisplayText(for match: LiveMatch) -> String? {
@@ -1937,7 +1927,7 @@ struct LiveScreen: View {
         let country = match.leagueCountry?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard !country.isEmpty else { return league }
 
-        let flag = CountryFlagHelper.flag(for: country)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let flag = CountryFlagHelper.flag(for: country, source: "Live")?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let countryText = flag.isEmpty ? country : "\(flag) \(country)"
         return league.isEmpty ? countryText : "\(countryText) • \(league)"
     }
@@ -3755,14 +3745,10 @@ private struct FavoriteTeamLiveCard: View {
                         }
 
                         if let scorerSummaryText = item.scorerSummaryText {
-                            HStack(spacing: 5) {
-                                Image(systemName: "soccerball")
-                                    .font(.caption2.weight(.bold))
-                                Text(scorerSummaryText)
-                                    .font(FGTypography.metadata.weight(.semibold))
-                                    .lineLimit(1)
-                                    .truncationMode(.tail)
-                            }
+                            Text(scorerSummaryText)
+                                .font(FGTypography.metadata.weight(.semibold))
+                                .lineLimit(1)
+                                .truncationMode(.tail)
                             .foregroundStyle(item.team.badgeColor)
                         }
                     }
@@ -3805,29 +3791,20 @@ private struct FavoriteTeamLiveCard: View {
     }
 
     private func teamScoreboard(_ rows: [LiveScreen.LiveMatchTeamScoreRow]) -> some View {
-        let showsFlags = rows.contains { $0.flag?.isEmpty == false }
-        return VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 4) {
             ForEach(rows) { row in
-                HStack(alignment: .firstTextBaseline, spacing: 7) {
-                    if showsFlags {
-                        Text(row.flag ?? "")
-                            .font(.system(size: 13))
-                            .frame(width: 18, alignment: .leading)
-                    }
-
-                    Text(row.teamName)
-                        .font(.system(size: 14.5, weight: .heavy, design: .rounded))
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.78)
-
-                    Spacer(minLength: 8)
-
-                    Text("\(row.score)")
-                        .font(.system(size: 16, weight: .black, design: .rounded).monospacedDigit())
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
-                        .frame(minWidth: 18, alignment: .trailing)
-                }
+                ProGameScoreRowView(
+                    identity: ProGameTeamScoreIdentity.resolve(
+                        teamName: row.teamName,
+                        badgeURL: row.badgeURL,
+                        source: "Live"
+                    ),
+                    score: row.score,
+                    scoreFont: .system(size: 16, weight: .black, design: .rounded).monospacedDigit(),
+                    nameFont: .system(size: 14.5, weight: .heavy, design: .rounded),
+                    leadingSpacing: 7,
+                    scoreMinWidth: 18
+                )
             }
         }
         .padding(.vertical, 1)

@@ -5,35 +5,249 @@ nonisolated enum FanGeoCalendarEventStore {
     static let eventIdentifierMapKey = "gameon.appleCalendar.eventIdentifiers.v1"
 }
 
+struct FanGeoAppleCalendarMutationResult {
+    var attempted = false
+    var created = false
+    var updated = false
+    var deleted = false
+    var permissionNeeded = false
+    var skippedReason: String?
+    var error: String?
+
+    var succeeded: Bool {
+        created || updated || deleted || (attempted && error == nil && permissionNeeded == false && skippedReason == nil)
+    }
+}
+
+struct FanGeoAppleCalendarSyncSummary {
+    var attempted = 0
+    var created = 0
+    var updated = 0
+    var deleted = 0
+    var permissionNeeded = false
+    var firstError: String?
+
+    mutating func merge(_ result: FanGeoAppleCalendarMutationResult) {
+        if result.attempted { attempted += 1 }
+        if result.created { created += 1 }
+        if result.updated { updated += 1 }
+        if result.deleted { deleted += 1 }
+        if result.permissionNeeded { permissionNeeded = true }
+        if firstError == nil {
+            firstError = result.error
+        }
+    }
+
+    var userMessage: String {
+        if permissionNeeded {
+            return "Calendar permission needed"
+        }
+        if let firstError, !firstError.isEmpty {
+            return "Sync failed: \(firstError)"
+        }
+        return "Calendar synced"
+    }
+}
+
 extension MapViewModel {
 
     func requestCalendarAccess() async -> Bool {
+        let statusBefore = calendarSyncAuthorizationStatusDescription()
+        print("[CalendarSyncDebug] eventStoreAuthStatus=\(statusBefore)")
+        switch EKEventStore.authorizationStatus(for: .event) {
+        case .authorized, .fullAccess:
+            return true
+        case .denied, .restricted:
+            return false
+        case .writeOnly, .notDetermined:
+            break
+        @unknown default:
+            break
+        }
+
         do {
-            return try await eventStore.requestFullAccessToEvents()
+            let granted = try await eventStore.requestFullAccessToEvents()
+            print("[CalendarSyncDebug] eventStoreAuthStatus=\(calendarSyncAuthorizationStatusDescription())")
+            return granted && calendarSyncHasFullCalendarAccess()
         } catch {
             print("Calendar permission error:", error)
+            print("[CalendarSyncDebug] error=\(error.localizedDescription)")
             return false
         }
     }
 
+    private func calendarSyncHasFullCalendarAccess() -> Bool {
+        switch EKEventStore.authorizationStatus(for: .event) {
+        case .authorized, .fullAccess:
+            return true
+        default:
+            return false
+        }
+    }
+
+    private func calendarSyncWritableCalendarForNewEvents() -> EKCalendar? {
+        if let defaultCalendar = eventStore.defaultCalendarForNewEvents,
+           defaultCalendar.allowsContentModifications {
+            return defaultCalendar
+        }
+
+        return eventStore.calendars(for: .event).first(where: { calendar in
+            calendar.allowsContentModifications
+        })
+    }
+
+    private func calendarSyncLogCalendar(_ calendar: EKCalendar) {
+        print("[CalendarSyncDebug] calendarIdentifier=\(calendar.calendarIdentifier)")
+        print("[CalendarSyncDebug] calendarTitle=\(calendar.title)")
+        print("[CalendarSyncDebug] calendarSource=\(calendar.source.title)")
+        print("[CalendarSyncDebug] calendarAllowsContentModifications=\(calendar.allowsContentModifications)")
+    }
+
+#if DEBUG
+    private func calendarSyncDebugLogEventKitContext(_ context: String) {
+        // MapViewModel calendar mutations are @MainActor-isolated; avoid Thread.isMainThread in async paths.
+        print("[CalendarSyncDebug] context=\(context) eventKitOnMainActor=true")
+    }
+#endif
+
+    private func calendarSyncAuthorizationStatusDescription() -> String {
+        switch EKEventStore.authorizationStatus(for: .event) {
+        case .authorized:
+            return "authorized"
+        case .fullAccess:
+            return "fullAccess"
+        case .writeOnly:
+            return "writeOnly"
+        case .denied:
+            return "denied"
+        case .restricted:
+            return "restricted"
+        case .notDetermined:
+            return "notDetermined"
+        @unknown default:
+            return "unknown"
+        }
+    }
+
+    private func logProGameCalendarSync(
+        action: String,
+        gameId: String,
+        calendarAuthorized: Bool? = nil,
+        eventCreated: Bool? = nil,
+        eventUpdated: Bool? = nil,
+        eventDeleted: Bool? = nil,
+        skippedReason: String? = nil,
+        fingerprint: String? = nil,
+        forceBypassFreshness: Bool
+    ) {
+        print("[CalendarSyncDebug] type=proGame")
+        print("[CalendarSyncDebug] action=\(action)")
+        print("[CalendarSyncDebug] gameId=\(gameId)")
+        if let calendarAuthorized {
+            print("[CalendarSyncDebug] calendarAuthorized=\(calendarAuthorized)")
+        }
+        if let eventCreated {
+            print("[CalendarSyncDebug] eventCreated=\(eventCreated)")
+        }
+        if let eventUpdated {
+            print("[CalendarSyncDebug] eventUpdated=\(eventUpdated)")
+        }
+        if let eventDeleted {
+            print("[CalendarSyncDebug] eventDeleted=\(eventDeleted)")
+        }
+        if let skippedReason {
+            print("[CalendarSyncDebug] skippedReason=\(skippedReason)")
+        }
+        if let fingerprint {
+            print("[CalendarSyncDebug] fingerprint=\(fingerprint)")
+        }
+        print("[CalendarSyncDebug] forceBypassFreshness=\(forceBypassFreshness)")
+    }
+
+    @discardableResult
     func addGameToCalendar(
         title: String,
         date: Date,
         location: String,
-        fanGeoIdentifier: String? = nil
-    ) async {
-        guard notificationSettingsStore.syncGoingGamesToAppleCalendar else { return }
+        fanGeoIdentifier: String? = nil,
+        forceBypassSyncSetting: Bool = false
+    ) async -> FanGeoAppleCalendarMutationResult {
+        var result = FanGeoAppleCalendarMutationResult()
+        let isProGame = calendarSyncEventKind(fanGeoIdentifier: fanGeoIdentifier) == .pro
+        let proGameId = fanGeoIdentifier?.replacingOccurrences(of: "pro|", with: "") ?? ""
+        guard notificationSettingsStore.isAppleCalendarSyncEnabled(forFanGeoIdentifier: fanGeoIdentifier)
+            || forceBypassSyncSetting else {
+            if isProGame {
+                logProGameCalendarSync(
+                    action: "save",
+                    gameId: proGameId,
+                    skippedReason: "syncDisabled",
+                    forceBypassFreshness: true
+                )
+            }
+            result.skippedReason = "Calendar sync is off"
+            return result
+        }
         let displayTitle = calendarSyncDisplayTitle(
             title: title,
             location: location,
             fanGeoIdentifier: fanGeoIdentifier
         )
+        guard date.timeIntervalSince1970.isFinite else {
+            let message = "Invalid game start date"
+            print("[CalendarSyncDebug] error=\(message)")
+            result.error = message
+            return result
+        }
 
         let granted = await requestCalendarAccess()
         guard granted else {
+            if isProGame {
+                logProGameCalendarSync(
+                    action: "save",
+                    gameId: proGameId,
+                    calendarAuthorized: false,
+                    skippedReason: calendarSyncAuthorizationStatusDescription(),
+                    forceBypassFreshness: true
+                )
+            }
             calendarSyncMessage = "Apple Calendar access is off. Turn it on in Settings ▸ Privacy & Security ▸ Calendars for FanGeo whenever you want events added there."
-            return
+            result.permissionNeeded = true
+            return result
         }
+
+        guard let calendar = calendarSyncWritableCalendarForNewEvents() else {
+            let message = "No writable Apple Calendar"
+            print("[CalendarSyncDebug] calendarIdentifier=nil")
+            print("[CalendarSyncDebug] error=\(message)")
+            calendarSyncMessage = "Could not find a writable Apple Calendar"
+            result.error = message
+            return result
+        }
+        calendarSyncLogCalendar(calendar)
+
+        if isProGame {
+            logProGameCalendarSync(
+                action: "save",
+                gameId: proGameId,
+                calendarAuthorized: true,
+                fingerprint: calendarSyncProGameFingerprint(
+                    gameId: proGameId,
+                    title: title,
+                    date: date,
+                    location: location,
+                    state: "saved"
+                ),
+                forceBypassFreshness: true
+            )
+        }
+
+        result.attempted = true
+        print("[CalendarSyncDebug] eventSaveAttempt=true")
+        print("[CalendarSyncDebug] eventStoreAuthStatus=\(calendarSyncAuthorizationStatusDescription())")
+#if DEBUG
+        calendarSyncDebugLogEventKitContext("save")
+#endif
 
         if let existingEvent = calendarSyncExistingEvent(
             title: title,
@@ -51,18 +265,42 @@ extension MapViewModel {
                 location: location,
                 fanGeoIdentifier: fanGeoIdentifier
             )
+            existingEvent.calendar = calendar
             calendarSyncCleanRestrictedFields(existingEvent)
             calendarSyncApplyAlarmPreference(to: existingEvent, fanGeoIdentifier: fanGeoIdentifier)
             do {
                 try eventStore.save(existingEvent, span: .thisEvent)
                 calendarSyncStoreEventIdentifier(existingEvent.eventIdentifier, fanGeoIdentifier: fanGeoIdentifier)
                 calendarSyncMessage = "Updated in Apple Calendar"
+                result.updated = true
+                print("[CalendarSyncDebug] eventIdentifier=\(existingEvent.eventIdentifier ?? "nil")")
+                print("[CalendarSyncDebug] eventSaved=true")
+                if isProGame {
+                    logProGameCalendarSync(
+                        action: "save",
+                        gameId: proGameId,
+                        eventUpdated: true,
+                        forceBypassFreshness: true
+                    )
+                }
                 print("Event updated in Apple Calendar:", displayTitle)
             } catch {
                 calendarSyncMessage = "Could not update Apple Calendar"
+                result.error = error.localizedDescription
+                print("[CalendarSyncDebug] eventSaved=false")
+                print("[CalendarSyncDebug] error=\(error.localizedDescription)")
+                if isProGame {
+                    logProGameCalendarSync(
+                        action: "save",
+                        gameId: proGameId,
+                        eventUpdated: false,
+                        skippedReason: error.localizedDescription,
+                        forceBypassFreshness: true
+                    )
+                }
                 print("Error updating event:", error)
             }
-            return
+            return result
         }
 
         let event = EKEvent(eventStore: eventStore)
@@ -78,41 +316,134 @@ extension MapViewModel {
         )
         calendarSyncCleanRestrictedFields(event)
         calendarSyncApplyAlarmPreference(to: event, fanGeoIdentifier: fanGeoIdentifier)
-        event.calendar = eventStore.defaultCalendarForNewEvents
+        event.calendar = calendar
 
         do {
             try eventStore.save(event, span: .thisEvent)
             calendarSyncStoreEventIdentifier(event.eventIdentifier, fanGeoIdentifier: fanGeoIdentifier)
             calendarSyncMessage = "Added to Apple Calendar"
+            result.created = true
+            print("[CalendarSyncDebug] eventIdentifier=\(event.eventIdentifier ?? "nil")")
+            print("[CalendarSyncDebug] eventSaved=true")
+            if isProGame {
+                logProGameCalendarSync(
+                    action: "save",
+                    gameId: proGameId,
+                    eventCreated: true,
+                    forceBypassFreshness: true
+                )
+            }
             print("Event added to Apple Calendar:", displayTitle)
         } catch {
             calendarSyncMessage = "Could not add to Apple Calendar"
+            result.error = error.localizedDescription
+            print("[CalendarSyncDebug] eventSaved=false")
+            print("[CalendarSyncDebug] error=\(error.localizedDescription)")
+            if isProGame {
+                logProGameCalendarSync(
+                    action: "save",
+                    gameId: proGameId,
+                    eventCreated: false,
+                    skippedReason: error.localizedDescription,
+                    forceBypassFreshness: true
+                )
+            }
             print("Error saving event:", error)
         }
+        return result
     }
 
-    func removeGameFromAppleCalendar(fanGeoIdentifier: String) async {
-        guard notificationSettingsStore.syncGoingGamesToAppleCalendar else { return }
-        guard !fanGeoIdentifier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+    @discardableResult
+    func removeGameFromAppleCalendar(
+        fanGeoIdentifier: String,
+        forceBypassSyncSetting: Bool = false
+    ) async -> FanGeoAppleCalendarMutationResult {
+        var result = FanGeoAppleCalendarMutationResult()
+        let isProGame = calendarSyncEventKind(fanGeoIdentifier: fanGeoIdentifier) == .pro
+        let proGameId = fanGeoIdentifier.replacingOccurrences(of: "pro|", with: "")
+        guard !fanGeoIdentifier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return result }
         let granted = await requestCalendarAccess()
-        guard granted else { return }
+        guard granted else {
+            if isProGame {
+                logProGameCalendarSync(
+                    action: "remove",
+                    gameId: proGameId,
+                    calendarAuthorized: false,
+                    skippedReason: calendarSyncAuthorizationStatusDescription(),
+                    forceBypassFreshness: true
+                )
+            }
+            result.permissionNeeded = true
+            return result
+        }
+        if isProGame {
+            logProGameCalendarSync(
+                action: "remove",
+                gameId: proGameId,
+                calendarAuthorized: true,
+                fingerprint: "gameId:\(proGameId)|state:removed",
+                forceBypassFreshness: true
+            )
+        }
         guard let event = calendarSyncEventForRemoval(fanGeoIdentifier: fanGeoIdentifier) else {
-            return
+            result.skippedReason = "Event not found"
+            if isProGame {
+                logProGameCalendarSync(
+                    action: "remove",
+                    gameId: proGameId,
+                    eventDeleted: false,
+                    skippedReason: "eventNotFound",
+                    forceBypassFreshness: true
+                )
+            }
+            return result
         }
 
+        result.attempted = true
+#if DEBUG
+        calendarSyncDebugLogEventKitContext("remove")
+#endif
+        if let calendar = event.calendar {
+            calendarSyncLogCalendar(calendar)
+        }
         do {
             try eventStore.remove(event, span: .thisEvent)
             calendarSyncRemoveStoredEventIdentifier(fanGeoIdentifier: fanGeoIdentifier)
             calendarSyncMessage = "Removed from Apple Calendar"
+            result.deleted = true
+            print("[CalendarSyncDebug] eventIdentifier=\(event.eventIdentifier ?? "nil")")
+            print("[CalendarSyncDebug] eventDeleted=true")
+            if isProGame {
+                logProGameCalendarSync(
+                    action: "remove",
+                    gameId: proGameId,
+                    eventDeleted: true,
+                    forceBypassFreshness: true
+                )
+            }
             print("Event removed from Apple Calendar:", fanGeoIdentifier)
         } catch {
             calendarSyncMessage = "Could not remove Apple Calendar event"
+            result.error = error.localizedDescription
+            print("[CalendarSyncDebug] eventDeleted=false")
+            print("[CalendarSyncDebug] error=\(error.localizedDescription)")
+            if isProGame {
+                logProGameCalendarSync(
+                    action: "remove",
+                    gameId: proGameId,
+                    eventDeleted: false,
+                    skippedReason: error.localizedDescription,
+                    forceBypassFreshness: true
+                )
+            }
             print("Error removing event:", error)
         }
+        return result
     }
 
     func syncVenueGameToAppleCalendarIfNeeded(venueEventID: UUID) async {
-        guard notificationSettingsStore.syncGoingGamesToAppleCalendar else { return }
+        guard notificationSettingsStore.syncGoingGamesToAppleCalendar,
+              notificationSettingsStore.syncVenueGamesToAppleCalendar else { return }
         let identifier = "venue|\(venueEventID.uuidString.lowercased())"
 
         if let item = followingTabGoingItems.first(where: { $0.id == venueEventID }),
@@ -142,8 +473,272 @@ extension MapViewModel {
         )
     }
 
-    func syncPickupGamesToAppleCalendarIfNeeded(reason: String) async {
-        guard notificationSettingsStore.syncGoingGamesToAppleCalendar else { return }
+    @discardableResult
+    func syncSavedProGameToAppleCalendar(
+        _ game: SavedProGame,
+        action: String,
+        forceBypassFreshness: Bool,
+        forceBypassSyncSetting: Bool = false
+    ) async -> FanGeoAppleCalendarMutationResult {
+        let identifier = calendarSyncProGameIdentifier(for: game)
+        let title = calendarSyncProGameTitle(for: game)
+        let fingerprint = calendarSyncProGameFingerprint(
+            gameId: game.stableKey,
+            title: title,
+            date: game.startTime,
+            location: game.league,
+            state: "saved"
+        )
+        logProGameCalendarSync(
+            action: action,
+            gameId: game.stableKey,
+            fingerprint: fingerprint,
+            forceBypassFreshness: forceBypassFreshness
+        )
+        return await addGameToCalendar(
+            title: title,
+            date: game.startTime,
+            location: game.league,
+            fanGeoIdentifier: identifier,
+            forceBypassSyncSetting: forceBypassSyncSetting
+        )
+    }
+
+    @discardableResult
+    func removeSavedProGameFromAppleCalendar(
+        identifier: String,
+        action: String,
+        forceBypassFreshness: Bool,
+        forceBypassSyncSetting: Bool = false
+    ) async -> FanGeoAppleCalendarMutationResult {
+        let fanGeoIdentifier = "pro|\(identifier)"
+        logProGameCalendarSync(
+            action: action,
+            gameId: identifier,
+            fingerprint: "gameId:\(identifier)|state:removed",
+            forceBypassFreshness: forceBypassFreshness
+        )
+        return await removeGameFromAppleCalendar(
+            fanGeoIdentifier: fanGeoIdentifier,
+            forceBypassSyncSetting: forceBypassSyncSetting
+        )
+    }
+
+    func reconcileSavedProGamesAppleCalendar(reason: String, forceBypassFreshness: Bool) async {
+        _ = await reconcileSavedProGamesAppleCalendarDetailed(
+            reason: reason,
+            forceBypassFreshness: forceBypassFreshness,
+            forceBypassSyncSetting: false
+        )
+    }
+
+    func appleCalendarAccessEnabledForSettings() -> Bool {
+        calendarSyncHasFullCalendarAccess()
+    }
+
+    func appleCalendarAuthorizationStatusForSettings() -> String {
+        calendarSyncAuthorizationStatusDescription()
+    }
+
+    func syncAppleCalendarFromSettings() async -> String {
+        print("[CalendarSyncDebug] settingsSyncButtonTapped=true")
+        print("[CalendarSyncDebug] eventStoreAuthStatus=\(calendarSyncAuthorizationStatusDescription())")
+        print("[CalendarSyncDebug] proGameCount=\(savedProGames.count)")
+        guard notificationSettingsStore.syncGoingGamesToAppleCalendar else {
+            let message = "Calendar sync is off"
+            calendarSyncMessage = message
+            print("[CalendarSyncDebug] syncResult=\(message)")
+            return message
+        }
+        guard await requestCalendarAccess() else {
+            let message = "Calendar permission needed"
+            calendarSyncMessage = message
+            print("[CalendarSyncDebug] syncResult=\(message)")
+            return message
+        }
+
+        if notificationSettingsStore.syncVenueGamesToAppleCalendar
+            || notificationSettingsStore.syncPickupGamesToAppleCalendar {
+            await syncFanGeoAttendingEventsToAppleCalendar(
+                reason: "settingsManualSync",
+                forceBypassFreshness: true
+            )
+        }
+        var proSummary = FanGeoAppleCalendarSyncSummary()
+        if notificationSettingsStore.syncSavedProGamesToAppleCalendar {
+            proSummary = await reconcileSavedProGamesAppleCalendarDetailed(
+                reason: "settingsManualSync",
+                forceBypassFreshness: true,
+                forceBypassSyncSetting: false
+            )
+        }
+        let message = proSummary.permissionNeeded || proSummary.firstError != nil
+            ? proSummary.userMessage
+            : "Calendar synced"
+        calendarSyncMessage = message
+        print("[CalendarSyncDebug] syncResult=\(message)")
+        return message
+    }
+
+    func removeAllFanGeoAppleCalendarEvents() async -> String {
+        guard await requestCalendarAccess() else {
+            return "Calendar permission needed"
+        }
+
+        var removedCount = 0
+        var seenEventIdentifiers = Set<String>()
+
+        for fanGeoIdentifier in calendarSyncStoredEventIdentifiers().keys {
+            guard let event = calendarSyncEventForRemoval(fanGeoIdentifier: fanGeoIdentifier),
+                  let eventIdentifier = event.eventIdentifier,
+                  seenEventIdentifiers.insert(eventIdentifier).inserted else {
+                calendarSyncRemoveStoredEventIdentifier(fanGeoIdentifier: fanGeoIdentifier)
+                continue
+            }
+            do {
+                try eventStore.remove(event, span: .thisEvent)
+                calendarSyncRemoveStoredEventIdentifier(fanGeoIdentifier: fanGeoIdentifier)
+                removedCount += 1
+            } catch {
+                print("[CalendarSyncDebug] bulkRemoveFailed identifier=\(fanGeoIdentifier) error=\(error.localizedDescription)")
+            }
+        }
+
+        let predicate = eventStore.predicateForEvents(
+            withStart: Calendar.current.date(byAdding: .year, value: -1, to: Date()) ?? .distantPast,
+            end: Calendar.current.date(byAdding: .year, value: 2, to: Date()) ?? .distantFuture,
+            calendars: nil
+        )
+        for event in eventStore.events(matching: predicate) {
+            guard calendarSyncEventLooksLikeFanGeoCreated(event),
+                  let eventIdentifier = event.eventIdentifier,
+                  seenEventIdentifiers.insert(eventIdentifier).inserted else {
+                continue
+            }
+            do {
+                try eventStore.remove(event, span: .thisEvent)
+                removedCount += 1
+            } catch {
+                print("[CalendarSyncDebug] bulkRemoveScanFailed error=\(error.localizedDescription)")
+            }
+        }
+
+        UserDefaults.standard.removeObject(forKey: FanGeoCalendarEventStore.eventIdentifierMapKey)
+        let message = removedCount > 0 ? "Removed FanGeo calendar events" : "No FanGeo calendar events found"
+        calendarSyncMessage = message
+        print("[CalendarSyncDebug] bulkRemoveFinished count=\(removedCount)")
+        return message
+    }
+
+    private func reconcileSavedProGamesAppleCalendarDetailed(
+        reason: String,
+        forceBypassFreshness: Bool,
+        forceBypassSyncSetting: Bool
+    ) async -> FanGeoAppleCalendarSyncSummary {
+        var summary = FanGeoAppleCalendarSyncSummary()
+        guard notificationSettingsStore.syncGoingGamesToAppleCalendar || forceBypassSyncSetting else {
+            logProGameCalendarSync(
+                action: "reconcile",
+                gameId: "all",
+                skippedReason: "syncDisabled",
+                forceBypassFreshness: forceBypassFreshness
+            )
+            summary.firstError = "Calendar sync is off"
+            return summary
+        }
+        guard notificationSettingsStore.syncSavedProGamesToAppleCalendar || forceBypassSyncSetting else {
+            logProGameCalendarSync(
+                action: "reconcile",
+                gameId: "all",
+                skippedReason: "proCategoryDisabled",
+                forceBypassFreshness: forceBypassFreshness
+            )
+            return summary
+        }
+
+        guard await requestCalendarAccess() else {
+            summary.permissionNeeded = true
+            print("[CalendarSyncDebug] syncResult=\(summary.userMessage)")
+            return summary
+        }
+
+        let activeIdentifiers = calendarSyncActiveProGameIdentifiers()
+        logProGameCalendarSync(
+            action: "reconcile",
+            gameId: "all",
+            fingerprint: appleCalendarProGamesFingerprint(reason: reason),
+            forceBypassFreshness: forceBypassFreshness
+        )
+
+        for game in savedProGames {
+            let result = await syncSavedProGameToAppleCalendar(
+                game,
+                action: "reconcile",
+                forceBypassFreshness: forceBypassFreshness,
+                forceBypassSyncSetting: forceBypassSyncSetting
+            )
+            summary.merge(result)
+        }
+
+        for identifier in calendarSyncKnownProCalendarIdentifiers()
+            where identifier.hasPrefix("pro|") && !activeIdentifiers.contains(identifier) {
+            let result = await removeGameFromAppleCalendar(
+                fanGeoIdentifier: identifier,
+                forceBypassSyncSetting: forceBypassSyncSetting
+            )
+            summary.merge(result)
+        }
+        print("[CalendarSyncDebug] syncResult=\(summary.userMessage)")
+        return summary
+    }
+
+    func syncFavoriteTeamProGamesToAppleCalendar(
+        _ games: [FavoriteTeamProGame],
+        reason: String,
+        forceBypassFreshness: Bool
+    ) async {
+        guard notificationSettingsStore.syncGoingGamesToAppleCalendar,
+              notificationSettingsStore.syncSavedProGamesToAppleCalendar else {
+            logProGameCalendarSync(
+                action: "reconcile",
+                gameId: "favoriteTeam",
+                skippedReason: "syncDisabled",
+                forceBypassFreshness: forceBypassFreshness
+            )
+            return
+        }
+
+        var seen = Set<String>()
+        let scope = reason.hasPrefix("business") ? "business" : "fan"
+        for item in games {
+            guard !calendarSyncFavoriteTeamProGameIsCleared(item.game, scope: scope) else {
+                logProGameCalendarSync(
+                    action: "reconcile",
+                    gameId: item.game.stableKey,
+                    skippedReason: "completedFavoriteTeamCleared",
+                    forceBypassFreshness: forceBypassFreshness
+                )
+                continue
+            }
+            let identifier = calendarSyncProGameIdentifier(for: item.game)
+            guard seen.insert(identifier).inserted else { continue }
+            await syncSavedProGameToAppleCalendar(
+                item.game,
+                action: "reconcile",
+                forceBypassFreshness: forceBypassFreshness
+            )
+        }
+        logProGameCalendarSync(
+            action: "reconcile",
+            gameId: "favoriteTeam",
+            fingerprint: "reason:\(reason)|count:\(seen.count)|ids:\(seen.sorted().joined(separator: ","))",
+            forceBypassFreshness: forceBypassFreshness
+        )
+    }
+
+    func syncPickupGamesToAppleCalendarIfNeeded(reason: String, forceBypassFreshness: Bool = false) async {
+        guard notificationSettingsStore.syncGoingGamesToAppleCalendar,
+              notificationSettingsStore.syncPickupGamesToAppleCalendar else { return }
         let key = appleCalendarPickupSyncFingerprint(reason: reason)
         if let existing = appleCalendarPickupSyncTask {
 #if DEBUG
@@ -152,7 +747,8 @@ extension MapViewModel {
             await existing.value
             return
         }
-        if lastAppleCalendarPickupSyncKey == key,
+        if !forceBypassFreshness,
+           lastAppleCalendarPickupSyncKey == key,
            let lastAppleCalendarPickupSyncAt {
             let age = Date().timeIntervalSince(lastAppleCalendarPickupSyncAt)
             if age < 60 {
@@ -208,7 +804,7 @@ extension MapViewModel {
 #endif
     }
 
-    func syncFanGeoAttendingEventsToAppleCalendar(reason: String) async {
+    func syncFanGeoAttendingEventsToAppleCalendar(reason: String, forceBypassFreshness: Bool = false) async {
         guard notificationSettingsStore.syncGoingGamesToAppleCalendar else { return }
         let key = appleCalendarGlobalSyncFingerprint(reason: reason)
         if let existing = appleCalendarGlobalSyncTask {
@@ -218,7 +814,8 @@ extension MapViewModel {
             await existing.value
             return
         }
-        if lastAppleCalendarGlobalSyncKey == key,
+        if !forceBypassFreshness,
+           lastAppleCalendarGlobalSyncKey == key,
            let lastAppleCalendarGlobalSyncAt {
             let age = Date().timeIntervalSince(lastAppleCalendarGlobalSyncAt)
             if age < 60 {
@@ -226,6 +823,13 @@ extension MapViewModel {
                 print("[TabPerfDebug] cacheAge=\(String(format: "%.1f", age)) source=appleCalendarGlobalSync")
                 print("[TabPerfDebug] refreshSkippedReason=fresh source=appleCalendarGlobalSync reason=\(reason)")
 #endif
+                logProGameCalendarSync(
+                    action: "reconcile",
+                    gameId: "all",
+                    skippedReason: "fresh",
+                    fingerprint: key,
+                    forceBypassFreshness: forceBypassFreshness
+                )
                 return
             }
         }
@@ -234,7 +838,10 @@ extension MapViewModel {
         print("[TabPerfDebug] refreshStarted=appleCalendarGlobalSync reason=\(reason)")
 #endif
         let task = Task<Void, Never> { @MainActor [weak self] in
-            await self?.syncFanGeoAttendingEventsToAppleCalendarNow(reason: reason)
+            await self?.syncFanGeoAttendingEventsToAppleCalendarNow(
+                reason: reason,
+                forceBypassFreshness: forceBypassFreshness
+            )
         }
         appleCalendarGlobalSyncTask = task
         await task.value
@@ -247,13 +854,14 @@ extension MapViewModel {
 #endif
     }
 
-    private func syncFanGeoAttendingEventsToAppleCalendarNow(reason: String) async {
+    private func syncFanGeoAttendingEventsToAppleCalendarNow(reason: String, forceBypassFreshness: Bool) async {
 #if DEBUG
         print("[CalendarSyncDebug] globalSyncStarted reason=\(reason)")
 #endif
         var seen = Set<String>()
 
         for item in followingTabGoingItems where item.isServerGoing {
+            guard notificationSettingsStore.syncVenueGamesToAppleCalendar else { continue }
             guard let start = calendarSyncVenueStartDate(for: item.venueEvent) else { continue }
             let title = item.venueEvent.event_title?.trimmingCharacters(in: .whitespacesAndNewlines)
             let key = "venue|\(item.id.uuidString.lowercased())"
@@ -266,17 +874,20 @@ extension MapViewModel {
             )
         }
 
-        await syncPickupGamesToAppleCalendarIfNeeded(reason: reason)
+        if notificationSettingsStore.syncPickupGamesToAppleCalendar {
+            await syncPickupGamesToAppleCalendarIfNeeded(reason: reason, forceBypassFreshness: forceBypassFreshness)
+        }
 
-        for game in savedProGames {
-            let key = "pro|\(game.stableKey)"
-            guard seen.insert(key).inserted else { continue }
-            await addGameToCalendar(
-                title: "\(game.awayTeam) vs \(game.homeTeam)",
-                date: game.startTime,
-                location: game.league,
-                fanGeoIdentifier: key
-            )
+        if notificationSettingsStore.syncSavedProGamesToAppleCalendar {
+            for game in savedProGames {
+                let key = "pro|\(game.stableKey)"
+                guard seen.insert(key).inserted else { continue }
+                await syncSavedProGameToAppleCalendar(
+                    game,
+                    action: "reconcile",
+                    forceBypassFreshness: forceBypassFreshness
+                )
+            }
         }
 #if DEBUG
         print("[CalendarSyncDebug] globalSyncFinished reason=\(reason) count=\(seen.count)")
@@ -330,18 +941,123 @@ extension MapViewModel {
             }
             .sorted()
             .joined(separator: "|")
-        let proGames = savedProGames
+        let proGames = appleCalendarProGamesFingerprint(reason: reason)
+        return "\(appleCalendarPickupSyncFingerprint(reason: reason))|venue:\(venue)|pro:\(proGames)"
+    }
+
+    private func appleCalendarProGamesFingerprint(reason: String) -> String {
+        let savedState = savedProGames
             .map { game in
-                [
-                    game.stableKey,
-                    "\(Int(game.startTime.timeIntervalSince1970))",
-                    game.matchStatus.rawValue,
-                    "\(game.scoreAway)-\(game.scoreHome)"
-                ].joined(separator: "~")
+                calendarSyncProGameFingerprint(
+                    gameId: game.stableKey,
+                    title: calendarSyncProGameTitle(for: game),
+                    date: game.startTime,
+                    location: game.league,
+                    state: "saved"
+                )
             }
             .sorted()
             .joined(separator: "|")
-        return "\(appleCalendarPickupSyncFingerprint(reason: reason))|venue:\(venue)|pro:\(proGames)"
+        let fanFavoriteState = favoriteTeamProGames
+            .filter { !calendarSyncFavoriteTeamProGameIsCleared($0.game, scope: "fan") }
+            .map { item in
+                calendarSyncProGameFingerprint(
+                    gameId: item.game.stableKey,
+                    title: calendarSyncProGameTitle(for: item.game),
+                    date: item.game.startTime,
+                    location: item.game.league,
+                    state: "favoriteTeam"
+                )
+            }
+        let businessFavoriteState = businessFavoriteTeamProGames
+            .filter { !calendarSyncFavoriteTeamProGameIsCleared($0.game, scope: "business") }
+            .map { item in
+                calendarSyncProGameFingerprint(
+                    gameId: item.game.stableKey,
+                    title: calendarSyncProGameTitle(for: item.game),
+                    date: item.game.startTime,
+                    location: item.game.league,
+                    state: "businessFavoriteTeam"
+                )
+            }
+        let favoriteState = (fanFavoriteState + businessFavoriteState)
+            .sorted()
+            .joined(separator: "|")
+        let storedProState = calendarSyncStoredEventIdentifiers().keys
+            .filter { $0.hasPrefix("pro|") }
+            .sorted()
+            .joined(separator: "|")
+        return "reason:\(reason)|saved:\(savedState)|favorite:\(favoriteState)|stored:\(storedProState)"
+    }
+
+    private func calendarSyncActiveProGameIdentifiers() -> Set<String> {
+        var identifiers = Set(savedProGames.map { calendarSyncProGameIdentifier(for: $0) })
+        for item in favoriteTeamProGames where !calendarSyncFavoriteTeamProGameIsCleared(item.game, scope: "fan") {
+            identifiers.insert(calendarSyncProGameIdentifier(for: item.game))
+        }
+        for item in businessFavoriteTeamProGames where !calendarSyncFavoriteTeamProGameIsCleared(item.game, scope: "business") {
+            identifiers.insert(calendarSyncProGameIdentifier(for: item.game))
+        }
+        return identifiers
+    }
+
+    private func calendarSyncKnownProCalendarIdentifiers() -> Set<String> {
+        var identifiers = Set(calendarSyncStoredEventIdentifiers().keys.filter { $0.hasPrefix("pro|") })
+        let predicate = eventStore.predicateForEvents(
+            withStart: Calendar.current.date(byAdding: .year, value: -1, to: Date()) ?? .distantPast,
+            end: Calendar.current.date(byAdding: .year, value: 2, to: Date()) ?? .distantFuture,
+            calendars: nil
+        )
+        for event in eventStore.events(matching: predicate) {
+            if let identifier = calendarSyncFanGeoIdentifier(from: event),
+               identifier.hasPrefix("pro|") {
+                identifiers.insert(identifier)
+            }
+        }
+        return identifiers
+    }
+
+    private func calendarSyncFavoriteTeamProGameIsCleared(_ game: SavedProGame, scope: String) -> Bool {
+        guard game.isFinal else { return false }
+        let raw = UserDefaults.standard.string(forKey: "gameon.going.completedFavoriteTeamProGamesCleared.v1") ?? ""
+        let token = calendarSyncCompletedFavoriteTeamProGameClearToken(for: game, scope: scope)
+        return raw
+            .split(whereSeparator: \.isNewline)
+            .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+            .contains(token)
+    }
+
+    private func calendarSyncCompletedFavoriteTeamProGameClearToken(for game: SavedProGame, scope: String) -> String {
+        let userScope = currentUserAuthId?.uuidString.lowercased() ?? "guest"
+        return "\(userScope)|\(scope)|\(game.stableKey)"
+    }
+
+    private func calendarSyncProGameIdentifier(for game: SavedProGame) -> String {
+        "pro|\(game.stableKey)"
+    }
+
+    private func calendarSyncProGameTitle(for game: SavedProGame) -> String {
+        let away = game.awayTeam.trimmingCharacters(in: .whitespacesAndNewlines)
+        let home = game.homeTeam.trimmingCharacters(in: .whitespacesAndNewlines)
+        let teams = [away, home].filter { !$0.isEmpty }
+        guard !teams.isEmpty else { return "Saved Pro Game" }
+        return teams.joined(separator: " vs ")
+    }
+
+    private func calendarSyncProGameFingerprint(
+        gameId: String,
+        title: String,
+        date: Date,
+        location: String,
+        state: String
+    ) -> String {
+        [
+            "gameId:\(gameId)",
+            "start:\(Int(date.timeIntervalSince1970))",
+            "title:\(title)",
+            "location:\(location)",
+            "state:\(state)"
+        ].joined(separator: "|")
     }
 
     private func syncPickupGameToAppleCalendarIfNeeded(
@@ -402,7 +1118,13 @@ extension MapViewModel {
         )
 
         return eventStore.events(matching: predicate).first {
-            calendarSyncEvent($0, matchesTitle: title, displayTitle: displayTitle, location: location)
+            calendarSyncEvent(
+                $0,
+                matchesTitle: title,
+                displayTitle: displayTitle,
+                location: location,
+                fanGeoIdentifier: fanGeoIdentifier
+            )
         }
     }
 
@@ -410,13 +1132,60 @@ extension MapViewModel {
         event.notes?.contains(calendarSyncIdentifierLine(fanGeoIdentifier: identifier)) == true
     }
 
+    private func calendarSyncFanGeoIdentifier(from event: EKEvent) -> String? {
+        guard let notes = event.notes else { return nil }
+        for line in notes.components(separatedBy: .newlines) {
+            let prefix = "FanGeo ID:"
+            guard line.localizedCaseInsensitiveContains(prefix) else { continue }
+            let value = line.replacingOccurrences(of: prefix, with: "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if !value.isEmpty {
+                return value
+            }
+        }
+        return nil
+    }
+
+    private func calendarSyncEventLooksLikeFanGeoCreated(_ event: EKEvent) -> Bool {
+        if let notes = event.notes,
+           notes.localizedCaseInsensitiveContains("Added by FanGeo") {
+            return true
+        }
+        if let title = event.title?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !title.isEmpty {
+            if calendarSyncTitle(title, hasCaseInsensitivePrefix: "FanGeo:") { return true }
+            if calendarSyncTitle(title, hasCaseInsensitivePrefix: "FanGeo Pickup:") { return true }
+            if title.localizedCaseInsensitiveContains("FanGeo •") { return true }
+        }
+        return calendarSyncFanGeoIdentifier(from: event) != nil
+    }
+
     private func calendarSyncEvent(
         _ event: EKEvent,
         matchesTitle title: String,
         displayTitle: String,
-        location: String
+        location: String,
+        fanGeoIdentifier: String? = nil
     ) -> Bool {
-        guard event.title == title || event.title == displayTitle else { return false }
+        let eventTitle = calendarSyncComparableTitle(event.title ?? "")
+        var expectedTitles = [
+            title,
+            displayTitle,
+            "FanGeo: \(title)",
+            "FanGeo: \(displayTitle)",
+            "FanGeo Pickup: \(title)",
+            "FanGeo Pickup: \(displayTitle)"
+        ]
+        if fanGeoIdentifier?.lowercased().hasPrefix("pro|") == true {
+            let cleanTitle = calendarSyncTitleRemovingFanGeoPrefix(title)
+            let icon = calendarSyncSportIcon(title: cleanTitle, competition: location)
+            expectedTitles.append("\(icon) FanGeo • \(cleanTitle)")
+            expectedTitles.append("FanGeo • \(cleanTitle)")
+        }
+        let normalizedExpected = expectedTitles
+            .map(calendarSyncComparableTitle)
+            .filter { !$0.isEmpty }
+        guard normalizedExpected.contains(eventTitle) else { return false }
         guard let expectedLocation = calendarSyncCleanLocation(location) else { return true }
         let eventLocation = event.location?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return eventLocation.isEmpty || eventLocation == expectedLocation
@@ -445,6 +1214,9 @@ extension MapViewModel {
     ) -> String {
         let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let baseTitle = cleanTitle.isEmpty ? "Game" : cleanTitle
+        if calendarSyncEventKind(fanGeoIdentifier: fanGeoIdentifier) == .pro {
+            return calendarSyncProGameDisplayTitle(title: baseTitle, competition: location)
+        }
         guard !calendarSyncTitle(baseTitle, hasCaseInsensitivePrefix: "FanGeo:"),
               !calendarSyncTitle(baseTitle, hasCaseInsensitivePrefix: "FanGeo Pickup:")
         else {
@@ -460,7 +1232,9 @@ extension MapViewModel {
                 return "FanGeo: \(baseTitle)"
             }
             return "FanGeo: \(baseTitle) @ \(venueName)"
-        case .pro, .general:
+        case .pro:
+            return calendarSyncProGameDisplayTitle(title: baseTitle, competition: location)
+        case .general:
             return "FanGeo: \(baseTitle)"
         }
     }
@@ -477,12 +1251,11 @@ extension MapViewModel {
 
         switch calendarSyncEventKind(fanGeoIdentifier: fanGeoIdentifier) {
         case .pro:
-            if !cleanTitle.isEmpty {
-                lines.append("Teams: \(cleanTitle)")
-            }
-            if !cleanLocation.isEmpty {
-                lines.append("Competition: \(cleanLocation)")
-            }
+            return calendarSyncProGameNotes(
+                title: cleanTitle,
+                date: date,
+                competition: cleanLocation
+            )
         case .venue:
             if !cleanTitle.isEmpty {
                 lines.append("Teams: \(cleanTitle)")
@@ -507,6 +1280,25 @@ extension MapViewModel {
         }
 
         lines.append("Start: \(calendarSyncNotesDateFormatter.string(from: date))")
+        if let fanGeoIdentifier = fanGeoIdentifier?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !fanGeoIdentifier.isEmpty {
+            lines.append(calendarSyncIdentifierLine(fanGeoIdentifier: fanGeoIdentifier))
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    private func calendarSyncProGameNotes(title: String, date: Date, competition: String) -> String {
+        var lines = ["Added by FanGeo", ""]
+        let cleanCompetition = competition.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanTitle = calendarSyncTitleRemovingFanGeoPrefix(title)
+        if !cleanCompetition.isEmpty {
+            lines.append("🏆 \(cleanCompetition)")
+        }
+        if !cleanTitle.isEmpty {
+            lines.append(cleanTitle)
+        }
+        lines.append("")
+        lines.append("📅 \(calendarSyncNotesDateFormatter.string(from: date))")
         return lines.joined(separator: "\n")
     }
 
@@ -517,6 +1309,71 @@ extension MapViewModel {
     private func calendarSyncCleanRestrictedFields(_ event: EKEvent) {
         event.url = nil
         event.structuredLocation = nil
+    }
+
+    private func calendarSyncProGameDisplayTitle(title: String, competition: String) -> String {
+        let cleanTitle = calendarSyncTitleRemovingFanGeoPrefix(title)
+        let icon = calendarSyncSportIcon(title: cleanTitle, competition: competition)
+        return "FanGeo: \(icon) \(cleanTitle)"
+    }
+
+    private func calendarSyncTitleRemovingFanGeoPrefix(_ raw: String) -> String {
+        var title = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        for marker in ["FanGeo Pickup:", "FanGeo:", "FanGeo •", "FanGeo -"] {
+            guard let range = title.range(of: marker, options: [.caseInsensitive]) else { continue }
+            let prefix = title[..<range.lowerBound]
+            let prefixHasAlphanumeric = prefix.unicodeScalars.contains { CharacterSet.alphanumerics.contains($0) }
+            guard !prefixHasAlphanumeric else { continue }
+            title = String(title[range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+            break
+        }
+        while let first = title.unicodeScalars.first,
+              first.properties.isEmojiPresentation || first.properties.generalCategory == .otherSymbol {
+            title = String(title.unicodeScalars.dropFirst()).trimmingCharacters(in: .whitespacesAndNewlines)
+            if title.hasPrefix("•") || title.hasPrefix("-") {
+                title = String(title.dropFirst()).trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        }
+        return title.isEmpty ? "Game" : title
+    }
+
+    private func calendarSyncComparableTitle(_ raw: String) -> String {
+        calendarSyncTitleRemovingFanGeoPrefix(raw)
+            .unicodeScalars
+            .filter { scalar in
+                scalar.properties.isEmojiPresentation == false
+                    && scalar.properties.generalCategory != .otherSymbol
+                    && scalar.properties.generalCategory != .nonspacingMark
+            }
+            .map(String.init)
+            .joined()
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func calendarSyncSportIcon(title: String, competition: String) -> String {
+        let text = LiveMatchFilters.normalizedSearchText("\(title) \(competition)")
+        if text.contains("american football") || text.contains("nfl") { return "🏈" }
+        if text.contains("basketball") || text.contains("nba") { return "🏀" }
+        if text.contains("hockey") || text.contains("nhl") { return "🏒" }
+        if text.contains("baseball") || text.contains("mlb") { return "⚾" }
+        if text.contains("tennis") { return "🎾" }
+        if text.contains("golf") { return "⛳" }
+        if text.contains("mma") || text.contains("combat") || text.contains("boxing") || text.contains("ufc") { return "🥊" }
+        if text.contains("racing") || text.contains("motorsport") || text.contains("motor sport") || text.contains("f1") || text.contains("formula 1") || text.contains("formula one") { return "🏎️" }
+        if text.contains("soccer")
+            || text.contains("football")
+            || text.contains("fifa")
+            || text.contains("uefa")
+            || text.contains("world cup")
+            || text.contains("friendly")
+            || text.contains("nations league") {
+            return "⚽"
+        }
+        return "🏟️"
     }
 
     private func calendarSyncCleanLocation(_ raw: String) -> String? {
@@ -547,6 +1404,8 @@ extension MapViewModel {
         var identifiers = calendarSyncStoredEventIdentifiers()
         identifiers[fanGeoIdentifier] = eventIdentifier
         UserDefaults.standard.set(identifiers, forKey: FanGeoCalendarEventStore.eventIdentifierMapKey)
+        print("[CalendarSyncDebug] eventIdentifier=\(eventIdentifier)")
+        print("[CalendarSyncDebug] eventIdentifierPersisted=true")
     }
 
     private func calendarSyncRemoveStoredEventIdentifier(fanGeoIdentifier: String) {

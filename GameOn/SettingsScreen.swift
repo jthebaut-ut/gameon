@@ -6935,11 +6935,18 @@ private struct SettingsGameNotificationsCard: View {
     @ObservedObject var viewModel: MapViewModel
     @ObservedObject var notificationSettingsStore: NotificationSettingsStore
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.scenePhase) private var scenePhase
     @AppStorage("venueFavoriteTeamNearbyNotifications") private var venueFavoriteTeamNearbyNotifications = true
     @AppStorage("pickupGameReminderNotifications") private var pickupGameReminderNotifications = true
     @AppStorage("pickupJoinRequestUpdateNotifications") private var pickupJoinRequestUpdateNotifications = true
     @AppStorage("pickupPlayerJoinedNotifications") private var pickupPlayerJoinedNotifications = true
     @AppStorage("pickupGameChangeNotifications") private var pickupGameChangeNotifications = true
+    @AppStorage("gameon.appleCalendar.lastSuccessfulSyncAt.v1") private var calendarLastSyncedAtRaw: Double = 0
+    @State private var calendarAccessEnabled = false
+    @State private var calendarSyncInFlight = false
+    @State private var calendarSyncResultMessage = ""
+    @State private var showAppleCalendarSyncDisableConfirmation = false
+    @State private var appleCalendarSyncDisableInFlight = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: FGSpacing.lg) {
@@ -7019,6 +7026,8 @@ private struct SettingsGameNotificationsCard: View {
                     .padding(.bottom, 10)
             }
 
+            calendarSyncSettingsSection
+
             notificationSection(
                 title: "Calendar",
                 subtitle: "Sync FanGeo plans to your device calendar.",
@@ -7036,7 +7045,8 @@ private struct SettingsGameNotificationsCard: View {
                 calendarAlertPreferenceRow(
                     title: "Venue Games",
                     subtitle: "Reminder for watch parties and venue events.",
-                    selection: venueCalendarAlertTimingBinding
+                    selection: venueCalendarAlertTimingBinding,
+                    isEnabled: appleCalendarDependentControlsEnabled
                 )
 
                 Divider()
@@ -7045,7 +7055,8 @@ private struct SettingsGameNotificationsCard: View {
                 calendarAlertPreferenceRow(
                     title: "Pickup Games",
                     subtitle: "Reminder for games you host or join.",
-                    selection: pickupCalendarAlertTimingBinding
+                    selection: pickupCalendarAlertTimingBinding,
+                    isEnabled: appleCalendarDependentControlsEnabled
                 )
 
                 Divider()
@@ -7054,16 +7065,8 @@ private struct SettingsGameNotificationsCard: View {
                 calendarAlertPreferenceRow(
                     title: "Pro Games",
                     subtitle: "Reminder for saved professional games.",
-                    selection: proCalendarAlertTimingBinding
-                )
-
-                Divider()
-                    .padding(.leading, FGSpacing.md)
-
-                notificationToggle(
-                    title: "Apple Calendar Sync",
-                    subtitle: "Add FanGeo games and events you're attending to your Apple Calendar.",
-                    isOn: calendarSyncBinding
+                    selection: proCalendarAlertTimingBinding,
+                    isEnabled: appleCalendarDependentControlsEnabled
                 )
             }
         }
@@ -7072,6 +7075,24 @@ private struct SettingsGameNotificationsCard: View {
             print("[NotificationSettingsDebug] removedSocialFanSection=true")
             print("[NotificationSettingsDebug] appear notifyBeforeGame=\(notificationSettingsStore.notifyBeforeGame) proGameReminderNotifications=\(notificationSettingsStore.proGameReminderNotifications) calendarSync=\(notificationSettingsStore.syncGoingGamesToAppleCalendar)")
             await viewModel.refreshGameNotificationAuthorizationState()
+            refreshCalendarAccessState()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            refreshCalendarAccessState()
+        }
+        .confirmationDialog(
+            "Stop syncing with Apple Calendar?",
+            isPresented: $showAppleCalendarSyncDisableConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Keep Existing Events") {
+                notificationSettingsStore.syncGoingGamesToAppleCalendar = false
+            }
+            Button("Remove FanGeo Calendar Events", role: .destructive) {
+                disableAppleCalendarSyncAndRemoveEvents()
+            }
+            Button("Cancel", role: .cancel) { }
         }
     }
 
@@ -7087,6 +7108,311 @@ private struct SettingsGameNotificationsCard: View {
         }
         .padding(.horizontal, FGSpacing.xs)
     }
+
+    private var calendarSyncSettingsSection: some View {
+        notificationSection(
+            title: "Calendar Sync",
+            subtitle: "Keep FanGeo and Apple Calendar aligned.",
+            systemImage: "calendar.badge.checkmark",
+            tint: FGColor.accentGreen
+        ) {
+            VStack(alignment: .leading, spacing: 12) {
+                notificationToggle(
+                    title: "Sync to Apple Calendar",
+                    subtitle: "Automatically add FanGeo games and events to Apple Calendar.",
+                    isOn: appleCalendarSyncEnabledBinding
+                )
+
+                notificationToggle(
+                    title: "Saved Pro Games",
+                    subtitle: "Saved professional games you follow in FanGeo.",
+                    isOn: loggingBinding(
+                        key: "syncSavedProGamesToAppleCalendar",
+                        title: "Saved Pro Games",
+                        value: Binding(
+                            get: { notificationSettingsStore.syncSavedProGamesToAppleCalendar },
+                            set: { notificationSettingsStore.syncSavedProGamesToAppleCalendar = $0 }
+                        )
+                    )
+                )
+                .disabled(!notificationSettingsStore.syncGoingGamesToAppleCalendar)
+                .opacity(notificationSettingsStore.syncGoingGamesToAppleCalendar ? 1 : 0.45)
+
+                notificationToggle(
+                    title: "Venue Games",
+                    subtitle: "Watch parties and venue events you mark Going.",
+                    isOn: loggingBinding(
+                        key: "syncVenueGamesToAppleCalendar",
+                        title: "Venue Games",
+                        value: Binding(
+                            get: { notificationSettingsStore.syncVenueGamesToAppleCalendar },
+                            set: { notificationSettingsStore.syncVenueGamesToAppleCalendar = $0 }
+                        )
+                    )
+                )
+                .disabled(!notificationSettingsStore.syncGoingGamesToAppleCalendar)
+                .opacity(notificationSettingsStore.syncGoingGamesToAppleCalendar ? 1 : 0.45)
+
+                notificationToggle(
+                    title: "Pickup Games",
+                    subtitle: "Pickup games you host or join.",
+                    isOn: loggingBinding(
+                        key: "syncPickupGamesToAppleCalendar",
+                        title: "Pickup Games",
+                        value: Binding(
+                            get: { notificationSettingsStore.syncPickupGamesToAppleCalendar },
+                            set: { notificationSettingsStore.syncPickupGamesToAppleCalendar = $0 }
+                        )
+                    )
+                )
+                .disabled(!notificationSettingsStore.syncGoingGamesToAppleCalendar)
+                .opacity(notificationSettingsStore.syncGoingGamesToAppleCalendar ? 1 : 0.45)
+
+                Divider()
+                    .padding(.leading, FGSpacing.md)
+
+                calendarSyncStatusRow(
+                    title: calendarAccessEnabled ? "Calendar Access: Enabled" : "Calendar Access Required",
+                    subtitle: calendarAccessEnabled
+                        ? "FanGeo can write events to Apple Calendar."
+                        : "Allow calendar access to sync saved games and events.",
+                    systemImage: calendarAccessEnabled ? "checkmark.circle.fill" : "exclamationmark.triangle.fill",
+                    tint: calendarAccessEnabled ? FGColor.accentGreen : Color.orange
+                )
+
+                Divider()
+                    .padding(.leading, FGSpacing.md)
+
+                calendarSyncStatusRow(
+                    title: "Last Synced",
+                    subtitle: calendarLastSyncedText,
+                    systemImage: "clock.arrow.circlepath",
+                    tint: FGColor.accentBlue
+                )
+
+                Text("Keep your saved games, venue events, and pickup games synchronized with Apple Calendar.")
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, FGSpacing.md)
+
+                if !calendarSyncResultMessage.isEmpty {
+                    Text(calendarSyncResultMessage)
+                        .font(FGTypography.caption.weight(.semibold))
+                        .foregroundStyle(calendarSyncResultMessageLooksSuccessful ? FGColor.accentGreen : Color.orange)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, FGSpacing.md)
+                }
+
+                Button {
+                    if calendarSyncButtonShowsOpenSettings {
+                        openAppSettingsForCalendarAccess()
+                    } else {
+                        runSettingsCalendarSync()
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        if calendarSyncInFlight {
+                            ProgressView()
+                                .controlSize(.mini)
+                        } else {
+                            Image(systemName: calendarSyncButtonIconName)
+                                .font(.caption.weight(.black))
+                        }
+                        Text(calendarSyncButtonTitle)
+                            .font(FGTypography.caption.weight(.black))
+                        Spacer(minLength: 0)
+                    }
+                    .foregroundStyle(calendarSyncButtonForegroundColor)
+                    .padding(.horizontal, FGSpacing.md)
+                    .padding(.vertical, 10)
+                    .background(
+                        calendarSyncButtonBackgroundColor,
+                        in: RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
+                    )
+                }
+                .buttonStyle(.plain)
+                .disabled(!calendarSyncButtonIsInteractive)
+                .opacity(calendarSyncButtonIsInteractive ? 1 : 0.45)
+                .accessibilityLabel(calendarSyncButtonTitle)
+                .padding(.horizontal, FGSpacing.md)
+                .padding(.bottom, 10)
+            }
+            .padding(.top, 10)
+        }
+    }
+
+    private func calendarSyncStatusRow(
+        title: String,
+        subtitle: String,
+        systemImage: String,
+        tint: Color
+    ) -> some View {
+        HStack(alignment: .top, spacing: FGSpacing.sm) {
+            Image(systemName: systemImage)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(tint)
+                .frame(width: 24, height: 24)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(FGTypography.body.weight(.semibold))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                Text(subtitle)
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, FGSpacing.md)
+    }
+
+    private var appleCalendarDependentControlsEnabled: Bool {
+        notificationSettingsStore.syncGoingGamesToAppleCalendar
+    }
+
+    private var calendarSyncButtonShowsOpenSettings: Bool {
+        appleCalendarDependentControlsEnabled && !calendarAccessEnabled
+    }
+
+    private var calendarSyncButtonIsInteractive: Bool {
+        guard !calendarSyncInFlight, !appleCalendarSyncDisableInFlight else { return false }
+        return appleCalendarDependentControlsEnabled
+    }
+
+    private var calendarSyncButtonTitle: String {
+        if calendarSyncInFlight {
+            return "Syncing Calendar..."
+        }
+        if !appleCalendarDependentControlsEnabled {
+            return "Sync Calendar"
+        }
+        if calendarSyncButtonShowsOpenSettings {
+            return "Open Settings"
+        }
+        return "Sync Calendar"
+    }
+
+    private var calendarSyncButtonIconName: String {
+        if calendarSyncButtonShowsOpenSettings {
+            return "gearshape.fill"
+        }
+        return "arrow.triangle.2.circlepath"
+    }
+
+    private var calendarSyncButtonBackgroundColor: Color {
+        if !appleCalendarDependentControlsEnabled {
+            return Color.gray.opacity(colorScheme == .dark ? 0.35 : 0.28)
+        }
+        if calendarSyncButtonShowsOpenSettings {
+            return Color.orange
+        }
+        return FGColor.accentGreen
+    }
+
+    private var calendarSyncButtonForegroundColor: Color {
+        if !appleCalendarDependentControlsEnabled {
+            return FGColor.mutedText(colorScheme)
+        }
+        return Color.white
+    }
+
+    private var calendarLastSyncedText: String {
+        guard calendarLastSyncedAtRaw > 0 else { return "Not synced yet" }
+        let date = Date(timeIntervalSince1970: calendarLastSyncedAtRaw)
+        if Calendar.current.isDateInToday(date) {
+            return "Today at \(Self.calendarSyncTimeFormatter.string(from: date))"
+        }
+        return Self.calendarSyncDateTimeFormatter.string(from: date)
+    }
+
+    private var calendarSyncResultMessageLooksSuccessful: Bool {
+        switch calendarSyncResultMessage {
+        case "Calendar synced", "Removed FanGeo calendar events", "No FanGeo calendar events found":
+            return true
+        default:
+            return false
+        }
+    }
+
+    private var appleCalendarSyncEnabledBinding: Binding<Bool> {
+        Binding(
+            get: { notificationSettingsStore.syncGoingGamesToAppleCalendar },
+            set: { enabled in
+                print("[NotificationSettingsDebug] save key=syncGoingGamesToAppleCalendar value=\(enabled)")
+                if enabled {
+                    enableAppleCalendarSync()
+                } else if notificationSettingsStore.syncGoingGamesToAppleCalendar {
+                    showAppleCalendarSyncDisableConfirmation = true
+                }
+            }
+        )
+    }
+
+    private func enableAppleCalendarSync() {
+        Task { @MainActor in
+            let granted = await viewModel.requestCalendarAccess()
+            refreshCalendarAccessState()
+            if granted {
+                notificationSettingsStore.syncGoingGamesToAppleCalendar = true
+                calendarSyncResultMessage = ""
+            } else {
+                notificationSettingsStore.syncGoingGamesToAppleCalendar = false
+                calendarSyncResultMessage = "Calendar permission needed"
+            }
+        }
+    }
+
+    private func disableAppleCalendarSyncAndRemoveEvents() {
+        guard !appleCalendarSyncDisableInFlight else { return }
+        appleCalendarSyncDisableInFlight = true
+        notificationSettingsStore.syncGoingGamesToAppleCalendar = false
+        calendarSyncResultMessage = ""
+        Task { @MainActor in
+            let message = await viewModel.removeAllFanGeoAppleCalendarEvents()
+            calendarSyncResultMessage = message
+            appleCalendarSyncDisableInFlight = false
+        }
+    }
+
+    private func refreshCalendarAccessState() {
+        calendarAccessEnabled = viewModel.appleCalendarAccessEnabledForSettings()
+    }
+
+    private func runSettingsCalendarSync() {
+        guard !calendarSyncInFlight else { return }
+        calendarSyncInFlight = true
+        calendarSyncResultMessage = ""
+        Task { @MainActor in
+            let message = await viewModel.syncAppleCalendarFromSettings()
+            calendarSyncResultMessage = message
+            calendarAccessEnabled = viewModel.appleCalendarAccessEnabledForSettings()
+            if message == "Calendar synced" {
+                calendarLastSyncedAtRaw = Date().timeIntervalSince1970
+            }
+            calendarSyncInFlight = false
+        }
+    }
+
+    private func openAppSettingsForCalendarAccess() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
+    }
+
+    private static let calendarSyncTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        formatter.dateStyle = .none
+        return formatter
+    }()
+
+    private static let calendarSyncDateTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter
+    }()
 
     private var gameNotificationsEnabledBinding: Binding<Bool> {
         Binding(
@@ -7140,19 +7466,6 @@ private struct SettingsGameNotificationsCard: View {
         )
     }
 
-    private var calendarSyncBinding: Binding<Bool> {
-        Binding(
-            get: { notificationSettingsStore.syncGoingGamesToAppleCalendar },
-            set: { enabled in
-                print("[NotificationSettingsDebug] save key=syncGoingGamesToAppleCalendar value=\(enabled)")
-                notificationSettingsStore.syncGoingGamesToAppleCalendar = enabled
-                if enabled {
-                    Task { await viewModel.syncFanGeoAttendingEventsToAppleCalendar(reason: "settingsEnabled") }
-                }
-            }
-        )
-    }
-
     private var venueCalendarAlertTimingBinding: Binding<FanGeoCalendarAlertTiming> {
         calendarAlertTimingBinding(
             key: "venue_calendar_alert_timing",
@@ -7188,7 +7501,7 @@ private struct SettingsGameNotificationsCard: View {
                 print("[NotificationSettingsDebug] save key=\(key) value=\(timing.rawValue)")
                 set(timing)
                 if notificationSettingsStore.syncGoingGamesToAppleCalendar {
-                    Task { await viewModel.syncFanGeoAttendingEventsToAppleCalendar(reason: "calendarAlertTimingChanged") }
+                    Task { await viewModel.syncFanGeoAttendingEventsToAppleCalendar(reason: "calendarAlertTimingChanged", forceBypassFreshness: true) }
                 }
             }
         )
@@ -7288,53 +7601,93 @@ private struct SettingsGameNotificationsCard: View {
         .padding(.vertical, 10)
     }
 
+    @ViewBuilder
     private func calendarAlertPreferenceRow(
         title: String,
         subtitle: String,
-        selection: Binding<FanGeoCalendarAlertTiming>
+        selection: Binding<FanGeoCalendarAlertTiming>,
+        isEnabled: Bool
     ) -> some View {
-        Menu {
-            ForEach(FanGeoCalendarAlertTiming.allCases) { timing in
-                Button {
-                    selection.wrappedValue = timing
-                } label: {
-                    if selection.wrappedValue == timing {
-                        Label(timing.displayName, systemImage: "checkmark")
-                    } else {
-                        Text(timing.displayName)
+        let timingColor = isEnabled ? FGColor.accentGreen : FGColor.mutedText(colorScheme)
+        let chevronColor = isEnabled ? FGColor.mutedText(colorScheme) : FGColor.mutedText(colorScheme).opacity(0.45)
+
+        Group {
+            if isEnabled {
+                Menu {
+                    ForEach(FanGeoCalendarAlertTiming.allCases) { timing in
+                        Button {
+                            selection.wrappedValue = timing
+                        } label: {
+                            if selection.wrappedValue == timing {
+                                Label(timing.displayName, systemImage: "checkmark")
+                            } else {
+                                Text(timing.displayName)
+                            }
+                        }
                     }
+                } label: {
+                    calendarAlertPreferenceRowLabel(
+                        title: title,
+                        subtitle: subtitle,
+                        timingName: selection.wrappedValue.displayName,
+                        timingColor: timingColor,
+                        chevronColor: chevronColor,
+                        showsChevron: true
+                    )
                 }
+                .buttonStyle(.plain)
+            } else {
+                calendarAlertPreferenceRowLabel(
+                    title: title,
+                    subtitle: subtitle,
+                    timingName: selection.wrappedValue.displayName,
+                    timingColor: timingColor,
+                    chevronColor: chevronColor,
+                    showsChevron: false
+                )
             }
-        } label: {
-            HStack(alignment: .center, spacing: FGSpacing.md) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(title)
-                        .font(FGTypography.body.weight(.semibold))
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
-                    Text(subtitle)
-                        .font(FGTypography.caption)
-                        .foregroundStyle(FGColor.secondaryText(colorScheme))
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+        }
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.45)
+        .accessibilityLabel("\(title) calendar alert \(selection.wrappedValue.displayName)")
+    }
 
-                Spacer(minLength: FGSpacing.md)
+    private func calendarAlertPreferenceRowLabel(
+        title: String,
+        subtitle: String,
+        timingName: String,
+        timingColor: Color,
+        chevronColor: Color,
+        showsChevron: Bool
+    ) -> some View {
+        HStack(alignment: .center, spacing: FGSpacing.md) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(FGTypography.body.weight(.semibold))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                Text(subtitle)
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
-                HStack(spacing: 6) {
-                    Text(selection.wrappedValue.displayName)
-                        .font(FGTypography.caption.weight(.bold))
-                        .foregroundStyle(FGColor.accentGreen)
-                        .lineLimit(1)
+            Spacer(minLength: FGSpacing.md)
+
+            HStack(spacing: 6) {
+                Text(timingName)
+                    .font(FGTypography.caption.weight(.bold))
+                    .foregroundStyle(timingColor)
+                    .lineLimit(1)
+                if showsChevron {
                     Image(systemName: "chevron.up.chevron.down")
                         .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(FGColor.mutedText(colorScheme))
+                        .foregroundStyle(chevronColor)
                 }
             }
-            .padding(.horizontal, FGSpacing.md)
-            .padding(.vertical, 10)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(title) calendar alert \(selection.wrappedValue.displayName)")
+        .padding(.horizontal, FGSpacing.md)
+        .padding(.vertical, 10)
+        .contentShape(Rectangle())
     }
 
 }

@@ -84,7 +84,7 @@ struct TeamTheme {
             return logResolvedTheme(TeamTheme(
                 rawName: cleanedName,
                 displayName: country.canonicalName,
-                flag: country.flag ?? CountryFlagHelper.flag(for: cleanedName),
+                flag: country.flag ?? CountryFlagHelper.flag(for: cleanedName, source: "TeamTheme"),
                 colors: country.colors,
                 accent: country.accent,
                 textColors: country.textColors,
@@ -102,7 +102,7 @@ struct TeamTheme {
         return logResolvedTheme(TeamTheme(
             rawName: cleanedName,
             displayName: displayName,
-            flag: CountryFlagHelper.flag(for: cleanedName),
+            flag: CountryFlagHelper.flag(for: cleanedName, source: "TeamTheme"),
             colors: fallback.colors,
             accent: fallback.accent,
             textColors: fallback.textColors,
@@ -197,7 +197,7 @@ private enum TeamThemeProvider {
         return TeamTheme(
             rawName: rawName,
             displayName: entry.displayName,
-            flag: CountryFlagHelper.flag(for: entry.displayName),
+            flag: CountryFlagHelper.flag(for: entry.displayName, source: "TeamTheme"),
             colors: [primary, secondary, accent],
             accent: accent,
             textColors: safeTextColors(primary: primary, secondary: secondary, accent: accent, textColorHint: textColorHint),

@@ -77,6 +77,38 @@ final class NotificationSettingsStore: ObservableObject {
         willSet { objectWillChange.send() }
     }
 
+    @AppStorage("syncSavedProGamesToAppleCalendar")
+    var syncSavedProGamesToAppleCalendar: Bool = true {
+        willSet { objectWillChange.send() }
+    }
+
+    @AppStorage("syncVenueGamesToAppleCalendar")
+    var syncVenueGamesToAppleCalendar: Bool = true {
+        willSet { objectWillChange.send() }
+    }
+
+    @AppStorage("syncPickupGamesToAppleCalendar")
+    var syncPickupGamesToAppleCalendar: Bool = true {
+        willSet { objectWillChange.send() }
+    }
+
+    func isAppleCalendarSyncEnabled(forFanGeoIdentifier identifier: String?) -> Bool {
+        guard syncGoingGamesToAppleCalendar else { return false }
+        let normalized = identifier?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased() ?? ""
+        if normalized.hasPrefix("pro|") {
+            return syncSavedProGamesToAppleCalendar
+        }
+        if normalized.hasPrefix("venue|") {
+            return syncVenueGamesToAppleCalendar
+        }
+        if normalized.hasPrefix("pickup|") {
+            return syncPickupGamesToAppleCalendar
+        }
+        return true
+    }
+
     @AppStorage("venue_calendar_alert_timing")
     private var venueCalendarAlertTimingRaw: String = FanGeoCalendarAlertTiming.oneHourBefore.rawValue {
         willSet { objectWillChange.send() }

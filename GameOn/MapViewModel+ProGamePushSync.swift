@@ -80,6 +80,11 @@ extension MapViewModel {
             reason: reason,
             subscriptionSource: "favorite_team_auto"
         )
+        await syncFavoriteTeamProGamesToAppleCalendar(
+            games,
+            reason: reason,
+            forceBypassFreshness: true
+        )
         if !notificationSettingsStore.favoriteTeamProGameAlertsEnabled {
             await disableFavoriteTeamAutoDefaultSubscriptions(userID: userID, reason: reason)
         }

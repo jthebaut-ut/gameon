@@ -20,6 +20,7 @@ nonisolated struct SavedProGame: Identifiable, Codable, Equatable {
     let rawMatchStatus: String?
     let minute: Int?
     let liveClockText: String?
+    let timelineEvents: [LiveTimelineEvent]?
     let savedAt: Date
 
     init(
@@ -39,6 +40,7 @@ nonisolated struct SavedProGame: Identifiable, Codable, Equatable {
         rawMatchStatus: String? = nil,
         minute: Int? = nil,
         liveClockText: String? = nil,
+        timelineEvents: [LiveTimelineEvent]? = nil,
         savedAt: Date
     ) {
         self.id = id
@@ -57,6 +59,7 @@ nonisolated struct SavedProGame: Identifiable, Codable, Equatable {
         self.rawMatchStatus = rawMatchStatus
         self.minute = minute
         self.liveClockText = liveClockText
+        self.timelineEvents = timelineEvents
         self.savedAt = savedAt
     }
 
@@ -77,11 +80,36 @@ nonisolated struct SavedProGame: Identifiable, Codable, Equatable {
         self.rawMatchStatus = match.rawMatchStatus
         self.minute = match.minute
         self.liveClockText = match.liveClockText
+        self.timelineEvents = match.timelineEvents
         self.savedAt = savedAt
     }
 
     var liveSportVisualType: LiveSportVisualType {
         LiveSportVisualType.normalize(sport)
+    }
+
+    var latestScoringEventResolution: LiveScoringEventResolution {
+        LiveScoringEventResolver.resolve(
+            sportType: liveSportVisualType,
+            timelineEvents: timelineEvents ?? []
+        )
+    }
+
+    var latestScoringEvent: LiveLatestScoringEvent? {
+        latestScoringEventResolution.latestEvent
+    }
+
+    var scoringTimelineSummary: LiveScoringTimelineSummary? {
+        LiveScoringTimelineBuilder.build(
+            sportType: liveSportVisualType,
+            timelineEvents: timelineEvents ?? [],
+            homeTeam: homeTeam,
+            awayTeam: awayTeam
+        )
+    }
+
+    var scoringEventsCount: Int {
+        scoringTimelineSummary?.entries.count ?? 0
     }
 
     var stableKey: String {
@@ -278,6 +306,10 @@ extension MapViewModel {
                 print("[TabPerfDebug] usedCachedData=true tab=going source=savedProGames")
                 print("[TabPerfDebug] refreshSkippedReason=fresh tab=going source=savedProGames reason=\(reason)")
 #endif
+                await reconcileSavedProGamesAppleCalendar(
+                    reason: "savedProGamesFresh:\(reason)",
+                    forceBypassFreshness: false
+                )
                 return
             }
         }
@@ -342,6 +374,10 @@ extension MapViewModel {
             lastSavedProGamesFetchAt = Date()
             lastSavedProGamesFetchUserId = userID
             await reconcileSavedProGameReminders(reason: "savedProGamesFetch")
+            await reconcileSavedProGamesAppleCalendar(
+                reason: "savedProGamesFetch",
+                forceBypassFreshness: true
+            )
 
             for snapshot in localSnapshots where !remoteKeys.contains(snapshot.stableKey) {
                 guard currentUserAuthId == userID else { return }
@@ -362,6 +398,10 @@ extension MapViewModel {
                 savedProGames = localSnapshots
                 ensureSavedProGameScoreUpdatePreferencesExist(for: localSnapshots)
             }
+            await reconcileSavedProGamesAppleCalendar(
+                reason: "savedProGamesFetchFallback",
+                forceBypassFreshness: true
+            )
         }
     }
 
@@ -378,6 +418,11 @@ extension MapViewModel {
 
         do {
             refreshedMatches = try await LiveSportsService.shared.fetchLiveMatches(forceRefresh: true)
+            let savedMatchIds = savedProGames.map(\.stableKey)
+            if !savedMatchIds.isEmpty {
+                let savedLiveMatches = try await LiveSportsService.shared.fetchLiveMatches(liveMatchIds: savedMatchIds)
+                refreshedMatches = Self.mergeLiveMatches(refreshedMatches, with: savedLiveMatches)
+            }
             liveSyncSucceeded = true
             mergeGoingProRefreshMatchesIntoLiveMatches(refreshedMatches)
         } catch {
@@ -442,11 +487,10 @@ extension MapViewModel {
         Task { [weak self] in
             guard let self else { return }
             await self.scheduleProGameReminderIfPossible(snapshot)
-            await self.addGameToCalendar(
-                title: "\(snapshot.awayTeam) vs \(snapshot.homeTeam)",
-                date: snapshot.startTime,
-                location: snapshot.league,
-                fanGeoIdentifier: "pro|\(snapshot.stableKey)"
+            await self.syncSavedProGameToAppleCalendar(
+                snapshot,
+                action: "save",
+                forceBypassFreshness: true
             )
         }
 
@@ -475,7 +519,12 @@ extension MapViewModel {
             await self.cancelProGameReminder(savedGameIdentifier: reminderIdentifier)
             await GameReminderNotificationService.shared.cancelProGameFinalNotification(identifier: reminderIdentifier)
             await GameReminderNotificationService.shared.cancelProGameScoreUpdateNotifications(identifier: reminderIdentifier)
-            await self.removeGameFromAppleCalendar(fanGeoIdentifier: "pro|\(reminderIdentifier)")
+            await self.removeSavedProGameFromAppleCalendar(
+                identifier: reminderIdentifier,
+                action: "remove",
+                forceBypassFreshness: true
+            )
+            await self.deleteProGamePredictionsForUnsave(proGameId: reminderIdentifier)
         }
 
         guard let userID = currentUserAuthId, isAuthenticatedForSocialFeatures else { return }
@@ -599,8 +648,21 @@ extension MapViewModel {
             rawMatchStatus: match.rawMatchStatus,
             minute: match.minute ?? saved.minute,
             liveClockText: match.liveClockText ?? saved.liveClockText,
+            timelineEvents: Self.preferredTimelineEvents(from: match, saved: saved),
             savedAt: saved.savedAt
         )
+    }
+
+    private static func preferredTimelineEvents(from match: LiveMatch, saved: SavedProGame) -> [LiveTimelineEvent]? {
+        let matchEvents = match.timelineEvents
+        let savedEvents = saved.timelineEvents ?? []
+        if matchEvents.count >= savedEvents.count, !matchEvents.isEmpty {
+            return matchEvents
+        }
+        if !savedEvents.isEmpty {
+            return savedEvents
+        }
+        return matchEvents.isEmpty ? nil : matchEvents
     }
 
     private func staleLiveFinalCandidateDisplaySnapshot(for saved: SavedProGame, reason: String) -> SavedProGame? {
@@ -625,6 +687,7 @@ extension MapViewModel {
             rawMatchStatus: saved.rawMatchStatus ?? "STALE_LIVE_FALLBACK",
             minute: saved.minute,
             liveClockText: saved.liveClockText,
+            timelineEvents: saved.timelineEvents,
             savedAt: saved.savedAt
         )
     }
@@ -693,7 +756,10 @@ extension MapViewModel {
             "freshStatus=\(fresh?.matchStatus.rawValue ?? "nil") " +
             "mergedStatus=\(merged.matchStatus.rawValue) " +
             "score=\(merged.scoreAway)-\(merged.scoreHome) " +
-            "matchedBy=\(hydration?.matchedBy ?? "none")"
+            "matchedBy=\(hydration?.matchedBy ?? "none") " +
+            "freshTimelineCount=\(fresh?.timelineEvents.count ?? 0) " +
+            "mergedTimelineCount=\(merged.timelineEvents?.count ?? 0) " +
+            "mergedScoringEventsCount=\(merged.scoringEventsCount)"
         )
         logProGameFinalDebug(rawProviderStatus: fresh?.rawMatchStatus, normalizedStatus: merged.matchStatus)
     }
@@ -830,6 +896,12 @@ extension MapViewModel {
         if changedSavedSnapshots {
             sortSavedProGames()
             persistSavedProGames()
+            Task { [weak self] in
+                await self?.reconcileSavedProGamesAppleCalendar(
+                    reason: "savedProGameStatusUpdate:\(reason)",
+                    forceBypassFreshness: true
+                )
+            }
         }
         return changedSavedSnapshots
     }
@@ -1392,21 +1464,25 @@ extension MapViewModel {
 
     private func mergeGoingProRefreshMatchesIntoLiveMatches(_ matches: [LiveMatch]) {
         guard !matches.isEmpty else { return }
+        liveMatches = Self.mergeLiveMatches(liveMatches, with: matches)
+        invalidateCalendarTabEventsListCache()
+    }
+
+    private static func mergeLiveMatches(_ base: [LiveMatch], with additional: [LiveMatch]) -> [LiveMatch] {
         var byKey: [String: LiveMatch] = [:]
-        for match in liveMatches {
+        for match in base {
             byKey[SavedProGame.stableKey(for: match)] = match
         }
-        for match in matches {
+        for match in additional {
             byKey[SavedProGame.stableKey(for: match)] = match
         }
-        liveMatches = byKey.values.sorted {
+        return byKey.values.sorted {
             if $0.matchStatus.isHappeningNow != $1.matchStatus.isHappeningNow {
                 return $0.matchStatus.isHappeningNow && !$1.matchStatus.isHappeningNow
             }
             if $0.startTime == $1.startTime { return $0.id < $1.id }
             return $0.startTime < $1.startTime
         }
-        invalidateCalendarTabEventsListCache()
     }
 
     private static func savedProGamesDefaultsKey(for userID: UUID) -> String {
@@ -1470,6 +1546,7 @@ private nonisolated struct SavedProGameSupabaseRow: Decodable {
             rawMatchStatus: Self.clean(match_status),
             minute: nil,
             liveClockText: nil,
+            timelineEvents: nil,
             savedAt: savedAt
         )
     }

@@ -291,9 +291,13 @@ final class MapViewModel: ObservableObject {
     var venueGameCardInitialGoingRefreshLastIDs: [UUID] = []
     let venueGameCardGoingSnapshotTTL: TimeInterval = 25
     @Published var venueEventPredictionSummaries: [UUID: VenueEventPredictionSummary] = [:]
+    @Published var proGamePredictionSummaries: [String: ProGamePredictionSummary] = [:]
     var venueEventPredictionRealtimeTasks: [UUID: Task<Void, Never>] = [:]
     var venueEventPredictionRealtimeChannels: [UUID: RealtimeChannelV2] = [:]
     var venueEventPredictionRealtimeRefreshTasks: [UUID: Task<Void, Never>] = [:]
+    var proGamePredictionRealtimeTasks: [String: Task<Void, Never>] = [:]
+    var proGamePredictionRealtimeChannels: [String: RealtimeChannelV2] = [:]
+    var proGamePredictionRealtimeRefreshTasks: [String: Task<Void, Never>] = [:]
     let fanUpdatesStore = FanUpdatesRealtimeStore()
 
     var venueEventComments: [UUID: [VenueEventCommentRow]] {

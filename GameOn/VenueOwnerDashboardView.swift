@@ -133,6 +133,133 @@ private struct VenueAnalyticsLiveOpsSnapshot {
     }
 }
 
+private struct BusinessAnalyticsLiveMetric: Identifiable {
+    var id: String { title }
+    let title: String
+    let value: String
+    let systemImage: String
+}
+
+private struct BusinessAnalyticsLiveMetricTileView: View {
+    let metric: BusinessAnalyticsLiveMetric
+    let primaryText: Color
+    let secondaryText: Color
+    let tint: Color
+    let isDarkMode: Bool
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: metric.systemImage)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(tint)
+                .frame(width: 20, height: 20)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(metric.value)
+                    .font(.caption.weight(.black))
+                    .foregroundStyle(primaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                Text(metric.title)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(secondaryText)
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            Color.white.opacity(isDarkMode ? 0.08 : 0.72),
+            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+        )
+    }
+}
+
+private struct BusinessAnalyticsLiveActivityCardView: View {
+    let statusText: String
+    let momentumTrend: String
+    let metrics: [BusinessAnalyticsLiveMetric]
+    let primaryText: Color
+    let secondaryText: Color
+    let statusTint: Color
+    let cardBackground: LinearGradient
+    let isDarkMode: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 13) {
+            header
+            metricRows
+            Text(momentumTrend)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(secondaryText)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(cardBackground, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(statusTint.opacity(isDarkMode ? 0.24 : 0.16), lineWidth: 1)
+        }
+    }
+
+    private var header: some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text("Live Activity")
+                    .font(.title3.weight(.black))
+                    .foregroundStyle(primaryText)
+                Text("Real-time venue pulse")
+                    .font(.caption.weight(.heavy))
+                    .foregroundStyle(secondaryText)
+                    .textCase(.uppercase)
+            }
+
+            Spacer(minLength: 0)
+
+            Text(statusText)
+                .font(.caption.weight(.black))
+                .foregroundStyle(statusTint)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(statusTint.opacity(isDarkMode ? 0.18 : 0.11), in: Capsule(style: .continuous))
+        }
+    }
+
+    private var metricRows: some View {
+        VStack(spacing: 8) {
+            ForEach(metricRowPairs, id: \.id) { row in
+                HStack(spacing: 8) {
+                    ForEach(row.metrics) { metric in
+                        BusinessAnalyticsLiveMetricTileView(
+                            metric: metric,
+                            primaryText: primaryText,
+                            secondaryText: secondaryText,
+                            tint: statusTint,
+                            isDarkMode: isDarkMode
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private var metricRowPairs: [BusinessAnalyticsLiveMetricRow] {
+        stride(from: 0, to: metrics.count, by: 2).map { index in
+            let end = min(index + 2, metrics.count)
+            return BusinessAnalyticsLiveMetricRow(index: index, metrics: Array(metrics[index..<end]))
+        }
+    }
+
+    private struct BusinessAnalyticsLiveMetricRow: Identifiable {
+        let index: Int
+        let metrics: [BusinessAnalyticsLiveMetric]
+
+        var id: Int { index }
+    }
+}
+
 private struct BusinessAnalyticsChartPoint: Identifiable {
     let id: String
     let index: Int
@@ -149,6 +276,513 @@ private struct BusinessAnalyticsRankedMetric: Identifiable {
     let progress: Double
     let icon: String
     let tint: Color
+}
+
+private struct BusinessAnalyticsDashboardContentView: View {
+    let totalEngagement: Int
+    let datePresetText: String
+    let comparisonText: String
+    let chartPoints: [BusinessAnalyticsChartPoint]
+    let chartLabelPoints: [BusinessAnalyticsChartPoint]
+    let topSports: [BusinessAnalyticsRankedMetric]
+    let busiestDays: [BusinessAnalyticsRankedMetric]
+    let bestTimeWindows: [BusinessAnalyticsRankedMetric]
+    let topEvents: [BusinessAnalyticsRankedMetric]
+    let primaryText: Color
+    let secondaryText: Color
+    let glassStroke: Color
+    let cardBackground: LinearGradient
+    let trendTint: Color
+    let isDarkMode: Bool
+    let onHelp: (BusinessAnalyticsHelpMetric) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if chartPoints.isEmpty && totalEngagement == 0 {
+                BusinessAnalyticsSimpleEmptyCardView(
+                    title: "No analytics data yet",
+                    message: "Engagement trends will appear after this venue has watch party activity.",
+                    primaryText: primaryText,
+                    secondaryText: secondaryText,
+                    glassStroke: glassStroke,
+                    cardBackground: cardBackground
+                )
+            } else {
+                BusinessAnalyticsEngagementOverviewCardView(
+                    totalEngagement: totalEngagement,
+                    datePresetText: datePresetText,
+                    comparisonText: comparisonText,
+                    points: chartPoints,
+                    labelPoints: chartLabelPoints,
+                    primaryText: primaryText,
+                    secondaryText: secondaryText,
+                    glassStroke: glassStroke,
+                    cardBackground: cardBackground,
+                    trendTint: trendTint,
+                    isDarkMode: isDarkMode,
+                    onHelp: onHelp
+                )
+            }
+
+            BusinessAnalyticsRankedCardView(
+                title: "Top Sports",
+                subtitle: "by engagement",
+                metrics: topSports,
+                emptyText: "No sport engagement yet",
+                primaryText: primaryText,
+                secondaryText: secondaryText,
+                glassStroke: glassStroke,
+                cardBackground: cardBackground,
+                helpMetric: nil,
+                onHelp: onHelp
+            )
+
+            BusinessAnalyticsRankedCardView(
+                title: "Busiest Days",
+                subtitle: "by engagement",
+                metrics: busiestDays,
+                emptyText: "No day patterns yet",
+                primaryText: primaryText,
+                secondaryText: secondaryText,
+                glassStroke: glassStroke,
+                cardBackground: cardBackground,
+                helpMetric: .busiestDays,
+                onHelp: onHelp
+            )
+
+            BusinessAnalyticsSimpleMetricListCardView(
+                title: "Best Time Windows",
+                subtitle: "by engagement",
+                metrics: bestTimeWindows,
+                emptyText: "More activity will reveal the best hosting windows.",
+                primaryText: primaryText,
+                secondaryText: secondaryText,
+                glassStroke: glassStroke,
+                cardBackground: cardBackground,
+                isDarkMode: isDarkMode,
+                helpMetric: nil,
+                onHelp: onHelp
+            )
+
+            BusinessAnalyticsSimpleMetricListCardView(
+                title: "Top Performing Events",
+                subtitle: datePresetText.lowercased(),
+                metrics: topEvents,
+                emptyText: "No event performance yet.",
+                primaryText: primaryText,
+                secondaryText: secondaryText,
+                glassStroke: glassStroke,
+                cardBackground: cardBackground,
+                isDarkMode: isDarkMode,
+                helpMetric: .topPerformingEvents,
+                onHelp: onHelp
+            )
+        }
+    }
+}
+
+private struct BusinessAnalyticsEngagementOverviewCardView: View {
+    let totalEngagement: Int
+    let datePresetText: String
+    let comparisonText: String
+    let points: [BusinessAnalyticsChartPoint]
+    let labelPoints: [BusinessAnalyticsChartPoint]
+    let primaryText: Color
+    let secondaryText: Color
+    let glassStroke: Color
+    let cardBackground: LinearGradient
+    let trendTint: Color
+    let isDarkMode: Bool
+    let onHelp: (BusinessAnalyticsHelpMetric) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("Engagement Overview")
+                    .font(.headline.weight(.black))
+                    .foregroundStyle(primaryText)
+                BusinessAnalyticsHelpButtonView(metric: .engagementOverview, color: secondaryText, onHelp: onHelp)
+                Spacer(minLength: 0)
+                Text(datePresetText)
+                    .font(.caption.weight(.black))
+                    .foregroundStyle(primaryText)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 5)
+                    .background(Color.white.opacity(isDarkMode ? 0.08 : 0.78), in: Capsule(style: .continuous))
+            }
+
+            HStack(alignment: .firstTextBaseline, spacing: 7) {
+                Text(totalEngagement.formatted())
+                    .font(.system(size: 32, weight: .black, design: .rounded))
+                    .foregroundStyle(FGColor.accentBlue)
+                    .contentTransition(.numericText())
+                Text("total engagement")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(secondaryText)
+                Spacer(minLength: 0)
+                Text(comparisonText)
+                    .font(.caption.weight(.black))
+                    .foregroundStyle(trendTint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            }
+
+            BusinessAnalyticsLineChartView(
+                points: points,
+                labelPoints: labelPoints,
+                secondaryText: secondaryText,
+                glassStroke: glassStroke,
+                isDarkMode: isDarkMode
+            )
+            .frame(height: 128)
+        }
+        .padding(14)
+        .background(cardBackground, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(FGColor.accentBlue.opacity(isDarkMode ? 0.20 : 0.13), lineWidth: 1)
+        }
+    }
+}
+
+private struct BusinessAnalyticsLineChartView: View {
+    let points: [BusinessAnalyticsChartPoint]
+    let labelPoints: [BusinessAnalyticsChartPoint]
+    let secondaryText: Color
+    let glassStroke: Color
+    let isDarkMode: Bool
+
+    var body: some View {
+        VStack(spacing: 5) {
+            if points.isEmpty {
+                Text("No chart data yet")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(secondaryText)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            } else {
+                Chart(points) { point in
+                    AreaMark(
+                        x: .value("Period", point.index),
+                        y: .value("Engagement", point.value)
+                    )
+                    .interpolationMethod(.catmullRom)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [
+                                FGColor.accentBlue.opacity(isDarkMode ? 0.34 : 0.22),
+                                FGColor.accentBlue.opacity(0.02)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+
+                    LineMark(
+                        x: .value("Period", point.index),
+                        y: .value("Engagement", point.value)
+                    )
+                    .interpolationMethod(.catmullRom)
+                    .lineStyle(.init(lineWidth: 3, lineCap: .round, lineJoin: .round))
+                    .foregroundStyle(FGColor.accentBlue)
+
+                    if point.id == peakPointID && point.value > 0 {
+                        PointMark(
+                            x: .value("Period", point.index),
+                            y: .value("Engagement", point.value)
+                        )
+                        .symbolSize(56)
+                        .foregroundStyle(FGColor.accentBlue)
+                    }
+                }
+                .chartYScale(domain: 0...maxValue)
+                .chartXAxis(.hidden)
+                .chartYAxis {
+                    AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) {
+                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.6))
+                            .foregroundStyle(glassStroke.opacity(0.60))
+                        AxisValueLabel()
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(secondaryText)
+                    }
+                }
+
+                HStack {
+                    ForEach(labelPoints) { point in
+                        Text(point.label)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(secondaryText)
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+            }
+        }
+    }
+
+    private var maxValue: Int {
+        max(points.map(\.value).max() ?? 0, 10)
+    }
+
+    private var peakPointID: String? {
+        points.max { $0.value < $1.value }?.id
+    }
+}
+
+private struct BusinessAnalyticsRankedCardView: View {
+    let title: String
+    let subtitle: String
+    let metrics: [BusinessAnalyticsRankedMetric]
+    let emptyText: String
+    let primaryText: Color
+    let secondaryText: Color
+    let glassStroke: Color
+    let cardBackground: LinearGradient
+    let helpMetric: BusinessAnalyticsHelpMetric?
+    let onHelp: (BusinessAnalyticsHelpMetric) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            BusinessAnalyticsMetricCardHeaderView(
+                title: title,
+                subtitle: subtitle,
+                primaryText: primaryText,
+                secondaryText: secondaryText,
+                helpMetric: helpMetric,
+                onHelp: onHelp
+            )
+
+            if metrics.isEmpty {
+                Text(emptyText)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(secondaryText)
+                    .frame(maxWidth: .infinity, minHeight: 92, alignment: .leading)
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(metrics) { metric in
+                        BusinessAnalyticsRankedRowView(
+                            metric: metric,
+                            primaryText: primaryText,
+                            secondaryText: secondaryText,
+                            glassStroke: glassStroke
+                        )
+                    }
+                }
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(cardBackground, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(glassStroke.opacity(0.44), lineWidth: 1)
+        }
+    }
+}
+
+private struct BusinessAnalyticsRankedRowView: View {
+    let metric: BusinessAnalyticsRankedMetric
+    let primaryText: Color
+    let secondaryText: Color
+    let glassStroke: Color
+
+    var body: some View {
+        HStack(spacing: 7) {
+            Text("\(metric.rank)")
+                .font(.caption.weight(.black))
+                .foregroundStyle(secondaryText)
+                .frame(width: 12, alignment: .leading)
+
+            Text(metric.icon)
+                .font(.system(size: 15))
+                .frame(width: 22, height: 22)
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text(metric.title)
+                        .font(.caption.weight(.black))
+                        .foregroundStyle(primaryText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                    Spacer(minLength: 0)
+                    Text(metric.valueText)
+                        .font(.caption.weight(.black))
+                        .foregroundStyle(primaryText)
+                }
+
+                GeometryReader { proxy in
+                    ZStack(alignment: .leading) {
+                        Capsule(style: .continuous)
+                            .fill(glassStroke.opacity(0.35))
+                        Capsule(style: .continuous)
+                            .fill(metric.tint)
+                            .frame(width: proxy.size.width * metric.progress)
+                    }
+                }
+                .frame(height: 4)
+            }
+        }
+    }
+}
+
+private struct BusinessAnalyticsSimpleMetricListCardView: View {
+    let title: String
+    let subtitle: String
+    let metrics: [BusinessAnalyticsRankedMetric]
+    let emptyText: String
+    let primaryText: Color
+    let secondaryText: Color
+    let glassStroke: Color
+    let cardBackground: LinearGradient
+    let isDarkMode: Bool
+    let helpMetric: BusinessAnalyticsHelpMetric?
+    let onHelp: (BusinessAnalyticsHelpMetric) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            BusinessAnalyticsMetricCardHeaderView(
+                title: title,
+                subtitle: subtitle,
+                primaryText: primaryText,
+                secondaryText: secondaryText,
+                helpMetric: helpMetric,
+                onHelp: onHelp
+            )
+
+            if metrics.isEmpty {
+                Text(emptyText)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
+            } else {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(metrics) { metric in
+                        BusinessAnalyticsSimpleMetricRowView(
+                            metric: metric,
+                            primaryText: primaryText,
+                            secondaryText: secondaryText,
+                            isDarkMode: isDarkMode
+                        )
+                    }
+                }
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(cardBackground, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(glassStroke.opacity(0.44), lineWidth: 1)
+        }
+    }
+}
+
+private struct BusinessAnalyticsSimpleMetricRowView: View {
+    let metric: BusinessAnalyticsRankedMetric
+    let primaryText: Color
+    let secondaryText: Color
+    let isDarkMode: Bool
+
+    var body: some View {
+        HStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(metric.tint.opacity(isDarkMode ? 0.20 : 0.12))
+                Text(metric.icon)
+                    .font(.system(size: 17))
+            }
+            .frame(width: 34, height: 34)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(metric.title)
+                    .font(.caption.weight(.black))
+                    .foregroundStyle(primaryText)
+                if let subtitle = metric.subtitle {
+                    Text(subtitle)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(secondaryText)
+                }
+            }
+            Spacer(minLength: 0)
+            if !metric.valueText.isEmpty {
+                Text(metric.valueText)
+                    .font(.caption.weight(.black))
+                    .foregroundStyle(primaryText)
+            }
+        }
+    }
+}
+
+private struct BusinessAnalyticsMetricCardHeaderView: View {
+    let title: String
+    let subtitle: String
+    let primaryText: Color
+    let secondaryText: Color
+    let helpMetric: BusinessAnalyticsHelpMetric?
+    let onHelp: (BusinessAnalyticsHelpMetric) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(title)
+                    .font(.headline.weight(.black))
+                    .foregroundStyle(primaryText)
+                if let helpMetric {
+                    BusinessAnalyticsHelpButtonView(metric: helpMetric, color: secondaryText, onHelp: onHelp)
+                }
+            }
+            Text(subtitle)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(secondaryText)
+        }
+    }
+}
+
+private struct BusinessAnalyticsHelpButtonView: View {
+    let metric: BusinessAnalyticsHelpMetric
+    let color: Color
+    let onHelp: (BusinessAnalyticsHelpMetric) -> Void
+
+    var body: some View {
+        Button {
+            onHelp(metric)
+        } label: {
+            Image(systemName: "info.circle")
+                .font(.caption.weight(.bold))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(color)
+                .frame(width: 22, height: 22)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Learn about \(metric.title)")
+    }
+}
+
+private struct BusinessAnalyticsSimpleEmptyCardView: View {
+    let title: String
+    let message: String
+    let primaryText: Color
+    let secondaryText: Color
+    let glassStroke: Color
+    let cardBackground: LinearGradient
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.headline.weight(.black))
+                .foregroundStyle(primaryText)
+            Text(message)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(cardBackground, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(glassStroke.opacity(0.44), lineWidth: 1)
+        }
+    }
 }
 
 private enum BusinessAnalyticsHelpMetric: String, Identifiable {
@@ -4272,6 +4906,45 @@ struct VenueOwnerDashboardView: View {
 #endif
     }
 
+    private func logBusinessAnalyticsCrashDebug(_ message: String) {
+        print("[BusinessAnalyticsCrashDebug] \(message)")
+    }
+
+    @discardableResult
+    private func logBusinessAnalyticsLiveActivityCard(
+        snapshot: VenueAnalyticsLiveOpsSnapshot,
+        metricsCount: Int
+    ) -> Bool {
+        logBusinessAnalyticsCrashDebug("selectedTab=\(businessVenueAnalyticsTab.title)")
+        logBusinessAnalyticsCrashDebug("enteringLiveActivityCard=true")
+        logBusinessAnalyticsCrashDebug("liveRowsCount=\(snapshot.activeGames.count)")
+        logBusinessAnalyticsCrashDebug("metricsCount=\(metricsCount)")
+        if !snapshot.hasActiveActivity {
+            let reason = snapshot.nextOpportunity == nil ? "noActiveGamesNoUpcomingOpportunity" : "noActiveGames"
+            logBusinessAnalyticsCrashDebug("emptyStateReason=\(reason)")
+        }
+        return true
+    }
+
+    private func logBusinessAnalyticsEmptyStateIfNeeded(displayed: [VenueEventRow], context: String) {
+        guard let reason = businessAnalyticsEmptyStateReason(displayed: displayed) else { return }
+        logBusinessAnalyticsCrashDebug("selectedTab=\(businessVenueAnalyticsTab.title)")
+        logBusinessAnalyticsCrashDebug("emptyStateReason=\(context):\(reason)")
+    }
+
+    private func businessAnalyticsEmptyStateReason(displayed: [VenueEventRow]) -> String? {
+        if analyticsIsLoading && analyticsGames.isEmpty {
+            return "loadingNoRows"
+        }
+        if analyticsGames.isEmpty {
+            return "noAnalyticsRows"
+        }
+        if displayed.isEmpty {
+            return "filtersNoMatches"
+        }
+        return nil
+    }
+
     private func openBusinessAnalyticsMetricHelp(_ metric: BusinessAnalyticsHelpMetric) {
 #if DEBUG
         print("[BusinessAnalyticsHelpDebug] openedMetricHelp metric=\(metric.title)")
@@ -4498,6 +5171,7 @@ struct VenueOwnerDashboardView: View {
         return Button {
             businessVenueAnalyticsTab = tab
             logBusinessAnalyticsDebug("tabSelected=\(tab.title)")
+            logBusinessAnalyticsCrashDebug("selectedTab=\(tab.title)")
         } label: {
             VStack(spacing: 5) {
                 Image(systemName: tab.systemImage)
@@ -4549,6 +5223,8 @@ struct VenueOwnerDashboardView: View {
         }
         .onAppear {
             logBusinessAnalyticsDebug("activityAppear displayed=\(displayed.count) total=\(analyticsGames.count)")
+            logBusinessAnalyticsCrashDebug("selectedTab=\(businessVenueAnalyticsTab.title)")
+            logBusinessAnalyticsEmptyStateIfNeeded(displayed: displayed, context: "activity")
         }
         .refreshable {
             await loadVenueAnalytics()
@@ -4560,23 +5236,29 @@ struct VenueOwnerDashboardView: View {
 
         return VStack(alignment: .leading, spacing: 12) {
             venueAnalyticsFilterBar
-
-            if analyticsIsLoading && analyticsGames.isEmpty {
-                venueAnalyticsLoadingState
-            } else if analyticsGames.isEmpty {
-                venueAnalyticsEmptyState
-            } else if displayed.isEmpty {
-                venueAnalyticsNoFilterMatchesState
-            } else {
-                businessAnalyticsDashboardContent(displayed: displayed)
-            }
+            venueAnalyticsTrendsContent(displayed: displayed)
         }
         .onAppear {
             logBusinessAnalyticsDebug("analyticsAppear displayed=\(displayed.count) preset=\(analyticsDatePreset.rawValue) sport=\(analyticsSportFilter)")
+            logBusinessAnalyticsCrashDebug("selectedTab=\(businessVenueAnalyticsTab.title)")
+            logBusinessAnalyticsEmptyStateIfNeeded(displayed: displayed, context: "analytics")
         }
         .refreshable {
             await loadVenueAnalytics()
         }
+    }
+
+    private func venueAnalyticsTrendsContent(displayed: [VenueEventRow]) -> AnyView {
+        if analyticsIsLoading && analyticsGames.isEmpty {
+            return AnyView(venueAnalyticsLoadingState)
+        }
+        if analyticsGames.isEmpty {
+            return AnyView(venueAnalyticsEmptyState)
+        }
+        if displayed.isEmpty {
+            return AnyView(venueAnalyticsNoFilterMatchesState)
+        }
+        return AnyView(businessAnalyticsDashboardContent(displayed: displayed))
     }
 
     private func venueAnalyticsLiveOpsTab() -> some View {
@@ -4596,6 +5278,7 @@ struct VenueOwnerDashboardView: View {
         }
         .onAppear {
             logBusinessAnalyticsDebug("liveAppear active=\(snapshot.activeGameCount) chats=\(snapshot.activeChatCount)")
+            logBusinessAnalyticsCrashDebug("selectedTab=\(businessVenueAnalyticsTab.title)")
         }
         .task(id: venueAnalyticsLiveOpsTaskKey) {
             await refreshVenueAnalyticsLiveOpsEngagementOnly()
@@ -4650,370 +5333,98 @@ struct VenueOwnerDashboardView: View {
     }
 
     private func businessAnalyticsDashboardContent(displayed: [VenueEventRow]) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            businessAnalyticsEngagementOverviewCard(displayed: displayed)
-
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
-                businessAnalyticsRankedCard(
-                    title: "Top Sports",
-                    subtitle: "by engagement",
-                    metrics: businessAnalyticsTopSports(from: displayed)
-                )
-                businessAnalyticsRankedCard(
-                    title: "Busiest Days",
-                    subtitle: "by engagement",
-                    metrics: businessAnalyticsBusiestDays(from: displayed),
-                    helpMetric: .busiestDays
-                )
-            }
-
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
-                businessAnalyticsBestTimeWindowsCard(displayed: displayed)
-                businessAnalyticsTopPerformingEventsCard(displayed: displayed)
-            }
+        let points = businessAnalyticsChartPoints(from: displayed)
+        let topSports = businessAnalyticsTopSports(from: displayed)
+        let busiestDays = businessAnalyticsBusiestDays(from: displayed)
+        let bestTimeWindows = businessAnalyticsBestTimeWindows(from: displayed)
+        let topEvents = businessAnalyticsTopPerformingEvents(from: displayed)
+        logBusinessAnalyticsCrashDebug("selectedTab=\(businessVenueAnalyticsTab.title)")
+        logBusinessAnalyticsCrashDebug("enteringDashboardContent=true")
+        logBusinessAnalyticsCrashDebug("liveRowsCount=\(displayed.count)")
+        logBusinessAnalyticsCrashDebug("metricsCount=\(topSports.count + busiestDays.count + bestTimeWindows.count + topEvents.count)")
+        if displayed.isEmpty {
+            logBusinessAnalyticsCrashDebug("emptyStateReason=analytics:noDisplayedRows")
         }
+        return BusinessAnalyticsDashboardContentView(
+            totalEngagement: businessAnalyticsTotalEngagement(displayed),
+            datePresetText: analyticsDatePreset.rawValue,
+            comparisonText: crowdInsightsComparisonLine(),
+            chartPoints: points,
+            chartLabelPoints: businessAnalyticsChartLabelPoints(from: points),
+            topSports: topSports,
+            busiestDays: busiestDays,
+            bestTimeWindows: bestTimeWindows,
+            topEvents: topEvents,
+            primaryText: businessAnalyticsPrimaryText,
+            secondaryText: businessAnalyticsSecondaryText,
+            glassStroke: businessAnalyticsGlassStroke,
+            cardBackground: businessAnalyticsCardBackground,
+            trendTint: crowdInsightsTrendTint(),
+            isDarkMode: colorScheme == .dark,
+            onHelp: { metric in
+                openBusinessAnalyticsMetricHelp(metric)
+            }
+        )
     }
 
     private func businessAnalyticsEngagementOverviewCard(displayed: [VenueEventRow]) -> some View {
         let points = businessAnalyticsChartPoints(from: displayed)
-        let total = businessAnalyticsTotalEngagement(displayed)
-
-        return VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text("Engagement Overview")
-                    .font(.headline.weight(.black))
-                    .foregroundStyle(businessAnalyticsPrimaryText)
-                businessAnalyticsMetricHelpButton(.engagementOverview)
-                Spacer(minLength: 0)
-                Text(analyticsDatePreset.rawValue)
-                    .font(.caption.weight(.black))
-                    .foregroundStyle(businessAnalyticsPrimaryText)
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 5)
-                    .background(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.78), in: Capsule(style: .continuous))
+        return BusinessAnalyticsEngagementOverviewCardView(
+            totalEngagement: businessAnalyticsTotalEngagement(displayed),
+            datePresetText: analyticsDatePreset.rawValue,
+            comparisonText: crowdInsightsComparisonLine(),
+            points: points,
+            labelPoints: businessAnalyticsChartLabelPoints(from: points),
+            primaryText: businessAnalyticsPrimaryText,
+            secondaryText: businessAnalyticsSecondaryText,
+            glassStroke: businessAnalyticsGlassStroke,
+            cardBackground: businessAnalyticsCardBackground,
+            trendTint: crowdInsightsTrendTint(),
+            isDarkMode: colorScheme == .dark,
+            onHelp: { metric in
+                openBusinessAnalyticsMetricHelp(metric)
             }
-
-            HStack(alignment: .firstTextBaseline, spacing: 7) {
-                Text(total.formatted())
-                    .font(.system(size: 32, weight: .black, design: .rounded))
-                    .foregroundStyle(FGColor.accentBlue)
-                    .contentTransition(.numericText())
-                Text("total engagement")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(businessAnalyticsSecondaryText)
-                Spacer(minLength: 0)
-                Text(crowdInsightsComparisonLine())
-                    .font(.caption.weight(.black))
-                    .foregroundStyle(crowdInsightsTrendTint())
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
-            }
-
-            businessAnalyticsLineChart(points: points)
-                .frame(height: 128)
-        }
-        .padding(14)
-        .background(businessAnalyticsCardBackground, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .strokeBorder(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.20 : 0.13), lineWidth: 1)
-        }
-    }
-
-    private func businessAnalyticsLineChart(points: [BusinessAnalyticsChartPoint]) -> some View {
-        let maxValue = max(points.map(\.value).max() ?? 0, 10)
-        let labelPoints = businessAnalyticsChartLabelPoints(from: points)
-        let peakID = points.max { $0.value < $1.value }?.id
-
-        return VStack(spacing: 5) {
-            Chart(points) { point in
-                AreaMark(
-                    x: .value("Period", point.index),
-                    y: .value("Engagement", point.value)
-                )
-                .interpolationMethod(.catmullRom)
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [
-                            FGColor.accentBlue.opacity(colorScheme == .dark ? 0.34 : 0.22),
-                            FGColor.accentBlue.opacity(0.02)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-
-                LineMark(
-                    x: .value("Period", point.index),
-                    y: .value("Engagement", point.value)
-                )
-                .interpolationMethod(.catmullRom)
-                .lineStyle(.init(lineWidth: 3, lineCap: .round, lineJoin: .round))
-                .foregroundStyle(FGColor.accentBlue)
-
-                if point.id == peakID && point.value > 0 {
-                    PointMark(
-                        x: .value("Period", point.index),
-                        y: .value("Engagement", point.value)
-                    )
-                    .symbolSize(56)
-                    .foregroundStyle(FGColor.accentBlue)
-                }
-            }
-            .chartYScale(domain: 0...maxValue)
-            .chartXAxis(.hidden)
-            .chartYAxis {
-                AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) {
-                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.6))
-                        .foregroundStyle(businessAnalyticsGlassStroke.opacity(0.60))
-                    AxisValueLabel()
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(businessAnalyticsSecondaryText)
-                }
-            }
-
-            HStack {
-                ForEach(labelPoints) { point in
-                    Text(point.label)
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(businessAnalyticsSecondaryText)
-                        .frame(maxWidth: .infinity)
-                }
-            }
-        }
-    }
-
-    private func businessAnalyticsRankedCard(
-        title: String,
-        subtitle: String,
-        metrics: [BusinessAnalyticsRankedMetric],
-        helpMetric: BusinessAnalyticsHelpMetric? = nil
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 9) {
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(title)
-                        .font(.headline.weight(.black))
-                        .foregroundStyle(businessAnalyticsPrimaryText)
-                    if let helpMetric {
-                        businessAnalyticsMetricHelpButton(helpMetric)
-                    }
-                }
-                Text(subtitle)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(businessAnalyticsSecondaryText)
-            }
-
-            if metrics.isEmpty {
-                Text("No engagement yet")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(businessAnalyticsSecondaryText)
-                    .frame(maxWidth: .infinity, minHeight: 92, alignment: .leading)
-            } else {
-                VStack(spacing: 8) {
-                    ForEach(metrics) { metric in
-                        businessAnalyticsRankedRow(metric)
-                    }
-                }
-            }
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(businessAnalyticsCardBackground, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(businessAnalyticsGlassStroke.opacity(0.44), lineWidth: 1)
-        }
-    }
-
-    private func businessAnalyticsRankedRow(_ metric: BusinessAnalyticsRankedMetric) -> some View {
-        HStack(spacing: 7) {
-            Text("\(metric.rank)")
-                .font(.caption.weight(.black))
-                .foregroundStyle(businessAnalyticsSecondaryText)
-                .frame(width: 12, alignment: .leading)
-
-            Text(metric.icon)
-                .font(.system(size: 15))
-                .frame(width: 22, height: 22)
-
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Text(metric.title)
-                        .font(.caption.weight(.black))
-                        .foregroundStyle(businessAnalyticsPrimaryText)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
-                    Spacer(minLength: 0)
-                    Text(metric.valueText)
-                        .font(.caption.weight(.black))
-                        .foregroundStyle(businessAnalyticsPrimaryText)
-                }
-
-                GeometryReader { proxy in
-                    ZStack(alignment: .leading) {
-                        Capsule(style: .continuous)
-                            .fill(businessAnalyticsGlassStroke.opacity(0.35))
-                        Capsule(style: .continuous)
-                            .fill(metric.tint)
-                            .frame(width: proxy.size.width * metric.progress)
-                    }
-                }
-                .frame(height: 4)
-            }
-        }
-    }
-
-    private func businessAnalyticsBestTimeWindowsCard(displayed: [VenueEventRow]) -> some View {
-        let windows = businessAnalyticsBestTimeWindows(from: displayed)
-
-        return VStack(alignment: .leading, spacing: 10) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Best Time Windows")
-                    .font(.headline.weight(.black))
-                    .foregroundStyle(businessAnalyticsPrimaryText)
-                Text("by engagement")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(businessAnalyticsSecondaryText)
-            }
-
-            if windows.isEmpty {
-                Text("More activity will reveal the best hosting windows.")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(businessAnalyticsSecondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-            } else {
-                VStack(alignment: .leading, spacing: 10) {
-                    ForEach(windows) { metric in
-                        HStack(spacing: 10) {
-                            ZStack {
-                                Circle()
-                                    .fill(metric.tint.opacity(colorScheme == .dark ? 0.20 : 0.12))
-                                Text(metric.icon)
-                                    .font(.system(size: 17))
-                            }
-                            .frame(width: 34, height: 34)
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(metric.title)
-                                    .font(.caption.weight(.black))
-                                    .foregroundStyle(businessAnalyticsPrimaryText)
-                                if let subtitle = metric.subtitle {
-                                    Text(subtitle)
-                                        .font(.caption2.weight(.semibold))
-                                        .foregroundStyle(businessAnalyticsSecondaryText)
-                                }
-                            }
-                            Spacer(minLength: 0)
-                        }
-                    }
-                }
-            }
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(businessAnalyticsCardBackground, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(businessAnalyticsGlassStroke.opacity(0.44), lineWidth: 1)
-        }
-    }
-
-    private func businessAnalyticsTopPerformingEventsCard(displayed: [VenueEventRow]) -> some View {
-        let events = businessAnalyticsTopPerformingEvents(from: displayed)
-
-        return VStack(alignment: .leading, spacing: 10) {
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text("Top Performing Events")
-                        .font(.headline.weight(.black))
-                        .foregroundStyle(businessAnalyticsPrimaryText)
-                    businessAnalyticsMetricHelpButton(.topPerformingEvents)
-                }
-                Text(analyticsDatePreset.rawValue.lowercased())
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(businessAnalyticsSecondaryText)
-            }
-
-            if events.isEmpty {
-                Text("No event performance yet.")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(businessAnalyticsSecondaryText)
-                    .frame(maxWidth: .infinity, minHeight: 92, alignment: .leading)
-            } else {
-                VStack(spacing: 8) {
-                    ForEach(events) { metric in
-                        HStack(spacing: 8) {
-                            Text("\(metric.rank)")
-                                .font(.caption.weight(.black))
-                                .foregroundStyle(businessAnalyticsSecondaryText)
-                                .frame(width: 12, alignment: .leading)
-                            Text(metric.icon)
-                                .font(.system(size: 15))
-                            Text(metric.title)
-                                .font(.caption.weight(.black))
-                                .foregroundStyle(businessAnalyticsPrimaryText)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.72)
-                            Spacer(minLength: 0)
-                            Text(metric.valueText)
-                                .font(.caption.weight(.black))
-                                .foregroundStyle(businessAnalyticsPrimaryText)
-                        }
-                    }
-                }
-            }
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(businessAnalyticsCardBackground, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(businessAnalyticsGlassStroke.opacity(0.44), lineWidth: 1)
-        }
+        )
     }
 
     private func businessAnalyticsLiveActivityCard(_ snapshot: VenueAnalyticsLiveOpsSnapshot) -> some View {
-        VStack(alignment: .leading, spacing: 13) {
-            HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("Live Activity")
-                        .font(.title3.weight(.black))
-                        .foregroundStyle(businessAnalyticsPrimaryText)
-                    Text("Real-time venue pulse")
-                        .font(.caption.weight(.heavy))
-                        .foregroundStyle(businessAnalyticsSecondaryText)
-                        .textCase(.uppercase)
-                }
+        let metrics = businessAnalyticsLiveMetrics(for: snapshot)
+        let _ = logBusinessAnalyticsLiveActivityCard(snapshot: snapshot, metricsCount: metrics.count)
+        return BusinessAnalyticsLiveActivityCardView(
+            statusText: snapshot.statusText,
+            momentumTrend: snapshot.momentumTrend,
+            metrics: metrics,
+            primaryText: businessAnalyticsPrimaryText,
+            secondaryText: businessAnalyticsSecondaryText,
+            statusTint: liveOpsStatusTint(snapshot.statusText),
+            cardBackground: businessAnalyticsCardBackground,
+            isDarkMode: colorScheme == .dark
+        )
+    }
 
-                Spacer(minLength: 0)
-
-                Text(snapshot.statusText)
-                    .font(.caption.weight(.black))
-                    .foregroundStyle(liveOpsStatusTint(snapshot.statusText))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(liveOpsStatusTint(snapshot.statusText).opacity(colorScheme == .dark ? 0.18 : 0.11), in: Capsule(style: .continuous))
-            }
-
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                liveOpsMetricTile(title: "active games now", value: "\(snapshot.activeGameCount)", icon: "play.circle.fill")
-                liveOpsMetricTile(title: "active chats", value: "\(snapshot.activeChatCount)", icon: "bubble.left.and.bubble.right.fill")
-                liveOpsMetricTile(title: "crowd energy", value: "\(snapshot.crowdEnergy)", icon: "bolt.fill")
-                liveOpsMetricTile(title: "top live sport", value: snapshot.topLiveSport, icon: "sportscourt.fill")
-            }
-
-            Text(snapshot.momentumTrend)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(businessAnalyticsSecondaryText)
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(businessAnalyticsCardBackground, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .strokeBorder(liveOpsStatusTint(snapshot.statusText).opacity(colorScheme == .dark ? 0.24 : 0.16), lineWidth: 1)
-        }
+    private func businessAnalyticsLiveMetrics(for snapshot: VenueAnalyticsLiveOpsSnapshot) -> [BusinessAnalyticsLiveMetric] {
+        [
+            BusinessAnalyticsLiveMetric(
+                title: "active games now",
+                value: "\(snapshot.activeGameCount)",
+                systemImage: "play.circle.fill"
+            ),
+            BusinessAnalyticsLiveMetric(
+                title: "active chats",
+                value: "\(snapshot.activeChatCount)",
+                systemImage: "bubble.left.and.bubble.right.fill"
+            ),
+            BusinessAnalyticsLiveMetric(
+                title: "crowd energy",
+                value: "\(snapshot.crowdEnergy)",
+                systemImage: "bolt.fill"
+            ),
+            BusinessAnalyticsLiveMetric(
+                title: "top live sport",
+                value: snapshot.topLiveSport.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "None yet" : snapshot.topLiveSport,
+                systemImage: "sportscourt.fill"
+            )
+        ]
     }
 
     private func venueAnalyticsHistoryTab() -> some View {
@@ -5026,6 +5437,10 @@ struct VenueOwnerDashboardView: View {
         }
         .onAppear {
             logBusinessAnalyticsDebug("historyAppear displayed=\(displayed.count) historyRows=\(analyticsGameHistoryForYear.count)")
+            logBusinessAnalyticsCrashDebug("selectedTab=\(businessVenueAnalyticsTab.title)")
+            if displayed.isEmpty && analyticsGameHistoryForYear.isEmpty {
+                logBusinessAnalyticsCrashDebug("emptyStateReason=history:noRows")
+            }
         }
     }
 
@@ -5056,11 +5471,15 @@ struct VenueOwnerDashboardView: View {
                 Spacer(minLength: 0)
             }
 
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                businessAnalyticsHistoryStat("Engagement", value: total.formatted(), tint: FGColor.accentBlue)
-                businessAnalyticsHistoryStat("Trend", value: crowdInsightsComparisonLine(), tint: crowdInsightsTrendTint())
-                businessAnalyticsHistoryStat("Top sport", value: topSport, tint: FGColor.accentGreen)
-                businessAnalyticsHistoryStat("Busiest day", value: bestDay, tint: FGColor.accentYellow)
+            VStack(spacing: 8) {
+                HStack(spacing: 8) {
+                    businessAnalyticsHistoryStat("Engagement", value: total.formatted(), tint: FGColor.accentBlue)
+                    businessAnalyticsHistoryStat("Trend", value: crowdInsightsComparisonLine(), tint: crowdInsightsTrendTint())
+                }
+                HStack(spacing: 8) {
+                    businessAnalyticsHistoryStat("Top sport", value: topSport, tint: FGColor.accentGreen)
+                    businessAnalyticsHistoryStat("Busiest day", value: bestDay, tint: FGColor.accentYellow)
+                }
             }
         }
         .padding(14)
@@ -5287,73 +5706,6 @@ struct VenueOwnerDashboardView: View {
             return String(format: "%.1fK", compact)
         }
         return "\(value)"
-    }
-
-    private func liveOpsHeroCard(_ snapshot: VenueAnalyticsLiveOpsSnapshot) -> some View {
-        VStack(alignment: .leading, spacing: 13) {
-            HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("Live Ops")
-                        .font(.title3.weight(.black))
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
-                    Text("Venue Status")
-                        .font(.caption.weight(.heavy))
-                        .foregroundStyle(FGColor.secondaryText(colorScheme))
-                        .textCase(.uppercase)
-                }
-
-                Spacer(minLength: 0)
-
-                Text(snapshot.statusText)
-                    .font(.caption.weight(.black))
-                    .foregroundStyle(liveOpsStatusTint(snapshot.statusText))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(liveOpsStatusTint(snapshot.statusText).opacity(colorScheme == .dark ? 0.18 : 0.11), in: Capsule(style: .continuous))
-            }
-
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                liveOpsMetricTile(title: "active games now", value: "\(snapshot.activeGameCount)", icon: "play.circle.fill")
-                liveOpsMetricTile(title: "active chats", value: "\(snapshot.activeChatCount)", icon: "bubble.left.and.bubble.right.fill")
-                liveOpsMetricTile(title: "crowd energy", value: "\(snapshot.crowdEnergy)", icon: "bolt.fill")
-                liveOpsMetricTile(title: "top live sport", value: snapshot.topLiveSport, icon: "sportscourt.fill")
-            }
-
-            Text(snapshot.momentumTrend)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(FGColor.secondaryText(colorScheme))
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FGAdaptiveSurface.controlFill, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .strokeBorder(liveOpsStatusTint(snapshot.statusText).opacity(colorScheme == .dark ? 0.24 : 0.16), lineWidth: 1)
-        }
-    }
-
-    private func liveOpsMetricTile(title: String, value: String, icon: String) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(FGColor.accentBlue)
-                .frame(width: 20, height: 20)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(value)
-                    .font(.caption.weight(.black))
-                    .foregroundStyle(FGColor.primaryText(colorScheme))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
-                Text(title)
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(FGColor.secondaryText(colorScheme))
-                    .lineLimit(2)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(10)
-        .background(FGAdaptiveSurface.capsuleUnselected, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     private func liveOpsActiveGamesSection(_ games: [VenueAnalyticsLiveOpsGame]) -> some View {

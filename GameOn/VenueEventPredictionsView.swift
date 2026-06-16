@@ -206,10 +206,10 @@ struct VenueEventPredictionModule: View {
             if VenueGameCardDiagnostics.enabled {
                 print("[PredictionUIDebug] homeTeam=\(teams.home)")
                 print("[PredictionUIDebug] awayTeam=\(teams.away)")
-                print("[PredictionUIDebug] homeFlag=\(CountryFlagHelper.flag(for: teams.home) ?? "none")")
-                print("[PredictionUIDebug] awayFlag=\(CountryFlagHelper.flag(for: teams.away) ?? "none")")
+                print("[PredictionUIDebug] homeFlag=\(CountryFlagHelper.flag(for: teams.home, source: "VenueEventPredictions") ?? "none")")
+                print("[PredictionUIDebug] awayFlag=\(CountryFlagHelper.flag(for: teams.away, source: "VenueEventPredictions") ?? "none")")
                 print("[PredictionUIDebug] teamType=home:\(teamDebugType(teams.home)),away:\(teamDebugType(teams.away))")
-                print("[PredictionUIDebug] countryFlagApplied=home:\(CountryFlagHelper.flag(for: teams.home) != nil),away:\(CountryFlagHelper.flag(for: teams.away) != nil)")
+                print("[PredictionUIDebug] countryFlagApplied=home:\(CountryFlagHelper.flag(for: teams.home, source: "VenueEventPredictions") != nil),away:\(CountryFlagHelper.flag(for: teams.away, source: "VenueEventPredictions") != nil)")
                 print("[PredictionUILayoutDebug] sport=\(sportType)")
                 print("[PredictionUILayoutDebug] percentages=\(winnerPercentagesDebugDescription)")
                 print("[PredictionUILayoutDebug] firstScoreRowLayout=true")
@@ -523,7 +523,7 @@ struct VenueEventPredictionModule: View {
                 ScorePredictionTeamCard(
                     teamName: homeDisplayName,
                     score: inlineHomeScore,
-                    flag: TeamTheme.safeFlag(CountryFlagHelper.flag(for: teams.home)),
+                    flag: TeamTheme.safeFlag(CountryFlagHelper.flag(for: teams.home, source: "VenueEventPredictions")),
                     colorScheme: colorScheme,
                     canDecrement: !isLocked && inlineHomeScore > 0,
                     canIncrement: !isLocked && inlineHomeScore < 20,
@@ -539,7 +539,7 @@ struct VenueEventPredictionModule: View {
                 ScorePredictionTeamCard(
                     teamName: awayDisplayName,
                     score: inlineAwayScore,
-                    flag: TeamTheme.safeFlag(CountryFlagHelper.flag(for: teams.away)),
+                    flag: TeamTheme.safeFlag(CountryFlagHelper.flag(for: teams.away, source: "VenueEventPredictions")),
                     colorScheme: colorScheme,
                     canDecrement: !isLocked && inlineAwayScore > 0,
                     canIncrement: !isLocked && inlineAwayScore < 20,
@@ -660,7 +660,7 @@ struct VenueEventPredictionModule: View {
             value: team,
             title: displayName,
             subtitle: nil,
-            flag: TeamTheme.safeFlag(CountryFlagHelper.flag(for: team)),
+            flag: TeamTheme.safeFlag(CountryFlagHelper.flag(for: team, source: "VenueEventPredictions")),
             percent: percent,
             avatars: avatars
         )
@@ -1259,7 +1259,7 @@ struct VenueEventPredictionSheet: View {
                     ScorePredictionTeamCard(
                         teamName: PredictionTeamDisplayName.compact(teams.home, languageCode: appLanguageRaw),
                         score: homeScore,
-                        flag: TeamTheme.safeFlag(CountryFlagHelper.flag(for: teams.home)),
+                        flag: TeamTheme.safeFlag(CountryFlagHelper.flag(for: teams.home, source: "VenueEventPredictions")),
                         colorScheme: colorScheme,
                         canDecrement: !votingIsDisabled && homeScore > scoreRange.lowerBound,
                         canIncrement: !votingIsDisabled && homeScore < scoreRange.upperBound,
@@ -1275,7 +1275,7 @@ struct VenueEventPredictionSheet: View {
                     ScorePredictionTeamCard(
                         teamName: PredictionTeamDisplayName.compact(teams.away, languageCode: appLanguageRaw),
                         score: awayScore,
-                        flag: TeamTheme.safeFlag(CountryFlagHelper.flag(for: teams.away)),
+                        flag: TeamTheme.safeFlag(CountryFlagHelper.flag(for: teams.away, source: "VenueEventPredictions")),
                         colorScheme: colorScheme,
                         canDecrement: !votingIsDisabled && awayScore > scoreRange.lowerBound,
                         canIncrement: !votingIsDisabled && awayScore < scoreRange.upperBound,
@@ -1299,7 +1299,7 @@ struct VenueEventPredictionSheet: View {
                 value: team,
                 title: displayName,
                 subtitle: nil,
-                flag: TeamTheme.safeFlag(CountryFlagHelper.flag(for: team)),
+                flag: TeamTheme.safeFlag(CountryFlagHelper.flag(for: team, source: "VenueEventPredictions")),
                 percent: 0,
                 avatars: []
             )

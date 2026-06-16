@@ -146,6 +146,20 @@ actor LiveSportsService {
         }
     }
 
+    func fetchLiveMatches(liveMatchIds: [String]) async throws -> [LiveMatch] {
+        let ids = Array(
+            Set(
+                liveMatchIds
+                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                    .filter { !$0.isEmpty }
+            )
+        )
+        guard !ids.isEmpty else { return [] }
+
+        let requestURL = try await Self.liveMatchesByIdsRequestURL(ids: ids)
+        return try await fetchLiveMatchesFromSupabase(requestURL: requestURL, cacheSyncAttempted: false)
+    }
+
     func fetchLiveMatchDateDots(around month: Date) async throws -> Set<Date> {
         let requestURL = try await Self.liveMatchDateDotsRequestURL(around: month)
         let publishableKey = await supabasePublishableKey
@@ -473,6 +487,29 @@ actor LiveSportsService {
         return url
     }
 
+    private static func liveMatchesByIdsRequestURL(ids: [String]) async throws -> URL {
+        let projectURL = await supabaseProjectURL
+        let encodedIds = ids
+            .map { $0.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? $0 }
+            .joined(separator: ",")
+        var components = URLComponents(
+            url: projectURL
+                .appendingPathComponent("rest")
+                .appendingPathComponent("v1")
+                .appendingPathComponent("live_matches"),
+            resolvingAgainstBaseURL: false
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "select", value: "id,source,external_id,sport,home_team,away_team,score_home,score_away,match_status,minute,league,start_time,updated_at,payload,tv_broadcasts,timeline_events,featured_event_slug"),
+            URLQueryItem(name: "id", value: "in.(\(encodedIds))"),
+            URLQueryItem(name: "order", value: "start_time.asc")
+        ]
+        guard let url = components?.url else {
+            throw URLError(.badURL)
+        }
+        return url
+    }
+
     private static func fetchFeaturedEventsFromSupabase() async throws -> [FeaturedEvent] {
         let requestURL = try await featuredEventsRequestURL()
         let publishableKey = await supabasePublishableKey
@@ -695,7 +732,15 @@ private nonisolated struct LiveMatchRow: Decodable {
             leagueCountry: leagueCountry,
             tvBroadcasts: tv_broadcasts ?? [],
             timelineEvents: timeline_events ?? [],
-            featuredEventSlug: Self.clean(featured_event_slug)
+            featuredEventSlug: Self.clean(featured_event_slug),
+            homeTeamBadgeURL: Self.firstString(
+                in: payload,
+                keys: ["strHomeTeamBadge", "homeTeamBadge", "strHomeBadge"]
+            ),
+            awayTeamBadgeURL: Self.firstString(
+                in: payload,
+                keys: ["strAwayTeamBadge", "awayTeamBadge", "strAwayBadge"]
+            )
         )
     }
 

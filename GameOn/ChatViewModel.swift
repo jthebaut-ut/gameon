@@ -149,9 +149,36 @@ final class ChatViewModel: ObservableObject {
     private var inboxRealtimeBoundUserId: UUID?
     /// True when the inbox listener uses a client-side `conversation_id IN (...)` filter (see run loop).
     private var inboxRealtimeUsesConversationFilter: Bool = false
+    private var chatPresenceChannel: RealtimeChannelV2?
+    private var chatPresenceListenTask: Task<Void, Never>?
+    private var chatPresenceTrackedUserIds: Set<UUID> = []
+    private var chatPresenceExpiryTask: Task<Void, Never>?
 
     /// Supabase Realtime `IN` filters should stay small; above this we omit the client filter and rely on RLS.
     private let kMaxConversationIdsForInboxRealtimeClientFilter = 48
+    private let kMaxUserProfileIdsForPresenceRealtimeClientFilter = 64
+
+    struct DMRealtimeIdentitySnapshot {
+        let accountType: String
+        let authUserId: UUID?
+        let businessId: UUID?
+        let listeningIdentityIds: [UUID]
+
+        var authUserIdLogValue: String {
+            authUserId?.uuidString.lowercased() ?? "nil"
+        }
+
+        var businessIdLogValue: String {
+            businessId?.uuidString.lowercased() ?? "nil"
+        }
+
+        var listeningLogValue: String {
+            guard !listeningIdentityIds.isEmpty else { return "none" }
+            return listeningIdentityIds
+                .map { $0.uuidString.lowercased() }
+                .joined(separator: ",")
+        }
+    }
 
     // MARK: - Realtime (friend requests)
 
@@ -161,6 +188,39 @@ final class ChatViewModel: ObservableObject {
     private var friendRequestRealtimeDebounceTask: Task<Void, Never>?
     /// Debounces ``ensureSignedInSocialRealtimeIfNeeded()`` after app foreground to avoid reconnect storms.
     private var socialRealtimeForegroundTask: Task<Void, Never>?
+
+    func dmRealtimeIdentitySnapshot(fallbackAuthUserId: UUID? = nil) -> DMRealtimeIdentitySnapshot {
+        let authUserId = currentUserAuthId ?? fallbackAuthUserId
+        let businessId = currentBusinessIdentityIdForDMRealtime()
+        let accountType = businessId == nil ? "user" : "business"
+        let ids = [authUserId, businessId]
+            .compactMap { $0 }
+            .reduce(into: [UUID]()) { result, id in
+                if !result.contains(id) { result.append(id) }
+            }
+        return DMRealtimeIdentitySnapshot(
+            accountType: accountType,
+            authUserId: authUserId,
+            businessId: businessId,
+            listeningIdentityIds: ids
+        )
+    }
+
+    func isCurrentDMRealtimeIdentity(_ id: UUID, fallbackAuthUserId: UUID? = nil) -> Bool {
+        dmRealtimeIdentitySnapshot(fallbackAuthUserId: fallbackAuthUserId)
+            .listeningIdentityIds
+            .contains(id)
+    }
+
+    private func currentBusinessIdentityIdForDMRealtime() -> UUID? {
+        guard let mapViewModel else { return nil }
+        let isBusinessContext = mapViewModel.currentUserIsBusinessAccount
+            || mapViewModel.isVenueOwnerLoggedIn
+            || mapViewModel.hasAuthenticatedVenueOwnerSession
+        guard isBusinessContext else { return nil }
+        return mapViewModel.currentBusinessIdForAddLocation()
+            ?? mapViewModel.ownedBusinesses.first?.id
+    }
 
     func currentUserIdIfSignedIn() async -> UUID? {
         try? await service.currentUserId()
@@ -238,6 +298,7 @@ final class ChatViewModel: ObservableObject {
             guard let self else { return }
             await self.stopInboxRealtimeListener()
             await self.stopFriendshipsRealtimeListener()
+            await self.stopChatPresenceRealtimeListener()
             await AppIconBadgeSync.apply(count: 0)
         }
     }
@@ -272,6 +333,7 @@ final class ChatViewModel: ObservableObject {
         await repairInconsistentSocialRealtimeChannelsIfNeeded()
         startInboxRealtimeListenerIfNeeded()
         startFriendshipsRealtimeListenerIfNeeded()
+        syncChatPresenceRealtimeIfNeeded(reason: "ensureSignedInSocialRealtime")
     }
 
     /// Debounced re-attach after foreground (avoids stacked reconnects with scene churn).
@@ -287,10 +349,18 @@ final class ChatViewModel: ObservableObject {
 #if DEBUG
             print("[RealtimeLifecycle] foreground debounced ensure")
 #endif
+            let identity = self.dmRealtimeIdentitySnapshot()
+            DMRealtimeDiagnostics.debug(
+                "reconnectOnForeground=true accountType=\(identity.accountType) authUserId=\(identity.authUserIdLogValue) businessId=\(identity.businessIdLogValue)"
+            )
+            DMRealtimeDiagnostics.debug(
+                "foregroundReconnectCheck=true accountType=\(identity.accountType) authUserId=\(identity.authUserIdLogValue) businessId=\(identity.businessIdLogValue)"
+            )
 #if DEBUG
             RealtimeHealthDiagnostics.log("appForegroundReconnect=chat_social")
 #endif
             await self.restartSocialRealtimeAfterForeground()
+            await self.refreshChatPresenceSnapshots(reason: "foregroundReconnect")
             self.requestForegroundBadgeRefresh()
         }
     }
@@ -300,9 +370,30 @@ final class ChatViewModel: ObservableObject {
 #if DEBUG
         RealtimeHealthDiagnostics.log("reconnectDetected=chat_social_foreground_resubscribe")
 #endif
+        print("[PresenceDebug] foregroundReconnect=true")
         await stopInboxRealtimeListener()
         await stopFriendshipsRealtimeListener()
+        await stopChatPresenceRealtimeListener()
         await ensureSignedInSocialRealtimeIfNeeded()
+    }
+
+    func forceRestartChatRealtimeAfterGlobalRetryExhausted(reason: String) async {
+        guard requiresSignIn == false else { return }
+        DMRealtimeDiagnostics.debug("globalRealtimeRestart=true reason=\(reason)")
+#if DEBUG
+        RealtimeHealthDiagnostics.log("reconnectDetected=chat_social_global_retry_exhausted reason=\(reason)")
+#endif
+        await stopInboxRealtimeListener()
+        await stopFriendshipsRealtimeListener()
+        await stopChatPresenceRealtimeListener()
+        await ensureSignedInSocialRealtimeIfNeeded()
+    }
+
+    private func realtimeErrorIndicatesGlobalRetryExhausted(_ error: Error) -> Bool {
+        let message = error.localizedDescription.lowercased()
+        return message.contains("maximum retry attempts")
+            || message.contains("max retry")
+            || message.contains("retry attempts reached")
     }
 
     private func repairInconsistentSocialRealtimeChannelsIfNeeded() async {
@@ -318,6 +409,265 @@ final class ChatViewModel: ObservableObject {
 #endif
             await stopFriendshipsRealtimeListener()
         }
+        if (chatPresenceListenTask == nil) != (chatPresenceChannel == nil) {
+#if DEBUG
+            RealtimeHealthDiagnostics.log("reconnectDetected=chat_presence_inconsistent_state")
+#endif
+            await stopChatPresenceRealtimeListener()
+        }
+    }
+
+    private func syncChatPresenceRealtimeIfNeeded(reason: String) {
+        guard requiresSignIn == false else {
+            Task { await stopChatPresenceRealtimeListener() }
+            return
+        }
+        let ids = Set(
+            friends
+                .filter { !$0.preview.isDeleted }
+                .map(\.id)
+        )
+        guard !ids.isEmpty else {
+            Task { await stopChatPresenceRealtimeListener() }
+            return
+        }
+
+        if ids == chatPresenceTrackedUserIds,
+           chatPresenceListenTask != nil,
+           chatPresenceChannel != nil {
+            startChatPresenceExpiryTickerIfNeeded()
+            print("[PresenceDebug] subscribeStarted=false reason=alreadyActive onlineUsersCount=\(chatPresenceOnlineCount())")
+            return
+        }
+
+        chatPresenceTrackedUserIds = ids
+        chatPresenceListenTask?.cancel()
+        chatPresenceListenTask = nil
+        if let channel = chatPresenceChannel {
+            chatPresenceChannel = nil
+            Task { await supabase.removeChannel(channel) }
+        }
+
+        let sortedIds = ids.sorted { $0.uuidString < $1.uuidString }
+        startChatPresenceExpiryTickerIfNeeded()
+        chatPresenceListenTask = Task { @MainActor [weak self] in
+            await self?.runChatPresenceRealtimeLoop(userIds: sortedIds, reason: reason)
+        }
+    }
+
+    private func runChatPresenceRealtimeLoop(userIds: [UUID], reason: String) async {
+        guard !userIds.isEmpty else { return }
+        let channelName = "chat-presence-\(UUID().uuidString.lowercased())"
+        let channel = supabase.channel(channelName)
+        chatPresenceChannel = channel
+        let identity = dmRealtimeIdentitySnapshot()
+        print("[PresenceDebug] subscribeStarted=true reason=\(reason) channelName=\(channelName)")
+        print("[PresenceDebug] userId=\(identity.authUserIdLogValue)")
+        print("[PresenceDebug] businessId=\(identity.businessIdLogValue)")
+
+        let streams = Self.chunked(userIds, size: kMaxUserProfileIdsForPresenceRealtimeClientFilter).map { chunk in
+            channel.postgresChange(
+                UpdateAction.self,
+                schema: "public",
+                table: "user_profiles",
+                filter: RealtimePostgresFilter.in("id", values: chunk)
+            )
+        }
+
+        var shouldRestartChatRealtime = false
+        do {
+            try await channel.subscribeWithError()
+            print("[PresenceDebug] onlineUsersCount=\(chatPresenceOnlineCount())")
+            await withTaskGroup(of: Void.self) { group in
+                for stream in streams {
+                    group.addTask { [weak self] in
+                        await self?.consumeChatPresenceUpdates(stream)
+                    }
+                }
+            }
+        } catch is CancellationError {
+        } catch {
+#if DEBUG
+            print("[PresenceDebug] subscribeError=\(error.localizedDescription) channelName=\(channelName)")
+#endif
+            shouldRestartChatRealtime = realtimeErrorIndicatesGlobalRetryExhausted(error)
+        }
+
+        if chatPresenceChannel === channel {
+            chatPresenceChannel = nil
+        }
+        if chatPresenceListenTask != nil, !Task.isCancelled {
+            await supabase.removeChannel(channel)
+        }
+        if shouldRestartChatRealtime {
+            Task { @MainActor [weak self] in
+                await Task.yield()
+                await self?.forceRestartChatRealtimeAfterGlobalRetryExhausted(reason: "presenceMaxRetry")
+            }
+        }
+    }
+
+    private func consumeChatPresenceUpdates(_ stream: AsyncStream<UpdateAction>) async {
+        let decoder = JSONDecoder()
+        for await update in stream {
+            if Task.isCancelled { break }
+            let row: UserProfileRow
+            do {
+                row = try update.decodeRecord(as: UserProfileRow.self, decoder: decoder)
+            } catch {
+                continue
+            }
+            guard let userId = row.id else { continue }
+            applyChatPresenceUpdate(userId: userId, lastSeenAtRaw: row.last_seen_at, source: "realtime")
+        }
+    }
+
+    private func applyChatPresenceUpdate(userId: UUID, lastSeenAtRaw: String?, source: String) {
+        let userLow = userId.uuidString.lowercased()
+        let isOnline = PresenceOnlineStatus.parse(lastSeenAtRaw).map {
+            Date().timeIntervalSince($0) <= PresenceOnlineStatus.onlineWindowSeconds
+        } ?? false
+        print("[PresenceDebug] userOnline=\(isOnline) userId=\(userLow) source=\(source)")
+        print("[PresenceDebug] lastSeen=\(lastSeenAtRaw ?? "nil") userId=\(userLow)")
+
+        var changed = false
+        let nextFriends = friends.map { display -> FriendDisplay in
+            guard display.id == userId || display.preview.id == userId else { return display }
+            guard display.preview.lastSeenAtRaw != lastSeenAtRaw else { return display }
+            changed = true
+            return FriendDisplay(
+                id: display.id,
+                preview: Self.preview(display.preview, replacingLastSeenAtRawWith: lastSeenAtRaw),
+                subtitle: display.subtitle,
+                lastMessageAt: display.lastMessageAt,
+                unreadCount: display.unreadCount,
+                isConversationBacked: display.isConversationBacked
+            )
+        }
+        if changed {
+            friends = nextFriends
+            print("[PresenceDebug] onlineUsersCount=\(chatPresenceOnlineCount(in: nextFriends))")
+        }
+
+        var incomingChanged = false
+        let nextIncoming = incomingRequests.map { item -> IncomingRequestDisplay in
+            guard item.requester.id == userId else { return item }
+            guard item.requester.lastSeenAtRaw != lastSeenAtRaw else { return item }
+            incomingChanged = true
+            return IncomingRequestDisplay(
+                friendship: item.friendship,
+                requester: Self.preview(item.requester, replacingLastSeenAtRawWith: lastSeenAtRaw)
+            )
+        }
+        if incomingChanged {
+            incomingRequests = nextIncoming
+        }
+
+        var outgoingChanged = false
+        let nextOutgoing = outgoingRequests.map { item -> OutgoingRequestDisplay in
+            guard item.addressee.id == userId else { return item }
+            guard item.addressee.lastSeenAtRaw != lastSeenAtRaw else { return item }
+            outgoingChanged = true
+            return OutgoingRequestDisplay(
+                friendship: item.friendship,
+                addressee: Self.preview(item.addressee, replacingLastSeenAtRawWith: lastSeenAtRaw)
+            )
+        }
+        if outgoingChanged {
+            outgoingRequests = nextOutgoing
+        }
+    }
+
+    private func refreshChatPresenceSnapshots(reason: String) async {
+        let ids = Array(Set(friends.map(\.id)))
+        guard !ids.isEmpty else { return }
+        do {
+            let previews = try await socialIdentityService.fetchUserPreviews(for: ids)
+            for id in ids {
+                applyChatPresenceUpdate(
+                    userId: id,
+                    lastSeenAtRaw: previews[id]?.lastSeenAtRaw,
+                    source: reason
+                )
+            }
+        } catch {
+#if DEBUG
+            print("[PresenceDebug] refreshFailed reason=\(reason) error=\(error.localizedDescription)")
+#endif
+        }
+    }
+
+    private func startChatPresenceExpiryTickerIfNeeded() {
+        guard chatPresenceExpiryTask == nil else { return }
+        chatPresenceExpiryTask = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                do {
+                    try await Task.sleep(nanoseconds: 30_000_000_000)
+                } catch {
+                    return
+                }
+                self?.expireStaleChatPresence()
+            }
+        }
+    }
+
+    private func expireStaleChatPresence() {
+        let now = Date()
+        let expiringIds = friends.compactMap { display -> UUID? in
+            guard let lastSeen = PresenceOnlineStatus.parse(display.preview.lastSeenAtRaw),
+                  now.timeIntervalSince(lastSeen) > PresenceOnlineStatus.onlineWindowSeconds else {
+                return nil
+            }
+            return display.id
+        }
+        guard !expiringIds.isEmpty else { return }
+        for id in expiringIds {
+            applyChatPresenceUpdate(userId: id, lastSeenAtRaw: nil, source: "expiry")
+        }
+    }
+
+    private func stopChatPresenceRealtimeListener() async {
+        chatPresenceListenTask?.cancel()
+        chatPresenceListenTask = nil
+        chatPresenceTrackedUserIds = []
+        chatPresenceExpiryTask?.cancel()
+        chatPresenceExpiryTask = nil
+        guard let channel = chatPresenceChannel else { return }
+        chatPresenceChannel = nil
+        await supabase.removeChannel(channel)
+    }
+
+    private func chatPresenceOnlineCount(in displays: [FriendDisplay]? = nil) -> Int {
+        (displays ?? friends).filter { $0.preview.isOnlineNow }.count
+    }
+
+    private static func preview(
+        _ preview: UserPreview,
+        replacingLastSeenAtRawWith lastSeenAtRaw: String?
+    ) -> UserPreview {
+        UserPreview(
+            id: preview.id,
+            displayName: preview.displayName,
+            username: preview.username,
+            email: preview.email,
+            avatarURL: preview.avatarURL,
+            avatarThumbnailURL: preview.avatarThumbnailURL,
+            isBusinessAccount: preview.isBusinessAccount,
+            isDeleted: preview.isDeleted,
+            lastSeenAtRaw: lastSeenAtRaw
+        )
+    }
+
+    private static func chunked<T>(_ values: [T], size: Int) -> [[T]] {
+        guard size > 0, !values.isEmpty else { return [] }
+        var result: [[T]] = []
+        var index = values.startIndex
+        while index < values.endIndex {
+            let end = values.index(index, offsetBy: size, limitedBy: values.endIndex) ?? values.endIndex
+            result.append(Array(values[index..<end]))
+            index = end
+        }
+        return result
     }
 
     func setDirectChatReadStateVisibility(chatTabVisible: Bool, privateChatUnlocked: Bool) {
@@ -527,7 +877,9 @@ final class ChatViewModel: ObservableObject {
             inboxListenTask = nil
         }
 
-        let channel = supabase.channel("dm-inbox-\(me.uuidString.lowercased())")
+        let identity = dmRealtimeIdentitySnapshot(fallbackAuthUserId: me)
+        let channelName = "dm-inbox-\(me.uuidString.lowercased())"
+        let channel = supabase.channel(channelName)
         inboxChannel = channel
         let subscribeStartedAt = CFAbsoluteTimeGetCurrent()
 
@@ -551,10 +903,18 @@ final class ChatViewModel: ObservableObject {
         RealtimeHealthDiagnostics.log("channelName=\(channel.topic)")
         RealtimeHealthDiagnostics.log("subscribeStart=true channelName=\(channel.topic)")
 #endif
+        DMRealtimeDiagnostics.debug("subscribeStarted=true accountType=\(identity.accountType)")
+        DMRealtimeDiagnostics.debug("authUserId=\(identity.authUserIdLogValue)")
+        DMRealtimeDiagnostics.debug("businessId=\(identity.businessIdLogValue)")
+        DMRealtimeDiagnostics.debug("channelName=\(channel.topic)")
+        DMRealtimeDiagnostics.debug("listeningForSender=\(identity.listeningLogValue)")
+        DMRealtimeDiagnostics.debug("listeningForRecipient=\(identity.listeningLogValue)")
 
+        var shouldRestartChatRealtime = false
         do {
             try await channel.subscribeWithError()
             inboxRealtimeBoundUserId = me
+            DMRealtimeDiagnostics.debug("channelStatus=\(String(describing: channel.status)) channelName=\(channel.topic)")
 #if DEBUG
             print("[DMRealtime] inbox subscribed channel=dm-inbox-\(me.uuidString.lowercased())")
 #endif
@@ -583,6 +943,7 @@ final class ChatViewModel: ObservableObject {
             print("[DMRealtime] inbox listener cancelled")
 #endif
         } catch {
+            DMRealtimeDiagnostics.debug("channelError=\(error.localizedDescription) channelName=\(channel.topic)")
 #if DEBUG
             print("[DMRealtime] inbox listener error: \(error)")
 #endif
@@ -590,9 +951,16 @@ final class ChatViewModel: ObservableObject {
             print("[RealtimeChainDebug] subscribeFailed table=conversation_read_state error=\(error.localizedDescription)")
             RealtimeHealthDiagnostics.log("subscribeError=\(error.localizedDescription) channelName=\(channel.topic)")
 #endif
+            shouldRestartChatRealtime = realtimeErrorIndicatesGlobalRetryExhausted(error)
         }
 
         await removeInboxRealtimeChannelOnly()
+        if shouldRestartChatRealtime {
+            Task { @MainActor [weak self] in
+                await Task.yield()
+                await self?.forceRestartChatRealtimeAfterGlobalRetryExhausted(reason: "inboxMaxRetry")
+            }
+        }
         // Allow ``startInboxRealtimeListenerIfNeeded()`` after disconnect; do not call ``stopInboxRealtimeListener()`` here
         // (that would deadlock while awaiting this same task).
     }
@@ -633,8 +1001,24 @@ final class ChatViewModel: ObservableObject {
                 continue
             }
 
-            if row.deleted_at != nil { continue }
-            if row.sender_id == me { continue }
+            if row.deleted_at != nil {
+                DMRealtimeDiagnostics.debug("ignoredReason=deleted messageId=\(row.id.uuidString.lowercased())")
+                continue
+            }
+            if row.is_deleted == true {
+                DMRealtimeDiagnostics.debug("ignoredReason=deleted messageId=\(row.id.uuidString.lowercased())")
+                continue
+            }
+            let identity = dmRealtimeIdentitySnapshot(fallbackAuthUserId: me)
+            DMRealtimeDiagnostics.debug(
+                "insertReceived messageId=\(row.id.uuidString.lowercased()) senderId=\(row.sender_id.uuidString.lowercased()) conversationId=\(row.conversation_id?.uuidString.lowercased() ?? "nil")"
+            )
+            if isCurrentDMRealtimeIdentity(row.sender_id, fallbackAuthUserId: me) {
+                DMRealtimeDiagnostics.debug(
+                    "ignoredReason=selfEcho messageId=\(row.id.uuidString.lowercased()) accountType=\(identity.accountType)"
+                )
+                continue
+            }
 #if DEBUG
             if let cid = row.conversation_id {
                 dmLatencyInboxEventStartByConversationID[cid] = CFAbsoluteTimeGetCurrent()
@@ -646,6 +1030,7 @@ final class ChatViewModel: ObservableObject {
             )
 #endif
             if isEitherDirectionBlocked(with: row.sender_id) {
+                DMRealtimeDiagnostics.debug("ignoredReason=blocked messageId=\(row.id.uuidString.lowercased())")
                 #if DEBUG
                 print("[ChatRealtime] inbox INSERT id=\(row.id) sender=\(row.sender_id) → skip(blocked)")
                 #endif
@@ -657,8 +1042,12 @@ final class ChatViewModel: ObservableObject {
             #endif
 
             let patched = await applyRealtimeIncomingPeerMessage(row)
+            DMRealtimeDiagnostics.debug(
+                "insertMatchedThread=\(patched) messageId=\(row.id.uuidString.lowercased()) conversationId=\(row.conversation_id?.uuidString.lowercased() ?? "nil")"
+            )
             maybeEmitDmInAppNotification(row: row, me: me)
             if patched {
+                DMRealtimeDiagnostics.debug("ignoredReason=none messageId=\(row.id.uuidString.lowercased())")
 #if DEBUG
                 print("[UnreadStateDebug] incomingInsert source=localRealtimePatch action=keptLocalUnread")
 #endif
@@ -691,7 +1080,7 @@ final class ChatViewModel: ObservableObject {
     }
 
     private func maybeEmitDmInAppNotification(row: DirectMessageRow, me: UUID) {
-        guard row.sender_id != me else { return }
+        guard !isCurrentDMRealtimeIdentity(row.sender_id, fallbackAuthUserId: me) else { return }
         guard !isUserViewingThisDmThread(conversationId: row.conversation_id, peerSenderId: row.sender_id) else {
 #if DEBUG
             print("[DMInAppNotificationDebug] conversationId=\(row.conversation_id?.uuidString ?? "nil")")
@@ -778,6 +1167,9 @@ final class ChatViewModel: ObservableObject {
 #endif
 
         guard let idx = friends.firstIndex(where: { $0.id == peerId }) else {
+            DMRealtimeDiagnostics.debug(
+                "ignoredReason=missingInboxRow messageId=\(row.id.uuidString.lowercased()) senderId=\(peerId.uuidString.lowercased()) activeThread=\(viewing)"
+            )
 #if DEBUG
             print("[BadgeReceiveDebug] skipped reason=missing_inbox_row")
 #endif
@@ -816,6 +1208,7 @@ final class ChatViewModel: ObservableObject {
         next[idx] = updated
         next.sort { ($0.lastMessageAt ?? .distantPast) > ($1.lastMessageAt ?? .distantPast) }
         friends = next
+        syncChatPresenceRealtimeIfNeeded(reason: "incomingDmPatchedInbox")
 #if DEBUG
         print("[BadgeSyncDebug] chat list updated")
         let inboxElapsedStart = row.conversation_id.flatMap { dmLatencyInboxEventStartByConversationID[$0] }
@@ -909,6 +1302,7 @@ final class ChatViewModel: ObservableObject {
             friendRequestRealtimeDebounceTask = nil
         }
 
+        var shouldRestartChatRealtime = false
         do {
             try await channel.subscribeWithError()
             friendshipsRealtimeBoundUserId = me
@@ -931,10 +1325,17 @@ final class ChatViewModel: ObservableObject {
                 print("[FriendRequestRealtime] subscribe/stream error: \(error)")
                 print("[RealtimeLifecycle] friendship listener ended with error")
 #endif
+                shouldRestartChatRealtime = realtimeErrorIndicatesGlobalRetryExhausted(error)
             }
         }
 
         await removeFriendshipsChannelOnly()
+        if shouldRestartChatRealtime {
+            Task { @MainActor [weak self] in
+                await Task.yield()
+                await self?.forceRestartChatRealtimeAfterGlobalRetryExhausted(reason: "friendshipsMaxRetry")
+            }
+        }
     }
 
     private func logFriendRequestRealtimeCancelledIfNeeded(_ action: AnyAction) {
@@ -1195,6 +1596,7 @@ final class ChatViewModel: ObservableObject {
             var visible = displays.filter { !isEitherDirectionBlocked(with: $0.id) }
             visible = try await mergeAcceptedFriendsMissingFromInbox(me: me, inboxDisplays: visible)
             friends = visible
+            syncChatPresenceRealtimeIfNeeded(reason: "inboxSummariesLoaded")
 #if DEBUG
             print("[BadgeSyncDebug] chat list updated")
             let elapsed = String(format: "%.1f", (CFAbsoluteTimeGetCurrent() - refreshStartedAt) * 1000)
@@ -1285,6 +1687,25 @@ final class ChatViewModel: ObservableObject {
         return deleted
     }
 
+    func refreshDirectChatPresencePreview(
+        userId: UUID,
+        fallback: UserPreview,
+        source: String
+    ) async -> UserPreview? {
+        do {
+            guard let resolved = try await socialIdentityService.fetchUserPreviews(for: [userId])[userId] else {
+                return nil
+            }
+            patchLoadedDmParticipantPreview(resolved)
+            return resolved
+        } catch {
+#if DEBUG
+            print("[PresenceDebug] directChatPresenceRefreshFailed=true friendId=\(userId.uuidString.lowercased()) presenceSource=\(source) error=\(error.localizedDescription)")
+#endif
+            return nil
+        }
+    }
+
     /// Same RPC path as ``DirectChatView`` / inbox rows: returns an existing peer DM conversation id or creates one (no duplicate threads).
     func startDirectConversationWithFriend(friendUserId: UUID) async throws -> UUID {
         try await directChatService.startDirectConversation(friendUserId: friendUserId)
@@ -1352,6 +1773,7 @@ final class ChatViewModel: ObservableObject {
             }
             friendDisplays = try await mergeAcceptedFriendsMissingFromInbox(me: me, inboxDisplays: friendDisplays)
             friends = friendDisplays
+            syncChatPresenceRealtimeIfNeeded(reason: "fullRefreshLoaded")
 #if DEBUG
             print("[BadgeSyncDebug] chat list updated")
             let fullRefreshElapsed = String(format: "%.1f", (CFAbsoluteTimeGetCurrent() - fullRefreshStartedAt) * 1000)
@@ -1673,6 +2095,10 @@ final class ChatViewModel: ObservableObject {
         let accepted = try await service.fetchAcceptedFriendships(for: me)
         let inboxIds = Set(inboxDisplays.map(\.id))
         let missingIds: [UUID] = accepted.compactMap { row in
+            guard (row.requester_entity_type ?? "user").lowercased() == "user",
+                  (row.addressee_entity_type ?? "user").lowercased() == "user" else {
+                return nil
+            }
             let other = row.requester_id == me ? row.addressee_id : row.requester_id
             guard !inboxIds.contains(other) else { return nil }
             guard !isEitherDirectionBlocked(with: other) else { return nil }
@@ -1983,7 +2409,8 @@ final class ChatViewModel: ObservableObject {
                 email: email,
                 avatarURL: nil,
                 avatarThumbnailURL: nil,
-                isBusinessAccount: true
+                isBusinessAccount: true,
+                lastSeenAtRaw: resolvedPreview?.lastSeenAtRaw
             )
         }
 

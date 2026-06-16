@@ -6,6 +6,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const THESPORTSDB_V2_BASE = "https://www.thesportsdb.com/api/v2/json"
+const THE_SPORTSDB_V1_FREE_API_KEY = "123"
 
 type MatchStatus = "LIVE" | "HT" | "FT" | "SCHEDULED"
 
@@ -114,6 +115,15 @@ type SyncCounts = {
   timelineErrors: number
 }
 
+type SavedTimelineCounts = {
+  savedTimelineFetched: number
+  savedTimelineEmpty: number
+  savedTimelineUpdated: number
+  savedTimelineIds: string[]
+  savedTimelineEmptyIds: string[]
+  savedTimelineScoringEmptyIds: string[]
+}
+
 type ScheduledFixturesCounts = {
   fetched: number
   normalized: number
@@ -160,6 +170,13 @@ type RecentCompletedCandidateRow = {
   league: string | null
   sport: string | null
   start_time: string | null
+}
+
+type SavedProGameTimelineTarget = {
+  savedGameId: string
+  liveMatchExternalId: string | null
+  providerEventIdUsedForTimeline: string
+  sport: string | null
 }
 
 type SportsDBCompletedEvent = {
@@ -230,6 +247,14 @@ serve(async (req) => {
     }
     const supabase = createClient(supabaseUrl, serviceRoleKey)
     const completedWindow = recentCompletedMatchWindow()
+    const savedTimelineCounts: SavedTimelineCounts = {
+      savedTimelineFetched: 0,
+      savedTimelineEmpty: 0,
+      savedTimelineUpdated: 0,
+      savedTimelineIds: [],
+      savedTimelineEmptyIds: [],
+      savedTimelineScoringEmptyIds: [],
+    }
     const completedCounts: CompletedMatchesCounts = {
       fetched: 0,
       normalized: 0,
@@ -291,6 +316,9 @@ serve(async (req) => {
     scheduledLog(`upserted=${scheduledCounts.upserted}`)
     featuredLog(`upserted=${featuredCounts.featuredFixturesUpserted}`)
 
+    // Saved Pro Game timelines are written after upsert so bulk upserts cannot wipe hydrated rows.
+    await enrichSavedProGamesWithTimelineEvents(supabase, savedTimelineCounts)
+
     return json({
       success: true,
       source: fetchResult.source,
@@ -299,6 +327,7 @@ serve(async (req) => {
         end: matchWindow.endISO,
       },
       counts,
+      savedTimelineCounts,
       scheduledCounts,
       completedCounts,
       featuredCounts,
@@ -772,14 +801,12 @@ function addSportsDBProviderCandidates(
 }
 
 function sportsDBExternalIdFromCandidate(row: RecentCompletedCandidateRow): string | null {
+  const fromLiveMatchId = sportsDBExternalIdFromLiveMatchId(cleanString(row.live_match_id))
+  if (fromLiveMatchId) return fromLiveMatchId
+
   const source = String(row.source ?? "").trim().toLowerCase()
   const externalId = String(row.external_id ?? "").trim()
   if (source === "thesportsdb" && externalId) return externalId
-
-  const liveMatchId = String(row.live_match_id ?? "").trim()
-  if (liveMatchId.toLowerCase().startsWith("thesportsdb:")) {
-    return liveMatchId.split(":").pop()?.trim() || null
-  }
   return null
 }
 
@@ -1282,6 +1309,299 @@ function cleanString(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null
 }
 
+async function enrichSavedProGamesWithTimelineEvents(
+  supabase: ReturnType<typeof createClient>,
+  savedTimelineCounts: SavedTimelineCounts,
+): Promise<void> {
+  const targets = await fetchSavedProGameTimelineTargets(supabase)
+  if (targets.length === 0) {
+    timelineLog("saved_pro_game_targets=0")
+    return
+  }
+
+  timelineLog(`saved_pro_game_targets=${targets.length}`)
+
+  for (const target of targets) {
+    const existingLiveMatch = await fetchSavedProGameLiveMatchRow(supabase, target.savedGameId)
+    const liveMatchRowFound = existingLiveMatch != null
+    const existingTimelineCountBefore = Array.isArray(existingLiveMatch?.timeline_events)
+      ? existingLiveMatch.timeline_events.length
+      : 0
+    const homeTeam = cleanString(existingLiveMatch?.home_team as string | undefined) ?? ""
+    const awayTeam = cleanString(existingLiveMatch?.away_team as string | undefined) ?? ""
+    const sport = cleanString(existingLiveMatch?.sport as string | undefined) ?? target.sport
+
+    timelineLog(
+      `saved_pro_game savedGameId=${target.savedGameId} providerEventIdUsedForTimeline=${target.providerEventIdUsedForTimeline} liveMatchRowFound=${liveMatchRowFound} existingTimelineCountBefore=${existingTimelineCountBefore} cacheBypassed=true`,
+    )
+    console.log(`[ScoringEventDebug] savedGameId=${target.savedGameId}`)
+    console.log(`[ScoringEventDebug] providerEventIdUsedForTimeline=${target.providerEventIdUsedForTimeline}`)
+    console.log(`[ScoringEventDebug] liveMatchExternalId=${target.liveMatchExternalId ?? "nil"}`)
+    console.log(`[ScoringEventDebug] liveMatchRowFound=${liveMatchRowFound}`)
+    console.log(`[ScoringEventDebug] existingTimelineCountBefore=${existingTimelineCountBefore}`)
+    console.log("[ScoringEventDebug] cacheBypassed=true")
+
+    if (!liveMatchRowFound) {
+      timelineLog(`saved_pro_game savedGameId=${target.savedGameId} liveMatchRowFound=false skipReason=no_live_match_row`)
+      logScoringEventDebug({
+        eventId: target.providerEventIdUsedForTimeline,
+        savedGameId: target.savedGameId,
+        liveMatchExternalId: target.liveMatchExternalId,
+        providerEventIdUsedForTimeline: target.providerEventIdUsedForTimeline,
+        timelineFetched: false,
+        timelineCount: 0,
+        rawSample: "null",
+        scoringEventsCount: 0,
+        renderedSummary: "none",
+        fallbackReason: "savedProGameLiveMatchMissing",
+        source: "saved_pro_game",
+      })
+      continue
+    }
+
+    try {
+      const events = await fetchSavedProGameTimelineEventsV1(target.providerEventIdUsedForTimeline)
+      const updatedAt = new Date().toISOString()
+      const scoringEventsCount = countScoringTimelineEvents(events, sport ?? undefined)
+      const renderedSummary = buildRenderedTimelineSummary(events, sport, homeTeam, awayTeam)
+      const noGoalReason = events.length > 0 && scoringEventsCount === 0
+        ? diagnoseNoScoringTimelineReason(events, sport ?? undefined)
+        : null
+
+      savedTimelineCounts.savedTimelineFetched += 1
+      if (events.length === 0) {
+        savedTimelineCounts.savedTimelineEmpty += 1
+        savedTimelineCounts.savedTimelineEmptyIds.push(target.savedGameId)
+      } else if (scoringEventsCount === 0) {
+        savedTimelineCounts.savedTimelineScoringEmptyIds.push(target.savedGameId)
+      }
+
+      const { error: updateError } = await supabase
+        .from("live_matches")
+        .update({
+          external_id: target.providerEventIdUsedForTimeline,
+          timeline_events: events,
+          timeline_updated_at: updatedAt,
+        })
+        .eq("id", target.savedGameId)
+
+      if (updateError) {
+        timelineLog(
+          `saved_pro_game savedGameId=${target.savedGameId} dbUpdateError=${updateError.message}`,
+        )
+      } else {
+        savedTimelineCounts.savedTimelineUpdated += 1
+        savedTimelineCounts.savedTimelineIds.push(target.savedGameId)
+      }
+
+      timelineLog(
+        `saved_pro_game savedGameId=${target.savedGameId} providerEventIdUsedForTimeline=${target.providerEventIdUsedForTimeline} timelineCount=${events.length} scoringEventsCount=${scoringEventsCount} renderedSummary=${renderedSummary} dbUpdated=${updateError ? "false" : "true"}${noGoalReason ? ` noGoalReason=${noGoalReason}` : ""}`,
+      )
+      logScoringEventDebug({
+        eventId: target.providerEventIdUsedForTimeline,
+        savedGameId: target.savedGameId,
+        liveMatchExternalId: target.liveMatchExternalId,
+        providerEventIdUsedForTimeline: target.providerEventIdUsedForTimeline,
+        timelineFetched: true,
+        timelineCount: events.length,
+        rawSample: scoringTimelineRawSample(events),
+        scoringEventsCount,
+        renderedSummary,
+        fallbackReason: events.length === 0
+          ? "providerTimelineMissing"
+          : scoringEventsCount === 0
+          ? noGoalReason ?? "noScoringEventsInTimeline"
+          : null,
+        source: "saved_pro_game_v1",
+      })
+      logScoringTimelineDebug({
+        gameId: target.savedGameId,
+        scoreHome: numberOrZero(existingLiveMatch?.score_home),
+        scoreAway: numberOrZero(existingLiveMatch?.score_away),
+        homeTeam,
+        awayTeam,
+        sport,
+        timelineEvents: events,
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      timelineLog(
+        `saved_pro_game savedGameId=${target.savedGameId} providerEventIdUsedForTimeline=${target.providerEventIdUsedForTimeline} error=${message}`,
+      )
+      const existingEvents = Array.isArray(existingLiveMatch?.timeline_events)
+        ? existingLiveMatch.timeline_events as TimelineEventRow[]
+        : []
+      logScoringEventDebug({
+        eventId: target.providerEventIdUsedForTimeline,
+        savedGameId: target.savedGameId,
+        liveMatchExternalId: target.liveMatchExternalId,
+        providerEventIdUsedForTimeline: target.providerEventIdUsedForTimeline,
+        timelineFetched: false,
+        timelineCount: existingTimelineCountBefore,
+        rawSample: scoringTimelineRawSample(existingEvents),
+        scoringEventsCount: countScoringTimelineEvents(existingEvents, sport ?? undefined),
+        renderedSummary: buildRenderedTimelineSummary(existingEvents, sport, homeTeam, awayTeam),
+        fallbackReason: "providerTimelineFetchError",
+        source: "saved_pro_game_v1",
+      })
+    }
+  }
+}
+
+async function fetchSavedProGameLiveMatchRow(
+  supabase: ReturnType<typeof createClient>,
+  savedGameId: string,
+): Promise<Record<string, unknown> | null> {
+  const { data, error } = await supabase
+    .from("live_matches")
+    .select("id,home_team,away_team,sport,score_home,score_away,timeline_events")
+    .eq("id", savedGameId)
+    .maybeSingle()
+
+  if (error) {
+    timelineLog(`saved_pro_game_live_match_lookup_error id=${savedGameId} error=${error.message}`)
+    return null
+  }
+  if (!data || typeof data !== "object") return null
+  return data as Record<string, unknown>
+}
+
+async function fetchSavedProGameTimelineEventsV1(idEvent: string): Promise<TimelineEventRow[]> {
+  timelineLog(`saved_pro_game_v1_request path=/api/v1/json/redacted/lookuptimeline.php?id=${encodeURIComponent(idEvent)}`)
+  return await fetchTheSportsDBV1TimelineEvents(idEvent, THE_SPORTSDB_V1_FREE_API_KEY)
+}
+
+async function fetchSavedProGameTimelineTargets(
+  supabase: ReturnType<typeof createClient>,
+): Promise<SavedProGameTimelineTarget[]> {
+  const { data, error } = await supabase
+    .from("saved_pro_games")
+    .select("live_match_id,source,external_id,sport")
+    .or("source.eq.thesportsdb,live_match_id.ilike.thesportsdb:%")
+
+  if (error || !Array.isArray(data)) {
+    if (error) timelineLog(`saved_pro_game_target_query_error=${error.message}`)
+    return []
+  }
+
+  const targets = new Map<string, SavedProGameTimelineTarget>()
+  for (const row of data) {
+    const savedGameId = cleanString(row?.live_match_id)
+    const providerEventIdUsedForTimeline = resolveSavedProGameProviderEventId(
+      savedGameId,
+      cleanString(row?.external_id),
+    )
+    if (!savedGameId || !providerEventIdUsedForTimeline) continue
+    targets.set(savedGameId, {
+      savedGameId,
+      liveMatchExternalId: cleanString(row?.external_id),
+      providerEventIdUsedForTimeline,
+      sport: cleanString(row?.sport),
+    })
+  }
+  return [...targets.values()]
+}
+
+function resolveSavedProGameProviderEventId(
+  liveMatchId: string | null,
+  externalId: string | null,
+): string | null {
+  const fromLiveMatchId = sportsDBExternalIdFromLiveMatchId(liveMatchId)
+  if (fromLiveMatchId) return fromLiveMatchId
+
+  const cleanedExternalId = String(externalId ?? "").trim()
+  if (/^\d+$/.test(cleanedExternalId)) return cleanedExternalId
+  return null
+}
+
+function sportsDBExternalIdFromLiveMatchId(liveMatchId: string | null): string | null {
+  const trimmed = String(liveMatchId ?? "").trim()
+  if (!trimmed.toLowerCase().startsWith("thesportsdb:")) return null
+  const providerId = trimmed.split(":").pop()?.trim() ?? ""
+  return /^\d+$/.test(providerId) ? providerId : null
+}
+
+function buildRenderedTimelineSummary(
+  events: TimelineEventRow[],
+  sport: string | null | undefined,
+  homeTeam: string,
+  awayTeam: string,
+): string {
+  const sportKind = normalizedTimelineSportKind(sport ?? undefined)
+  const scoringEvents = dedupeScoringTimelineEventRows(
+    events.filter((event) => isScoringTimelineEvent(event, sportKind)),
+  )
+  if (scoringEvents.length === 0) return "none"
+
+  const grouped = new Map<string, string[]>()
+  for (const event of scoringEvents) {
+    const side = timelineEventSideForSummary(event, homeTeam, awayTeam)
+    const team = side === "home" ? homeTeam : side === "away" ? awayTeam : cleanString(event.strTeam) ?? "Goals"
+    const player = cleanString(event.strPlayer) ?? "unknown"
+    const clock = formatTimelineMinute(event) ?? cleanString(event.intTime) ?? ""
+    const marker = timelineScoringMarker(event)
+    const scorerClock = [player, marker, clock].filter(Boolean).join(" ").trim()
+    grouped.set(team, [...(grouped.get(team) ?? []), scorerClock])
+  }
+
+  return [...grouped.entries()]
+    .map(([team, scorers]) => `${team}: ${scorers.join(", ")}`)
+    .join(" | ")
+}
+
+function diagnoseNoScoringTimelineReason(events: TimelineEventRow[], sport?: string): string {
+  const sportKind = normalizedTimelineSportKind(sport)
+  const rowTypes = [...new Set(events.map((event) => cleanString(event.strTimeline) ?? "unknown"))]
+  const hasGoalText = events.some((event) => timelineEventSearchText(event).includes("goal"))
+  const hasPenaltyMiss = events.some((event) => {
+    const text = timelineEventSearchText(event)
+    return text.includes("penalty") && (text.includes("miss") || text.includes("saved"))
+  })
+  if (hasPenaltyMiss && !hasGoalText) return "onlyPenaltyMissRows"
+  if (rowTypes.every((type) => ["subst", "substitution", "card", "yellow card", "red card"].includes(type.toLowerCase()))) {
+    return `nonGoalRowsOnly types=${rowTypes.join(",")}`
+  }
+  if (sportKind === "other") return `unsupportedSportForScoring sport=${sport ?? "unknown"} types=${rowTypes.join(",")}`
+  return `nonGoalRowsOnly types=${rowTypes.join(",")}`
+}
+
+function timelineEventSideForSummary(
+  event: TimelineEventRow,
+  homeTeam: string,
+  awayTeam: string,
+): "home" | "away" | null {
+  const homeFlag = String(event.strHome ?? "").trim().toLowerCase()
+  if (["yes", "true", "1", "home"].includes(homeFlag)) return "home"
+  if (["no", "false", "0", "away"].includes(homeFlag)) return "away"
+
+  const team = normalizedTimelineTeamText(event.strTeam)
+  if (!team) return null
+  if (team === normalizedTimelineTeamText(homeTeam)) return "home"
+  if (team === normalizedTimelineTeamText(awayTeam)) return "away"
+  return null
+}
+
+function normalizedTimelineTeamText(raw: string | null | undefined): string {
+  return String(raw ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+}
+
+function formatTimelineMinute(event: TimelineEventRow): string | null {
+  const minute = cleanString(event.intTime)
+  if (!minute) return null
+  return minute.endsWith("'") || minute.endsWith("’") ? minute.replace("’", "'") : `${minute}'`
+}
+
+function timelineScoringMarker(event: TimelineEventRow): string | null {
+  const text = timelineEventSearchText(event)
+  if (text.includes("own goal")) return "(OG)"
+  if (text.includes("penalty") && !text.includes("miss")) return "(P)"
+  return null
+}
+
 async function enrichMatchesWithTimelineEvents(
   supabase: ReturnType<typeof createClient>,
   matches: LiveMatchUpsert[],
@@ -1303,6 +1623,15 @@ async function enrichMatchesWithTimelineEvents(
       match.timeline_events = cached.timeline_events ?? []
       match.timeline_updated_at = cached.timeline_updated_at
       counts.timelineCacheHits += 1
+      logScoringEventDebug({
+        eventId: match.external_id,
+        timelineFetched: false,
+        timelineCount: match.timeline_events.length,
+        rawSample: scoringTimelineRawSample(match.timeline_events),
+        scoringEventsCount: countScoringTimelineEvents(match.timeline_events, match.sport),
+        fallbackReason: match.timeline_events.length === 0 ? "providerTimelineMissing" : null,
+        source: "cache",
+      })
       continue
     }
 
@@ -1331,12 +1660,38 @@ async function enrichMatchesWithTimelineEvents(
       counts.timelineFetched += 1
       if (events.length === 0) counts.timelineEmpty += 1
       timelineLog(`event=${match.external_id} fetched=${events.length}`)
+      logScoringEventDebug({
+        eventId: match.external_id,
+        timelineFetched: true,
+        timelineCount: events.length,
+        rawSample: scoringTimelineRawSample(events),
+        scoringEventsCount: countScoringTimelineEvents(events, match.sport),
+        fallbackReason: events.length === 0 ? "providerTimelineMissing" : null,
+        source: sportsDBKey ? "provider" : "provider_v1",
+      })
+      logScoringTimelineDebug({
+        gameId: match.id,
+        scoreHome: match.score_home,
+        scoreAway: match.score_away,
+        homeTeam: match.home_team,
+        awayTeam: match.away_team,
+        sport: match.sport,
+        timelineEvents: events,
+      })
     } catch (error) {
       counts.timelineErrors += 1
       const message = error instanceof Error ? error.message : String(error)
       timelineLog(`event=${match.external_id} error=${message}`)
       match.timeline_events = cached?.timeline_events ?? []
       match.timeline_updated_at = cached?.timeline_updated_at ?? null
+      logScoringEventDebug({
+        eventId: match.external_id,
+        timelineFetched: false,
+        timelineCount: match.timeline_events?.length ?? 0,
+        rawSample: scoringTimelineRawSample(match.timeline_events ?? []),
+        scoringEventsCount: countScoringTimelineEvents(match.timeline_events ?? [], match.sport),
+        fallbackReason: "providerTimelineFetchError",
+      })
     }
   }
 }
@@ -1374,6 +1729,13 @@ async function fetchTimelineEventCache(
 }
 
 function isTimelineEventCacheFresh(cache: TimelineEventCacheRow, match: LiveMatchUpsert): boolean {
+  const cachedEvents = Array.isArray(cache.timeline_events) ? cache.timeline_events : []
+  if (
+    (match.match_status === "FT" || match.match_status === "AET" || match.match_status === "PEN")
+    && cachedEvents.length === 0
+  ) {
+    return false
+  }
   if (!cache.timeline_updated_at) return false
   const updatedAt = new Date(cache.timeline_updated_at)
   if (!Number.isFinite(updatedAt.getTime())) return false
@@ -1398,17 +1760,20 @@ async function fetchTheSportsDBTimelineEvents(
 ): Promise<TimelineEventRow[]> {
   if (apiKey) {
     try {
-      return await fetchTheSportsDBV2TimelineEvents(idEvent, apiKey)
+      const v2Events = await fetchTheSportsDBV2TimelineEvents(idEvent, apiKey)
+      if (v2Events.length > 0) return v2Events
+      timelineLog(`v2_empty event=${idEvent} falling_back=v1 path=/api/v1/json/redacted/lookuptimeline.php?id=${encodeURIComponent(idEvent)}`)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      timelineLog(`v2_failed event=${idEvent} error=${message}`)
+      timelineLog(`v2_failed event=${idEvent} error=${message} falling_back=v1 path=/api/v1/json/redacted/lookuptimeline.php?id=${encodeURIComponent(idEvent)}`)
     }
   }
-  return await fetchTheSportsDBV1TimelineEvents(idEvent, apiKey ?? "123")
+  return await fetchTheSportsDBV1TimelineEvents(idEvent, THE_SPORTSDB_V1_FREE_API_KEY)
 }
 
 async function fetchTheSportsDBV2TimelineEvents(idEvent: string, apiKey: string): Promise<TimelineEventRow[]> {
   const url = `${THESPORTSDB_V2_BASE}/lookup/event_timeline/${encodeURIComponent(idEvent)}`
+  timelineLog(`v2_request path=/api/v2/json/lookup/event_timeline/${encodeURIComponent(idEvent)}`)
   const response = await fetch(url, {
     headers: { "X-API-KEY": apiKey },
   })
@@ -1417,19 +1782,27 @@ async function fetchTheSportsDBV2TimelineEvents(idEvent: string, apiKey: string)
   return normalizeTimelineEventRows(data, idEvent)
 }
 
-async function fetchTheSportsDBV1TimelineEvents(idEvent: string, apiKey: string): Promise<TimelineEventRow[]> {
+async function fetchTheSportsDBV1TimelineEvents(
+  idEvent: string,
+  apiKey: string = THE_SPORTSDB_V1_FREE_API_KEY,
+): Promise<TimelineEventRow[]> {
   const url = `https://www.thesportsdb.com/api/v1/json/${apiKey}/lookuptimeline.php?id=${encodeURIComponent(idEvent)}`
+  timelineLog(`v1_request path=/api/v1/json/redacted/lookuptimeline.php?id=${encodeURIComponent(idEvent)}`)
   const response = await fetch(url)
   if (!response.ok) throw new Error(`v1 HTTP ${response.status}`)
   const data = await response.json()
+  if (data && typeof data === "object" && typeof (data as Record<string, unknown>).Message === "string") {
+    throw new Error(`v1 provider error: ${(data as Record<string, unknown>).Message}`)
+  }
   return normalizeTimelineEventRows(data, idEvent)
 }
 
 function normalizeTimelineEventRows(data: unknown, fallbackEventId: string): TimelineEventRow[] {
   const rows = extractTimelineEventRows(data)
-  return dedupeTimelineEventRows(rows
+  const normalized = rows
     .map((row) => normalizeTimelineEventRow(row, fallbackEventId))
-    .filter(isTimelineEventRow))
+    .filter(isTimelineEventRow)
+  return dedupeScoringTimelineEventRows(dedupeTimelineEventRows(normalized))
 }
 
 function extractTimelineEventRows(data: unknown): unknown[] {
@@ -1491,6 +1864,46 @@ function dedupeTimelineEventRows(rows: TimelineEventRow[]): TimelineEventRow[] {
   return deduped
 }
 
+function dedupeScoringTimelineEventRows(rows: TimelineEventRow[]): TimelineEventRow[] {
+  const seen = new Set<string>()
+  const deduped: TimelineEventRow[] = []
+
+  for (const row of rows) {
+    if (!isScoringTimelineEvent(row)) {
+      deduped.push(row)
+      continue
+    }
+
+    const key = scoringTimelineDedupeKey(row)
+    if (seen.has(key)) {
+      timelineLog(
+        `scoring_duplicate_removed player=${cleanString(row.strPlayer) ?? "unknown"} minute=${cleanString(row.intTime) ?? "unknown"} team=${cleanString(row.strTeam) ?? "unknown"} eventType=${cleanString(row.strTimeline) ?? cleanString(row.strTimelineDetail) ?? "unknown"}`,
+      )
+      continue
+    }
+
+    seen.add(key)
+    deduped.push(row)
+  }
+
+  return deduped
+}
+
+function scoringTimelineDedupeKey(event: TimelineEventRow): string {
+  const team = normalizeTimelineTeamKey(event.strTeam)
+  const player = normalizeTimelineTeamKey(event.strPlayer)
+  const minute = cleanString(event.intTime) ?? ""
+  return `${team}|${player}|${minute}`
+}
+
+function normalizeTimelineTeamKey(value: string | null | undefined): string {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+}
+
 async function pruneStaleMatches(
   supabase: ReturnType<typeof createClient>,
   matchWindow: MatchWindow,
@@ -1524,7 +1937,7 @@ function currentMatchWindow(now = new Date()): MatchWindow {
 }
 
 function recentCompletedMatchWindow(now = new Date()): MatchWindow {
-  const start = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+  const start = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000)
   const end = new Date(now.getTime() + 15 * 60 * 1000)
   return {
     start,
@@ -1727,6 +2140,140 @@ function tvLog(message: string): void {
 
 function timelineLog(message: string): void {
   console.log(`[TheSportsDBTimeline] ${message}`)
+}
+
+function logScoringTimelineDebug(input: {
+  gameId: string
+  scoreHome: number
+  scoreAway: number
+  homeTeam: string
+  awayTeam: string
+  sport?: string | null
+  timelineEvents: TimelineEventRow[]
+}): void {
+  const sportKind = normalizedTimelineSportKind(input.sport ?? undefined)
+  const rawGoalEvents = input.timelineEvents.filter((event) => isScoringTimelineEvent(event, sportKind))
+  const dedupedGoalEvents = dedupeScoringTimelineEventRows(rawGoalEvents)
+  const duplicatesRemoved = rawGoalEvents.length - dedupedGoalEvents.length
+
+  console.log(`[ScoringTimelineDebug] gameId=${input.gameId}`)
+  console.log(`[ScoringTimelineDebug] scoreHome=${input.scoreHome}`)
+  console.log(`[ScoringTimelineDebug] scoreAway=${input.scoreAway}`)
+  console.log(`[ScoringTimelineDebug] timelineCount=${input.timelineEvents.length}`)
+  console.log(`[ScoringTimelineDebug] goalEventCount=${dedupedGoalEvents.length}`)
+  if (duplicatesRemoved > 0) {
+    console.log(`[ScoringTimelineDebug] duplicatesRemoved=${duplicatesRemoved}`)
+  }
+
+  for (const event of rawGoalEvents) {
+    const team = cleanString(event.strTeam) ?? "unknown"
+    const player = cleanString(event.strPlayer) ?? "unknown"
+    const minute = cleanString(event.intTime) ?? "unknown"
+    const eventType = cleanString(event.strTimeline) ?? cleanString(event.strTimelineDetail) ?? "unknown"
+    console.log(
+      `[ScoringTimelineDebug] player=${player} minute=${minute} team=${team} eventType=${eventType}`,
+    )
+  }
+
+  for (const event of dedupedGoalEvents) {
+    const team = cleanString(event.strTeam) ?? "unknown"
+    const player = cleanString(event.strPlayer) ?? "unknown"
+    const minute = cleanString(event.intTime) ?? "unknown"
+    console.log(
+      `[ScoringTimelineDebug] rendered player=${player} minute=${minute} team=${team}`,
+    )
+  }
+}
+
+function logScoringEventDebug(input: {
+  eventId: string
+  savedGameId?: string
+  liveMatchExternalId?: string | null
+  providerEventIdUsedForTimeline?: string
+  timelineFetched: boolean
+  timelineCount: number
+  rawSample: string
+  scoringEventsCount: number
+  renderedSummary?: string
+  fallbackReason: string | null
+  source?: string
+}): void {
+  console.log("[ScoringEventDebug] provider=TheSportsDB")
+  if (input.savedGameId) {
+    console.log(`[ScoringEventDebug] savedGameId=${input.savedGameId}`)
+    console.log(`[LiveScoringEventDebug] gameId=${input.savedGameId}`)
+  }
+  if (input.liveMatchExternalId !== undefined) {
+    console.log(`[ScoringEventDebug] liveMatchExternalId=${input.liveMatchExternalId ?? "nil"}`)
+  }
+  if (input.providerEventIdUsedForTimeline) {
+    console.log(`[ScoringEventDebug] providerEventIdUsedForTimeline=${input.providerEventIdUsedForTimeline}`)
+  }
+  console.log(`[ScoringEventDebug] eventId=${input.eventId}`)
+  console.log(`[ScoringEventDebug] timelineFetched=${input.timelineFetched}`)
+  if (input.source) {
+    console.log(`[ScoringEventDebug] timelineSource=${input.source}`)
+  }
+  console.log(`[ScoringEventDebug] timelineCount=${input.timelineCount}`)
+  console.log(`[LiveScoringEventDebug] timelineCount=${input.timelineCount}`)
+  console.log(`[ScoringEventDebug] rawSample=${input.rawSample}`)
+  console.log(`[ScoringEventDebug] scoringEventsCount=${input.scoringEventsCount}`)
+  console.log(`[LiveScoringEventDebug] scoringEventsCount=${input.scoringEventsCount}`)
+  const renderedSummary = input.renderedSummary ?? "none"
+  console.log(`[LiveScoringEventDebug] renderedSummary=${renderedSummary}`)
+  console.log(`[ScoringEventDebug] fallbackReason=${input.fallbackReason ?? "none"}`)
+  console.log(`[LiveScoringEventDebug] fallbackReason=${input.fallbackReason ?? "none"}`)
+}
+
+function scoringTimelineRawSample(events: TimelineEventRow[]): string {
+  const scoring = events.find((event) => isScoringTimelineEvent(event))
+  const sample = scoring ?? events[0]
+  if (!sample) return "null"
+  return rawPreview(JSON.stringify(sample), 900)
+}
+
+function countScoringTimelineEvents(events: TimelineEventRow[], sport?: string): number {
+  const sportKind = normalizedTimelineSportKind(sport)
+  const scoringEvents = events.filter((event) => isScoringTimelineEvent(event, sportKind))
+  return dedupeScoringTimelineEventRows(scoringEvents).length
+}
+
+function normalizedTimelineSportKind(sport?: string): "soccer" | "hockey" | "other" {
+  const normalized = String(sport ?? "")
+    .trim()
+    .toLowerCase()
+  if (normalized.includes("hockey") || normalized === "nhl") return "hockey"
+  if (normalized.includes("soccer") || normalized.includes("football")) return "soccer"
+  return "other"
+}
+
+function isScoringTimelineEvent(
+  event: TimelineEventRow,
+  sportKind: "soccer" | "hockey" | "other" = "soccer",
+): boolean {
+  const text = timelineEventSearchText(event)
+  if (text.includes("miss") || text.includes("saved")) return false
+  if (sportKind === "hockey") {
+    return text.includes("goal")
+  }
+  if (sportKind === "other") {
+    return text.includes("goal") || text.includes("score")
+  }
+  return text.includes("goal") || (text.includes("penalty") && !text.includes("missed"))
+}
+
+function timelineEventSearchText(event: TimelineEventRow): string {
+  return [
+    event.strTimeline,
+    event.strTimelineDetail,
+    event.strComment,
+    event.strPlayer,
+    event.strTeam,
+    event.intTime,
+  ]
+    .map((value) => String(value ?? "").trim().toLowerCase())
+    .filter(Boolean)
+    .join(" ")
 }
 
 function completedLog(message: string): void {

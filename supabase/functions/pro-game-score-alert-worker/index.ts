@@ -560,7 +560,8 @@ async function maybeSendScoreUpdate(
     return
   }
 
-  const alert = scoringNotificationContent(game, live, previousScoreline)
+  const liveWithTimeline = await hydrateLiveMatchWithTimeline(supabase, game, live)
+  const alert = scoringNotificationContent(game, liveWithTimeline, previousScoreline)
   const sent = await sendToUserTokens(supabase, apns, tokens, alert, counts)
   console.log(`[ProScorePushWorker] score notification sent=${sent}`)
   if (sent > 0) {
@@ -867,70 +868,89 @@ function favoriteTeamAlertOverride(
 }
 
 type ScoringSide = "home" | "away"
+type ProScoreSportKind = "soccer" | "hockey" | "football" | "baseball" | "basketball" | "other"
 
 type ScoringEventMatch = {
   player: string | null
-  minute: string | null
+  gameClock: string | null
   detail: string | null
+  summary: string | null
+  scoringTeam: string
+  scoringTeamPlain: string
+  scoringSide: ScoringSide
   raw: TimelineEventRow
 }
 
 function scoringNotificationContent(game: TrackedGame, live: LiveMatchRow, previousScoreline: string): PushAlertContent {
   const fallback = fallbackScoreNotificationContent(game, live, previousScoreline)
-  const timelineEvents = Array.isArray(live.timeline_events) ? live.timeline_events : []
+  const timelineEvents = normalizeTimelineEventsForWorker(live.timeline_events)
   const scoreAfter = scoreline(live.score_away, live.score_home)
-  const latestGoalEvent = latestGoalTimelineEvent(timelineEvents)
+  const sportKind = proScoreSportKind(game, live)
+  const scoringEventsCount = timelineEvents.filter((event) => isScoringTimelineEvent(event, sportKind)).length
+  goalNotificationLog(`gameId=${game.liveMatchId}`)
+  goalNotificationLog(`sport=${sportKind}`)
   goalNotificationLog(`timelineCount=${timelineEvents.length}`)
-  goalNotificationLog(`latestGoalEvent=${latestGoalEvent ? timelineEventDebugSummary(latestGoalEvent) : "none"}`)
+  goalNotificationLog(`scoringEventsCount=${scoringEventsCount}`)
   goalNotificationLog(`scoreBefore=${previousScoreline}`)
   goalNotificationLog(`scoreAfter=${scoreAfter}`)
 
-  if (!isSoccerMatch(game, live)) {
-    logScoringEventFallback("nonSoccer", null, fallback.title)
-    logPushFormat("score", game, live, fallback)
-    return fallback
-  }
-
   const previous = parseScoreline(previousScoreline)
   if (!previous) {
-    logScoringEventFallback("missingPreviousScoreline", null, fallback.title)
+    logScoringEventFallback("missingPreviousScoreline", null, fallback, "unknown", timelineEvents, sportKind)
     logPushFormat("score", game, live, fallback)
     return fallback
   }
 
   const scoringSide = scoringSideForScoreChange(previous, live)
   if (!scoringSide) {
-    logScoringEventFallback("ambiguousScoreChange", null, fallback.title)
+    logScoringEventFallback("ambiguousScoreChange", null, fallback, "unknown", timelineEvents, sportKind)
     logPushFormat("score", game, live, fallback)
     return fallback
   }
+  const scoringTeamPlain = teamNameForSide(live, scoringSide)
+  goalNotificationLog(`scoringTeam=${scoringTeamPlain}`)
 
-  const scoringEvent = mostRecentGoalEvent(live, timelineEvents, scoringSide, {
+  const scoringEventResult = mostRecentScoringEvent(game, live, timelineEvents, scoringSide, sportKind, {
     previous,
     scoreAfter,
   })
+  const scoringEvent = scoringEventResult.event
   if (!scoringEvent) {
-    logScoringEventFallback("noMatchingTimelineGoal", null, fallback.title)
+    logScoringEventFallback(
+      scoringEventResult.fallbackReason,
+      null,
+      fallback,
+      scoringTeamPlain,
+      timelineEvents,
+      sportKind,
+    )
     logPushFormat("score", game, live, fallback)
     return fallback
   }
 
   console.log("[ProScorePushWorker] scoringEventMatched=true")
   console.log(`[ProScorePushWorker] scoringEventPlayer=${scoringEvent.player ?? "unknown"}`)
-  console.log(`[ProScorePushWorker] scoringEventTime=${scoringEvent.minute ?? "unknown"}`)
+  console.log(`[ProScorePushWorker] scoringEventTime=${scoringEvent.gameClock ?? "unknown"}`)
   console.log("[ProScorePushWorker] scoringEventFallback=false")
   goalNotificationLog(`fallbackReason=none`)
-  goalNotificationLog(`latestGoalEvent=${timelineEventDebugSummary(scoringEvent.raw)}`)
-  goalNotificationLog(`player=${scoringEvent.player ?? "unknown"}`)
-  goalNotificationLog(`minute=${scoringEvent.minute ?? "unknown"}`)
-  const subtitle = scoringEventSubtitle(scoringEvent)
+  goalNotificationLog(`selectedScoringEvent=${timelineEventDebugSummary(scoringEvent.raw)}`)
+  goalNotificationLog(`scoringTeam=${scoringEvent.scoringTeamPlain}`)
+  goalNotificationLog(`scorer=${scoringEvent.player ?? "unknown"}`)
+  goalNotificationLog(`gameClock=${scoringEvent.gameClock ?? "unknown"}`)
+  const subtitle = scoringEventSubtitle(scoringEvent, sportKind)
+  if ((sportKind === "soccer" || sportKind === "hockey") && !subtitle) {
+    logScoringEventFallback("missingSubtitle", scoringEvent, fallback, scoringTeamPlain, timelineEvents, sportKind)
+    logPushFormat("score", game, live, fallback)
+    return fallback
+  }
   const alert = {
-    title: `${sportIconForGame(game, live) ?? "⚽"} GOAL! ${formattedTeamName(teamNameForSide(live, scoringSide))}`.trim(),
+    title: scoringEventNotificationTitle(game, live, scoringEvent, sportKind),
     subtitle,
     body: scoreNotificationBody(game, live),
   }
   goalNotificationLog(`notificationTitle=${alert.title}`)
-  logPushFormat("goal", game, live, alert)
+  goalNotificationLog(`notificationSubtitle=${alert.subtitle ?? "nil"}`)
+  logPushFormat("score", game, live, alert)
   return alert
 }
 
@@ -946,16 +966,150 @@ function kickoffNotificationContent(game: TrackedGame): PushAlertContent {
 function fallbackScoreNotificationContent(game: TrackedGame, live: LiveMatchRow, previousScoreline: string): PushAlertContent {
   const previous = parseScoreline(previousScoreline)
   const scoringSide = previous ? scoringSideForScoreChange(previous, live) : null
-  const scoringTeam = scoringSide ? formattedTeamName(teamNameForSide(live, scoringSide)) : null
+  const scoringTeamPlain = scoringSide ? teamNameForSide(live, scoringSide) : null
+  const sportKind = proScoreSportKind(game, live)
   const sportIcon = sportIconForGame(game, live)
-  const title = scoringTeam
-    ? `${sportIcon ?? ""} ${scoringTeam} scored`.trim()
+  const title = scoringTeamPlain
+    ? goalNotificationTitle(scoringTeamPlain, sportKind, sportIcon)
     : `${sportIcon ?? ""} Score update`.trim()
   const alert = {
     title,
     body: scoreNotificationBody(game, live),
   }
   return alert
+}
+
+function goalNotificationTitle(
+  scoringTeamPlain: string,
+  sportKind: ProScoreSportKind,
+  sportIcon: string | null,
+): string {
+  const teamWithFlag = formattedTeamName(scoringTeamPlain)
+  if (sportKind === "soccer") return `${sportIcon ?? "⚽"} GOAL! ${teamWithFlag}`.trim()
+  if (sportKind === "hockey") return `${sportIcon ?? "🏒"} GOAL! ${teamWithFlag}`.trim()
+  return `${sportIcon ?? ""} ${teamWithFlag} scored`.trim()
+}
+
+async function hydrateLiveMatchWithTimeline(
+  supabase: SupabaseClient,
+  game: TrackedGame,
+  live: LiveMatchRow,
+): Promise<LiveMatchRow> {
+  const fetched = await fetchTimelineEventsForNotification(supabase, game, live)
+  const embedded = normalizeTimelineEventsForWorker(live.timeline_events)
+  const timeline_events = fetched.length > 0 ? fetched : embedded
+  goalNotificationLog(`timelineFetchCount=${fetched.length}`)
+  goalNotificationLog(`timelineEmbeddedCount=${embedded.length}`)
+  goalNotificationLog(`timelineUsedCount=${timeline_events.length}`)
+  return {
+    ...live,
+    timeline_events,
+  }
+}
+
+async function fetchTimelineEventsForNotification(
+  supabase: SupabaseClient,
+  game: TrackedGame,
+  live: LiveMatchRow,
+): Promise<TimelineEventRow[]> {
+  const lookupIds = [...new Set([
+    game.liveMatchId,
+    live.id,
+  ].map((value) => value.trim()).filter(Boolean))]
+
+  for (const id of lookupIds) {
+    const { data, error } = await supabase
+      .from("live_matches")
+      .select("id,timeline_events")
+      .eq("id", id)
+      .maybeSingle()
+
+    if (error) {
+      goalNotificationLog(`timelineFetchError id=${id} message=${error.message}`)
+      continue
+    }
+
+    const events = normalizeTimelineEventsForWorker(data?.timeline_events)
+    if (events.length > 0) {
+      goalNotificationLog(`timelineFetchSource=id id=${data?.id ?? id}`)
+      return events
+    }
+  }
+
+  if (game.source && game.externalId) {
+    const { data, error } = await supabase
+      .from("live_matches")
+      .select("id,timeline_events")
+      .eq("source", game.source)
+      .eq("external_id", game.externalId)
+      .maybeSingle()
+
+    if (error) {
+      goalNotificationLog(`timelineFetchError source=${game.source} externalId=${game.externalId} message=${error.message}`)
+    } else {
+      const events = normalizeTimelineEventsForWorker(data?.timeline_events)
+      if (events.length > 0) {
+        goalNotificationLog(`timelineFetchSource=sourceExternal id=${data?.id ?? "unknown"}`)
+        return events
+      }
+    }
+  }
+
+  if (live.source && live.external_id) {
+    const { data, error } = await supabase
+      .from("live_matches")
+      .select("id,timeline_events")
+      .eq("source", live.source)
+      .eq("external_id", live.external_id)
+      .maybeSingle()
+
+    if (error) {
+      goalNotificationLog(`timelineFetchError liveSource=${live.source} liveExternalId=${live.external_id} message=${error.message}`)
+    } else {
+      const events = normalizeTimelineEventsForWorker(data?.timeline_events)
+      if (events.length > 0) {
+        goalNotificationLog(`timelineFetchSource=liveSourceExternal id=${data?.id ?? "unknown"}`)
+        return events
+      }
+    }
+  }
+
+  return []
+}
+
+function normalizeTimelineEventsForWorker(raw: unknown): TimelineEventRow[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .map((row) => normalizeTimelineEventRow(row))
+    .filter(isTimelineEventRow)
+}
+
+function normalizeTimelineEventRow(row: unknown): TimelineEventRow {
+  const record = row && typeof row === "object" ? row as Record<string, unknown> : {}
+  return {
+    idTimeline: cleanTimelineText(typeof record.idTimeline === "string" ? record.idTimeline : null),
+    idEvent: cleanTimelineText(typeof record.idEvent === "string" ? record.idEvent : null),
+    strTimeline: cleanTimelineText(typeof record.strTimeline === "string" ? record.strTimeline : null),
+    strTimelineDetail: cleanTimelineText(typeof record.strTimelineDetail === "string" ? record.strTimelineDetail : null,
+    ),
+    strHome: cleanTimelineText(typeof record.strHome === "string" ? record.strHome : null),
+    idPlayer: cleanTimelineText(typeof record.idPlayer === "string" ? record.idPlayer : null),
+    strPlayer: cleanTimelineText(typeof record.strPlayer === "string" ? record.strPlayer : null),
+    idAssist: cleanTimelineText(typeof record.idAssist === "string" ? record.idAssist : null),
+    strAssist: cleanTimelineText(typeof record.strAssist === "string" ? record.strAssist : null),
+    intTime: cleanTimelineText(typeof record.intTime === "string" || typeof record.intTime === "number"
+      ? String(record.intTime)
+      : null),
+    idTeam: cleanTimelineText(typeof record.idTeam === "string" ? record.idTeam : null),
+    strTeam: cleanTimelineText(typeof record.strTeam === "string" ? record.strTeam : null),
+    strComment: cleanTimelineText(typeof record.strComment === "string" ? record.strComment : null),
+    dateEvent: cleanTimelineText(typeof record.dateEvent === "string" ? record.dateEvent : null),
+    strSeason: cleanTimelineText(typeof record.strSeason === "string" ? record.strSeason : null),
+  }
+}
+
+function isTimelineEventRow(row: TimelineEventRow): boolean {
+  return Boolean(row.strTimeline || row.strPlayer || row.strTeam)
 }
 
 function finalNotificationContent(game: TrackedGame, live: LiveMatchRow): PushAlertContent {
@@ -1170,16 +1324,22 @@ function logPushFormat(context: string, game: TrackedGame, live: LiveMatchRow | 
   console.log(`[PushFormatDebug] formattedBody=${alert.body}`)
 }
 
-function isSoccerMatch(game: TrackedGame, live: LiveMatchRow): boolean {
+function proScoreSportKind(game: TrackedGame, live: LiveMatchRow): ProScoreSportKind {
   const text = normalize(`${game.sport ?? ""} ${live.sport ?? ""} ${game.league ?? ""} ${live.league ?? ""}`)
-  if (text.includes("american football") || text.includes("nfl")) return false
-  return text.includes("soccer")
+  if (text.includes("american football") || text.includes("nfl") || text.includes("gridiron")) return "football"
+  if (text.includes("hockey") || text.includes("nhl")) return "hockey"
+  if (text.includes("baseball") || text.includes("mlb")) return "baseball"
+  if (text.includes("basketball") || text.includes("nba")) return "basketball"
+  if (
+    text.includes("soccer")
     || text.includes("football")
     || text.includes("fifa")
     || text.includes("uefa")
     || text.includes("friendly")
     || text.includes("world cup")
     || text.includes("nations league")
+  ) return "soccer"
+  return "other"
 }
 
 function scoringSideForScoreChange(
@@ -1193,34 +1353,47 @@ function scoringSideForScoreChange(
   return null
 }
 
-function mostRecentGoalEvent(
+function mostRecentScoringEvent(
+  game: TrackedGame,
   live: LiveMatchRow,
   events: TimelineEventRow[],
   scoringSide: ScoringSide,
+  sportKind: ProScoreSportKind,
   scoreContext: {
     previous: { away: number; home: number }
     scoreAfter: string
   },
-): ScoringEventMatch | null {
-  const goalEvents = events
-    .map((event, index) => ({ event, index }))
-    .filter(({ event }) => isGoalTimelineEvent(event))
-
-  if (goalEvents.length === 0) {
-    goalNotificationLog("fallbackReason=noGoalEventsInTimeline")
-    return null
+): { event: ScoringEventMatch | null; fallbackReason: string } {
+  if (events.length === 0) {
+    return { event: null, fallbackReason: "noTimelineEvents" }
   }
 
-  const candidates = goalEvents.filter(({ event }) => {
-    const matches = timelineEventMatchesScoringSide(event, live, scoringSide)
-    if (!matches) {
-      goalNotificationLog(
-        `fallbackReason=sideMismatch candidate=${timelineEventDebugSummary(event)} expectedSide=${scoringSide}`,
-      )
+  const scoringEvents = events
+    .map((event, index) => ({ event, index }))
+    .filter(({ event }) => isScoringTimelineEvent(event, sportKind))
+
+  if (scoringEvents.length === 0) {
+    return {
+      event: null,
+      fallbackReason: sportKind === "basketball" ? "basketballNoMeaningfulScoringSummary" : "noScoringEventsInTimeline",
     }
-    return matches
-  })
-    .sort((lhs, rhs) => {
+  }
+
+  const scoringTeamName = normalizeTeamText(teamNameForSide(live, scoringSide))
+  let candidates = scoringEvents.filter(({ event }) =>
+    timelineEventMatchesScoringTeam(event, live, scoringSide)
+  )
+
+  if (candidates.length === 0 && scoringTeamName) {
+    candidates = scoringEvents.filter(({ event }) =>
+      normalizeTeamText(event.strTeam) === scoringTeamName
+    )
+    if (candidates.length > 0) {
+      goalNotificationLog(`fallbackReason=teamNameMatchUsed team=${scoringTeamName}`)
+    }
+  }
+
+  candidates = candidates.sort((lhs, rhs) => {
       const lhsMinute = timelineEventMinuteNumber(lhs.event)
       const rhsMinute = timelineEventMinuteNumber(rhs.event)
       if (lhsMinute !== rhsMinute) return rhsMinute - lhsMinute
@@ -1230,39 +1403,129 @@ function mostRecentGoalEvent(
   const match = candidates[0]?.event
   if (!match) {
     goalNotificationLog(
-      `fallbackReason=noGoalForScoringSide expectedSide=${scoringSide} scoreBefore=${scoreContext.previous.away}-${scoreContext.previous.home} scoreAfter=${scoreContext.scoreAfter}`,
+      `fallbackReason=noScoringEventForScoringSide expectedSide=${scoringSide} scoreBefore=${scoreContext.previous.away}-${scoreContext.previous.home} scoreAfter=${scoreContext.scoreAfter}`,
     )
+    return { event: null, fallbackReason: "noScoringEventForScoringSide" }
+  }
+
+  const event = buildScoringEventMatch(game, live, match, scoringSide, sportKind)
+  if (!event) {
+    return { event: null, fallbackReason: missingScoringEventDataReason(match, sportKind) }
+  }
+
+  return { event, fallbackReason: "none" }
+}
+
+function buildScoringEventMatch(
+  game: TrackedGame,
+  live: LiveMatchRow,
+  match: TimelineEventRow,
+  scoringSide: ScoringSide,
+  sportKind: ProScoreSportKind,
+): ScoringEventMatch | null {
+  const player = cleanTimelineText(match.strPlayer)
+  const gameClock = scoringEventGameClock(match, sportKind)
+  const detail = soccerScoringEventDetail(match)
+  const summary = scoringPlaySummary(match)
+  const scoringTeamPlain = teamNameForSide(live, scoringSide)
+  const scoringTeam = formattedTeamName(scoringTeamPlain)
+
+  if (sportKind === "soccer") {
+    if (!player || !gameClock) return null
+  } else if (sportKind === "hockey") {
+    if (!player || !gameClock) return null
+  } else if (!summary) {
     return null
   }
+
   return {
     player: cleanTimelineText(match.strPlayer),
-    minute: formatTimelineMinute(match.intTime),
-    detail: scoringEventDetail(match),
+    gameClock,
+    detail,
+    summary: scoringEventSummaryForSport(game, match, sportKind) ?? summary,
+    scoringTeam,
+    scoringTeamPlain,
+    scoringSide,
     raw: match,
   }
 }
 
-function latestGoalTimelineEvent(events: TimelineEventRow[]): TimelineEventRow | null {
-  const candidates = events
-    .map((event, index) => ({ event, index }))
-    .filter(({ event }) => isGoalTimelineEvent(event))
-    .sort((lhs, rhs) => {
-      const lhsMinute = timelineEventMinuteNumber(lhs.event)
-      const rhsMinute = timelineEventMinuteNumber(rhs.event)
-      if (lhsMinute !== rhsMinute) return rhsMinute - lhsMinute
-      return rhs.index - lhs.index
-    })
-  return candidates[0]?.event ?? null
+function missingScoringEventDataReason(event: TimelineEventRow, sportKind: ProScoreSportKind): string {
+  const player = cleanTimelineText(event.strPlayer)
+  const gameClock = scoringEventGameClock(event, sportKind)
+  const summary = scoringPlaySummary(event)
+  if ((sportKind === "soccer" || sportKind === "hockey") && !player) return "missingScorer"
+  if ((sportKind === "soccer" || sportKind === "hockey") && !gameClock) return "missingGameClock"
+  if (!summary) return "missingScoringPlaySummary"
+  return "missingScoringEventData"
 }
 
-function isGoalTimelineEvent(event: TimelineEventRow): boolean {
+function isScoringTimelineEvent(event: TimelineEventRow, sportKind: ProScoreSportKind): boolean {
+  if (sportKind === "basketball") return isMeaningfulBasketballScoringEvent(event)
+  if (sportKind === "soccer") return isGoalTimelineEvent(event, true)
+  if (sportKind === "hockey") return isGoalTimelineEvent(event, false)
+  return isScoringPlayTimelineEvent(event)
+}
+
+function isGoalTimelineEvent(event: TimelineEventRow, allowPenaltyOnly: boolean): boolean {
   const text = [
     event.strTimeline,
     event.strTimelineDetail,
     event.strComment,
   ].map((value) => normalize(value)).join(" ")
   if (text.includes("miss") || text.includes("saved")) return false
-  return text.includes("goal") || text.includes("penalty")
+  return text.includes("goal") || (allowPenaltyOnly && text.includes("penalty"))
+}
+
+function isScoringPlayTimelineEvent(event: TimelineEventRow): boolean {
+  const text = timelineSearchText(event)
+  if (text.includes("miss") || text.includes("saved")) return false
+  const scoringTerms = [
+    "goal",
+    "touchdown",
+    "field goal",
+    "extra point",
+    "two point",
+    "2 point",
+    "safety",
+    "home run",
+    "grand slam",
+    "rbi",
+    "scores",
+    "scored",
+    "sacrifice fly",
+  ]
+  return scoringTerms.some((term) => text.includes(term))
+}
+
+function isMeaningfulBasketballScoringEvent(event: TimelineEventRow): boolean {
+  const text = timelineSearchText(event)
+  const meaningfulTerms = [
+    "buzzer",
+    "game winner",
+    "game-winning",
+    "go ahead",
+    "go-ahead",
+    "lead change",
+    "ties the game",
+    "run",
+    "milestone",
+    "end of quarter",
+    "end of period",
+  ]
+  return meaningfulTerms.some((term) => text.includes(term))
+}
+
+function timelineEventMatchesScoringTeam(
+  event: TimelineEventRow,
+  live: LiveMatchRow,
+  scoringSide: ScoringSide,
+): boolean {
+  if (timelineEventMatchesScoringSide(event, live, scoringSide)) return true
+
+  const scoringTeamName = normalizeTeamText(teamNameForSide(live, scoringSide))
+  const eventTeam = normalizeTeamText(event.strTeam)
+  return Boolean(scoringTeamName && eventTeam && scoringTeamName === eventTeam)
 }
 
 function timelineEventMatchesScoringSide(
@@ -1275,7 +1538,7 @@ function timelineEventMatchesScoringSide(
   if (side === scoringSide) return true
 
   // Some feeds attach own goals to the player/team that conceded.
-  return scoringEventDetail(event) === "OG" && side !== scoringSide
+  return soccerScoringEventDetail(event) === "OG" && side !== scoringSide
 }
 
 function timelineEventSide(event: TimelineEventRow, live: LiveMatchRow): ScoringSide | null {
@@ -1290,31 +1553,115 @@ function timelineEventSide(event: TimelineEventRow, live: LiveMatchRow): Scoring
   return null
 }
 
-function scoringEventSubtitle(event: ScoringEventMatch): string | undefined {
-  const detail = event.detail ? ` (${event.detail})` : ""
-  const minute = event.minute ? ` ${event.minute}` : ""
-  if (event.player) return `${event.player}${detail}${minute}`.trim()
-  const fallback = `${detail}${minute}`.trim()
+function scoringEventNotificationTitle(
+  game: TrackedGame,
+  live: LiveMatchRow,
+  event: ScoringEventMatch,
+  sportKind: ProScoreSportKind,
+): string {
+  return goalNotificationTitle(event.scoringTeamPlain, sportKind, sportIconForGame(game, live))
+}
+
+function scoringEventSubtitle(event: ScoringEventMatch, sportKind: ProScoreSportKind): string | undefined {
+  if (sportKind === "soccer") {
+    const detail = event.detail ? ` (${event.detail})` : ""
+    if (event.gameClock && event.player) {
+      return `${event.gameClock} ${event.player}${detail}`.trim()
+    }
+  }
+
+  if (sportKind === "hockey") {
+    if (event.gameClock && event.player) {
+      return `${event.gameClock} · ${event.player}`.trim()
+    }
+  }
+
+  const summary = event.summary ?? event.player
+  const clock = event.gameClock ? ` · ${event.gameClock}` : ""
+  const fallback = `${summary ?? ""}${clock}`.trim()
   return fallback.length > 0 ? fallback : undefined
 }
 
-function scoringEventDetail(event: TimelineEventRow): string | null {
-  const detail = `${event.strTimelineDetail ?? ""} ${event.strComment ?? ""}`.toLowerCase()
+function soccerScoringEventDetail(event: TimelineEventRow): string | null {
+  const detail = `${event.strTimeline ?? ""} ${event.strTimelineDetail ?? ""} ${event.strComment ?? ""}`.toLowerCase()
   if (detail.includes("own goal")) return "OG"
   if (detail.includes("penalty")) return "P"
   return null
 }
 
-function timelineEventMinuteNumber(event: TimelineEventRow): number {
-  const minute = cleanTimelineText(event.intTime) ?? ""
-  const firstNumber = minute.match(/\d+/)?.[0]
-  return firstNumber ? Number(firstNumber) : -1
+function scoringEventGameClock(event: TimelineEventRow, sportKind: ProScoreSportKind): string | null {
+  if (sportKind === "soccer") return formatSoccerMinute(event)
+  if (sportKind === "hockey") return formatPeriodClock(event)
+  return formatPeriodClock(event) ?? formatSoccerMinute(event)
 }
 
-function formatTimelineMinute(raw: string | null): string | null {
-  const minute = cleanTimelineText(raw)
-  if (!minute) return null
-  return minute.endsWith("'") ? minute : `${minute}'`
+function formatSoccerMinute(event: TimelineEventRow): string | null {
+  const minute = cleanTimelineText(event.intTime)
+  if (minute) return minute.endsWith("'") || minute.endsWith("’") ? minute.replace("’", "'") : `${minute}'`
+  const text = timelineText(event)
+  const match = text.match(/(^|\D)(\d{1,3})\s*['’]/)
+  return match?.[2] ? `${match[2]}'` : null
+}
+
+function formatPeriodClock(event: TimelineEventRow): string | null {
+  const text = timelineText(event)
+  const period = firstPeriodText(text)
+  const clock = firstClockText(text)
+  if (period && clock) return `${period} ${clock}`
+  return period ?? clock ?? null
+}
+
+function firstClockText(text: string): string | null {
+  return text.match(/\b\d{1,2}:\d{2}\b/)?.[0] ?? null
+}
+
+function firstPeriodText(text: string): string | null {
+  const direct = text.match(/\b(1st|2nd|3rd|4th|5th)\b/i)?.[1]
+  if (direct) return direct
+  const numbered = text.match(/\b(?:period|per|p|quarter|q|inning|inn)\s*(\d+)\b/i)?.[1]
+  if (!numbered) return null
+  return ordinalPeriodText(Number(numbered))
+}
+
+function ordinalPeriodText(value: number): string {
+  if (value === 1) return "1st"
+  if (value === 2) return "2nd"
+  if (value === 3) return "3rd"
+  return `${value}th`
+}
+
+function scoringEventSummaryForSport(
+  game: TrackedGame,
+  event: TimelineEventRow,
+  sportKind: ProScoreSportKind,
+): string | null {
+  if (sportKind === "soccer" || sportKind === "hockey") return null
+  const summary = scoringPlaySummary(event)
+  if (!summary) return null
+  const team = cleanTimelineText(event.strTeam)
+  if (team && normalizeTeamText(team) !== normalizeTeamText(game.homeTeam) && normalizeTeamText(team) !== normalizeTeamText(game.awayTeam)) {
+    return summary
+  }
+  return summary
+}
+
+function scoringPlaySummary(event: TimelineEventRow): string | null {
+  const values = [
+    cleanTimelineText(event.strComment),
+    cleanTimelineText(event.strTimelineDetail),
+    cleanTimelineText(event.strTimeline),
+  ].filter((value): value is string => Boolean(value))
+  const summary = values.find((value) => {
+    const normalized = normalize(value)
+    return !["goal", "score", "scoring play"].includes(normalized)
+  })
+  return summary ?? cleanTimelineText(event.strPlayer)
+}
+
+function timelineEventMinuteNumber(event: TimelineEventRow): number {
+  const text = `${event.intTime ?? ""} ${timelineText(event)}`
+  const firstNumber = text.match(/\d+/)?.[0]
+  return firstNumber ? Number(firstNumber) : -1
 }
 
 function cleanTimelineText(raw: string | null): string | null {
@@ -1322,20 +1669,47 @@ function cleanTimelineText(raw: string | null): string | null {
   return trimmed.length > 0 ? trimmed : null
 }
 
+function timelineText(event: TimelineEventRow): string {
+  return [
+    event.strTimeline,
+    event.strTimelineDetail,
+    event.strComment,
+    event.strPlayer,
+    event.strTeam,
+    event.intTime,
+  ].map((value) => cleanTimelineText(value)).filter(Boolean).join(" ")
+}
+
+function timelineSearchText(event: TimelineEventRow): string {
+  return normalize(timelineText(event))
+}
+
 function normalizeTeamText(raw: string | null | undefined): string {
   return normalize(raw).replace(/[^a-z0-9]+/g, " ").trim()
 }
 
-function logScoringEventFallback(reason: string, event: ScoringEventMatch | null, notificationTitle: string) {
+function logScoringEventFallback(
+  reason: string,
+  event: ScoringEventMatch | null,
+  alert: PushAlertContent,
+  fallbackScoringTeam = "unknown",
+  timelineEvents: TimelineEventRow[] = [],
+  sportKind: ProScoreSportKind = "soccer",
+) {
   console.log(`[ProScorePushWorker] scoringEventMatched=false`)
   console.log(`[ProScorePushWorker] scoringEventPlayer=${event?.player ?? "unknown"}`)
-  console.log(`[ProScorePushWorker] scoringEventTime=${event?.minute ?? "unknown"}`)
+  console.log(`[ProScorePushWorker] scoringEventTime=${event?.gameClock ?? "unknown"}`)
   console.log(`[ProScorePushWorker] scoringEventFallback=${reason}`)
   goalNotificationLog(`fallbackReason=${reason}`)
-  goalNotificationLog(`latestGoalEvent=${event?.raw ? timelineEventDebugSummary(event.raw) : "none"}`)
-  goalNotificationLog(`player=${event?.player ?? "unknown"}`)
-  goalNotificationLog(`minute=${event?.minute ?? "unknown"}`)
-  goalNotificationLog(`notificationTitle=${notificationTitle}`)
+  goalNotificationLog(`selectedScoringEvent=${event?.raw ? timelineEventDebugSummary(event.raw) : "none"}`)
+  goalNotificationLog(`scoringTeam=${event?.scoringTeamPlain ?? fallbackScoringTeam}`)
+  goalNotificationLog(`scorer=${event?.player ?? "unknown"}`)
+  goalNotificationLog(`gameClock=${event?.gameClock ?? "unknown"}`)
+  goalNotificationLog(`notificationTitle=${alert.title}`)
+  goalNotificationLog(`notificationSubtitle=${alert.subtitle ?? "nil"}`)
+  if (timelineEvents.length > 0) {
+    goalNotificationLog(`scoringEventsCount=${timelineEvents.filter((row) => isScoringTimelineEvent(row, sportKind)).length}`)
+  }
 }
 
 function timelineEventDebugSummary(event: TimelineEventRow): string {
