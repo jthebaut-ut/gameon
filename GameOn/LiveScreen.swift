@@ -29,6 +29,7 @@ struct LiveScreen: View {
     @State private var liveWatchSpotsPresentation: LiveWatchSpotsPresentation?
     @State private var fanUpdatesSheetEvent: FanUpdatesSheetEvent?
     @State private var liveMatchDetailSelection: LiveMatch?
+    @State private var proGamePredictionSheet: ProGamePredictionSheetContext?
     @State private var showLiveCountryFilterSheet = false
 
     private struct LiveWatchSpotsPresentation: Identifiable {
@@ -291,6 +292,9 @@ struct LiveScreen: View {
             }
             .sheet(item: $liveMatchDetailSelection) { match in
                 LiveMatchDetailSheet(match: match)
+            }
+            .sheet(item: $proGamePredictionSheet) { context in
+                ProGamePredictionSheet(viewModel: viewModel, game: context.game)
             }
             .sheet(isPresented: $showLiveCountryFilterSheet) {
                 LiveLeagueCountryFilterSheet(
@@ -943,9 +947,9 @@ struct LiveScreen: View {
     private func liveFeaturedEventChip(_ featuredEvent: FeaturedEvent) -> some View {
         SportFilterChip(
             sport: featuredEvent.sport ?? "Soccer",
-            displayTitle: featuredEvent.chipTitle,
+            displayTitle: featuredEvent.leagueChipLabel,
             isSelected: selectedLiveFeaturedEvent?.slug == featuredEvent.slug,
-            preferSystemSymbol: true
+            preferSystemSymbol: false
         ) {
             withAnimation(.spring(response: 0.32, dampingFraction: 0.84)) {
                 liveGamesSportFilter = nil
@@ -1698,15 +1702,11 @@ struct LiveScreen: View {
                     HStack(spacing: 7) {
                         liveStatusPill(match, accent: cardAccent)
 
-                        Text(sportType.filterChipLabel)
-                            .font(.caption2.weight(.bold))
-                            .foregroundStyle(cardAccent)
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 3)
-                            .background(
-                                Capsule(style: .continuous)
-                                    .fill(cardAccent.opacity(colorScheme == .dark ? 0.18 : 0.10))
-                            )
+                        ProGameLeagueChip(
+                            sportType: sportType,
+                            featuredEvent: featuredEvent,
+                            league: match.league
+                        )
 
                         Text(liveMatchLeagueCompetitionText(for: match))
                             .font(FGTypography.metadata.weight(.semibold))
@@ -1714,37 +1714,36 @@ struct LiveScreen: View {
                             .lineLimit(1)
                             .truncationMode(.tail)
                     }
-
-                    ProGameScoreBlock(
-                        awayTeam: match.awayTeam,
-                        homeTeam: match.homeTeam,
-                        awayScore: match.scoreAway,
-                        homeScore: match.scoreHome,
-                        awayBadgeURL: match.awayTeamBadgeURL,
-                        homeBadgeURL: match.homeTeamBadgeURL,
-                        source: "Live",
-                        isFinal: isFinalMatch,
-                        isLive: match.matchStatus.isHappeningNow,
-                        liveStatusText: match.matchStatus.isHappeningNow ? liveStatusText(match) : nil,
-                        league: match.league,
-                        featuredEventTitle: featuredEvent?.emptyStateTitle,
-                        accentColor: cardAccent,
-                        style: ProGameScoreboardStyle(
-                            scoreFont: .system(size: 24, weight: .black, design: .rounded).monospacedDigit(),
-                            separatorFont: .system(size: 18, weight: .bold, design: .rounded),
-                            teamNameFont: .system(size: 13, weight: .semibold, design: .rounded),
-                            emblemSize: 24
-                        ),
-                        timelineSummary: match.scoringTimelineSummary,
-                        latestScoringEvent: match.latestScoringEvent,
-                        showsFramedFinalBackground: isFinalMatch
-                    )
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 Spacer(minLength: 0)
 
                 liveProGameSaveButton(match, isSaved: isSaved, accent: accent)
             }
+
+            ProGameScoreBlock(
+                awayTeam: match.awayTeam,
+                homeTeam: match.homeTeam,
+                awayScore: match.scoreAway,
+                homeScore: match.scoreHome,
+                awayBadgeURL: match.awayTeamBadgeURL,
+                homeBadgeURL: match.homeTeamBadgeURL,
+                source: "Live",
+                isFinal: isFinalMatch,
+                isLive: match.matchStatus.isHappeningNow,
+                accentColor: cardAccent,
+                style: ProGameScoreboardStyle(
+                    scoreFont: .system(size: 24, weight: .black, design: .rounded).monospacedDigit(),
+                    separatorFont: .system(size: 18, weight: .bold, design: .rounded),
+                    teamNameFont: .system(size: 13, weight: .semibold, design: .rounded),
+                    emblemSize: 24
+                ),
+                timelineSummary: match.resolvedGoalDisplaySummary,
+                showsFramedFinalBackground: isFinalMatch,
+                flagSource: "Live"
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             if canShowPersonalLiveSections && !socialProfiles.isEmpty {
                 HStack(spacing: 8) {
@@ -1789,6 +1788,10 @@ struct LiveScreen: View {
                     .buttonStyle(.plain)
                 }
             }
+
+            if match.supportsProGamePredictions {
+                liveProGamePredictionFooter(for: match)
+            }
         }
         .padding(12)
         .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
@@ -1813,6 +1816,19 @@ struct LiveScreen: View {
         }
         .onTapGesture {
             liveMatchDetailSelection = match
+        }
+    }
+
+    private func liveProGamePredictionFooter(for match: LiveMatch) -> some View {
+        let game = SavedProGame.forPredictions(match: match, savedGames: viewModel.savedProGames)
+        return ProGamePredictionFooterRow(
+            game: game,
+            summary: viewModel.proGamePredictionSummaries[game.stableKey]
+        ) {
+            proGamePredictionSheet = ProGamePredictionSheetContext(game: game)
+        }
+        .task(id: game.stableKey) {
+            await viewModel.prefetchProGamePredictionSummaries(for: [game])
         }
     }
 
@@ -1892,17 +1908,19 @@ struct LiveScreen: View {
     }
 
     private func logLiveMatchScoringEventDebug(_ match: LiveMatch) {
-#if DEBUG
         LiveScoringEventDebug.log(
             gameId: match.id,
             eventId: match.externalId,
             sport: match.sport,
             sportType: match.liveSportVisualType,
+            matchStatus: match.matchStatus,
+            rawMatchStatus: match.rawMatchStatus,
             homeTeam: match.homeTeam,
             awayTeam: match.awayTeam,
             timelineEvents: match.timelineEvents,
             timelineFetched: !match.timelineEvents.isEmpty
         )
+#if DEBUG
         ScoringTimelineDebug.log(
             gameId: match.id,
             scoreHome: match.scoreHome,

@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct ProGameTeamScoreIdentity: Equatable {
+nonisolated struct ProGameTeamScoreIdentity: Equatable {
     enum LeadingContent: Equatable {
         case flag(String)
         case logoURL(URL)
@@ -45,66 +45,18 @@ struct ProGameTeamScoreIdentity: Equatable {
     }
 }
 
-enum ProGameCompetitionStageFormatter {
-    static func lines(league: String, featuredEventTitle: String?) -> (competition: String?, stage: String?) {
-        let trimmedLeague = league.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedFeatured = featuredEventTitle?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-
-        let competition: String?
-        if !trimmedFeatured.isEmpty {
-            competition = trimmedFeatured
-        } else if !trimmedLeague.isEmpty {
-            competition = trimmedLeague
-        } else {
-            competition = nil
-        }
-
-        let stage = stageLine(from: trimmedLeague, competition: competition)
-        return (competition, stage)
-    }
-
-    private static func stageLine(from league: String, competition: String?) -> String? {
-        guard !league.isEmpty else { return nil }
-
-        let normalizedLeague = LiveMatchFilters.normalizedSearchText(league)
-        let normalizedCompetition = competition.map(LiveMatchFilters.normalizedSearchText(_:)) ?? ""
-
-        if normalizedLeague.contains("group stage") || normalizedLeague.contains("group ") {
-            if !normalizedCompetition.isEmpty,
-               normalizedLeague == normalizedCompetition {
-                return nil
-            }
-            return league
-        }
-
-        if league.contains(" · "), !normalizedCompetition.isEmpty,
-           normalizedLeague != normalizedCompetition {
-            return league
-        }
-
-        if !normalizedCompetition.isEmpty,
-           normalizedLeague != normalizedCompetition,
-           (normalizedLeague.contains("round") || normalizedLeague.contains("knockout") || normalizedLeague.contains("quarter") || normalizedLeague.contains("semi") || normalizedLeague.contains("final")) {
-            return league
-        }
-
-        return nil
-    }
-}
-
 struct ProGameScoreboardStyle: Equatable {
     var scoreFont: Font = .system(size: 28, weight: .black, design: .rounded).monospacedDigit()
     var separatorFont: Font = .system(size: 22, weight: .bold, design: .rounded)
     var teamNameFont: Font = .caption.weight(.semibold)
-    var competitionFont: Font = .caption2.weight(.semibold)
-    var stageFont: Font = .caption2.weight(.medium)
     var emblemSize: CGFloat = 28
-    var scoreRowSpacing: CGFloat = 10
+    var scoreRowSpacing: CGFloat = 8
+    var teamNameSpacing: CGFloat = 4
+    var teamScoreGap: CGFloat = 10
     var sectionSpacing: CGFloat = 6
 }
 
 enum ProGameScoreboardStatusHeader: Equatable {
-    case live(String)
     case finalScore
 }
 
@@ -116,8 +68,6 @@ struct ProGameScoreboardView: View {
 
     var style: ProGameScoreboardStyle = ProGameScoreboardStyle()
     var statusHeader: ProGameScoreboardStatusHeader?
-    var competitionTitle: String?
-    var stageLine: String?
     var accentColor: Color?
     var scoreColor: Color?
     var teamNameColor: Color?
@@ -129,11 +79,7 @@ struct ProGameScoreboardView: View {
         VStack(spacing: style.sectionSpacing) {
             statusHeaderView
 
-            scoreRow
-
-            teamNameRow
-
-            competitionMetadata
+            unifiedScoreRow
         }
         .frame(maxWidth: .infinity)
     }
@@ -147,24 +93,32 @@ struct ProGameScoreboardView: View {
                 .tracking(0.6)
                 .foregroundStyle(resolvedAccent)
                 .frame(maxWidth: .infinity, alignment: .leading)
-        case let .live(text):
-            Text(text)
-                .font(.caption2.weight(.bold))
-                .foregroundStyle(FGColor.dangerRed)
-                .frame(maxWidth: .infinity, alignment: .leading)
         case nil:
             EmptyView()
         }
     }
 
-    private var scoreRow: some View {
-        HStack(spacing: style.scoreRowSpacing) {
-            teamEmblem(awayIdentity, size: style.emblemSize)
+    private var unifiedScoreRow: some View {
+        HStack(alignment: .center, spacing: style.teamScoreGap) {
+            teamSideCluster(identity: awayIdentity)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
+            scoreCluster
+                .layoutPriority(1)
+                .fixedSize(horizontal: true, vertical: false)
+
+            teamSideCluster(identity: homeIdentity)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var scoreCluster: some View {
+        HStack(spacing: style.scoreRowSpacing) {
             Text("\(awayScore)")
                 .font(style.scoreFont)
                 .foregroundStyle(resolvedScoreColor)
-                .frame(minWidth: 24)
+                .frame(minWidth: 20)
 
             Text("-")
                 .font(style.separatorFont)
@@ -173,83 +127,43 @@ struct ProGameScoreboardView: View {
             Text("\(homeScore)")
                 .font(style.scoreFont)
                 .foregroundStyle(resolvedScoreColor)
-                .frame(minWidth: 24)
-
-            teamEmblem(homeIdentity, size: style.emblemSize)
+                .frame(minWidth: 20)
         }
-        .frame(maxWidth: .infinity, alignment: .center)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(awayScore) to \(homeScore)")
     }
 
-    private var teamNameRow: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Text(awayIdentity.displayName)
+    private func teamSideCluster(identity: ProGameTeamScoreIdentity) -> some View {
+        HStack(spacing: style.teamNameSpacing) {
+            inlineTeamEmblem(identity, size: style.emblemSize)
+
+            Text(identity.displayName)
                 .font(style.teamNameFont)
                 .foregroundStyle(resolvedTeamNameColor)
                 .lineLimit(1)
                 .truncationMode(.tail)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            Text(homeIdentity.displayName)
-                .font(style.teamNameFont)
-                .foregroundStyle(resolvedTeamNameColor)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .frame(maxWidth: .infinity, alignment: .trailing)
+                .minimumScaleFactor(0.85)
+                .layoutPriority(-1)
         }
     }
 
     @ViewBuilder
-    private var competitionMetadata: some View {
-        if competitionTitle != nil || stageLine != nil {
-            VStack(spacing: 2) {
-                if let competitionTitle {
-                    Text(competitionTitle)
-                        .font(style.competitionFont)
-                        .foregroundStyle(resolvedMetadataColor)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                }
-                if let stageLine {
-                    Text(stageLine)
-                        .font(style.stageFont)
-                        .foregroundStyle(resolvedMetadataColor.opacity(0.92))
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                }
-            }
-            .padding(.top, 2)
-        }
-    }
-
-    @ViewBuilder
-    private func teamEmblem(_ identity: ProGameTeamScoreIdentity, size: CGFloat) -> some View {
+    private func inlineTeamEmblem(_ identity: ProGameTeamScoreIdentity, size: CGFloat) -> some View {
         switch identity.leading {
         case let .flag(flag):
             Text(flag)
-                .font(.system(size: size * 0.72))
-                .frame(width: size, height: size)
-                .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(Color(.secondarySystemGroupedBackground).opacity(colorScheme == .dark ? 0.55 : 0.85))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .strokeBorder(Color.primary.opacity(colorScheme == .dark ? 0.10 : 0.06), lineWidth: 0.5)
-                )
+                .font(.system(size: size * 0.78))
+                .frame(width: size, height: size, alignment: .center)
                 .accessibilityHidden(true)
         case let .logoURL(url):
             DiscoverCachedRemoteImage(url: url, contentMode: .fit) {
                 Color.clear
             }
             .frame(width: size, height: size)
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
             .accessibilityHidden(true)
         case .none:
-            Color.clear
-                .frame(width: size, height: size)
-                .accessibilityHidden(true)
+            EmptyView()
         }
     }
 
@@ -274,20 +188,28 @@ struct ProGameScoringTimelineView: View {
     let summary: LiveScoringTimelineSummary
     let homeTeam: String
     let awayTeam: String
+    var headingText: String?
+    var maxVisibleLines: Int = LiveScoringTimelineSummary.defaultMaxVisibleTimelineLines
     var headingFont: Font = .caption2.weight(.bold)
     var lineFont: Font = .caption2.weight(.medium)
     var headingColor: Color?
     var lineColor: Color?
+    var flagSource: String = "GoingPro"
 
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        let display = summary.timelineDisplay(homeTeam: homeTeam, awayTeam: awayTeam)
+        let display = summary.timelineDisplay(
+            homeTeam: homeTeam,
+            awayTeam: awayTeam,
+            maxVisible: maxVisibleLines,
+            flagSource: flagSource
+        )
         if display.lines.isEmpty {
             EmptyView()
         } else {
             VStack(alignment: .leading, spacing: 3) {
-                Text(summary.goalScorersHeadingText)
+                Text(headingText ?? summary.goalScorersHeadingText)
                     .font(headingFont)
                     .foregroundStyle(resolvedHeadingColor)
 
@@ -330,31 +252,22 @@ struct ProGameScoreBlock: View {
 
     var isFinal: Bool = false
     var isLive: Bool = false
-    var liveStatusText: String?
-    var league: String = ""
-    var featuredEventTitle: String?
     var accentColor: Color?
     var style: ProGameScoreboardStyle = ProGameScoreboardStyle()
     var timelineSummary: LiveScoringTimelineSummary?
-    var latestScoringEvent: LiveLatestScoringEvent?
     var showsFramedFinalBackground: Bool = true
+    var flagSource: String = "GoingPro"
 
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        let competition = ProGameCompetitionStageFormatter.lines(
-            league: league,
-            featuredEventTitle: featuredEventTitle
-        )
         let scoreboard = ProGameScoreboardView(
             awayIdentity: ProGameTeamScoreIdentity.resolve(teamName: awayTeam, badgeURL: awayBadgeURL, source: source),
             homeIdentity: ProGameTeamScoreIdentity.resolve(teamName: homeTeam, badgeURL: homeBadgeURL, source: source),
             awayScore: awayScore,
             homeScore: homeScore,
             style: style,
-            statusHeader: statusHeader,
-            competitionTitle: competition.competition,
-            stageLine: competition.stage,
+            statusHeader: isFinal ? .finalScore : nil,
             accentColor: accentColor,
             scoreColor: isLive && !isFinal ? FGColor.dangerRed : nil,
             metadataColor: FGColor.secondaryText(colorScheme)
@@ -368,11 +281,10 @@ struct ProGameScoreBlock: View {
                     summary: timelineSummary,
                     homeTeam: homeTeam,
                     awayTeam: awayTeam,
-                    headingColor: FGColor.secondaryText(colorScheme),
-                    lineColor: isFinal ? FGColor.secondaryText(colorScheme) : (accentColor ?? FGColor.secondaryText(colorScheme))
+                    headingColor: resolvedGoalScorerHeadingColor,
+                    lineColor: resolvedGoalScorerLineColor,
+                    flagSource: flagSource
                 )
-            } else if isLive, let latestScoringEvent {
-                latestScoringEventLine(latestScoringEvent)
             }
         }
         .padding(.horizontal, isFinal && showsFramedFinalBackground ? 12 : 0)
@@ -386,28 +298,12 @@ struct ProGameScoreBlock: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var statusHeader: ProGameScoreboardStatusHeader? {
-        if isFinal {
-            return .finalScore
-        }
-        if isLive, let liveStatusText, !liveStatusText.isEmpty {
-            return .live(liveStatusText)
-        }
-        return nil
+    private var resolvedGoalScorerHeadingColor: Color {
+        FGColor.secondaryText(colorScheme)
     }
 
-    private func latestScoringEventLine(_ event: LiveLatestScoringEvent) -> some View {
-        Text(event.displayText)
-            .font(FGTypography.caption.weight(.semibold))
-            .foregroundStyle(FGColor.dangerRed)
-            .lineLimit(1)
-            .truncationMode(.tail)
-            .padding(.horizontal, 9)
-            .padding(.vertical, 5)
-            .background(
-                Capsule(style: .continuous)
-                    .fill(FGColor.dangerRed.opacity(colorScheme == .dark ? 0.18 : 0.10))
-            )
+    private var resolvedGoalScorerLineColor: Color {
+        FGColor.primaryText(colorScheme)
     }
 }
 

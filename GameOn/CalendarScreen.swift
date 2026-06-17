@@ -24,6 +24,7 @@ struct CalendarScreen: View {
     @State private var calendarDatePickerDetent: PresentationDetent = .large
     @State private var gameSearchText = ""
     @State private var calendarProGamesSportFilter = "All"
+    @State private var calendarProGamePredictionSheet: ProGamePredictionSheetContext?
     @State private var calendarFeaturedEventFilterSlug: String?
     @State private var calendarPickupDetailToken: PickupDetailNavigationToken?
     @State private var debouncedGameSearchText = ""
@@ -316,6 +317,9 @@ struct CalendarScreen: View {
         calendarLifecycleRoot
             .sheet(item: $calendarPickupDetailToken) { token in
                 DiscoverPickupGameDetailSheet(viewModel: viewModel, gameId: token.id)
+            }
+            .sheet(item: $calendarProGamePredictionSheet) { context in
+                ProGamePredictionSheet(viewModel: viewModel, game: context.game)
             }
     }
 
@@ -1525,9 +1529,10 @@ struct CalendarScreen: View {
     private func calendarFeaturedEventChip(_ featuredEvent: FeaturedEvent) -> some View {
         SportFilterChip(
             sport: featuredEvent.sport ?? "Soccer",
-            displayTitle: featuredEvent.chipTitle,
+            displayTitle: featuredEvent.leagueChipLabel,
             isSelected: selectedCalendarFeaturedEvent?.slug == featuredEvent.slug,
-            isCompact: true
+            isCompact: true,
+            preferSystemSymbol: false
         ) {
             withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
                 calendarProGamesSportFilter = "All"
@@ -1583,39 +1588,21 @@ struct CalendarScreen: View {
         let featuredEvent = calendarFeaturedEvent(for: match)
         let isSaved = viewModel.isProGameSaved(match)
         let watchPartyCount = watchPartyCount(for: match)
-        return HStack(alignment: .center, spacing: 14) {
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 14) {
             VStack(alignment: .leading, spacing: 10) {
                 Text(calendarProGameStartTimeText(match))
                     .font(.caption.weight(.bold))
                     .foregroundStyle(accent)
 
-                VStack(alignment: .leading, spacing: 7) {
-                    if match.matchStatus.isHappeningNow || match.matchStatus == .fullTime {
-                        ProGameScoreBlock(
-                            awayTeam: match.awayTeam,
-                            homeTeam: match.homeTeam,
-                            awayScore: match.scoreAway,
-                            homeScore: match.scoreHome,
-                            awayBadgeURL: match.awayTeamBadgeURL,
-                            homeBadgeURL: match.homeTeamBadgeURL,
-                            source: "Calendar",
-                            isFinal: match.matchStatus == .fullTime,
-                            isLive: match.matchStatus.isHappeningNow,
-                            liveStatusText: match.matchStatus.isHappeningNow ? calendarProGameLiveStatusText(match) : nil,
-                            league: match.league,
-                            featuredEventTitle: featuredEvent?.emptyStateTitle,
-                            accentColor: accent,
-                            style: ProGameScoreboardStyle(
-                                scoreFont: .headline.weight(.black).monospacedDigit(),
-                                separatorFont: .headline.weight(.bold),
-                                teamNameFont: .caption.weight(.semibold),
-                                emblemSize: 22
-                            ),
-                            timelineSummary: match.scoringTimelineSummary,
-                            latestScoringEvent: match.latestScoringEvent,
-                            showsFramedFinalBackground: false
-                        )
-                    } else {
+                if match.matchStatus.isHappeningNow || match.matchStatus == .fullTime {
+                    ProGameLeagueChip(
+                        sportType: match.liveSportVisualType,
+                        featuredEvent: featuredEvent,
+                        league: match.league
+                    )
+                } else {
+                    VStack(alignment: .leading, spacing: 7) {
                         calendarTeamLine(match.awayTeam, score: nil, badgeURL: match.awayTeamBadgeURL)
                         calendarTeamLine(match.homeTeam, score: nil, badgeURL: match.homeTeamBadgeURL)
                     }
@@ -1653,6 +1640,36 @@ struct CalendarScreen: View {
                 calendarProGameSaveButton(match, isSaved: isSaved, accent: accent)
                     .offset(x: 8, y: -8)
             }
+            }
+
+            if calendarProGameShouldShowScore(match) {
+                ProGameScoreBlock(
+                    awayTeam: match.awayTeam,
+                    homeTeam: match.homeTeam,
+                    awayScore: match.scoreAway,
+                    homeScore: match.scoreHome,
+                    awayBadgeURL: match.awayTeamBadgeURL,
+                    homeBadgeURL: match.homeTeamBadgeURL,
+                    source: "Calendar",
+                    isFinal: match.matchStatus == .fullTime,
+                    isLive: match.matchStatus.isHappeningNow,
+                    accentColor: accent,
+                    style: ProGameScoreboardStyle(
+                        scoreFont: .headline.weight(.black).monospacedDigit(),
+                        separatorFont: .headline.weight(.bold),
+                        teamNameFont: .caption.weight(.semibold),
+                        emblemSize: 22
+                    ),
+                    timelineSummary: match.resolvedGoalDisplaySummary,
+                    showsFramedFinalBackground: false,
+                    flagSource: "Calendar"
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            if match.supportsProGamePredictions {
+                calendarProGamePredictionFooter(for: match)
+            }
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1661,6 +1678,19 @@ struct CalendarScreen: View {
         .shadow(color: Color.black.opacity(calendarColorScheme == .dark ? 0.16 : 0.045), radius: 8, y: 3)
         .onAppear {
             logCalendarScoringEventDebug(match)
+        }
+    }
+
+    private func calendarProGamePredictionFooter(for match: LiveMatch) -> some View {
+        let game = SavedProGame.forPredictions(match: match, savedGames: viewModel.savedProGames)
+        return ProGamePredictionFooterRow(
+            game: game,
+            summary: viewModel.proGamePredictionSummaries[game.stableKey]
+        ) {
+            calendarProGamePredictionSheet = ProGamePredictionSheetContext(game: game)
+        }
+        .task(id: game.stableKey) {
+            await viewModel.prefetchProGamePredictionSummaries(for: [game])
         }
     }
 
@@ -1704,18 +1734,25 @@ struct CalendarScreen: View {
         }
     }
 
+    private func calendarProGameShouldShowScore(_ match: LiveMatch) -> Bool {
+        if match.matchStatus.isHappeningNow || match.matchStatus == .fullTime { return true }
+        return match.matchStatus == .scheduled && match.scoresAreAvailable
+    }
+
     private func logCalendarScoringEventDebug(_ match: LiveMatch) {
-#if DEBUG
         LiveScoringEventDebug.log(
             gameId: match.id,
             eventId: match.externalId,
             sport: match.sport,
             sportType: match.liveSportVisualType,
+            matchStatus: match.matchStatus,
+            rawMatchStatus: match.rawMatchStatus,
             homeTeam: match.homeTeam,
             awayTeam: match.awayTeam,
             timelineEvents: match.timelineEvents,
             timelineFetched: !match.timelineEvents.isEmpty
         )
+#if DEBUG
         ScoringTimelineDebug.log(
             gameId: match.id,
             scoreHome: match.scoreHome,
@@ -1726,16 +1763,6 @@ struct CalendarScreen: View {
             timelineEvents: match.timelineEvents
         )
 #endif
-    }
-
-    private func calendarProGameLiveStatusText(_ match: LiveMatch) -> String {
-        if match.matchStatus == .halfTime {
-            return "HT"
-        }
-        if let minute = match.minute, minute > 0 {
-            return "LIVE \(minute)'"
-        }
-        return "LIVE"
     }
 
     private func calendarProGameSaveButton(_ match: LiveMatch, isSaved: Bool, accent: Color) -> some View {
@@ -1771,19 +1798,6 @@ struct CalendarScreen: View {
         return calendarFeaturedEvents.first {
             LiveMatchFilters.matchesFeaturedEvent(match, featuredEvent: $0)
         }
-    }
-
-    private func calendarFeaturedEventBadge(_ featuredEvent: FeaturedEvent, accent: Color) -> some View {
-        Text(featuredEvent.chipTitle)
-            .font(.caption2.weight(.bold))
-            .foregroundStyle(accent)
-            .lineLimit(1)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(
-                Capsule(style: .continuous)
-                    .fill(accent.opacity(calendarColorScheme == .dark ? 0.18 : 0.10))
-            )
     }
 
     private func calendarProGameTitle(_ match: LiveMatch) -> String {

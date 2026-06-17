@@ -160,6 +160,295 @@ actor LiveSportsService {
         return try await fetchLiveMatchesFromSupabase(requestURL: requestURL, cacheSyncAttempted: false)
     }
 
+    func fetchLiveMatches(source: String, externalId: String) async throws -> [LiveMatch] {
+        let normalizedSource = source.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedExternalId = externalId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedSource.isEmpty, !normalizedExternalId.isEmpty else { return [] }
+
+        let requestURL = try await Self.liveMatchesBySourceExternalRequestURL(
+            source: normalizedSource,
+            externalId: normalizedExternalId
+        )
+        return try await fetchLiveMatchesFromSupabase(requestURL: requestURL, cacheSyncAttempted: false)
+    }
+
+    func fetchLiveMatchesForSavedProGameHydration(_ savedGames: [SavedProGame]) async throws -> [LiveMatch] {
+        guard !savedGames.isEmpty else { return [] }
+
+        var merged: [LiveMatch] = []
+        var seenKeys = Set<String>()
+
+        func absorb(_ matches: [LiveMatch]) {
+            for match in matches {
+                let key = SavedProGame.stableKey(for: match)
+                guard seenKeys.insert(key).inserted else { continue }
+                merged.append(match)
+            }
+        }
+
+        func alreadyMatched(_ saved: SavedProGame) -> Bool {
+            merged.contains { SavedProGame.directlyMatchesSavedProGame($0, saved) }
+        }
+
+        for saved in savedGames {
+            let idsToFetch = orderedUniqueHydrationIds(for: saved)
+            let externalIdsToFetch = orderedUniqueHydrationExternalIds(for: saved)
+            let source = saved.source?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+                ? saved.source!.trimmingCharacters(in: .whitespacesAndNewlines)
+                : "thesportsdb"
+
+            logSavedProHydrationQueryPlan(
+                saved: saved,
+                idsToFetch: idsToFetch,
+                externalIdsToFetch: externalIdsToFetch,
+                source: source
+            )
+
+            if alreadyMatched(saved) { continue }
+
+            for id in idsToFetch where !alreadyMatched(saved) {
+                absorb(try await fetchLiveMatchesByExactId(id))
+            }
+
+            if !alreadyMatched(saved) {
+                for externalId in externalIdsToFetch {
+                    absorb(try await fetchLiveMatchesBySourceExternal(source: source, externalId: externalId))
+                    if alreadyMatched(saved) { break }
+                }
+            }
+
+            if !alreadyMatched(saved), source.caseInsensitiveCompare("thesportsdb") != .orderedSame {
+                for externalId in externalIdsToFetch {
+                    absorb(try await fetchLiveMatchesBySourceExternal(source: "thesportsdb", externalId: externalId))
+                    if alreadyMatched(saved) { break }
+                }
+            }
+
+            if !alreadyMatched(saved) {
+                absorb(
+                    try await fetchLiveMatchesHydrationOR(
+                        idsToFetch: idsToFetch,
+                        externalIdsToFetch: externalIdsToFetch,
+                        source: source
+                    )
+                )
+            }
+        }
+
+        return merged
+    }
+
+    private func orderedUniqueHydrationIds(for saved: SavedProGame) -> [String] {
+        var ordered: [String] = []
+        var seen = Set<String>()
+        func add(_ raw: String?) {
+            let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            guard !trimmed.isEmpty, seen.insert(trimmed).inserted else { return }
+            ordered.append(trimmed)
+        }
+
+        add(saved.stableKey)
+        add(saved.id)
+        for candidate in SavedProGame.directHydrationLookupIds(for: saved) {
+            add(candidate)
+        }
+        return ordered
+    }
+
+    private func orderedUniqueHydrationExternalIds(for saved: SavedProGame) -> [String] {
+        var ordered: [String] = []
+        var seen = Set<String>()
+        func add(_ raw: String?) {
+            let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            guard !trimmed.isEmpty, seen.insert(trimmed).inserted else { return }
+            ordered.append(trimmed)
+        }
+
+        add(saved.resolvedProviderExternalId)
+        add(saved.externalId)
+        if let suffix = saved.id.split(separator: ":").last.map(String.init) {
+            add(suffix)
+        }
+        return ordered
+    }
+
+    private func fetchLiveMatchesByExactId(_ id: String) async throws -> [LiveMatch] {
+        let trimmed = id.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return [] }
+
+        logSavedProHydrationFetch(
+            idsToFetch: trimmed,
+            externalIdsToFetch: "",
+            source: "",
+            lookup: "directId"
+        )
+
+        let rows: [LiveMatchRow] = try await supabase
+            .from("live_matches")
+            .select(Self.liveMatchesSelectColumns)
+            .eq("id", value: trimmed)
+            .limit(1)
+            .execute()
+            .value
+
+        logSavedProHydrationFetchResult(
+            lookup: "directId",
+            idsToFetch: trimmed,
+            externalIdsToFetch: "",
+            source: "",
+            rows: rows
+        )
+        return normalizedLiveMatches(from: rows)
+    }
+
+    private func fetchLiveMatchesBySourceExternal(source: String, externalId: String) async throws -> [LiveMatch] {
+        let normalizedSource = source.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedExternalId = externalId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedSource.isEmpty, !normalizedExternalId.isEmpty else { return [] }
+
+        logSavedProHydrationFetch(
+            idsToFetch: "",
+            externalIdsToFetch: normalizedExternalId,
+            source: normalizedSource,
+            lookup: "directExternalId"
+        )
+
+        let rows: [LiveMatchRow] = try await supabase
+            .from("live_matches")
+            .select(Self.liveMatchesSelectColumns)
+            .eq("source", value: normalizedSource)
+            .eq("external_id", value: normalizedExternalId)
+            .limit(5)
+            .execute()
+            .value
+
+        logSavedProHydrationFetchResult(
+            lookup: "directExternalId",
+            idsToFetch: "",
+            externalIdsToFetch: normalizedExternalId,
+            source: normalizedSource,
+            rows: rows
+        )
+        return normalizedLiveMatches(from: rows)
+    }
+
+    private func fetchLiveMatchesHydrationOR(
+        idsToFetch: [String],
+        externalIdsToFetch: [String],
+        source: String
+    ) async throws -> [LiveMatch] {
+        var clauses: [String] = []
+        for id in idsToFetch {
+            let trimmed = id.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { continue }
+            clauses.append("id.eq.\(postgrestQuotedValue(trimmed))")
+        }
+        for externalId in externalIdsToFetch {
+            let trimmed = externalId.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { continue }
+            clauses.append("external_id.eq.\(postgrestQuotedValue(trimmed))")
+            let normalizedSource = source.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !normalizedSource.isEmpty {
+                clauses.append(
+                    "and(source.eq.\(postgrestQuotedValue(normalizedSource)),external_id.eq.\(postgrestQuotedValue(trimmed)))"
+                )
+            }
+        }
+
+        let uniqueClauses = Array(Set(clauses))
+        guard !uniqueClauses.isEmpty else { return [] }
+
+        let orFilter = uniqueClauses.joined(separator: ",")
+        logSavedProHydrationFetch(
+            idsToFetch: idsToFetch.joined(separator: "|"),
+            externalIdsToFetch: externalIdsToFetch.joined(separator: "|"),
+            source: source,
+            lookup: "or(\(orFilter))"
+        )
+
+        let rows: [LiveMatchRow] = try await supabase
+            .from("live_matches")
+            .select(Self.liveMatchesSelectColumns)
+            .or(orFilter)
+            .limit(10)
+            .execute()
+            .value
+
+        logSavedProHydrationFetchResult(
+            lookup: "or",
+            idsToFetch: idsToFetch.joined(separator: "|"),
+            externalIdsToFetch: externalIdsToFetch.joined(separator: "|"),
+            source: source,
+            rows: rows
+        )
+        return normalizedLiveMatches(from: rows)
+    }
+
+    private func normalizedLiveMatches(from rows: [LiveMatchRow]) -> [LiveMatch] {
+        Self.deduplicateLiveMatches(rows.compactMap(\.liveMatch))
+    }
+
+    private func postgrestQuotedValue(_ raw: String) -> String {
+        if raw.range(of: #"^[A-Za-z0-9_\-]+$"#, options: .regularExpression) != nil {
+            return raw
+        }
+        return "\"\(raw.replacingOccurrences(of: "\"", with: "\\\""))\""
+    }
+
+#if DEBUG
+    private func logSavedProHydrationQueryPlan(
+        saved: SavedProGame,
+        idsToFetch: [String],
+        externalIdsToFetch: [String],
+        source: String
+    ) {
+        print("[SavedProGameHydrationDebug] savedId=\(saved.stableKey)")
+        print("[SavedProGameHydrationDebug] providerId=\(saved.resolvedProviderExternalId ?? saved.externalId ?? saved.id)")
+        print("[SavedProGameHydrationDebug] idsToFetch=\(idsToFetch.joined(separator: ","))")
+        print("[SavedProGameHydrationDebug] externalIdsToFetch=\(externalIdsToFetch.joined(separator: ","))")
+        print("[SavedProGameHydrationDebug] source=\(source)")
+    }
+
+    private func logSavedProHydrationFetch(
+        idsToFetch: String,
+        externalIdsToFetch: String,
+        source: String,
+        lookup: String
+    ) {
+        print("[SavedProGameHydrationDebug] lookup=\(lookup)")
+        print("[SavedProGameHydrationDebug] idsToFetch=\(idsToFetch)")
+        print("[SavedProGameHydrationDebug] externalIdsToFetch=\(externalIdsToFetch)")
+        print("[SavedProGameHydrationDebug] source=\(source)")
+    }
+
+    private func logSavedProHydrationFetchResult(
+        lookup: String,
+        idsToFetch: String,
+        externalIdsToFetch: String,
+        source: String,
+        rows: [LiveMatchRow]
+    ) {
+        print("[SavedProGameHydrationDebug] rawSupabaseRowsReturned=\(rows.count) lookup=\(lookup)")
+        print("[SavedProGameHydrationDebug] idsToFetch=\(idsToFetch)")
+        print("[SavedProGameHydrationDebug] externalIdsToFetch=\(externalIdsToFetch)")
+        print("[SavedProGameHydrationDebug] source=\(source)")
+        for (index, row) in rows.prefix(3).enumerated() {
+            print(
+                "[SavedProGameHydrationDebug] row[\(index)] id=\(row.id ?? "nil") " +
+                "source=\(row.source ?? "nil") external_id=\(row.external_id ?? "nil") " +
+                "status=\(row.match_status ?? "nil") teams=\(row.away_team ?? "nil")@\(row.home_team ?? "nil") " +
+                "timelineCount=\(row.timeline_events?.count ?? 0)"
+            )
+        }
+    }
+#endif
+
+    private func sourceOrProviderIsTheSportsDB(_ saved: SavedProGame) -> Bool {
+        if saved.source?.caseInsensitiveCompare("thesportsdb") == .orderedSame { return true }
+        return saved.id.lowercased().hasPrefix("thesportsdb:")
+            || saved.stableKey.lowercased().hasPrefix("thesportsdb:")
+    }
+
     func fetchLiveMatchDateDots(around month: Date) async throws -> Set<Date> {
         let requestURL = try await Self.liveMatchDateDotsRequestURL(around: month)
         let publishableKey = await supabasePublishableKey
@@ -487,11 +776,17 @@ actor LiveSportsService {
         return url
     }
 
+    private static let liveMatchesSelectColumns = "id,source,external_id,sport,home_team,away_team,score_home,score_away,match_status,minute,league,start_time,updated_at,payload,tv_broadcasts,timeline_events,featured_event_slug"
+
+    private static func postgrestInFilter(values: [String]) -> String {
+        let quoted = values.map { value in
+            "\"\(value.replacingOccurrences(of: "\"", with: "\\\""))\""
+        }
+        return "in.(\(quoted.joined(separator: ",")))"
+    }
+
     private static func liveMatchesByIdsRequestURL(ids: [String]) async throws -> URL {
         let projectURL = await supabaseProjectURL
-        let encodedIds = ids
-            .map { $0.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? $0 }
-            .joined(separator: ",")
         var components = URLComponents(
             url: projectURL
                 .appendingPathComponent("rest")
@@ -500,8 +795,32 @@ actor LiveSportsService {
             resolvingAgainstBaseURL: false
         )
         components?.queryItems = [
-            URLQueryItem(name: "select", value: "id,source,external_id,sport,home_team,away_team,score_home,score_away,match_status,minute,league,start_time,updated_at,payload,tv_broadcasts,timeline_events,featured_event_slug"),
-            URLQueryItem(name: "id", value: "in.(\(encodedIds))"),
+            URLQueryItem(name: "select", value: liveMatchesSelectColumns),
+            URLQueryItem(name: "id", value: postgrestInFilter(values: ids)),
+            URLQueryItem(name: "order", value: "start_time.asc")
+        ]
+        guard let url = components?.url else {
+            throw URLError(.badURL)
+        }
+        return url
+    }
+
+    private static func liveMatchesBySourceExternalRequestURL(
+        source: String,
+        externalId: String
+    ) async throws -> URL {
+        let projectURL = await supabaseProjectURL
+        var components = URLComponents(
+            url: projectURL
+                .appendingPathComponent("rest")
+                .appendingPathComponent("v1")
+                .appendingPathComponent("live_matches"),
+            resolvingAgainstBaseURL: false
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "select", value: liveMatchesSelectColumns),
+            URLQueryItem(name: "source", value: "eq.\(source)"),
+            URLQueryItem(name: "external_id", value: "eq.\(externalId)"),
             URLQueryItem(name: "order", value: "start_time.asc")
         ]
         guard let url = components?.url else {
@@ -645,6 +964,53 @@ private nonisolated struct LiveMatchRow: Decodable {
     let tv_broadcasts: [LiveTVBroadcast]?
     let timeline_events: [LiveTimelineEvent]?
     let featured_event_slug: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case id, source, external_id, sport, home_team, away_team, score_home, score_away
+        case match_status, minute, league, start_time, payload, tv_broadcasts
+        case timeline_events, featured_event_slug
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(String.self, forKey: .id)
+        source = try container.decodeIfPresent(String.self, forKey: .source)
+        external_id = try container.decodeIfPresent(String.self, forKey: .external_id)
+        sport = try container.decodeIfPresent(String.self, forKey: .sport)
+        home_team = try container.decodeIfPresent(String.self, forKey: .home_team)
+        away_team = try container.decodeIfPresent(String.self, forKey: .away_team)
+        score_home = try container.decodeIfPresent(Int.self, forKey: .score_home)
+        score_away = try container.decodeIfPresent(Int.self, forKey: .score_away)
+        match_status = try container.decodeIfPresent(String.self, forKey: .match_status)
+        minute = try container.decodeIfPresent(Int.self, forKey: .minute)
+        league = try container.decodeIfPresent(String.self, forKey: .league)
+        start_time = try container.decodeIfPresent(String.self, forKey: .start_time)
+        payload = try container.decodeIfPresent([String: LiveMatchPayloadValue].self, forKey: .payload)
+        tv_broadcasts = try container.decodeIfPresent([LiveTVBroadcast].self, forKey: .tv_broadcasts)
+        timeline_events = Self.decodeLossyTimelineEvents(from: container)
+        featured_event_slug = try container.decodeIfPresent(String.self, forKey: .featured_event_slug)
+    }
+
+    private static func decodeLossyTimelineEvents(
+        from container: KeyedDecodingContainer<CodingKeys>
+    ) -> [LiveTimelineEvent]? {
+        guard container.contains(.timeline_events) else { return nil }
+        if (try? container.decodeNil(forKey: .timeline_events)) == true { return nil }
+        if let events = try? container.decode([LiveTimelineEvent].self, forKey: .timeline_events) {
+            return events
+        }
+        guard var array = try? container.nestedUnkeyedContainer(forKey: .timeline_events) else {
+            return nil
+        }
+        var events: [LiveTimelineEvent] = []
+        while !array.isAtEnd {
+            let elementDecoder = try? array.superDecoder()
+            if let elementDecoder, let event = try? LiveTimelineEvent(from: elementDecoder) {
+                events.append(event)
+            }
+        }
+        return events
+    }
 
 #if DEBUG
     var debugSummary: String {

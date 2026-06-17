@@ -22,7 +22,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 type SupabaseClient = ReturnType<typeof createClient>
 
 type TrackedGameSource = "saved" | "favorite_team"
-type NotificationType = "kickoff" | "score" | "final"
+type NotificationType = "kickoff" | "score" | "final" | "halftime"
 
 type SavedProGameRow = {
   id: string
@@ -127,6 +127,21 @@ type PushAlertContent = {
   title: string
   subtitle?: string
   body: string
+  goalDebug?: GoalNotificationDebugContext
+}
+
+type GoalNotificationDebugContext = {
+  notificationType: "goal"
+  gameId: string
+  scoreline: string
+  timelineCount: number
+  scoringEventsCount: number
+  scoringTeam: string
+  selectedScoringEvent: string
+  scorer: string
+  gameClock: string
+  subtitleStrategy: string
+  fallbackReason: string
 }
 
 type UserPreferenceRow = {
@@ -158,6 +173,11 @@ type WorkerCounts = {
   finalSkippedSettings: number
   finalSkippedNoToken: number
   finalSkippedNotFinal: number
+  halftimeCandidates: number
+  halftimeSent: number
+  halftimeSkippedDuplicate: number
+  halftimeSkippedSettings: number
+  halftimeSkippedNoToken: number
   notificationsSent: number
   skippedNoLiveMatch: number
   invalidTokens: number
@@ -200,6 +220,11 @@ serve(async (req) => {
     finalSkippedSettings: 0,
     finalSkippedNoToken: 0,
     finalSkippedNotFinal: 0,
+    halftimeCandidates: 0,
+    halftimeSent: 0,
+    halftimeSkippedDuplicate: 0,
+    halftimeSkippedSettings: 0,
+    halftimeSkippedNoToken: 0,
     notificationsSent: 0,
     skippedNoLiveMatch: 0,
     invalidTokens: 0,
@@ -275,6 +300,9 @@ serve(async (req) => {
       console.log(`[ProScorePushWorker] treatedAsLive=${treatedAsLive}`)
       if (status === "LIVE" || status === "HT") {
         counts.liveGamesChecked += 1
+        if (status === "HT") {
+          await maybeSendHalftimeUpdate(supabase, apns, game, live, tokensByUser, counts)
+        }
         await maybeSendScoreUpdate(supabase, apns, game, live, tokensByUser, counts)
       } else {
         if (isLikelyStaleLiveData(game, live, status)) {
@@ -311,6 +339,11 @@ serve(async (req) => {
     console.log(`[ProScorePushWorker] final skipped settings=${counts.finalSkippedSettings}`)
     console.log(`[ProScorePushWorker] final skipped noToken=${counts.finalSkippedNoToken}`)
     console.log(`[ProScorePushWorker] final skipped notFinal=${counts.finalSkippedNotFinal}`)
+    console.log(`[ProScorePushWorker] halftime candidates=${counts.halftimeCandidates}`)
+    console.log(`[ProScorePushWorker] halftime sent=${counts.halftimeSent}`)
+    console.log(`[ProScorePushWorker] halftime skipped duplicate=${counts.halftimeSkippedDuplicate}`)
+    console.log(`[ProScorePushWorker] halftime skipped settings=${counts.halftimeSkippedSettings}`)
+    console.log(`[ProScorePushWorker] halftime skipped noToken=${counts.halftimeSkippedNoToken}`)
     console.log(`[ProScorePushWorker] games checked=${counts.gamesChecked}`)
     console.log(`[ProScorePushWorker] live games checked=${counts.liveGamesChecked}`)
     console.log(`[ProScorePushWorker] notifications sent=${counts.notificationsSent}`)
@@ -562,6 +595,7 @@ async function maybeSendScoreUpdate(
 
   const liveWithTimeline = await hydrateLiveMatchWithTimeline(supabase, game, live)
   const alert = scoringNotificationContent(game, liveWithTimeline, previousScoreline)
+  logGoalNotificationApnsPayload(alert)
   const sent = await sendToUserTokens(supabase, apns, tokens, alert, counts)
   console.log(`[ProScorePushWorker] score notification sent=${sent}`)
   if (sent > 0) {
@@ -581,6 +615,62 @@ async function maybeSendScoreUpdate(
     }
   } else {
     logDeliveryRecorded("score", game, latestScoreline, false)
+  }
+}
+
+async function maybeSendHalftimeUpdate(
+  supabase: SupabaseClient,
+  apns: ApnsClient,
+  game: TrackedGame,
+  live: LiveMatchRow,
+  tokensByUser: Map<string, PushTokenRow[]>,
+  counts: WorkerCounts,
+) {
+  counts.halftimeCandidates += 1
+  if (isMutedFavoriteTeamAutoAlert(game)) {
+    counts.halftimeSkippedSettings += 1
+    return
+  }
+  if (!game.scoreAlertsEnabled) {
+    counts.halftimeSkippedSettings += 1
+    return
+  }
+  if (normalizeStatus(game.lastNotifiedStatus) === "HT") {
+    counts.halftimeSkippedDuplicate += 1
+    return
+  }
+
+  const halftimeToken = "halftime"
+  const tokens = tokensByUser.get(game.userId) ?? []
+  if (tokens.length === 0) {
+    counts.halftimeSkippedNoToken += 1
+    return
+  }
+
+  const duplicate = await deliveryDedupeExists(supabase, game, "halftime", halftimeToken)
+  if (duplicate) {
+    counts.halftimeSkippedDuplicate += 1
+    return
+  }
+
+  const sent = await sendToUserTokens(supabase, apns, tokens, halftimeNotificationContent(game, live), counts)
+  if (sent > 0) {
+    const recorded = await insertDeliveryDedupe(supabase, game, "halftime", halftimeToken)
+    logDeliveryRecorded("halftime", game, halftimeToken, recorded)
+    if (recorded) {
+      counts.halftimeSent += sent
+      counts.notificationsSent += sent
+      await updateTrackedGameNotificationState(supabase, game, {
+        last_notified_status: "HT",
+        match_status: live.match_status,
+        score_home: live.score_home,
+        score_away: live.score_away,
+      })
+    } else {
+      counts.halftimeSkippedDuplicate += 1
+    }
+  } else {
+    logDeliveryRecorded("halftime", game, halftimeToken, false)
   }
 }
 
@@ -882,20 +972,26 @@ type ScoringEventMatch = {
 }
 
 function scoringNotificationContent(game: TrackedGame, live: LiveMatchRow, previousScoreline: string): PushAlertContent {
-  const fallback = fallbackScoreNotificationContent(game, live, previousScoreline)
   const timelineEvents = normalizeTimelineEventsForWorker(live.timeline_events)
   const scoreAfter = scoreline(live.score_away, live.score_home)
   const sportKind = proScoreSportKind(game, live)
   const scoringEventsCount = timelineEvents.filter((event) => isScoringTimelineEvent(event, sportKind)).length
+  const fallbackDebugBase = {
+    timelineCount: timelineEvents.length,
+    scoringEventsCount,
+  }
+  goalNotificationLog(`notificationType=goal`)
   goalNotificationLog(`gameId=${game.liveMatchId}`)
-  goalNotificationLog(`sport=${sportKind}`)
+  goalNotificationLog(`scoreline=${scoreAfter}`)
   goalNotificationLog(`timelineCount=${timelineEvents.length}`)
   goalNotificationLog(`scoringEventsCount=${scoringEventsCount}`)
-  goalNotificationLog(`scoreBefore=${previousScoreline}`)
-  goalNotificationLog(`scoreAfter=${scoreAfter}`)
 
   const previous = parseScoreline(previousScoreline)
   if (!previous) {
+    const fallback = fallbackScoreNotificationContent(game, live, previousScoreline, {
+      ...fallbackDebugBase,
+      fallbackReason: "missingPreviousScoreline",
+    })
     logScoringEventFallback("missingPreviousScoreline", null, fallback, "unknown", timelineEvents, sportKind)
     logPushFormat("score", game, live, fallback)
     return fallback
@@ -903,6 +999,10 @@ function scoringNotificationContent(game: TrackedGame, live: LiveMatchRow, previ
 
   const scoringSide = scoringSideForScoreChange(previous, live)
   if (!scoringSide) {
+    const fallback = fallbackScoreNotificationContent(game, live, previousScoreline, {
+      ...fallbackDebugBase,
+      fallbackReason: "ambiguousScoreChange",
+    })
     logScoringEventFallback("ambiguousScoreChange", null, fallback, "unknown", timelineEvents, sportKind)
     logPushFormat("score", game, live, fallback)
     return fallback
@@ -916,6 +1016,31 @@ function scoringNotificationContent(game: TrackedGame, live: LiveMatchRow, previ
   })
   const scoringEvent = scoringEventResult.event
   if (!scoringEvent) {
+    const partialSubtitle = partialSubtitleFromTimeline(
+      game,
+      live,
+      timelineEvents,
+      scoringSide,
+      sportKind,
+    )
+    const fallback = fallbackScoreNotificationContent(game, live, previousScoreline, {
+      ...fallbackDebugBase,
+      scoringTeam: scoringTeamPlain,
+      scorer: partialSubtitle?.scorer ?? "unknown",
+      gameClock: partialSubtitle?.gameClock ?? "unknown",
+      subtitleStrategy: partialSubtitle?.strategy ?? "none",
+      selectedScoringEvent: partialSubtitle?.selectedScoringEvent ?? "none",
+      fallbackReason: scoringEventResult.fallbackReason,
+    })
+    if (partialSubtitle?.subtitle) {
+      fallback.subtitle = partialSubtitle.subtitle
+    } else if (scoringTeamPlain) {
+      fallback.subtitle = formattedTeamName(scoringTeamPlain)
+      fallback.goalDebug = {
+        ...fallback.goalDebug,
+        subtitleStrategy: "teamOnly",
+      }
+    }
     logScoringEventFallback(
       scoringEventResult.fallbackReason,
       null,
@@ -924,7 +1049,10 @@ function scoringNotificationContent(game: TrackedGame, live: LiveMatchRow, previ
       timelineEvents,
       sportKind,
     )
-    logPushFormat("score", game, live, fallback)
+    goalNotificationLog(`apsAlertTitle=${fallback.title}`)
+    goalNotificationLog(`apsAlertSubtitle=${fallback.subtitle ?? "nil"}`)
+    goalNotificationLog(`apsAlertBody=${fallback.body}`)
+    logPushFormat("score", game, live, fallback, scoringTeamPlain)
     return fallback
   }
 
@@ -934,36 +1062,62 @@ function scoringNotificationContent(game: TrackedGame, live: LiveMatchRow, previ
   console.log("[ProScorePushWorker] scoringEventFallback=false")
   goalNotificationLog(`fallbackReason=none`)
   goalNotificationLog(`selectedScoringEvent=${timelineEventDebugSummary(scoringEvent.raw)}`)
-  goalNotificationLog(`scoringTeam=${scoringEvent.scoringTeamPlain}`)
   goalNotificationLog(`scorer=${scoringEvent.player ?? "unknown"}`)
   goalNotificationLog(`gameClock=${scoringEvent.gameClock ?? "unknown"}`)
-  const subtitle = scoringEventSubtitle(scoringEvent, sportKind)
-  if ((sportKind === "soccer" || sportKind === "hockey") && !subtitle) {
-    logScoringEventFallback("missingSubtitle", scoringEvent, fallback, scoringTeamPlain, timelineEvents, sportKind)
-    logPushFormat("score", game, live, fallback)
-    return fallback
-  }
-  const alert = {
+  const { subtitle, strategy } = buildScoringEventSubtitle(scoringEvent, sportKind)
+  goalNotificationLog(`subtitleStrategy=${strategy}`)
+  const alert: PushAlertContent = {
     title: scoringEventNotificationTitle(game, live, scoringEvent, sportKind),
     subtitle,
     body: scoreNotificationBody(game, live),
+    goalDebug: {
+      notificationType: "goal",
+      gameId: game.liveMatchId,
+      scoreline: scoreAfter,
+      timelineCount: timelineEvents.length,
+      scoringEventsCount,
+      scoringTeam: scoringEvent.scoringTeamPlain,
+      selectedScoringEvent: timelineEventDebugSummary(scoringEvent.raw),
+      scorer: scoringEvent.player ?? "unknown",
+      gameClock: scoringEvent.gameClock ?? "unknown",
+      subtitleStrategy: strategy,
+      fallbackReason: "none",
+    },
   }
-  goalNotificationLog(`notificationTitle=${alert.title}`)
-  goalNotificationLog(`notificationSubtitle=${alert.subtitle ?? "nil"}`)
-  logPushFormat("score", game, live, alert)
+  goalNotificationLog(`apsAlertTitle=${alert.title}`)
+  goalNotificationLog(`apsAlertSubtitle=${alert.subtitle ?? "nil"}`)
+  goalNotificationLog(`apsAlertBody=${alert.body}`)
+  logPushFormat("score", game, live, alert, scoringTeamPlain)
   return alert
 }
 
 function kickoffNotificationContent(game: TrackedGame): PushAlertContent {
+  const matchup = `${formattedTeamName(game.awayTeam)} vs ${formattedTeamName(game.homeTeam)}`
+  const sportIcon = sportIconForGame(game)
   const alert = {
-    title: `${sportIconForGame(game) ?? ""} ${formattedTeamName(game.awayTeam)} vs ${formattedTeamName(game.homeTeam)}`.trim(),
+    title: sportIcon ? `${sportIcon} Kickoff` : "Kickoff",
+    subtitle: matchup,
     body: "Starting now",
   }
-  logPushFormat("kickoff", game, null, alert)
+  logPushFlagDebug("kickoff", game, null, alert)
   return alert
 }
 
-function fallbackScoreNotificationContent(game: TrackedGame, live: LiveMatchRow, previousScoreline: string): PushAlertContent {
+function halftimeNotificationContent(game: TrackedGame, live: LiveMatchRow): PushAlertContent {
+  const alert = {
+    title: "⏱ Halftime",
+    body: scoreNotificationBody(game, live),
+  }
+  logPushFlagDebug("halftime", game, live, alert)
+  return alert
+}
+
+function fallbackScoreNotificationContent(
+  game: TrackedGame,
+  live: LiveMatchRow,
+  previousScoreline: string,
+  debug?: Partial<GoalNotificationDebugContext>,
+): PushAlertContent {
   const previous = parseScoreline(previousScoreline)
   const scoringSide = previous ? scoringSideForScoreChange(previous, live) : null
   const scoringTeamPlain = scoringSide ? teamNameForSide(live, scoringSide) : null
@@ -971,12 +1125,26 @@ function fallbackScoreNotificationContent(game: TrackedGame, live: LiveMatchRow,
   const sportIcon = sportIconForGame(game, live)
   const title = scoringTeamPlain
     ? goalNotificationTitle(scoringTeamPlain, sportKind, sportIcon)
-    : `${sportIcon ?? ""} Score update`.trim()
-  const alert = {
+    : "Score update"
+  const scoreAfter = scoreline(live.score_away, live.score_home)
+  const timelineEvents = normalizeTimelineEventsForWorker(live.timeline_events)
+  return {
     title,
     body: scoreNotificationBody(game, live),
+    goalDebug: {
+      notificationType: "goal",
+      gameId: game.liveMatchId,
+      scoreline: scoreAfter,
+      timelineCount: debug?.timelineCount ?? timelineEvents.length,
+      scoringEventsCount: debug?.scoringEventsCount ?? timelineEvents.filter((event) => isScoringTimelineEvent(event, sportKind)).length,
+      scoringTeam: debug?.scoringTeam ?? scoringTeamPlain ?? "unknown",
+      selectedScoringEvent: debug?.selectedScoringEvent ?? "none",
+      scorer: debug?.scorer ?? "unknown",
+      gameClock: debug?.gameClock ?? "unknown",
+      subtitleStrategy: debug?.subtitleStrategy ?? "none",
+      fallbackReason: debug?.fallbackReason ?? "genericScoreFallback",
+    },
   }
-  return alert
 }
 
 function goalNotificationTitle(
@@ -997,7 +1165,7 @@ async function hydrateLiveMatchWithTimeline(
 ): Promise<LiveMatchRow> {
   const fetched = await fetchTimelineEventsForNotification(supabase, game, live)
   const embedded = normalizeTimelineEventsForWorker(live.timeline_events)
-  const timeline_events = fetched.length > 0 ? fetched : embedded
+  const timeline_events = mergeTimelineEventRows(fetched, embedded)
   goalNotificationLog(`timelineFetchCount=${fetched.length}`)
   goalNotificationLog(`timelineEmbeddedCount=${embedded.length}`)
   goalNotificationLog(`timelineUsedCount=${timeline_events.length}`)
@@ -1005,6 +1173,27 @@ async function hydrateLiveMatchWithTimeline(
     ...live,
     timeline_events,
   }
+}
+
+function mergeTimelineEventRows(...groups: TimelineEventRow[][]): TimelineEventRow[] {
+  const byKey = new Map<string, TimelineEventRow>()
+  for (const group of groups) {
+    for (const row of group) {
+      const key = row.idTimeline
+        ? `provider:${row.idTimeline}`
+        : [
+          row.idEvent,
+          row.strTimeline,
+          row.strTimelineDetail,
+          row.strPlayer,
+          row.strTeam,
+          row.intTime,
+          row.strHome,
+        ].map((value) => value ?? "").join("|")
+      if (!byKey.has(key)) byKey.set(key, row)
+    }
+  }
+  return [...byKey.values()]
 }
 
 async function fetchTimelineEventsForNotification(
@@ -1084,32 +1273,52 @@ function normalizeTimelineEventsForWorker(raw: unknown): TimelineEventRow[] {
     .filter(isTimelineEventRow)
 }
 
+function readTimelineField(record: Record<string, unknown>, ...keys: string[]): string | null {
+  for (const key of keys) {
+    const value = record[key]
+    if (value === null || value === undefined) continue
+    if (typeof value === "number" && Number.isFinite(value)) {
+      const text = String(Math.trunc(value))
+      return text.length > 0 ? text : null
+    }
+    if (typeof value === "string") {
+      const trimmed = value.trim()
+      if (trimmed.length > 0) return trimmed
+    }
+  }
+  return null
+}
+
 function normalizeTimelineEventRow(row: unknown): TimelineEventRow {
   const record = row && typeof row === "object" ? row as Record<string, unknown> : {}
   return {
-    idTimeline: cleanTimelineText(typeof record.idTimeline === "string" ? record.idTimeline : null),
-    idEvent: cleanTimelineText(typeof record.idEvent === "string" ? record.idEvent : null),
-    strTimeline: cleanTimelineText(typeof record.strTimeline === "string" ? record.strTimeline : null),
-    strTimelineDetail: cleanTimelineText(typeof record.strTimelineDetail === "string" ? record.strTimelineDetail : null,
-    ),
-    strHome: cleanTimelineText(typeof record.strHome === "string" ? record.strHome : null),
-    idPlayer: cleanTimelineText(typeof record.idPlayer === "string" ? record.idPlayer : null),
-    strPlayer: cleanTimelineText(typeof record.strPlayer === "string" ? record.strPlayer : null),
-    idAssist: cleanTimelineText(typeof record.idAssist === "string" ? record.idAssist : null),
-    strAssist: cleanTimelineText(typeof record.strAssist === "string" ? record.strAssist : null),
-    intTime: cleanTimelineText(typeof record.intTime === "string" || typeof record.intTime === "number"
-      ? String(record.intTime)
-      : null),
-    idTeam: cleanTimelineText(typeof record.idTeam === "string" ? record.idTeam : null),
-    strTeam: cleanTimelineText(typeof record.strTeam === "string" ? record.strTeam : null),
-    strComment: cleanTimelineText(typeof record.strComment === "string" ? record.strComment : null),
-    dateEvent: cleanTimelineText(typeof record.dateEvent === "string" ? record.dateEvent : null),
-    strSeason: cleanTimelineText(typeof record.strSeason === "string" ? record.strSeason : null),
+    idTimeline: readTimelineField(record, "idTimeline", "id_timeline", "idTimelineEvent"),
+    idEvent: readTimelineField(record, "idEvent", "id_event", "eventId"),
+    strTimeline: readTimelineField(record, "strTimeline", "str_timeline", "timeline"),
+    strTimelineDetail: readTimelineField(record, "strTimelineDetail", "str_timeline_detail", "timelineDetail"),
+    strHome: readTimelineField(record, "strHome", "str_home", "home"),
+    idPlayer: readTimelineField(record, "idPlayer", "id_player", "playerId"),
+    strPlayer: readTimelineField(record, "strPlayer", "str_player", "player"),
+    idAssist: readTimelineField(record, "idAssist", "id_assist", "assistId"),
+    strAssist: readTimelineField(record, "strAssist", "str_assist", "assist"),
+    intTime: readTimelineField(record, "intTime", "int_time", "minute", "min", "time"),
+    idTeam: readTimelineField(record, "idTeam", "id_team", "teamId"),
+    strTeam: readTimelineField(record, "strTeam", "str_team", "team"),
+    strComment: readTimelineField(record, "strComment", "str_comment", "comment"),
+    dateEvent: readTimelineField(record, "dateEvent", "date_event", "date"),
+    strSeason: readTimelineField(record, "strSeason", "str_season", "season"),
   }
 }
 
 function isTimelineEventRow(row: TimelineEventRow): boolean {
-  return Boolean(row.strTimeline || row.strPlayer || row.strTeam)
+  return Boolean(
+    row.strTimeline
+    || row.strTimelineDetail
+    || row.strPlayer
+    || row.strTeam
+    || row.intTime
+    || row.strComment,
+  )
 }
 
 function finalNotificationContent(game: TrackedGame, live: LiveMatchRow): PushAlertContent {
@@ -1117,12 +1326,30 @@ function finalNotificationContent(game: TrackedGame, live: LiveMatchRow): PushAl
     title: "🏁 Final Score",
     body: scoreNotificationBody(game, live),
   }
-  logPushFormat("final", game, live, alert)
+  logPushFlagDebug("final", game, live, alert)
   return alert
 }
 
 function scoreNotificationBody(game: TrackedGame, live: LiveMatchRow): string {
-  return `${formattedTeamName(live.away_team || game.awayTeam)} ${live.score_away} - ${live.score_home} ${formattedTeamName(live.home_team || game.homeTeam)}`
+  const away = notificationTeamLabel(live.away_team, game.awayTeam)
+  const home = notificationTeamLabel(live.home_team, game.homeTeam)
+  return `${away} ${live.score_away} - ${live.score_home} ${home}`
+}
+
+function notificationTeamLabel(
+  liveName: string | null | undefined,
+  gameName: string | null | undefined,
+): string {
+  const candidates = [liveName, gameName]
+  let bestWithoutFlag = ""
+  for (const raw of candidates) {
+    const name = cleanTeamName(raw)
+    if (!name) continue
+    const flag = flagEmojiForTeam(name)
+    if (flag) return `${flag} ${name}`
+    if (!bestWithoutFlag) bestWithoutFlag = name
+  }
+  return bestWithoutFlag
 }
 
 function teamNameForSide(live: LiveMatchRow, side: ScoringSide): string {
@@ -1156,10 +1383,46 @@ function sportIconForGame(game: TrackedGame, live?: LiveMatchRow | null): string
 }
 
 function formattedTeamName(teamName: string | null | undefined): string {
-  const name = (teamName ?? "").trim()
+  const name = cleanTeamName(teamName)
   if (!name) return ""
   const flag = flagEmojiForTeam(name)
   return flag ? `${flag} ${name}` : name
+}
+
+function cleanTeamName(teamName: string | null | undefined): string {
+  let text = (teamName ?? "").trim()
+  if (!text) return ""
+
+  const regionalIndicator = /\p{Regional_Indicator}/u
+  const emojiPresentation = /\p{Emoji_Presentation}/u
+  const otherSymbol = /\p{Other_Symbol}/u
+
+  while (text.length > 0) {
+    const codePoints = [...text]
+    if (
+      codePoints.length >= 2
+      && regionalIndicator.test(codePoints[0])
+      && regionalIndicator.test(codePoints[1])
+    ) {
+      text = codePoints.slice(2).join("").trim()
+      if (text.startsWith("•") || text.startsWith("-")) {
+        text = text.slice(1).trim()
+      }
+      continue
+    }
+
+    const first = codePoints[0] ?? ""
+    if (emojiPresentation.test(first) || otherSymbol.test(first)) {
+      text = codePoints.slice(1).join("").trim()
+      if (text.startsWith("•") || text.startsWith("-")) {
+        text = text.slice(1).trim()
+      }
+      continue
+    }
+    break
+  }
+
+  return text
 }
 
 function flagEmojiForTeam(teamName: string | null | undefined): string | null {
@@ -1168,7 +1431,7 @@ function flagEmojiForTeam(teamName: string | null | undefined): string | null {
 }
 
 function iso2RegionCodeForTeam(teamName: string | null | undefined): string | null {
-  const trimmed = (teamName ?? "").trim()
+  const trimmed = cleanTeamName(teamName)
   if (!trimmed) return null
 
   const upper = trimmed.toUpperCase()
@@ -1182,41 +1445,107 @@ function iso2RegionCodeForTeam(teamName: string | null | undefined): string | nu
   const normalizedName = normalizeCountryText(trimmed)
   if (!normalizedName) return null
   const withoutSuffix = normalizedCountryTeamSuffixRemoved(normalizedName)
-  return countryNameRegionCode[withoutSuffix] ?? countryNameRegionCode[normalizedName] ?? null
+  const direct = countryNameRegionCode[withoutSuffix] ?? countryNameRegionCode[normalizedName]
+  if (direct) return direct
+
+  for (const [alias, code] of Object.entries(countryNameRegionCode)) {
+    if (normalizedName === alias || normalizedName.endsWith(` ${alias}`)) {
+      return code
+    }
+  }
+  return null
 }
 
 const fifaOrIso3RegionCode: Record<string, string | null> = {
+  ALG: "DZ",
+  ARG: "AR",
+  AUS: "AU",
+  BEL: "BE",
+  BRA: "BR",
+  CAN: "CA",
+  CHI: "CL",
+  CHN: "CN",
+  COL: "CO",
   COD: "CD",
   CIV: "CI",
-  CZE: "CZ",
+  CRC: "CR",
+  CRO: "HR",
   CUW: "CW",
+  CZE: "CZ",
+  DEN: "DK",
+  DZA: "DZ",
+  ECU: "EC",
+  EGY: "EG",
   ENG: null,
+  ESP: "ES",
+  FRA: "FR",
   GER: "DE",
+  GHA: "GH",
+  HAI: "HT",
+  IRQ: "IQ",
+  IRN: "IR",
+  ITA: "IT",
+  JAM: "JM",
+  JOR: "JO",
+  JPN: "JP",
   KOR: "KR",
+  MAR: "MA",
   MEX: "MX",
   NED: "NL",
+  NGA: "NG",
   NIR: null,
+  NOR: "NO",
+  NZL: "NZ",
+  PAN: "PA",
+  PER: "PE",
+  POL: "PL",
+  POR: "PT",
   PRK: "KP",
+  QAT: "QA",
+  RSA: "ZA",
+  RUS: "RU",
   SCO: null,
+  SEN: "SN",
+  SRB: "RS",
+  SUI: "CH",
+  SWE: "SE",
+  TUN: "TN",
+  TUR: "TR",
   UAE: "AE",
+  URU: "UY",
   USA: "US",
+  UZB: "UZ",
   WAL: null,
 }
 
 const countryNameRegionCode: Record<string, string> = {
+  albania: "AL",
+  algeria: "DZ",
+  algerie: "DZ",
+  algérie: "DZ",
+  angola: "AO",
   argentina: "AR",
   australia: "AU",
+  austria: "AT",
   belgium: "BE",
   bolivia: "BO",
+  bosnia: "BA",
+  "bosnia and herzegovina": "BA",
   brazil: "BR",
   brasil: "BR",
+  "burkina faso": "BF",
+  "cabo verde": "CV",
+  "cape verde": "CV",
   canada: "CA",
   chile: "CL",
   china: "CN",
+  "pr china": "CN",
   colombia: "CO",
+  croatia: "HR",
   "costa rica": "CR",
   curacao: "CW",
   "cote d ivoire": "CI",
+  czech: "CZ",
   "czech republic": "CZ",
   czechia: "CZ",
   "democratic republic of congo": "CD",
@@ -1225,49 +1554,79 @@ const countryNameRegionCode: Record<string, string> = {
   "d r congo": "CD",
   ecuador: "EC",
   egypt: "EG",
+  finland: "FI",
+  fiji: "FJ",
   france: "FR",
   germany: "DE",
   deutschland: "DE",
   ghana: "GH",
+  greece: "GR",
+  guinea: "GN",
   haiti: "HT",
   holland: "NL",
+  hungary: "HU",
+  india: "IN",
+  indonesia: "ID",
   iran: "IR",
   iraq: "IQ",
+  ireland: "IE",
+  "republic of ireland": "IE",
+  italy: "IT",
+  italia: "IT",
   "ivory coast": "CI",
+  jamaica: "JM",
   japan: "JP",
   jordan: "JO",
   korea: "KR",
   "korea dpr": "KP",
+  mali: "ML",
   mexico: "MX",
   morocco: "MA",
   netherlands: "NL",
+  "new zealand": "NZ",
+  nigeria: "NG",
   "north korea": "KP",
+  "north macedonia": "MK",
+  macedonia: "MK",
   norway: "NO",
   panama: "PA",
+  paraguay: "PY",
   peru: "PE",
   poland: "PL",
   portugal: "PT",
   qatar: "QA",
+  romania: "RO",
   "republic of korea": "KR",
   russia: "RU",
   "saudi arabia": "SA",
   senegal: "SN",
   serbia: "RS",
+  slovakia: "SK",
+  slovenia: "SI",
+  "solomon islands": "SB",
   "south africa": "ZA",
   "south korea": "KR",
   spain: "ES",
+  españa: "ES",
   sweden: "SE",
   switzerland: "CH",
+  tahiti: "PF",
+  thailand: "TH",
   tunisia: "TN",
   turkey: "TR",
   turkiye: "TR",
+  türkiye: "TR",
   uae: "AE",
+  ukraine: "UA",
   "united arab emirates": "AE",
   "united states": "US",
   "united states of america": "US",
   uruguay: "UY",
   usa: "US",
   uzbekistan: "UZ",
+  venezuela: "VE",
+  vietnam: "VN",
+  "viet nam": "VN",
 }
 
 const supportedIso2RegionCodes = new Set([
@@ -1312,16 +1671,47 @@ function flagEmojiForRegionCode(regionCode: string): string | null {
     .join("")
 }
 
-function logPushFormat(context: string, game: TrackedGame, live: LiveMatchRow | null, alert: PushAlertContent): void {
-  const sportIcon = context === "final" ? "🏁" : sportIconForGame(game, live)
+function logPushFlagDebug(
+  notificationType: string,
+  game: TrackedGame,
+  live: LiveMatchRow | null,
+  alert: PushAlertContent,
+  scoringTeam?: string | null,
+): void {
   const homeTeam = live?.home_team || game.homeTeam
   const awayTeam = live?.away_team || game.awayTeam
-  console.log(`[PushFormatDebug] context=${context}`)
-  console.log(`[PushFormatDebug] sportIcon=${sportIcon ?? ""}`)
-  console.log(`[PushFormatDebug] homeFlag=${flagEmojiForTeam(homeTeam) ?? ""}`)
-  console.log(`[PushFormatDebug] awayFlag=${flagEmojiForTeam(awayTeam) ?? ""}`)
+  const homeFlag = flagEmojiForTeam(homeTeam) ?? ""
+  const awayFlag = flagEmojiForTeam(awayTeam) ?? ""
+  console.log(`[PushFlagDebug] notificationType=${notificationType}`)
+  console.log(`[PushFlagDebug] homeTeam=${homeTeam}`)
+  console.log(`[PushFlagDebug] awayTeam=${awayTeam}`)
+  console.log(`[PushFlagDebug] homeFlag=${homeFlag}`)
+  console.log(`[PushFlagDebug] awayFlag=${awayFlag}`)
+  if (!homeFlag && cleanTeamName(homeTeam)) {
+    console.log(`[PushFlagDebug] missingFlagFor=${cleanTeamName(homeTeam)}`)
+  }
+  if (!awayFlag && cleanTeamName(awayTeam)) {
+    console.log(`[PushFlagDebug] missingFlagFor=${cleanTeamName(awayTeam)}`)
+  }
+  if (scoringTeam) {
+    const cleanedScorer = cleanTeamName(scoringTeam)
+    if (cleanedScorer && !flagEmojiForTeam(cleanedScorer)) {
+      console.log(`[PushFlagDebug] missingFlagFor=${cleanedScorer}`)
+    }
+  }
   console.log(`[PushFormatDebug] formattedTitle=${alert.title}`)
+  console.log(`[PushFormatDebug] formattedSubtitle=${alert.subtitle ?? ""}`)
   console.log(`[PushFormatDebug] formattedBody=${alert.body}`)
+}
+
+function logPushFormat(
+  context: string,
+  game: TrackedGame,
+  live: LiveMatchRow | null,
+  alert: PushAlertContent,
+  scoringTeam?: string | null,
+): void {
+  logPushFlagDebug(context, game, live, alert, scoringTeam)
 }
 
 function proScoreSportKind(game: TrackedGame, live: LiveMatchRow): ProScoreSportKind {
@@ -1393,12 +1783,26 @@ function mostRecentScoringEvent(
     }
   }
 
-  candidates = candidates.sort((lhs, rhs) => {
+  if (candidates.length === 0) {
+    const sortedAll = [...scoringEvents].sort((lhs, rhs) => {
       const lhsMinute = timelineEventMinuteNumber(lhs.event)
       const rhsMinute = timelineEventMinuteNumber(rhs.event)
       if (lhsMinute !== rhsMinute) return rhsMinute - lhsMinute
       return rhs.index - lhs.index
     })
+    const latest = sortedAll[0]
+    if (latest) {
+      goalNotificationLog(`fallbackReason=latestScoringEventAnyTeam`)
+      candidates = [latest]
+    }
+  }
+
+  candidates = candidates.sort((lhs, rhs) => {
+    const lhsMinute = timelineEventMinuteNumber(lhs.event)
+    const rhsMinute = timelineEventMinuteNumber(rhs.event)
+    if (lhsMinute !== rhsMinute) return rhsMinute - lhsMinute
+    return rhs.index - lhs.index
+  })
 
   const match = candidates[0]?.event
   if (!match) {
@@ -1430,10 +1834,8 @@ function buildScoringEventMatch(
   const scoringTeamPlain = teamNameForSide(live, scoringSide)
   const scoringTeam = formattedTeamName(scoringTeamPlain)
 
-  if (sportKind === "soccer") {
-    if (!player || !gameClock) return null
-  } else if (sportKind === "hockey") {
-    if (!player || !gameClock) return null
+  if (sportKind === "soccer" || sportKind === "hockey") {
+    if (!player && !gameClock && !scoringTeamPlain) return null
   } else if (!summary) {
     return null
   }
@@ -1454,8 +1856,7 @@ function missingScoringEventDataReason(event: TimelineEventRow, sportKind: ProSc
   const player = cleanTimelineText(event.strPlayer)
   const gameClock = scoringEventGameClock(event, sportKind)
   const summary = scoringPlaySummary(event)
-  if ((sportKind === "soccer" || sportKind === "hockey") && !player) return "missingScorer"
-  if ((sportKind === "soccer" || sportKind === "hockey") && !gameClock) return "missingGameClock"
+  if ((sportKind === "soccer" || sportKind === "hockey") && !player && !gameClock) return "missingScorerAndGameClock"
   if (!summary) return "missingScoringPlaySummary"
   return "missingScoringEventData"
 }
@@ -1562,24 +1963,54 @@ function scoringEventNotificationTitle(
   return goalNotificationTitle(event.scoringTeamPlain, sportKind, sportIconForGame(game, live))
 }
 
-function scoringEventSubtitle(event: ScoringEventMatch, sportKind: ProScoreSportKind): string | undefined {
+type ScoringEventSubtitleStrategy =
+  | "scorerAndTime"
+  | "timeOnly"
+  | "scorerOnly"
+  | "teamOnly"
+  | "none"
+  | "otherSport"
+
+function buildScoringEventSubtitle(
+  event: ScoringEventMatch,
+  sportKind: ProScoreSportKind,
+): { subtitle?: string; strategy: ScoringEventSubtitleStrategy } {
+  const player = event.player?.trim() || null
+  const clock = event.gameClock?.trim() || null
+  const teamPlain = cleanTeamName(event.scoringTeamPlain) || cleanTeamName(event.scoringTeam)
+  const teamWithFlag = teamPlain ? formattedTeamName(teamPlain) : null
+  const flagOnly = teamPlain ? (flagEmojiForTeam(teamPlain) ?? "") : ""
+
   if (sportKind === "soccer") {
-    const detail = event.detail ? ` (${event.detail})` : ""
-    if (event.gameClock && event.player) {
-      return `${event.gameClock} ${event.player}${detail}`.trim()
+    const detail = event.detail ? ` ${event.detail}` : ""
+    if (clock && player) {
+      const flagSuffix = flagOnly ? ` ${flagOnly}` : ""
+      return { subtitle: `${clock} ${player}${detail}${flagSuffix}`.trim(), strategy: "scorerAndTime" }
     }
+    if (clock && teamWithFlag) {
+      return { subtitle: `${clock} ${teamWithFlag}`.trim(), strategy: "timeOnly" }
+    }
+    if (teamWithFlag) {
+      return { subtitle: `Goal: ${teamWithFlag}`.trim(), strategy: "teamOnly" }
+    }
+    if (player) return { subtitle: `${player}${detail}`.trim(), strategy: "scorerOnly" }
+    return { strategy: "none" }
   }
 
   if (sportKind === "hockey") {
-    if (event.gameClock && event.player) {
-      return `${event.gameClock} · ${event.player}`.trim()
+    if (clock && player) {
+      return { subtitle: `${clock} · ${player}`.trim(), strategy: "scorerAndTime" }
     }
+    if (clock) return { subtitle: clock, strategy: "timeOnly" }
+    if (player) return { subtitle: player, strategy: "scorerOnly" }
+    return { strategy: "none" }
   }
 
-  const summary = event.summary ?? event.player
-  const clock = event.gameClock ? ` · ${event.gameClock}` : ""
-  const fallback = `${summary ?? ""}${clock}`.trim()
-  return fallback.length > 0 ? fallback : undefined
+  const summary = event.summary ?? player
+  const fallback = `${summary ?? ""}${clock ? ` · ${clock}` : ""}`.trim()
+  return fallback.length > 0
+    ? { subtitle: fallback, strategy: "otherSport" }
+    : { strategy: "none" }
 }
 
 function soccerScoringEventDetail(event: TimelineEventRow): string | null {
@@ -1597,10 +2028,8 @@ function scoringEventGameClock(event: TimelineEventRow, sportKind: ProScoreSport
 
 function formatSoccerMinute(event: TimelineEventRow): string | null {
   const minute = cleanTimelineText(event.intTime)
-  if (minute) return minute.endsWith("'") || minute.endsWith("’") ? minute.replace("’", "'") : `${minute}'`
-  const text = timelineText(event)
-  const match = text.match(/(^|\D)(\d{1,3})\s*['’]/)
-  return match?.[2] ? `${match[2]}'` : null
+  if (!minute) return null
+  return minute.endsWith("'") || minute.endsWith("’") ? minute.replace("’", "'") : `${minute}'`
 }
 
 function formatPeriodClock(event: TimelineEventRow): string | null {
@@ -1705,8 +2134,13 @@ function logScoringEventFallback(
   goalNotificationLog(`scoringTeam=${event?.scoringTeamPlain ?? fallbackScoringTeam}`)
   goalNotificationLog(`scorer=${event?.player ?? "unknown"}`)
   goalNotificationLog(`gameClock=${event?.gameClock ?? "unknown"}`)
-  goalNotificationLog(`notificationTitle=${alert.title}`)
-  goalNotificationLog(`notificationSubtitle=${alert.subtitle ?? "nil"}`)
+  if (event) {
+    const { strategy } = buildScoringEventSubtitle(event, sportKind)
+    goalNotificationLog(`subtitleStrategy=${strategy}`)
+  }
+  goalNotificationLog(`apsAlertTitle=${alert.title}`)
+  goalNotificationLog(`apsAlertSubtitle=${alert.subtitle ?? "nil"}`)
+  goalNotificationLog(`apsAlertBody=${alert.body}`)
   if (timelineEvents.length > 0) {
     goalNotificationLog(`scoringEventsCount=${timelineEvents.filter((row) => isScoringTimelineEvent(row, sportKind)).length}`)
   }
@@ -1727,6 +2161,98 @@ function timelineEventDebugSummary(event: TimelineEventRow): string {
 
 function goalNotificationLog(message: string): void {
   console.log(`[GoalNotificationDebug] ${message}`)
+}
+
+function logGoalNotificationApnsPayload(alert: PushAlertContent): void {
+  const aps = compactAlertPayload(alert)
+  const debug = alert.goalDebug
+  if (!debug) {
+    if (!alert.title.includes("GOAL")) return
+    goalNotificationLog("notificationType=goal")
+    goalNotificationLog("gameId=unknown")
+    goalNotificationLog("scoreline=unknown")
+    goalNotificationLog("timelineCount=unknown")
+    goalNotificationLog("scoringEventsCount=unknown")
+    goalNotificationLog("scoringTeam=unknown")
+    goalNotificationLog("selectedScoringEvent=none")
+    goalNotificationLog("scorer=unknown")
+    goalNotificationLog("gameClock=unknown")
+    goalNotificationLog("subtitleStrategy=unknown")
+    goalNotificationLog(`apsAlertTitle=${aps.title}`)
+    goalNotificationLog(`apsAlertSubtitle=${aps.subtitle ?? "nil"}`)
+    goalNotificationLog(`apsAlertBody=${aps.body}`)
+    goalNotificationLog("fallbackReason=noGoalDebugContext")
+    return
+  }
+
+  goalNotificationLog(`notificationType=${debug.notificationType}`)
+  goalNotificationLog(`gameId=${debug.gameId}`)
+  goalNotificationLog(`scoreline=${debug.scoreline}`)
+  goalNotificationLog(`timelineCount=${debug.timelineCount}`)
+  goalNotificationLog(`scoringEventsCount=${debug.scoringEventsCount}`)
+  goalNotificationLog(`scoringTeam=${debug.scoringTeam}`)
+  goalNotificationLog(`selectedScoringEvent=${debug.selectedScoringEvent}`)
+  goalNotificationLog(`scorer=${debug.scorer}`)
+  goalNotificationLog(`gameClock=${debug.gameClock}`)
+  goalNotificationLog(`subtitleStrategy=${debug.subtitleStrategy}`)
+  goalNotificationLog(`apsAlertTitle=${aps.title}`)
+  goalNotificationLog(`apsAlertSubtitle=${aps.subtitle ?? "nil"}`)
+  goalNotificationLog(`apsAlertBody=${aps.body}`)
+  goalNotificationLog(`fallbackReason=${debug.fallbackReason}`)
+}
+
+function partialSubtitleFromTimeline(
+  game: TrackedGame,
+  live: LiveMatchRow,
+  events: TimelineEventRow[],
+  scoringSide: ScoringSide,
+  sportKind: ProScoreSportKind,
+): {
+  subtitle: string
+  strategy: ScoringEventSubtitleStrategy
+  scorer: string
+  gameClock: string
+  selectedScoringEvent: string
+} | null {
+  const scoringEvents = events.filter((event) => isScoringTimelineEvent(event, sportKind))
+  if (scoringEvents.length === 0) return null
+
+  const sorted = scoringEvents
+    .map((event, index) => ({ event, index }))
+    .sort((lhs, rhs) => {
+      const lhsMinute = timelineEventMinuteNumber(lhs.event)
+      const rhsMinute = timelineEventMinuteNumber(rhs.event)
+      if (lhsMinute !== rhsMinute) return rhsMinute - lhsMinute
+      return rhs.index - lhs.index
+    })
+
+  const latest = sorted[0]?.event
+  if (!latest) return null
+
+  const player = cleanTimelineText(latest.strPlayer)
+  const gameClock = scoringEventGameClock(latest, sportKind)
+  const scoringTeamPlain = teamNameForSide(live, scoringSide)
+
+  const partialMatch: ScoringEventMatch = {
+    player,
+    gameClock,
+    detail: soccerScoringEventDetail(latest),
+    summary: scoringPlaySummary(latest),
+    scoringTeam: formattedTeamName(teamNameForSide(live, scoringSide)),
+    scoringTeamPlain: teamNameForSide(live, scoringSide),
+    scoringSide,
+    raw: latest,
+  }
+  const { subtitle, strategy } = buildScoringEventSubtitle(partialMatch, sportKind)
+  if (!subtitle) return null
+
+  return {
+    subtitle,
+    strategy,
+    scorer: player ?? "unknown",
+    gameClock: gameClock ?? "unknown",
+    selectedScoringEvent: timelineEventDebugSummary(latest),
+  }
 }
 
 function parseScoreline(raw: string): { away: number; home: number } | null {
@@ -1805,6 +2331,14 @@ class ApnsClient {
       : "https://api.sandbox.push.apple.com"
     console.log(`[ProScorePushWorker] apns endpoint=${host}`)
     console.log(`[ProScorePushWorker] apns tokenEnvironment=${environment}`)
+    const apsAlert = compactAlertPayload(alert)
+    if (alert.goalDebug || alert.title.includes("GOAL")) {
+      goalNotificationLog("apnsSend=imminent")
+      goalNotificationLog(`apsAlertTitle=${apsAlert.title}`)
+      goalNotificationLog(`apsAlertSubtitle=${apsAlert.subtitle ?? "nil"}`)
+      goalNotificationLog(`apsAlertBody=${apsAlert.body}`)
+      goalNotificationLog(`apsPayloadHasSubtitle=${Boolean(apsAlert.subtitle)}`)
+    }
     const response = await fetch(`${host}/3/device/${token.token}`, {
       method: "POST",
       headers: {
@@ -1816,7 +2350,7 @@ class ApnsClient {
       },
       body: JSON.stringify({
         aps: {
-          alert: compactAlertPayload(alert),
+          alert: apsAlert,
           sound: "default",
         },
       }),

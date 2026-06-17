@@ -1037,11 +1037,10 @@ extension MapViewModel {
     }
 
     private func calendarSyncProGameTitle(for game: SavedProGame) -> String {
-        let away = game.awayTeam.trimmingCharacters(in: .whitespacesAndNewlines)
-        let home = game.homeTeam.trimmingCharacters(in: .whitespacesAndNewlines)
-        let teams = [away, home].filter { !$0.isEmpty }
-        guard !teams.isEmpty else { return "Saved Pro Game" }
-        return teams.joined(separator: " vs ")
+        ProGameNotificationFormatting.matchupTitle(
+            awayTeam: game.awayTeam,
+            homeTeam: game.homeTeam
+        )
     }
 
     private func calendarSyncProGameFingerprint(
@@ -1314,7 +1313,8 @@ extension MapViewModel {
     private func calendarSyncProGameDisplayTitle(title: String, competition: String) -> String {
         let cleanTitle = calendarSyncTitleRemovingFanGeoPrefix(title)
         let icon = calendarSyncSportIcon(title: cleanTitle, competition: competition)
-        return "FanGeo: \(icon) \(cleanTitle)"
+        guard !icon.isEmpty else { return "FanGeo: \(cleanTitle)" }
+        return "FanGeo: \(icon) · \(cleanTitle)"
     }
 
     private func calendarSyncTitleRemovingFanGeoPrefix(_ raw: String) -> String {

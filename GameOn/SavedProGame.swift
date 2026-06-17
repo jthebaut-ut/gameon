@@ -112,6 +112,130 @@ nonisolated struct SavedProGame: Identifiable, Codable, Equatable {
         scoringTimelineSummary?.entries.count ?? 0
     }
 
+    var firstScoringEvent: LiveFirstScoringEvent? {
+        LiveScoringTimelineBuilder.resolveFirstScoringEvent(
+            sportType: liveSportVisualType,
+            timelineEvents: timelineEvents ?? [],
+            homeTeam: homeTeam,
+            awayTeam: awayTeam,
+            scoreAway: scoreAway,
+            scoreHome: scoreHome
+        )
+    }
+
+    var firstScoringTeam: String? {
+        firstScoringEvent?.teamName
+    }
+
+    var firstScoringMinute: Int? {
+        firstScoringEvent?.minute
+    }
+
+    var goalScorersCardTimelineSummary: LiveScoringTimelineSummary? {
+        LiveScoringTimelineBuilder.buildForGoalScorersCard(
+            sportType: liveSportVisualType,
+            timelineEvents: timelineEvents ?? [],
+            homeTeam: homeTeam,
+            awayTeam: awayTeam
+        )
+    }
+
+    var resolvedGoalDisplaySummary: LiveScoringTimelineSummary? {
+        LiveScoringTimelineBuilder.resolvedGoalDisplaySummary(
+            sportType: liveSportVisualType,
+            timelineEvents: timelineEvents ?? [],
+            scoreAway: scoreAway,
+            scoreHome: scoreHome,
+            awayTeam: awayTeam,
+            homeTeam: homeTeam,
+            flagSource: "GoingPro"
+        )
+    }
+
+    var rawScoringTimelineEventsCount: Int {
+        LiveScoringTimelineBuilder.countScoringTimelineEvents(
+            sportType: liveSportVisualType,
+            timelineEvents: timelineEvents ?? []
+        )
+    }
+
+    var goalScorersCardRenderedEventCount: Int {
+        goalScorersCardTimelineSummary?.entries.count ?? 0
+    }
+
+    var resolvedProviderExternalId: String? {
+        if let externalId = externalId?.trimmingCharacters(in: .whitespacesAndNewlines), !externalId.isEmpty {
+            if let numeric = Self.numericProviderId(from: externalId) {
+                return numeric
+            }
+            return externalId
+        }
+        return Self.numericProviderId(from: id) ?? Self.numericProviderId(from: stableKey)
+    }
+
+    static func directHydrationLookupIds(for saved: SavedProGame) -> [String] {
+        var ids = Set<String>()
+        func add(_ raw: String?) {
+            let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            guard !trimmed.isEmpty else { return }
+            ids.insert(trimmed)
+        }
+
+        add(saved.id)
+        add(saved.stableKey)
+        add(saved.externalId)
+        if let providerId = saved.resolvedProviderExternalId {
+            add(providerId)
+            add("thesportsdb:\(providerId)")
+            if let source = saved.source?.trimmingCharacters(in: .whitespacesAndNewlines), !source.isEmpty {
+                add("\(source):\(providerId)")
+            }
+        }
+        return Array(ids)
+    }
+
+    static func directlyMatchesSavedProGame(_ match: LiveMatch, _ saved: SavedProGame) -> Bool {
+        let matchId = normalizedHydrationToken(match.id)
+        let savedId = normalizedHydrationToken(saved.id)
+        let savedStableKey = normalizedHydrationToken(saved.stableKey)
+        if !matchId.isEmpty, matchId == savedId || matchId == savedStableKey {
+            return true
+        }
+
+        if let source = saved.source?.trimmingCharacters(in: .whitespacesAndNewlines), !source.isEmpty,
+           let externalId = saved.resolvedProviderExternalId,
+           match.source?.caseInsensitiveCompare(source) == .orderedSame {
+            let matchExternal = normalizedHydrationToken(match.externalId)
+            let savedExternal = normalizedHydrationToken(externalId)
+            if matchExternal == savedExternal { return true }
+        }
+
+        if let providerId = saved.resolvedProviderExternalId {
+            let matchExternal = normalizedHydrationToken(match.externalId)
+            if matchExternal == normalizedHydrationToken(providerId) { return true }
+        }
+
+        return SavedProGame.stableKey(for: match) == saved.stableKey
+    }
+
+    static func normalizedHydrationToken(_ raw: String?) -> String {
+        raw?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased() ?? ""
+    }
+
+    private static func numericProviderId(from raw: String) -> String? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        if trimmed.allSatisfy(\.isNumber) { return trimmed }
+        if let suffix = trimmed.split(separator: ":").last {
+            let candidate = String(suffix)
+            if candidate.allSatisfy(\.isNumber) { return candidate }
+        }
+        return nil
+    }
+
     var stableKey: String {
         Self.stableKey(
             id: id,
@@ -164,7 +288,12 @@ extension SavedProGame {
     nonisolated var isFinal: Bool { matchStatus == .fullTime }
 
     nonisolated var finalScoreSummary: String {
-        "\(awayTeam) \(scoreAway) - \(scoreHome) \(homeTeam)"
+        ProGameNotificationFormatting.scoreline(
+            awayTeam: awayTeam,
+            awayScore: scoreAway,
+            homeTeam: homeTeam,
+            homeScore: scoreHome
+        )
     }
 
     nonisolated static func displaySort(_ lhs: SavedProGame, _ rhs: SavedProGame) -> Bool {
@@ -239,6 +368,8 @@ extension MapViewModel {
     private static let savedProGamesLegacyGlobalDefaultsKey = "gameon.savedProGames.v1"
     private static let savedProGamesGuestDefaultsKey = "gameon.savedProGames.guest.v1"
     private static let deliveredSavedProGameFinalNotificationsKey = "gameon.savedProGameFinalNotifications.v1"
+    private static let deliveredSavedProGameHalftimeNotificationsKey = "gameon.savedProGameHalftimeNotifications.v1"
+    private static let deliveredSavedProGamePredictionResultNotificationsKey = "gameon.savedProGamePredictionResultNotifications.v1"
     private static let deliveredSavedProGameScoreNotificationsKey = "gameon.savedProGameScoreNotifications.v1"
     private static let savedProGameScoreUpdatePreferencesKey = "gameon.savedProGameScoreUpdatePreferences.v1"
     private static let legacySportDefaultsMigrationKeyPrefix = "gameon.savedProGameScoreUpdatePreferences.legacySportDefaultsMigrated.v1"
@@ -418,11 +549,8 @@ extension MapViewModel {
 
         do {
             refreshedMatches = try await LiveSportsService.shared.fetchLiveMatches(forceRefresh: true)
-            let savedMatchIds = savedProGames.map(\.stableKey)
-            if !savedMatchIds.isEmpty {
-                let savedLiveMatches = try await LiveSportsService.shared.fetchLiveMatches(liveMatchIds: savedMatchIds)
-                refreshedMatches = Self.mergeLiveMatches(refreshedMatches, with: savedLiveMatches)
-            }
+            let directHydrationMatches = try await LiveSportsService.shared.fetchLiveMatchesForSavedProGameHydration(savedProGames)
+            refreshedMatches = Self.mergeLiveMatches(refreshedMatches, with: directHydrationMatches)
             liveSyncSucceeded = true
             mergeGoingProRefreshMatchesIntoLiveMatches(refreshedMatches)
         } catch {
@@ -518,6 +646,8 @@ extension MapViewModel {
             guard let self else { return }
             await self.cancelProGameReminder(savedGameIdentifier: reminderIdentifier)
             await GameReminderNotificationService.shared.cancelProGameFinalNotification(identifier: reminderIdentifier)
+            await GameReminderNotificationService.shared.cancelProGameHalftimeNotification(identifier: reminderIdentifier)
+            await GameReminderNotificationService.shared.cancelProGamePredictionResultNotification(identifier: reminderIdentifier)
             await GameReminderNotificationService.shared.cancelProGameScoreUpdateNotifications(identifier: reminderIdentifier)
             await self.removeSavedProGameFromAppleCalendar(
                 identifier: reminderIdentifier,
@@ -574,6 +704,32 @@ extension MapViewModel {
     }
 
     private func freshestLiveMatch(for saved: SavedProGame, in candidateMatches: [LiveMatch]) -> SavedProGameHydrationMatch? {
+        let savedId = SavedProGame.normalizedHydrationToken(saved.id)
+        let savedStableKey = SavedProGame.normalizedHydrationToken(saved.stableKey)
+        if let direct = candidateMatches.first(where: { match in
+            let matchId = SavedProGame.normalizedHydrationToken(match.id)
+            return !matchId.isEmpty && (matchId == savedId || matchId == savedStableKey)
+        }) {
+            return SavedProGameHydrationMatch(match: direct, matchedBy: "directId")
+        }
+
+        if let source = saved.source?.trimmingCharacters(in: .whitespacesAndNewlines), !source.isEmpty,
+           let externalId = saved.resolvedProviderExternalId,
+           let externalMatch = candidateMatches.first(where: { match in
+               guard match.source?.caseInsensitiveCompare(source) == .orderedSame else { return false }
+               let matchExternal = SavedProGame.normalizedHydrationToken(match.externalId)
+               return matchExternal == SavedProGame.normalizedHydrationToken(externalId)
+           }) {
+            return SavedProGameHydrationMatch(match: externalMatch, matchedBy: "directExternalId")
+        }
+
+        if let providerId = saved.resolvedProviderExternalId,
+           let externalMatch = candidateMatches.first(where: { match in
+               SavedProGame.normalizedHydrationToken(match.externalId) == SavedProGame.normalizedHydrationToken(providerId)
+           }) {
+            return SavedProGameHydrationMatch(match: externalMatch, matchedBy: "directExternalId")
+        }
+
         if let exact = candidateMatches.first(where: { SavedProGame.stableKey(for: $0) == saved.stableKey }) {
             return SavedProGameHydrationMatch(match: exact, matchedBy: "stableKey")
         }
@@ -654,15 +810,19 @@ extension MapViewModel {
     }
 
     private static func preferredTimelineEvents(from match: LiveMatch, saved: SavedProGame) -> [LiveTimelineEvent]? {
-        let matchEvents = match.timelineEvents
-        let savedEvents = saved.timelineEvents ?? []
-        if matchEvents.count >= savedEvents.count, !matchEvents.isEmpty {
-            return matchEvents
+        let merged = mergeTimelineEvents(match.timelineEvents, saved.timelineEvents ?? [])
+        return merged.isEmpty ? nil : merged
+    }
+
+    private static func mergeTimelineEvents(
+        _ matchEvents: [LiveTimelineEvent],
+        _ savedEvents: [LiveTimelineEvent]
+    ) -> [LiveTimelineEvent] {
+        var byKey: [String: LiveTimelineEvent] = [:]
+        for event in matchEvents + savedEvents {
+            byKey[event.id] = event
         }
-        if !savedEvents.isEmpty {
-            return savedEvents
-        }
-        return matchEvents.isEmpty ? nil : matchEvents
+        return Array(byKey.values)
     }
 
     private func staleLiveFinalCandidateDisplaySnapshot(for saved: SavedProGame, reason: String) -> SavedProGame? {
@@ -747,19 +907,24 @@ extension MapViewModel {
     ) {
         guard SavedProGameStatusDiagnostics.enabled else { return }
         let fresh = hydration?.match
+        let matchedBy = hydration?.matchedBy ?? "none"
+        print("[SavedProGameHydrationDebug] directIdLookupAttempt=\(saved.stableKey)")
+        print("[SavedProGameHydrationDebug] directIdLookupFound=\(matchedBy == "directId")")
+        print("[SavedProGameHydrationDebug] directExternalIdLookupFound=\(matchedBy == "directExternalId")")
+        print("[SavedProGameHydrationDebug] liveMatchRowTimelineCount=\(fresh?.timelineEvents.count ?? 0)")
+        print("[SavedProGameHydrationDebug] mergedTimelineCount=\(merged.timelineEvents?.count ?? 0)")
+        print("[SavedProGameHydrationDebug] mergedScoringEventsCount=\(merged.scoringEventsCount)")
         print(
             "[SavedProGameHydrationDebug] " +
             "savedId=\(saved.stableKey) " +
-            "providerId=\(saved.externalId ?? saved.id) " +
+            "providerId=\(saved.resolvedProviderExternalId ?? saved.externalId ?? saved.id) " +
             "teams=\"\(saved.awayTeam) at \(saved.homeTeam)\" " +
             "savedStatus=\(saved.matchStatus.rawValue) " +
             "freshStatus=\(fresh?.matchStatus.rawValue ?? "nil") " +
             "mergedStatus=\(merged.matchStatus.rawValue) " +
             "score=\(merged.scoreAway)-\(merged.scoreHome) " +
-            "matchedBy=\(hydration?.matchedBy ?? "none") " +
-            "freshTimelineCount=\(fresh?.timelineEvents.count ?? 0) " +
-            "mergedTimelineCount=\(merged.timelineEvents?.count ?? 0) " +
-            "mergedScoringEventsCount=\(merged.scoringEventsCount)"
+            "matchedBy=\(matchedBy) " +
+            "freshTimelineCount=\(fresh?.timelineEvents.count ?? 0)"
         )
         logProGameFinalDebug(rawProviderStatus: fresh?.rawMatchStatus, normalizedStatus: merged.matchStatus)
     }
@@ -888,9 +1053,17 @@ extension MapViewModel {
                 deliverSavedProGameScoreUpdateNotificationIfNeeded(updatedSnapshot, previous: previousDisplaySnapshot, reason: reason)
             }
 
+            if previousDisplaySnapshot.matchStatus == .live,
+               updatedSnapshot.matchStatus == .halfTime {
+                deliverSavedProGameHalftimeNotificationIfNeeded(updatedSnapshot, reason: reason)
+            }
+
             guard updatedSnapshot.isFinal else { continue }
             guard previousDisplaySnapshot.matchStatus != .fullTime else { continue }
             deliverSavedProGameFinalNotificationIfNeeded(updatedSnapshot, reason: reason)
+            Task { [weak self] in
+                await self?.deliverSavedProGamePredictionResultNotificationIfNeeded(updatedSnapshot, reason: reason)
+            }
         }
 
         if changedSavedSnapshots {
@@ -1108,15 +1281,137 @@ extension MapViewModel {
         UserDefaults.standard.set(Array(delivered).sorted(), forKey: Self.deliveredSavedProGameFinalNotificationsKey)
 
         let body = game.finalScoreSummary
-        showSocialActionToast("Game Final\n\(body)", isError: false)
+        showSocialActionToast("\(ProGameNotificationFormatting.finalScoreTitle)\n\(body)", isError: false)
 #if DEBUG
         print("[ProGameNotificationDebug] finalObserved id=\(game.stableKey) reason=\(reason) body=\(body)")
 #endif
         Task {
             await GameReminderNotificationService.shared.scheduleProGameFinalNotification(
-                for: ProGameFinalNotificationEvent(identifier: game.stableKey, body: body)
+                for: ProGameFinalNotificationEvent(
+                    identifier: game.stableKey,
+                    body: body,
+                    awayTeam: game.awayTeam,
+                    homeTeam: game.homeTeam
+                )
             )
         }
+    }
+
+    private func deliverSavedProGameHalftimeNotificationIfNeeded(_ game: SavedProGame, reason: String) {
+        guard savedProGameScoreUpdatesEnabled(for: game) else { return }
+
+        let token = savedProGameHalftimeNotificationToken(for: game)
+        var delivered = Set(UserDefaults.standard.stringArray(forKey: Self.deliveredSavedProGameHalftimeNotificationsKey) ?? [])
+        guard delivered.insert(token).inserted else { return }
+        UserDefaults.standard.set(Array(delivered).sorted(), forKey: Self.deliveredSavedProGameHalftimeNotificationsKey)
+
+        let body = ProGameNotificationFormatting.halftimeBody(
+            awayTeam: game.awayTeam,
+            awayScore: game.scoreAway,
+            homeTeam: game.homeTeam,
+            homeScore: game.scoreHome
+        )
+        showSocialActionToast("\(ProGameNotificationFormatting.halftimeTitle)\n\(body)", isError: false)
+        Task {
+            await GameReminderNotificationService.shared.scheduleProGameHalftimeNotification(
+                for: ProGameHalftimeNotificationEvent(
+                    identifier: game.stableKey,
+                    body: body,
+                    awayTeam: game.awayTeam,
+                    homeTeam: game.homeTeam
+                )
+            )
+        }
+    }
+
+    private func deliverSavedProGamePredictionResultNotificationIfNeeded(_ game: SavedProGame, reason: String) async {
+        guard game.supportsProGamePredictions else { return }
+
+        if proGamePredictionSummaries[game.stableKey]?.userPredictionsLoaded != true {
+            await loadProGamePredictionSummaries(proGameIds: [game.stableKey], forceRefresh: true)
+        }
+
+        guard let summary = proGamePredictionSummaries[game.stableKey],
+              let predictions = summary.userPredictions,
+              predictions.hasAnyPrediction else { return }
+
+        let token = savedProGamePredictionResultNotificationToken(for: game)
+        var delivered = Set(UserDefaults.standard.stringArray(forKey: Self.deliveredSavedProGamePredictionResultNotificationsKey) ?? [])
+        guard delivered.insert(token).inserted else { return }
+        UserDefaults.standard.set(Array(delivered).sorted(), forKey: Self.deliveredSavedProGamePredictionResultNotificationsKey)
+
+        let body = savedProGamePredictionResultBody(for: game, predictions: predictions)
+        guard !body.isEmpty else { return }
+
+        showSocialActionToast("\(ProGameNotificationFormatting.predictionResultTitle)\n\(body)", isError: false)
+        await GameReminderNotificationService.shared.scheduleProGamePredictionResultNotification(
+            for: ProGamePredictionResultNotificationEvent(
+                identifier: game.stableKey,
+                body: body,
+                awayTeam: game.awayTeam,
+                homeTeam: game.homeTeam
+            )
+        )
+    }
+
+    private func savedProGamePredictionResultBody(for game: SavedProGame, predictions: VenueEventUserPredictions) -> String {
+        var lines = [
+            ProGameNotificationFormatting.scoreline(
+                awayTeam: game.awayTeam,
+                awayScore: game.scoreAway,
+                homeTeam: game.homeTeam,
+                homeScore: game.scoreHome
+            ),
+        ]
+
+        if let predictedWinner = predictions.winner?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !predictedWinner.isEmpty {
+            let actualWinner = savedProGameActualWinner(for: game)
+            let pick = ProGameNotificationFormatting.predictionTeamReference(predictedWinner)
+            let actual = ProGameNotificationFormatting.predictionTeamReference(actualWinner)
+            if predictedWinner.caseInsensitiveCompare(actualWinner) == .orderedSame {
+                lines.append("Winner: \(pick) ✓")
+            } else {
+                lines.append("Winner: \(pick) · Final: \(actual)")
+            }
+        }
+
+        if let predictedAway = predictions.awayScore, let predictedHome = predictions.homeScore {
+            let pick = ProGameNotificationFormatting.scoreline(
+                awayTeam: game.awayTeam,
+                awayScore: predictedAway,
+                homeTeam: game.homeTeam,
+                homeScore: predictedHome
+            )
+            if predictedAway == game.scoreAway, predictedHome == game.scoreHome {
+                lines.append("Score: \(pick) ✓")
+            } else {
+                lines.append("Score: \(pick)")
+            }
+        }
+
+        if let firstScoreTeam = predictions.firstScoreTeam?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !firstScoreTeam.isEmpty {
+            lines.append("First goal: \(ProGameNotificationFormatting.predictionTeamReference(firstScoreTeam))")
+        }
+
+        return lines.joined(separator: "\n")
+    }
+
+    private func savedProGameActualWinner(for game: SavedProGame) -> String {
+        if game.scoreAway > game.scoreHome { return game.awayTeam }
+        if game.scoreHome > game.scoreAway { return game.homeTeam }
+        return "Draw"
+    }
+
+    private func savedProGameHalftimeNotificationToken(for game: SavedProGame) -> String {
+        let userScope = currentUserAuthId?.uuidString.lowercased() ?? "guest"
+        return "\(userScope)|\(game.stableKey)|\(MatchStatus.halfTime.rawValue)"
+    }
+
+    private func savedProGamePredictionResultNotificationToken(for game: SavedProGame) -> String {
+        let userScope = currentUserAuthId?.uuidString.lowercased() ?? "guest"
+        return "\(userScope)|\(game.stableKey)|prediction-result"
     }
 
     private func deliverSavedProGameScoreUpdateNotificationIfNeeded(_ game: SavedProGame, previous: SavedProGame, reason: String) {
@@ -1185,7 +1480,9 @@ extension MapViewModel {
                     identifier: game.stableKey,
                     scoreToken: savedProGameScoreToken(for: game),
                     title: title,
-                    body: body
+                    body: body,
+                    awayTeam: game.awayTeam,
+                    homeTeam: game.homeTeam
                 )
             )
         }
@@ -1199,10 +1496,10 @@ extension MapViewModel {
         let awayDelta = game.scoreAway - previous.scoreAway
         let homeDelta = game.scoreHome - previous.scoreHome
         if awayDelta > 0, homeDelta <= 0 {
-            return "\(game.awayTeam) scored"
+            return ProGameNotificationFormatting.goalTitle(scoringTeam: game.awayTeam, sport: game.sport)
         }
         if homeDelta > 0, awayDelta <= 0 {
-            return "\(game.homeTeam) scored"
+            return ProGameNotificationFormatting.goalTitle(scoringTeam: game.homeTeam, sport: game.sport)
         }
         return "Score update"
     }
@@ -1282,6 +1579,12 @@ extension MapViewModel {
                 )
             }
 
+            if previousGame.matchStatus == .live,
+               updatedGame.matchStatus == .halfTime,
+               favoriteTeamProGameScoreUpdatesEnabled(for: updatedGame) {
+                deliverSavedProGameHalftimeNotificationIfNeeded(updatedGame, reason: reason)
+            }
+
             guard updatedGame.isFinal else { continue }
             guard previousGame.matchStatus != .fullTime else { continue }
             guard favoriteTeamProGameScoreUpdatesEnabled(for: updatedGame) else {
@@ -1298,6 +1601,9 @@ extension MapViewModel {
                 continue
             }
             deliverSavedProGameFinalNotificationIfNeeded(updatedGame, reason: reason)
+            Task { [weak self] in
+                await self?.deliverSavedProGamePredictionResultNotificationIfNeeded(updatedGame, reason: reason)
+            }
         }
     }
 
@@ -1695,9 +2001,9 @@ private struct ProGameFeaturedBadgeIdentity {
             return ProGameFeaturedBadgeIdentity(
                 mark: "FIFA\nWC",
                 caption: "Cup",
-                systemImage: "trophy.fill",
-                primary: Color(red: 0.02, green: 0.18, blue: 0.46),
-                secondary: Color(red: 0.12, green: 0.62, blue: 0.88),
+                systemImage: "soccerball",
+                primary: Color(red: 0.05, green: 0.55, blue: 0.28),
+                secondary: Color(red: 0.12, green: 0.62, blue: 0.38),
                 foreground: .white
             )
         }

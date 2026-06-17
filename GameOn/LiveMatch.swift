@@ -250,6 +250,83 @@ nonisolated struct LiveTimelineEvent: Codable, Equatable, Identifiable {
         idTimeline ?? "\(idEvent ?? "event")-\(strTimeline ?? "timeline")-\(intTime ?? "time")-\(strPlayer ?? strTeam ?? "row")"
     }
 
+    init(
+        idTimeline: String? = nil,
+        idEvent: String? = nil,
+        strTimeline: String? = nil,
+        strTimelineDetail: String? = nil,
+        strHome: String? = nil,
+        idPlayer: String? = nil,
+        strPlayer: String? = nil,
+        idAssist: String? = nil,
+        strAssist: String? = nil,
+        intTime: String? = nil,
+        idTeam: String? = nil,
+        strTeam: String? = nil,
+        strComment: String? = nil,
+        dateEvent: String? = nil,
+        strSeason: String? = nil
+    ) {
+        self.idTimeline = idTimeline
+        self.idEvent = idEvent
+        self.strTimeline = strTimeline
+        self.strTimelineDetail = strTimelineDetail
+        self.strHome = strHome
+        self.idPlayer = idPlayer
+        self.strPlayer = strPlayer
+        self.idAssist = idAssist
+        self.strAssist = strAssist
+        self.intTime = intTime
+        self.idTeam = idTeam
+        self.strTeam = strTeam
+        self.strComment = strComment
+        self.dateEvent = dateEvent
+        self.strSeason = strSeason
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        idTimeline = try container.decodeFlexibleOptionalString(forKey: .idTimeline)
+        idEvent = try container.decodeFlexibleOptionalString(forKey: .idEvent)
+        strTimeline = try container.decodeFlexibleOptionalString(forKey: .strTimeline)
+        strTimelineDetail = try container.decodeFlexibleOptionalString(forKey: .strTimelineDetail)
+        strHome = try container.decodeFlexibleOptionalString(forKey: .strHome)
+        idPlayer = try container.decodeFlexibleOptionalString(forKey: .idPlayer)
+        strPlayer = try container.decodeFlexibleOptionalString(forKey: .strPlayer)
+        idAssist = try container.decodeFlexibleOptionalString(forKey: .idAssist)
+        strAssist = try container.decodeFlexibleOptionalString(forKey: .strAssist)
+        intTime = try container.decodeFlexibleOptionalString(forKey: .intTime)
+        idTeam = try container.decodeFlexibleOptionalString(forKey: .idTeam)
+        strTeam = try container.decodeFlexibleOptionalString(forKey: .strTeam)
+        strComment = try container.decodeFlexibleOptionalString(forKey: .strComment)
+        dateEvent = try container.decodeFlexibleOptionalString(forKey: .dateEvent)
+        strSeason = try container.decodeFlexibleOptionalString(forKey: .strSeason)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(idTimeline, forKey: .idTimeline)
+        try container.encodeIfPresent(idEvent, forKey: .idEvent)
+        try container.encodeIfPresent(strTimeline, forKey: .strTimeline)
+        try container.encodeIfPresent(strTimelineDetail, forKey: .strTimelineDetail)
+        try container.encodeIfPresent(strHome, forKey: .strHome)
+        try container.encodeIfPresent(idPlayer, forKey: .idPlayer)
+        try container.encodeIfPresent(strPlayer, forKey: .strPlayer)
+        try container.encodeIfPresent(idAssist, forKey: .idAssist)
+        try container.encodeIfPresent(strAssist, forKey: .strAssist)
+        try container.encodeIfPresent(intTime, forKey: .intTime)
+        try container.encodeIfPresent(idTeam, forKey: .idTeam)
+        try container.encodeIfPresent(strTeam, forKey: .strTeam)
+        try container.encodeIfPresent(strComment, forKey: .strComment)
+        try container.encodeIfPresent(dateEvent, forKey: .dateEvent)
+        try container.encodeIfPresent(strSeason, forKey: .strSeason)
+    }
+
+    fileprivate enum CodingKeys: String, CodingKey {
+        case idTimeline, idEvent, strTimeline, strTimelineDetail, strHome, idPlayer, strPlayer
+        case idAssist, strAssist, intTime, idTeam, strTeam, strComment, dateEvent, strSeason
+    }
+
     var minuteValue: Int? {
         guard let intTime else { return nil }
         return Int(intTime.trimmingCharacters(in: .whitespacesAndNewlines))
@@ -278,7 +355,7 @@ nonisolated struct LiveTimelineEvent: Codable, Equatable, Identifiable {
     }
 
     var isGoal: Bool {
-        let type = "\(strTimeline ?? "") \(strTimelineDetail ?? "")".lowercased()
+        let type = "\(strTimeline ?? "") \(strTimelineDetail ?? "") \(strComment ?? "")".lowercased()
         return type.contains("goal")
     }
 
@@ -553,8 +630,23 @@ nonisolated enum LiveScoringEventResolver {
 nonisolated struct LiveScoringTimelineEntry: Equatable {
     let teamName: String?
     let scorer: String
+    let playerName: String?
     let clock: String?
     let marker: String?
+
+    init(
+        teamName: String?,
+        scorer: String,
+        playerName: String? = nil,
+        clock: String? = nil,
+        marker: String? = nil
+    ) {
+        self.teamName = teamName
+        self.scorer = scorer
+        self.playerName = playerName
+        self.clock = clock
+        self.marker = marker
+    }
 
     var scorerClockText: String {
         var parts = [scorer]
@@ -567,27 +659,79 @@ nonisolated struct LiveScoringTimelineEntry: Equatable {
         return parts.joined(separator: " ")
     }
 
-    func timelineLineText(showTeamMarker: Bool) -> String {
-        var parts: [String] = []
-        if let clock, !clock.isEmpty {
-            parts.append(clock)
+    func timelineLineText(showTeamMarker: Bool, flagSource: String = "GoingPro") -> String {
+        let flag = resolvedTeamFlag(flagSource: flagSource)
+        let team = cleanTeamLabel(teamName)
+        let player = cleanPlayerLabel(team: team)
+
+        if let clock = normalizedClock {
+            if let player {
+                var line = "\(clock) \(player)"
+                if let marker, !marker.isEmpty {
+                    line += " \(marker)"
+                }
+                if showTeamMarker, !flag.isEmpty {
+                    line += " \(flag)"
+                }
+                return line
+            }
+            if let team {
+                var line = clock
+                if !flag.isEmpty {
+                    line += " \(flag)"
+                }
+                line += " \(team)"
+                return line
+            }
         }
 
-        var scorerLabel = scorer
+        if let team {
+            var line = "Goal:"
+            if !flag.isEmpty {
+                line += " \(flag)"
+            }
+            line += " \(team)"
+            return line
+        }
+
+        var line = scorer.trimmingCharacters(in: .whitespacesAndNewlines)
         if let marker, !marker.isEmpty {
-            scorerLabel += " \(marker)"
+            line = line.isEmpty ? marker : "\(line) \(marker)"
         }
-        parts.append(scorerLabel)
-
-        var line = parts.joined(separator: " ")
-        if showTeamMarker,
-           let teamName = teamName?.trimmingCharacters(in: .whitespacesAndNewlines),
-           !teamName.isEmpty,
-           let flag = CountryFlagHelper.flag(for: teamName, source: "GoingPro"),
-           !flag.isEmpty {
-            line += " \(flag)"
+        if let clock = normalizedClock, !line.isEmpty {
+            line = "\(clock) \(line)"
+        }
+        if showTeamMarker, !flag.isEmpty {
+            line = line.isEmpty ? flag : "\(line) \(flag)"
         }
         return line
+    }
+
+    private var normalizedClock: String? {
+        guard let clock = clock?.trimmingCharacters(in: .whitespacesAndNewlines), !clock.isEmpty else {
+            return nil
+        }
+        return clock
+    }
+
+    private func cleanTeamLabel(_ raw: String?) -> String? {
+        let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func cleanPlayerLabel(team: String?) -> String? {
+        let trimmed = playerName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !trimmed.isEmpty else { return nil }
+        if let team,
+           LiveMatchFilters.normalizedSearchText(trimmed) == LiveMatchFilters.normalizedSearchText(team) {
+            return nil
+        }
+        return trimmed
+    }
+
+    private func resolvedTeamFlag(flagSource: String) -> String {
+        guard let teamName = cleanTeamLabel(teamName) else { return "" }
+        return CountryFlagHelper.flag(for: teamName, source: flagSource) ?? ""
     }
 }
 
@@ -595,17 +739,40 @@ nonisolated struct LiveScoringTimelineDisplayLine: Equatable {
     let text: String
 }
 
+nonisolated struct LiveFirstScoringEvent: Equatable {
+    let teamName: String
+    let minute: Int?
+    let minuteText: String?
+}
+
 nonisolated struct LiveScoringTimelineSummary: Equatable {
     let sportIcon: String
     let entries: [LiveScoringTimelineEntry]
+    let scoreOnlyLines: [String]
+
+    init(
+        sportIcon: String,
+        entries: [LiveScoringTimelineEntry],
+        scoreOnlyLines: [String] = []
+    ) {
+        self.sportIcon = sportIcon
+        self.entries = entries
+        self.scoreOnlyLines = scoreOnlyLines
+    }
 
     static let defaultMaxVisibleTimelineLines = 4
 
-    var hasContent: Bool { !entries.isEmpty }
+    var isScoreOnlyFallback: Bool { !scoreOnlyLines.isEmpty }
 
-    var headingText: String { "\(sportIcon) Goals" }
+    var hasContent: Bool { !entries.isEmpty || isScoreOnlyFallback }
 
-    var goalScorersHeadingText: String { "🥅 Goal Scorers" }
+    var headingText: String {
+        isScoreOnlyFallback ? "🥅 Goals" : "\(sportIcon) Goals"
+    }
+
+    var goalScorersHeadingText: String {
+        isScoreOnlyFallback ? "🥅 Goals" : "🥅 Goal Scorers"
+    }
 
     var compactDisplayText: String {
         entries.map(\.scorerClockText).joined(separator: " · ")
@@ -614,12 +781,21 @@ nonisolated struct LiveScoringTimelineSummary: Equatable {
     func timelineDisplay(
         homeTeam: String,
         awayTeam: String,
-        maxVisible: Int = Self.defaultMaxVisibleTimelineLines
+        maxVisible: Int = Self.defaultMaxVisibleTimelineLines,
+        flagSource: String = "GoingPro"
     ) -> (lines: [LiveScoringTimelineDisplayLine], overflowCount: Int) {
+        if isScoreOnlyFallback {
+            let allLines = scoreOnlyLines.map { LiveScoringTimelineDisplayLine(text: $0) }
+            guard allLines.count > maxVisible else {
+                return (allLines, 0)
+            }
+            return (Array(allLines.prefix(maxVisible)), allLines.count - maxVisible)
+        }
+
         let showTeamMarkers = shouldShowTeamMarkers()
         let allLines = entries.map { entry in
             LiveScoringTimelineDisplayLine(
-                text: entry.timelineLineText(showTeamMarker: showTeamMarkers)
+                text: entry.timelineLineText(showTeamMarker: showTeamMarkers, flagSource: flagSource)
             )
         }
         guard allLines.count > maxVisible else {
@@ -711,17 +887,11 @@ nonisolated enum LiveScoringTimelineBuilder {
         }
 
         let rawEntries = sortedEvents.compactMap { event -> LiveScoringTimelineEntry? in
-            guard isScoringEvent(event, sportType: effectiveSportType) else { return nil }
-            guard let scorer = event.playerDisplayName ?? fallbackScorerName(for: event) else { return nil }
-            let clock = scoringClock(for: event, sportType: effectiveSportType)
-            if effectiveSportType == .soccer || effectiveSportType == .hockey, clock == nil {
-                return nil
-            }
-            return LiveScoringTimelineEntry(
-                teamName: scoringTeamName(for: event, homeTeam: homeTeam, awayTeam: awayTeam),
-                scorer: scorer,
-                clock: clock,
-                marker: effectiveSportType == .soccer ? soccerMarker(for: event) : nil
+            goalScorerEntry(
+                from: event,
+                sportType: effectiveSportType,
+                homeTeam: homeTeam,
+                awayTeam: awayTeam
             )
         }
 
@@ -732,6 +902,260 @@ nonisolated enum LiveScoringTimelineBuilder {
             sportIcon: effectiveSportType == .hockey ? "🏒" : "⚽",
             entries: entries
         )
+    }
+
+    static func resolveFirstScoringEvent(
+        sportType: LiveSportVisualType,
+        timelineEvents: [LiveTimelineEvent],
+        homeTeam: String,
+        awayTeam: String,
+        scoreAway: Int = 0,
+        scoreHome: Int = 0
+    ) -> LiveFirstScoringEvent? {
+        let effectiveSportType = resolvedSportType(for: sportType, timelineEvents: timelineEvents)
+        if effectiveSportType == .soccer || effectiveSportType == .hockey {
+            let sortedEvents = sortedTimelineEvents(timelineEvents)
+            for event in sortedEvents {
+                guard isScoringEvent(event, sportType: effectiveSportType) else { continue }
+                guard let teamName = scoringTeamName(for: event, homeTeam: homeTeam, awayTeam: awayTeam) else {
+                    continue
+                }
+                return LiveFirstScoringEvent(
+                    teamName: teamName,
+                    minute: event.minuteValue,
+                    minuteText: scoringClock(for: event, sportType: effectiveSportType)
+                )
+            }
+        }
+        return fallbackFirstScoringEventFromScoreboard(
+            scoreAway: scoreAway,
+            scoreHome: scoreHome,
+            awayTeam: awayTeam,
+            homeTeam: homeTeam
+        )
+    }
+
+    static func buildForGoalScorersCard(
+        sportType: LiveSportVisualType,
+        timelineEvents: [LiveTimelineEvent],
+        homeTeam: String,
+        awayTeam: String
+    ) -> LiveScoringTimelineSummary? {
+        build(
+            sportType: sportType,
+            timelineEvents: timelineEvents,
+            homeTeam: homeTeam,
+            awayTeam: awayTeam
+        )
+    }
+
+    static func buildScoreOnlyGoalCountSummary(
+        sportType: LiveSportVisualType,
+        scoreAway: Int,
+        scoreHome: Int,
+        awayTeam: String,
+        homeTeam: String,
+        flagSource: String = "GoingPro"
+    ) -> LiveScoringTimelineSummary? {
+        let effectiveSportType = resolvedSportType(for: sportType, timelineEvents: [])
+        guard effectiveSportType == .soccer || effectiveSportType == .hockey else { return nil }
+        guard scoreAway > 0 || scoreHome > 0 else { return nil }
+
+        var lines: [String] = []
+        if scoreAway > 0 {
+            lines.append(scoreOnlyTeamLine(team: awayTeam, goalCount: scoreAway, flagSource: flagSource))
+        }
+        if scoreHome > 0 {
+            lines.append(scoreOnlyTeamLine(team: homeTeam, goalCount: scoreHome, flagSource: flagSource))
+        }
+        guard !lines.isEmpty else { return nil }
+
+        return LiveScoringTimelineSummary(
+            sportIcon: effectiveSportType == .hockey ? "🏒" : "⚽",
+            entries: [],
+            scoreOnlyLines: lines
+        )
+    }
+
+    static func resolvedGoalDisplaySummary(
+        sportType: LiveSportVisualType,
+        timelineEvents: [LiveTimelineEvent],
+        scoreAway: Int,
+        scoreHome: Int,
+        awayTeam: String,
+        homeTeam: String,
+        flagSource: String = "GoingPro"
+    ) -> LiveScoringTimelineSummary? {
+        if let timelineSummary = buildForGoalScorersCard(
+            sportType: sportType,
+            timelineEvents: timelineEvents,
+            homeTeam: homeTeam,
+            awayTeam: awayTeam
+        ), timelineSummary.hasContent {
+            return timelineSummary
+        }
+        return buildScoreOnlyGoalCountSummary(
+            sportType: sportType,
+            scoreAway: scoreAway,
+            scoreHome: scoreHome,
+            awayTeam: awayTeam,
+            homeTeam: homeTeam,
+            flagSource: flagSource
+        )
+    }
+
+    private static func scoreOnlyTeamLine(team: String, goalCount: Int, flagSource: String) -> String {
+        let trimmedTeam = team.trimmingCharacters(in: .whitespacesAndNewlines)
+        let flag = CountryFlagHelper.flag(for: trimmedTeam, source: flagSource) ?? ""
+        if flag.isEmpty {
+            return "\(trimmedTeam) × \(goalCount)"
+        }
+        return "\(flag) \(trimmedTeam) × \(goalCount)"
+    }
+
+    static func countScoringTimelineEvents(
+        sportType: LiveSportVisualType,
+        timelineEvents: [LiveTimelineEvent]
+    ) -> Int {
+        let effectiveSportType = resolvedSportType(for: sportType, timelineEvents: timelineEvents)
+        guard effectiveSportType == .soccer || effectiveSportType == .hockey else { return 0 }
+        return timelineEvents.filter { isScoringEvent($0, sportType: effectiveSportType) }.count
+    }
+
+    static func summaryFromLatestScoringEvent(
+        _ latestScoringEvent: LiveLatestScoringEvent,
+        sportType: LiveSportVisualType,
+        homeTeam: String,
+        awayTeam: String
+    ) -> LiveScoringTimelineSummary? {
+        let effectiveSportType = sportType == .hockey ? LiveSportVisualType.hockey : LiveSportVisualType.soccer
+        let player = clean(latestScoringEvent.scorer)
+        let clock = clean(latestScoringEvent.gameClock)
+        let teamName = inferredTeamName(fromScorer: player ?? "", homeTeam: homeTeam, awayTeam: awayTeam)
+        let scorer = player ?? teamName ?? ""
+        guard clock != nil || !scorer.isEmpty else { return nil }
+        return LiveScoringTimelineSummary(
+            sportIcon: effectiveSportType == .hockey ? "🏒" : "⚽",
+            entries: [
+                LiveScoringTimelineEntry(
+                    teamName: teamName,
+                    scorer: scorer,
+                    clock: clock,
+                    marker: nil
+                )
+            ]
+        )
+    }
+
+    static func summaryFromFirstScoringEvent(
+        _ firstScoringEvent: LiveFirstScoringEvent,
+        sportType: LiveSportVisualType
+    ) -> LiveScoringTimelineSummary? {
+        let effectiveSportType = sportType == .hockey ? LiveSportVisualType.hockey : LiveSportVisualType.soccer
+        let teamName = clean(firstScoringEvent.teamName)
+        let clock = clean(firstScoringEvent.minuteText) ?? firstScoringEvent.minute.map { "\($0)'" }
+        guard clock != nil || teamName != nil else { return nil }
+        return LiveScoringTimelineSummary(
+            sportIcon: effectiveSportType == .hockey ? "🏒" : "⚽",
+            entries: [
+                LiveScoringTimelineEntry(
+                    teamName: teamName,
+                    scorer: teamName ?? "",
+                    clock: clock,
+                    marker: nil
+                )
+            ]
+        )
+    }
+
+    private static func goalScorerEntry(
+        from event: LiveTimelineEvent,
+        sportType: LiveSportVisualType,
+        homeTeam: String,
+        awayTeam: String
+    ) -> LiveScoringTimelineEntry? {
+        guard isScoringEvent(event, sportType: sportType) else { return nil }
+
+        let teamName = scoringTeamName(for: event, homeTeam: homeTeam, awayTeam: awayTeam)
+            ?? inferredTeamName(for: event, homeTeam: homeTeam, awayTeam: awayTeam)
+
+        let clock = scoringClock(for: event, sportType: sportType)
+
+        let player = clean(event.playerDisplayName)
+
+        guard clock != nil || player != nil || teamName != nil else { return nil }
+
+        return LiveScoringTimelineEntry(
+            teamName: teamName,
+            scorer: player ?? teamName ?? "",
+            playerName: player,
+            clock: clock,
+            marker: sportType == .soccer ? soccerMarker(for: event) : nil
+        )
+    }
+
+    private static func inferredTeamName(
+        for event: LiveTimelineEvent,
+        homeTeam: String,
+        awayTeam: String
+    ) -> String? {
+        let homeFlag = event.strHome?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased() ?? ""
+        if ["yes", "true", "1", "home"].contains(homeFlag) { return homeTeam }
+        if ["no", "false", "0", "away"].contains(homeFlag) { return awayTeam }
+        return nil
+    }
+
+    private static func inferredTeamName(
+        fromScorer scorer: String,
+        homeTeam: String,
+        awayTeam: String
+    ) -> String? {
+        let normalizedScorer = normalizedTeamText(scorer)
+        if normalizedScorer == normalizedTeamText(homeTeam) { return homeTeam }
+        if normalizedScorer == normalizedTeamText(awayTeam) { return awayTeam }
+        return nil
+    }
+
+    private static func providerMinuteText(from raw: String?) -> String? {
+        guard let raw = clean(raw) else { return nil }
+        return raw.hasSuffix("'") || raw.hasSuffix("’") ? raw.replacingOccurrences(of: "’", with: "'") : "\(raw)'"
+    }
+
+    private static func flexibleMinuteText(from raw: String?) -> String? {
+        providerMinuteText(from: raw)
+    }
+
+    private static func sortedTimelineEvents(_ timelineEvents: [LiveTimelineEvent]) -> [LiveTimelineEvent] {
+        timelineEvents.sorted { lhs, rhs in
+            switch (lhs.minuteValue, rhs.minuteValue) {
+            case let (left?, right?):
+                return left < right
+            case (_?, nil):
+                return true
+            case (nil, _?):
+                return false
+            case (nil, nil):
+                return lhs.id < rhs.id
+            }
+        }
+    }
+
+    private static func fallbackFirstScoringEventFromScoreboard(
+        scoreAway: Int,
+        scoreHome: Int,
+        awayTeam: String,
+        homeTeam: String
+    ) -> LiveFirstScoringEvent? {
+        guard scoreAway + scoreHome == 1 else { return nil }
+        if scoreAway == 1 {
+            return LiveFirstScoringEvent(teamName: awayTeam, minute: nil, minuteText: nil)
+        }
+        if scoreHome == 1 {
+            return LiveFirstScoringEvent(teamName: homeTeam, minute: nil, minuteText: nil)
+        }
+        return nil
     }
 
     static func deduplicatedScoringEntries(_ entries: [LiveScoringTimelineEntry]) -> [LiveScoringTimelineEntry] {
@@ -814,9 +1238,9 @@ nonisolated enum LiveScoringTimelineBuilder {
         if text.contains("miss") || text.contains("saved") { return false }
         switch sportType {
         case .soccer:
-            return event.isGoal || text.contains("penalty")
+            return event.isGoal || text.contains("goal") || text.contains("penalty")
         case .hockey:
-            return event.isGoal
+            return event.isGoal || text.contains("goal")
         default:
             return false
         }
@@ -860,7 +1284,7 @@ nonisolated enum LiveScoringTimelineBuilder {
             if let minute = event.minuteValue, minute >= 0 {
                 return "\(minute)'"
             }
-            return firstMinuteText(in: searchableTextPreservingPunctuation(for: event))
+            return providerMinuteText(from: event.intTime)
         case .hockey:
             return hockeyClockText(for: event)
         default:
@@ -1050,13 +1474,14 @@ nonisolated enum ScoringTimelineDebug {
 }
 #endif
 
-#if DEBUG
 nonisolated enum LiveScoringEventDebug {
     static func log(
         gameId: String,
         eventId: String?,
         sport: String,
         sportType: LiveSportVisualType,
+        matchStatus: MatchStatus,
+        rawMatchStatus: String?,
         homeTeam: String,
         awayTeam: String,
         timelineEvents: [LiveTimelineEvent],
@@ -1079,6 +1504,11 @@ nonisolated enum LiveScoringEventDebug {
             homeTeam: homeTeam,
             awayTeam: awayTeam
         )
+        let renderedGoalScorers = renderedGoalScorersValue(
+            summary: summary,
+            homeTeam: homeTeam,
+            awayTeam: awayTeam
+        )
         let fallbackReason = fallbackReason(
             timelineCount: timelineCount,
             scoringEventsCount: scoringEventsCount,
@@ -1088,8 +1518,13 @@ nonisolated enum LiveScoringEventDebug {
         )
 
         print("[LiveScoringEventDebug] gameId=\(gameId)")
+        print("[LiveScoringEventDebug] status=\(matchStatus.rawValue)")
+        if let rawMatchStatus, !rawMatchStatus.isEmpty, rawMatchStatus != matchStatus.rawValue {
+            print("[LiveScoringEventDebug] rawStatus=\(rawMatchStatus)")
+        }
         print("[LiveScoringEventDebug] timelineCount=\(timelineCount)")
         print("[LiveScoringEventDebug] scoringEventsCount=\(scoringEventsCount)")
+        print("[LiveScoringEventDebug] renderedGoalScorers=\(renderedGoalScorers)")
         print("[LiveScoringEventDebug] renderedSummary=\(renderedSummary)")
         print("[LiveScoringEventDebug] fallbackReason=\(fallbackReason)")
         if timelineCount > 0, scoringEventsCount == 0 {
@@ -1122,6 +1557,15 @@ nonisolated enum LiveScoringEventDebug {
     ) -> String {
         guard let summary, summary.hasContent else { return "none" }
         return summary.renderedTimelineSummaryText(homeTeam: homeTeam, awayTeam: awayTeam)
+    }
+
+    private static func renderedGoalScorersValue(
+        summary: LiveScoringTimelineSummary?,
+        homeTeam: String,
+        awayTeam: String
+    ) -> Bool {
+        guard let summary else { return false }
+        return !summary.timelineDisplay(homeTeam: homeTeam, awayTeam: awayTeam).lines.isEmpty
     }
 
     private static func fallbackReason(
@@ -1185,7 +1629,6 @@ nonisolated enum LiveScoringEventDebug {
         return String(json.prefix(900))
     }
 }
-#endif
 
 nonisolated enum LiveLeagueCountryResolver {
     static let presetCountries = [
@@ -1285,10 +1728,18 @@ nonisolated struct FeaturedEvent: Identifiable, Equatable, Codable, Sendable {
     let priority: Int
 
     var chipTitle: String {
+        let label = leagueChipLabel
+        let emoji = proGameLeagueChipSportType.proGameLeagueChipVisual.emoji
+        return emoji.isEmpty ? label : "\(emoji) \(label)"
+    }
+
+    var leagueChipLabel: String {
         let label = (shortTitle ?? title).trimmingCharacters(in: .whitespacesAndNewlines)
-        let symbol = icon?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if symbol.isEmpty { return label }
-        return "\(symbol) \(label)"
+        return label.isEmpty ? "Event" : label
+    }
+
+    var proGameLeagueChipSportType: LiveSportVisualType {
+        LiveSportVisualType.normalize(sport)
     }
 
     var emptyStateTitle: String {
@@ -1309,7 +1760,7 @@ nonisolated struct FeaturedEvent: Identifiable, Equatable, Codable, Sendable {
         slug: "fifa-world-cup",
         title: "FIFA World Cup",
         shortTitle: "FIFA WC",
-        icon: "🏆",
+        icon: "⚽",
         sport: "Soccer",
         includeKeywords: [
             "fifa world cup",
@@ -1477,6 +1928,29 @@ private extension KeyedDecodingContainer where K == FeaturedEvent.CodingKeys {
             return date
         }
         throw DecodingError.dataCorruptedError(forKey: key, in: self, debugDescription: "Invalid date: \(raw)")
+    }
+}
+
+private extension KeyedDecodingContainer where K == LiveTimelineEvent.CodingKeys {
+    nonisolated func decodeFlexibleString(forKey key: K) throws -> String {
+        if let value = try? decode(String.self, forKey: key) {
+            return value
+        }
+        if let value = try? decode(Int.self, forKey: key) {
+            return String(value)
+        }
+        if let value = try? decode(Double.self, forKey: key) {
+            return String(Int(value))
+        }
+        throw DecodingError.typeMismatch(
+            String.self,
+            DecodingError.Context(codingPath: codingPath + [key], debugDescription: "Expected string-compatible value.")
+        )
+    }
+
+    nonisolated func decodeFlexibleOptionalString(forKey key: K) throws -> String? {
+        guard contains(key), !(try decodeNil(forKey: key)) else { return nil }
+        return try decodeFlexibleString(forKey: key)
     }
 }
 
@@ -1742,8 +2216,39 @@ nonisolated struct LiveMatch: Identifiable, Equatable, Codable {
         )
     }
 
+    var resolvedGoalDisplaySummary: LiveScoringTimelineSummary? {
+        LiveScoringTimelineBuilder.resolvedGoalDisplaySummary(
+            sportType: liveSportVisualType,
+            timelineEvents: timelineEvents,
+            scoreAway: scoreAway,
+            scoreHome: scoreHome,
+            awayTeam: awayTeam,
+            homeTeam: homeTeam,
+            flagSource: "Live"
+        )
+    }
+
     var scoringEventsCount: Int {
         scoringTimelineSummary?.entries.count ?? 0
+    }
+
+    var firstScoringEvent: LiveFirstScoringEvent? {
+        LiveScoringTimelineBuilder.resolveFirstScoringEvent(
+            sportType: liveSportVisualType,
+            timelineEvents: timelineEvents,
+            homeTeam: homeTeam,
+            awayTeam: awayTeam,
+            scoreAway: scoreAway,
+            scoreHome: scoreHome
+        )
+    }
+
+    var firstScoringTeam: String? {
+        firstScoringEvent?.teamName
+    }
+
+    var firstScoringMinute: Int? {
+        firstScoringEvent?.minute
     }
 
     var venueCoordinate: CLLocationCoordinate2D? {

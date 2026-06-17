@@ -10,13 +10,31 @@ struct GameReminderNotificationEvent {
 
 struct ProGameReminderNotificationEvent {
     let identifier: String
-    let title: String
+    let awayTeam: String
+    let homeTeam: String
+    let sport: String
     let startDate: Date
 }
 
 struct ProGameFinalNotificationEvent {
     let identifier: String
     let body: String
+    let awayTeam: String
+    let homeTeam: String
+}
+
+struct ProGameHalftimeNotificationEvent {
+    let identifier: String
+    let body: String
+    let awayTeam: String
+    let homeTeam: String
+}
+
+struct ProGamePredictionResultNotificationEvent {
+    let identifier: String
+    let body: String
+    let awayTeam: String
+    let homeTeam: String
 }
 
 struct ProGameScoreUpdateNotificationEvent {
@@ -24,6 +42,8 @@ struct ProGameScoreUpdateNotificationEvent {
     let scoreToken: String
     let title: String
     let body: String
+    let awayTeam: String
+    let homeTeam: String
 }
 
 final class GameReminderNotificationService {
@@ -33,6 +53,8 @@ final class GameReminderNotificationService {
     private let identifierPrefix = "fangeo.gameReminder."
     private let proGameIdentifierPrefix = "fangeo.proGameReminder."
     private let proGameFinalIdentifierPrefix = "fangeo.proGameFinal."
+    private let proGameHalftimeIdentifierPrefix = "fangeo.proGameHalftime."
+    private let proGamePredictionResultIdentifierPrefix = "fangeo.proGamePredictionResult."
     private let proGameScoreUpdateIdentifierPrefix = "fangeo.proGameScoreUpdate."
 
     private init(center: UNUserNotificationCenter = .current()) {
@@ -155,8 +177,17 @@ final class GameReminderNotificationService {
         repeatUntilStart: Bool = false,
         repeatEveryMinutes: Int = 30
     ) async {
+        let matchupTitle = ProGameNotificationFormatting.matchupTitle(
+            awayTeam: event.awayTeam,
+            homeTeam: event.homeTeam
+        )
+        ProGameNotificationFormatting.logPushFlagDebug(
+            notificationType: "kickoff",
+            awayTeam: event.awayTeam,
+            homeTeam: event.homeTeam
+        )
         print("[ProGameReminderDebug] gameId=\(event.identifier)")
-        print("[ProGameReminderDebug] title=\"\(event.title)\"")
+        print("[ProGameReminderDebug] title=\"\(matchupTitle)\"")
         print("[ProGameReminderDebug] kickoffDate=\(Self.debugDateString(event.startDate))")
         print("[ProGameReminderDebug] reminderPreferenceMinutes=\(reminderMinutesBefore)")
 
@@ -190,10 +221,11 @@ final class GameReminderNotificationService {
         for (index, scheduledDate) in fireDates.enumerated() {
             let minutesUntilStart = max(1, Int(event.startDate.timeIntervalSince(scheduledDate) / 60))
             let content = UNMutableNotificationContent()
-            content.title = event.title
+            content.title = ProGameNotificationFormatting.kickoffHeaderTitle(sport: event.sport)
+            content.subtitle = matchupTitle
             content.body = scheduledDate >= event.startDate
-                ? "Your saved Pro Game is starting now."
-                : "Your saved Pro Game starts in \(Self.leadDescription(minutes: minutesUntilStart))."
+                ? ProGameNotificationFormatting.kickoffStartingBody
+                : "\(ProGameNotificationFormatting.kickoffLeadBodyPrefix) \(Self.leadDescription(minutes: minutesUntilStart))."
             content.sound = .default
 
             let components = Calendar.current.dateComponents(
@@ -260,6 +292,11 @@ final class GameReminderNotificationService {
 
     func scheduleProGameFinalNotification(for event: ProGameFinalNotificationEvent) async {
         print("[ProGameNotificationDebug] schedulingFinal id=\(event.identifier)")
+        ProGameNotificationFormatting.logPushFlagDebug(
+            notificationType: "final",
+            awayTeam: event.awayTeam,
+            homeTeam: event.homeTeam
+        )
 
         guard await requestAuthorizationIfNeeded() else {
             print("[ProGameNotificationDebug] finalPermissionDenied=true")
@@ -267,7 +304,7 @@ final class GameReminderNotificationService {
         }
 
         let content = UNMutableNotificationContent()
-        content.title = "Game Final"
+        content.title = ProGameNotificationFormatting.finalScoreTitle
         content.body = event.body
         content.sound = .default
 
@@ -286,8 +323,77 @@ final class GameReminderNotificationService {
         }
     }
 
+    func scheduleProGameHalftimeNotification(for event: ProGameHalftimeNotificationEvent) async {
+        ProGameNotificationFormatting.logPushFlagDebug(
+            notificationType: "halftime",
+            awayTeam: event.awayTeam,
+            homeTeam: event.homeTeam
+        )
+        guard await requestAuthorizationIfNeeded() else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = ProGameNotificationFormatting.halftimeTitle
+        content.body = event.body
+        content.sound = .default
+
+        let identifier = proGameHalftimeIdentifier(for: event.identifier)
+        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+        let request = UNNotificationRequest(
+            identifier: identifier,
+            content: content,
+            trigger: UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        )
+
+        do {
+            try await center.add(request)
+        } catch {
+            print("[ProGameNotificationDebug] halftimeSchedulingFailed id=\(event.identifier) error=\(error.localizedDescription)")
+        }
+    }
+
+    func scheduleProGamePredictionResultNotification(for event: ProGamePredictionResultNotificationEvent) async {
+        ProGameNotificationFormatting.logPushFlagDebug(
+            notificationType: "predictionResult",
+            awayTeam: event.awayTeam,
+            homeTeam: event.homeTeam
+        )
+        guard await requestAuthorizationIfNeeded() else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = ProGameNotificationFormatting.predictionResultTitle
+        content.body = event.body
+        content.sound = .default
+
+        let identifier = proGamePredictionResultIdentifier(for: event.identifier)
+        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+        let request = UNNotificationRequest(
+            identifier: identifier,
+            content: content,
+            trigger: UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        )
+
+        do {
+            try await center.add(request)
+        } catch {
+            print("[ProGameNotificationDebug] predictionResultSchedulingFailed id=\(event.identifier) error=\(error.localizedDescription)")
+        }
+    }
+
+    func cancelProGameHalftimeNotification(identifier: String) async {
+        center.removePendingNotificationRequests(withIdentifiers: [proGameHalftimeIdentifier(for: identifier)])
+    }
+
+    func cancelProGamePredictionResultNotification(identifier: String) async {
+        center.removePendingNotificationRequests(withIdentifiers: [proGamePredictionResultIdentifier(for: identifier)])
+    }
+
     func scheduleProGameScoreUpdateNotification(for event: ProGameScoreUpdateNotificationEvent) async {
         print("[ProGameNotificationDebug] schedulingScoreUpdate id=\(event.identifier) score=\(event.scoreToken)")
+        ProGameNotificationFormatting.logPushFlagDebug(
+            notificationType: "score",
+            awayTeam: event.awayTeam,
+            homeTeam: event.homeTeam
+        )
 
         guard await requestAuthorizationIfNeeded() else {
             print("[ProGameNotificationDebug] scoreUpdatePermissionDenied=true")
@@ -332,6 +438,14 @@ final class GameReminderNotificationService {
 
     private func proGameFinalIdentifier(for identifier: String) -> String {
         "\(proGameFinalIdentifierPrefix)\(identifier)"
+    }
+
+    private func proGameHalftimeIdentifier(for identifier: String) -> String {
+        "\(proGameHalftimeIdentifierPrefix)\(identifier)"
+    }
+
+    private func proGamePredictionResultIdentifier(for identifier: String) -> String {
+        "\(proGamePredictionResultIdentifierPrefix)\(identifier)"
     }
 
     private func proGameScoreUpdateIdentifier(for identifier: String, scoreToken: String) -> String {
@@ -431,7 +545,8 @@ final class GameReminderNotificationService {
     ) -> String {
         let lead = leadDescription(minutes: reminderMinutesBefore)
         if let title = cleaned(event.title) {
-            return "\(title) starts in \(lead)."
+            let formattedTitle = ProGameNotificationFormatting.formatTextContainingTeamNames(title)
+            return "\(formattedTitle) starts in \(lead)."
         }
         if let venueName = cleaned(event.venueName) {
             return "Your game at \(venueName) starts in \(lead)."

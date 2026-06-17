@@ -258,7 +258,7 @@ nonisolated enum SportFilterCatalog {
 
 // MARK: - Live tab sport visuals
 
-extension LiveSportVisualType {
+nonisolated extension LiveSportVisualType {
     /// Canonical ``SportFilterCatalog`` lookup key for icons, accents, and Live filter chips.
     var sportFilterCatalogKey: String {
         switch self {

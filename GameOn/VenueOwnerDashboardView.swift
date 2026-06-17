@@ -7981,16 +7981,6 @@ struct VenueOwnerDashboardView: View {
         return [home, away].filter { !$0.isEmpty }.joined(separator: " vs ")
     }
 
-    private func suggestedLeagueEventTitle(for opportunity: BusinessGameOpportunity) -> String {
-        if let featuredEvent = opportunity.featuredEvent {
-            return featuredEvent.chipTitle
-        }
-        let eventName = opportunity.match.eventName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if !eventName.isEmpty { return eventName }
-        let league = opportunity.match.league.trimmingCharacters(in: .whitespacesAndNewlines)
-        return league.isEmpty ? "Pro Game" : league
-    }
-
     private func importedCompetitionLabel(for match: LiveMatch) -> String {
         let league = match.league.trimmingCharacters(in: .whitespacesAndNewlines)
         if !league.isEmpty, league.localizedCaseInsensitiveCompare("Live") != .orderedSame {
@@ -8017,10 +8007,11 @@ struct VenueOwnerDashboardView: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(suggestedLeagueEventTitle(for: opportunity))
-                        .font(.caption.weight(.heavy))
-                        .foregroundStyle(accent)
-                        .lineLimit(1)
+                    ProGameLeagueChip(
+                        sportType: match.liveSportVisualType,
+                        featuredEvent: opportunity.featuredEvent,
+                        league: match.league
+                    )
                     Spacer(minLength: 8)
                     Text(sportLabel)
                         .font(.caption2.weight(.heavy))

@@ -501,7 +501,7 @@ private final class CompactNativeAdHostView: NativeAdView {
         chromeBackgroundView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(chromeBackgroundView)
 
-        adBadgeLabel.text = "Ad"
+        adBadgeLabel.text = "Sponsored"
         adBadgeLabel.font = .systemFont(ofSize: 9, weight: .semibold)
         adBadgeLabel.textColor = .tertiaryLabel
         adBadgeLabel.textAlignment = .center

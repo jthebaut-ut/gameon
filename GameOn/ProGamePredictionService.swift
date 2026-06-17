@@ -435,6 +435,17 @@ private struct ProGamePredictionProfileRow: Decodable {
     }
 }
 
+extension LiveMatch {
+    var supportsProGamePredictions: Bool {
+        switch liveSportVisualType {
+        case .soccer, .hockey:
+            return true
+        default:
+            return false
+        }
+    }
+}
+
 extension SavedProGame {
     var supportsProGamePredictions: Bool {
         switch liveSportVisualType {
@@ -455,5 +466,10 @@ extension SavedProGame {
 
     var proGamePredictionTeams: VenueEventPredictionTeams {
         VenueEventPredictionTeams(home: homeTeam, away: awayTeam)
+    }
+
+    static func forPredictions(match: LiveMatch, savedGames: [SavedProGame]) -> SavedProGame {
+        let key = stableKey(for: match)
+        return savedGames.first { $0.stableKey == key } ?? SavedProGame(match: match)
     }
 }

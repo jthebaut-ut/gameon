@@ -172,13 +172,11 @@ extension MapViewModel {
             return nil
         }
 
-        let title = [savedGame.awayTeam, savedGame.homeTeam]
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-            .joined(separator: " vs ")
         return ProGameReminderNotificationEvent(
             identifier: savedGame.stableKey,
-            title: title.isEmpty ? "Saved Pro Game" : title,
+            awayTeam: savedGame.awayTeam,
+            homeTeam: savedGame.homeTeam,
+            sport: savedGame.sport,
             startDate: savedGame.startTime
         )
     }
