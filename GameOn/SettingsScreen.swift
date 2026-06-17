@@ -324,8 +324,8 @@ struct SettingsScreen: View {
             List {
                 Section {
                     FanGeoPagePurposeHeader(
-                        title: "Profile",
-                        subtitle: "Build your fan identity."
+                        title: "🏆 Profile",
+                        subtitle: "Fan Identity • Teams • Reputation"
                     )
                 }
                 .listRowInsets(EdgeInsets(top: 14, leading: 16, bottom: 4, trailing: 16))
@@ -699,15 +699,19 @@ struct SettingsScreen: View {
             .onAppear {
                 print("[SponsoredPlacementDebug] accountScreenAppeared=true isAccountTabSelected=\(isAccountTabSelected) isLoggedIn=\(viewModel.isLoggedIn) authId=\(viewModel.currentUserAuthId?.uuidString.lowercased() ?? "nil") businessContext=\(isBusinessAccountProfileContext)")
                 if isAccountTabSelected {
+                    AppPerfDebug.screenLoadStart(tab: "account", source: "onAppear")
                     UIPerformanceDiagnostics.signpost("Profile tab open", "source=onAppear")
                     logBusinessProfilePerformance(event: "profileTabAppeared source=onAppear")
                     Task {
+                        await Task.yield()
                         await refreshSettingsBusinessProfile(trigger: "accountTabAppears", refreshBusinessData: true, debounce: true)
                     }
                 }
                 print("[FaceIDSettingsDebug] defaultPrivateChatFaceID=false")
                 logSettingsBusinessVenueSectionVisibilityForFanAccount()
+                guard isAccountTabSelected else { return }
                 Task {
+                    await Task.yield()
                     await viewModel.loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: true)
                     if viewModel.canFanUsePickupGamesUI {
                         await viewModel.loadMyPickupGamesForSettings()
@@ -718,9 +722,15 @@ struct SettingsScreen: View {
         .onChange(of: isAccountTabSelected) { _, isSelected in
             print("[SponsoredPlacementDebug] accountTabSelectionChanged isSelected=\(isSelected) isLoggedIn=\(viewModel.isLoggedIn) authId=\(viewModel.currentUserAuthId?.uuidString.lowercased() ?? "nil") businessContext=\(isBusinessAccountProfileContext)")
             if isSelected {
+                AppPerfDebug.screenLoadStart(tab: "account", source: "tabSelected")
                 UIPerformanceDiagnostics.signpost("Profile tab open", "source=tabSelected")
                 logBusinessProfilePerformance(event: "profileTabAppeared source=tabSelected")
+                if viewModel.didCompleteTabIntentPreloadRecently("account", within: 15) {
+                    AppPerfDebug.refreshSkipped(tab: "account", source: "businessProfile", reason: "tabPreloadRecent")
+                    return
+                }
                 Task {
+                    await Task.yield()
                     await refreshSettingsBusinessProfile(trigger: "accountTabAppears", refreshBusinessData: true, debounce: true)
                 }
             }

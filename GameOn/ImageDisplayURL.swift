@@ -1,7 +1,7 @@
 import Foundation
 
 /// Picks which stored image URL to load for list vs detail surfaces (thumbnail-first with safe fallbacks).
-enum ImageDisplayURL {
+nonisolated enum ImageDisplayURL {
 
     private static func nonEmpty(_ raw: String?) -> String? {
         guard let t = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty else { return nil }

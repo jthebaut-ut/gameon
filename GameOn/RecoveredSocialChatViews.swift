@@ -168,8 +168,8 @@ struct FriendsTabView: View {
     @State private var chatConversationFriendsSnapshot: [ChatViewModel.FriendDisplay] = []
     @State private var friendsDirectoryItemsSnapshot: [ChatViewModel.FriendDisplay] = []
     @State private var filteredFriendsDirectoryItemsSnapshot: [ChatViewModel.FriendDisplay] = []
-    @State private var sendingSuggestedFanRequestIds: Set<UUID> = []
-    @State private var dismissedChatSuggestedFanIds: Set<UUID> = []
+    /// Populated after first paint from cached friend presence (see ``refreshFansLiveNowAfterFirstPaint``).
+    @State private var fansLiveNowEntries: [ChatFansLiveNowEntry] = []
     /// Programmatic push (in-app DM banner → Chat tab → ``DirectChatView``).
     @State private var dmBannerNavigationFriend: UserPreview?
 
@@ -251,6 +251,7 @@ struct FriendsTabView: View {
         .onChange(of: viewModel.friends) { _, _ in
             rebuildFriendDisplaySnapshots(reason: "friendsChanged")
             logFriendsDirectoryLoadedCount()
+            refreshFansLiveNowAfterFirstPaint(reason: "friendsPresenceChanged")
         }
         .onChange(of: friendDirectorySearchText) { _, query in
             rebuildFriendDisplaySnapshots(reason: "searchChanged")
@@ -268,6 +269,8 @@ struct FriendsTabView: View {
         }
         .onChange(of: mapViewModel.currentUserAuthId) { _, _ in
             logChatAuthGate(reason: "mapUserAuthIdChanged")
+            fansLiveNowEntries = []
+            ChatFansLiveNowSessionCache.clear(authId: nil)
         }
         .onChange(of: mapViewModel.currentUserIsBusinessAccount) { _, _ in
             logChatAuthGate(reason: "businessAccountChanged")
@@ -277,18 +280,22 @@ struct FriendsTabView: View {
 
     private func handleTabSelectedChange(_ on: Bool) {
         guard on else { return }
-#if DEBUG
-        let started = CFAbsoluteTimeGetCurrent()
-#endif
-        rebuildFriendDisplaySnapshots(reason: "chatTabSelected")
-#if DEBUG
-        let ms = (CFAbsoluteTimeGetCurrent() - started) * 1000
-        print("[TabRenderPerf] tab=chat visible=true renderMs=\(String(format: "%.2f", ms))")
-#endif
+        AppPerfDebug.screenLoadStart(tab: "chat", source: "tabSelected")
         UIPerformanceDiagnostics.signpost("DM inbox open", "source=tabSelected")
         consumePendingDmOpenPreviewIfNeeded()
-        Task {
+        Task { @MainActor in
+            await Task.yield()
+#if DEBUG
+            let started = CFAbsoluteTimeGetCurrent()
+#endif
+            rebuildFriendDisplaySnapshots(reason: "chatTabSelected")
+#if DEBUG
+            let ms = (CFAbsoluteTimeGetCurrent() - started) * 1000
+            print("[TabRenderPerf] tab=chat visible=true renderMs=\(String(format: "%.2f", ms))")
+            AppPerfDebug.mainActorBlocked(ms: ms, tab: "chat", source: "rebuildFriendDisplaySnapshots")
+#endif
             await viewModel.ensureSignedInSocialRealtimeIfNeeded()
+            refreshFansLiveNowAfterFirstPaint(reason: "chatTabSelected")
         }
     }
 
@@ -308,8 +315,12 @@ struct FriendsTabView: View {
         logChatAuthGate(reason: "appear")
         consumePendingDmOpenPreviewIfNeeded()
         Task {
-            await viewModel.refreshInboxSummariesIfNeeded()
-            await viewModel.refreshFriendRequestListsOnly()
+            if mapViewModel.didCompleteTabIntentPreloadRecently("chat", within: 10) {
+                AppPerfDebug.refreshSkipped(tab: "chat", source: "inboxSummaries", reason: "tabPreloadRecent")
+            } else {
+                await viewModel.refreshInboxSummariesIfNeeded()
+                await viewModel.refreshFriendRequestListsOnly()
+            }
             if isTabSelected {
                 await viewModel.ensureSignedInSocialRealtimeIfNeeded()
             }
@@ -559,16 +570,31 @@ struct FriendsTabView: View {
         viewModel.pendingDmOpenPreview = nil
     }
 
-    private var cachedSuggestedFansForChat: [FriendSuggestionProfile] {
-        guard let authId = mapViewModel.currentUserAuthId,
-              let suggestions = ProfilePhase1PersonalizationCache.suggestedFansByAuthId[authId] else {
-            return []
+    private func refreshFansLiveNowAfterFirstPaint(reason: String) {
+        guard selectedSection == .chats, !shouldShowChatSignInRequired else { return }
+        Task { @MainActor in
+            await Task.yield()
+            let authId = mapViewModel.currentUserAuthId
+            let suggestedFans = authId.flatMap { ProfilePhase1PersonalizationCache.suggestedFansByAuthId[$0] } ?? []
+            let entries = ChatFansLiveNowSessionCache.resolve(
+                authId: authId,
+                friends: viewModel.friends,
+                suggestedFans: suggestedFans
+            )
+            fansLiveNowEntries = entries
+#if DEBUG
+            print("[FansLiveNow] refresh reason=\(reason) count=\(entries.count)")
+#endif
         }
-        return Array(
-            suggestions
-                .filter { viewModel.chipKind(forOtherUserId: $0.userID) != .friends }
-                .filter { !dismissedChatSuggestedFanIds.contains($0.userID) }
-                .prefix(6)
+    }
+
+    private var fansLiveNowStrip: some View {
+        ChatFansLiveNowStripView(
+            entries: fansLiveNowEntries,
+            onSeeAll: { selectedSection = .friends },
+            onOpenProfile: { userId in
+                mapViewModel.presentPublicProfile(userId: userId, context: "fans_live_now")
+            }
         )
     }
 
@@ -577,10 +603,9 @@ struct FriendsTabView: View {
             if chatConversationFriends.isEmpty {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 16) {
-                        if !cachedSuggestedFansForChat.isEmpty {
-                            chatSuggestedFansSection
+                        if !fansLiveNowEntries.isEmpty {
+                            fansLiveNowStrip
                         }
-
                         chatEmptyState
                     }
                     .padding(.horizontal, 16)
@@ -590,12 +615,19 @@ struct FriendsTabView: View {
                 .background(chatRootBackground)
             } else {
                 GeometryReader { layoutGeo in
-                    chatsInboxList(layoutWidth: layoutGeo.size.width)
+                    VStack(spacing: 8) {
+                        if !fansLiveNowEntries.isEmpty {
+                            fansLiveNowStrip
+                                .padding(.horizontal, 16)
+                        }
+                        chatsInboxList(layoutWidth: layoutGeo.size.width)
+                    }
                 }
             }
         }
         .onAppear {
             logChatInboxAdPlacement()
+            refreshFansLiveNowAfterFirstPaint(reason: "chatsListAppear")
         }
     }
 
@@ -608,13 +640,6 @@ struct FriendsTabView: View {
                 }
             } header: {
                 chatListHeader(title: "Recent Chats", trailingTitle: chatConversationFriends.count > 3 ? "See all" : nil)
-            }
-
-            if !cachedSuggestedFansForChat.isEmpty {
-                chatSuggestedFansSection
-                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
             }
         }
         .listStyle(.plain)
@@ -700,63 +725,6 @@ struct FriendsTabView: View {
                 .strokeBorder(FGColor.divider(colorScheme).opacity(0.55), lineWidth: 1)
         }
         .softCardShadow()
-    }
-
-    private var chatSuggestedFansSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Suggested Fans")
-                    .font(.headline.weight(.bold))
-                    .foregroundStyle(FGColor.primaryText(colorScheme))
-                Spacer()
-                Button("See all") {
-                    showingAddFriendSheet = true
-                }
-                .font(.caption.weight(.bold))
-                .foregroundStyle(FGColor.accentGreen)
-            }
-            .padding(.horizontal, 16)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(alignment: .top, spacing: 10) {
-                    ForEach(cachedSuggestedFansForChat) { suggestion in
-                        chatSuggestedFanCard(suggestion)
-                    }
-                }
-                .padding(.horizontal, 16)
-            }
-        }
-    }
-
-    private func chatSuggestedFanCard(_ suggestion: FriendSuggestionProfile) -> some View {
-        SuggestedFanCard(
-            suggestion: suggestion,
-            context: "chat_suggested_fans",
-            isSending: sendingSuggestedFanRequestIds.contains(suggestion.userID),
-            chipKind: viewModel.chipKind(forOtherUserId: suggestion.userID),
-            onAdd: sendChatSuggestedFanRequest,
-            onDismiss: dismissChatSuggestedFan
-        )
-    }
-
-    private func sendChatSuggestedFanRequest(_ suggestion: FriendSuggestionProfile) {
-        guard !sendingSuggestedFanRequestIds.contains(suggestion.userID) else { return }
-        sendingSuggestedFanRequestIds.insert(suggestion.userID)
-        Task {
-            await viewModel.sendFriendRequestFromComments(to: suggestion.userID)
-            await MainActor.run {
-                _ = sendingSuggestedFanRequestIds.remove(suggestion.userID)
-            }
-        }
-    }
-
-    private func dismissChatSuggestedFan(_ suggestion: FriendSuggestionProfile) {
-        dismissedChatSuggestedFanIds.insert(suggestion.userID)
-        sendingSuggestedFanRequestIds.remove(suggestion.userID)
-        ProfilePhase1PersonalizationCache.dismissCachedSuggestedFan(
-            authId: mapViewModel.currentUserAuthId,
-            dismissedUserId: suggestion.userID
-        )
     }
 
     @ViewBuilder
@@ -1616,5 +1584,180 @@ private struct AddFriendGlassSheet: View {
             .frame(width: 68, alignment: .trailing)
         }
         .padding(.horizontal, 18)
+    }
+}
+
+// MARK: - Fans Live Now (Chat Chats tab)
+
+struct ChatFansLiveNowEntry: Identifiable, Hashable {
+    let id: UUID
+    let preview: UserPreview
+    let subtitle: String
+}
+
+enum ChatFansLiveNowSessionCache {
+    static let displayLimit = 12
+
+    private static var entriesByAuthId: [UUID: [ChatFansLiveNowEntry]] = [:]
+    private static var presenceSignatureByAuthId: [UUID: String] = [:]
+
+    static func clear(authId: UUID?) {
+        guard let authId else {
+            entriesByAuthId.removeAll()
+            presenceSignatureByAuthId.removeAll()
+            return
+        }
+        entriesByAuthId.removeValue(forKey: authId)
+        presenceSignatureByAuthId.removeValue(forKey: authId)
+    }
+
+    static func resolve(
+        authId: UUID?,
+        friends: [ChatViewModel.FriendDisplay],
+        suggestedFans: [FriendSuggestionProfile]
+    ) -> [ChatFansLiveNowEntry] {
+        guard let authId else { return [] }
+        let signature = onlinePresenceSignature(friends)
+        if let cached = entriesByAuthId[authId], presenceSignatureByAuthId[authId] == signature {
+            return cached
+        }
+        let built = buildEntries(friends: friends, suggestedFans: suggestedFans)
+        entriesByAuthId[authId] = built
+        presenceSignatureByAuthId[authId] = signature
+        return built
+    }
+
+    private static func onlinePresenceSignature(_ friends: [ChatViewModel.FriendDisplay]) -> String {
+        friends
+            .filter { !$0.preview.isDeleted && $0.preview.isOnlineNow }
+            .map { "\($0.id.uuidString.lowercased()):\($0.preview.lastSeenAtRaw ?? "")" }
+            .sorted()
+            .joined(separator: "|")
+    }
+
+    private static func buildEntries(
+        friends: [ChatViewModel.FriendDisplay],
+        suggestedFans: [FriendSuggestionProfile]
+    ) -> [ChatFansLiveNowEntry] {
+        let suggestionByUserId = Dictionary(uniqueKeysWithValues: suggestedFans.map { ($0.userID, $0) })
+        var seen = Set<UUID>()
+
+        let onlineFriends = friends
+            .filter { !$0.preview.isDeleted && $0.preview.isOnlineNow }
+            .sorted { lhs, rhs in
+                let left = PresenceOnlineStatus.parse(lhs.preview.lastSeenAtRaw) ?? .distantPast
+                let right = PresenceOnlineStatus.parse(rhs.preview.lastSeenAtRaw) ?? .distantPast
+                if left != right { return left > right }
+                return lhs.preview.displayName.localizedCaseInsensitiveCompare(rhs.preview.displayName) == .orderedAscending
+            }
+
+        var entries: [ChatFansLiveNowEntry] = []
+        entries.reserveCapacity(min(displayLimit, onlineFriends.count))
+
+        for friend in onlineFriends {
+            guard seen.insert(friend.id).inserted else { continue }
+            entries.append(
+                ChatFansLiveNowEntry(
+                    id: friend.id,
+                    preview: friend.preview,
+                    subtitle: subtitle(for: friend.preview, suggestion: suggestionByUserId[friend.id])
+                )
+            )
+            if entries.count >= displayLimit { break }
+        }
+        return entries
+    }
+
+    private static func subtitle(for preview: UserPreview, suggestion: FriendSuggestionProfile?) -> String {
+        if preview.isBusinessAccount { return "Venue" }
+        if let suggestion {
+            if let label = suggestion.reasonLabel?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !label.isEmpty {
+                return label
+            }
+            if suggestion.sharedFavoriteTeamsCount > 0 { return "Same Team" }
+            if suggestion.sharedEventInterestCount > 0 { return "Same watch party" }
+            if suggestion.sharedPickupGameCount > 0 { return "Same pickup game" }
+            if suggestion.mutualFriendCount > 0 { return "Mutual friends" }
+        }
+        return "Active Fan"
+    }
+}
+
+private struct ChatFansLiveNowStripView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let entries: [ChatFansLiveNowEntry]
+    let onSeeAll: () -> Void
+    let onOpenProfile: (UUID) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Fans Live Now")
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                Spacer()
+                Button("See all", action: onSeeAll)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(FGColor.accentGreen)
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(alignment: .top, spacing: 14) {
+                    ForEach(entries) { entry in
+                        ChatFansLiveNowCell(entry: entry, onOpenProfile: onOpenProfile)
+                    }
+                }
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Fans live now")
+    }
+}
+
+private struct ChatFansLiveNowCell: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let entry: ChatFansLiveNowEntry
+    let onOpenProfile: (UUID) -> Void
+
+    private let avatarSize: CGFloat = 58
+    private let ringSize: CGFloat = 66
+
+    var body: some View {
+        Button {
+            onOpenProfile(entry.id)
+        } label: {
+            VStack(spacing: 6) {
+                ZStack {
+                    Circle()
+                        .strokeBorder(FGColor.accentGreen.opacity(0.92), lineWidth: 2.5)
+                        .frame(width: ringSize, height: ringSize)
+
+                    SocialAvatarRenderer.socialAvatarView(for: entry.preview, size: avatarSize)
+                        .frame(width: avatarSize, height: avatarSize)
+                        .clipShape(Circle())
+                        .overlay(alignment: .bottomTrailing) {
+                            PresenceOnlineBadge(size: max(9, avatarSize * 0.22))
+                                .offset(x: avatarSize * 0.03, y: avatarSize * 0.03)
+                        }
+                }
+
+                Text(entry.preview.displayName)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .lineLimit(1)
+                    .frame(width: ringSize + 8)
+
+                Text(entry.subtitle)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .lineLimit(1)
+                    .frame(width: ringSize + 8)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(entry.preview.displayName), \(entry.subtitle), online")
     }
 }

@@ -1425,9 +1425,11 @@ struct DiscoverScreen: View {
         }
         .onChange(of: isDiscoverTabSelected) { _, visible in
             guard visible else { return }
+            AppPerfDebug.screenLoadStart(tab: "discover", source: "tabVisible")
             rebuildDiscoverAnnotationCache(reason: "discoverTabVisible")
             Task { @MainActor in
                 await Task.yield()
+                AppPerfDebug.deferredWork(tab: "discover", work: "datasetConsistency", source: "tabVisible")
                 await ensureDiscoverDatasetConsistency(trigger: "tabVisible")
             }
         }
@@ -6706,6 +6708,14 @@ struct DiscoverScreen: View {
 #endif
                             }
                     }
+                }
+                .onAppear {
+                    ImageCacheDebug.logBypass(
+                        loader: "AsyncImage",
+                        url: url,
+                        bucket: .avatar,
+                        reason: "venuePreviewMiniGoingAvatar"
+                    )
                 }
             } else {
                 venuePreviewMiniGoingAvatarInitials(avatar.initials)

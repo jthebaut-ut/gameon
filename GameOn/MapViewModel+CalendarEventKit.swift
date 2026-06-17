@@ -524,6 +524,92 @@ extension MapViewModel {
         )
     }
 
+    func skipProGamesCalendarReconcileAtStartup(reason: String) {
+        print("[CalendarSyncDebug] skippedAtStartup=true")
+        print("[CalendarSyncDebug] reason=\(reason)")
+    }
+
+    private static let proGamesCalendarSyncFingerprintDefaultsKey = "gameon.appleCalendar.proGamesSyncFingerprint.v1"
+    private static let proGamesCalendarLastSyncAtDefaultsKey = "gameon.appleCalendar.lastSuccessfulSyncAt.v1"
+    private static let proGamesCalendarSyncFreshnessInterval: TimeInterval = 6 * 60 * 60
+
+    func proGamesCalendarContentFingerprint() -> String {
+        savedProGames
+            .map { game in
+                calendarSyncProGameFingerprint(
+                    gameId: game.stableKey,
+                    title: calendarSyncProGameTitle(for: game),
+                    date: game.startTime,
+                    location: game.league,
+                    state: "saved"
+                )
+            }
+            .sorted()
+            .joined(separator: "|")
+    }
+
+    private func shouldSkipFullProGamesCalendarReconcile(forceBypassFreshness: Bool) -> String? {
+        guard !forceBypassFreshness else { return nil }
+        guard notificationSettingsStore.syncGoingGamesToAppleCalendar else { return "syncDisabled" }
+        guard notificationSettingsStore.syncSavedProGamesToAppleCalendar else { return "proCategoryDisabled" }
+        let fingerprint = proGamesCalendarContentFingerprint()
+        let storedFingerprint = UserDefaults.standard.string(forKey: Self.proGamesCalendarSyncFingerprintDefaultsKey)
+        let lastSyncRaw = UserDefaults.standard.double(forKey: Self.proGamesCalendarLastSyncAtDefaultsKey)
+        guard lastSyncRaw > 0,
+              let storedFingerprint,
+              storedFingerprint == fingerprint else {
+            return nil
+        }
+        let age = Date().timeIntervalSince(Date(timeIntervalSince1970: lastSyncRaw))
+        guard age < Self.proGamesCalendarSyncFreshnessInterval else { return nil }
+        return "freshFingerprintUnchanged"
+    }
+
+    private func recordProGamesCalendarFullSyncCompleted() {
+        UserDefaults.standard.set(
+            proGamesCalendarContentFingerprint(),
+            forKey: Self.proGamesCalendarSyncFingerprintDefaultsKey
+        )
+        UserDefaults.standard.set(
+            Date().timeIntervalSince1970,
+            forKey: Self.proGamesCalendarLastSyncAtDefaultsKey
+        )
+    }
+
+    func scheduleDeferredProGamesAppleCalendarReconcileAfterAppReady(
+        reason: String = "appReady",
+        replaceExisting: Bool = false
+    ) {
+        guard notificationSettingsStore.syncGoingGamesToAppleCalendar,
+              notificationSettingsStore.syncSavedProGamesToAppleCalendar else {
+            print("[CalendarSyncDebug] reason=syncDisabled")
+            return
+        }
+        if deferredProGamesCalendarReconcileTask != nil, !replaceExisting {
+            print("[CalendarSyncDebug] reason=deferredAlreadyScheduled")
+            return
+        }
+        deferredProGamesCalendarReconcileTask?.cancel()
+        let delaySeconds = Double.random(in: 30...60)
+        print("[CalendarSyncDebug] deferredAfterAppReady=true")
+        print("[CalendarSyncDebug] reason=\(reason)")
+        print("[CalendarSyncDebug] delaySeconds=\(String(format: "%.1f", delaySeconds))")
+        deferredProGamesCalendarReconcileTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                try await Task.sleep(nanoseconds: UInt64(delaySeconds * 1_000_000_000))
+            } catch {
+                return
+            }
+            guard !Task.isCancelled else { return }
+            self.deferredProGamesCalendarReconcileTask = nil
+            await self.reconcileSavedProGamesAppleCalendar(
+                reason: "deferredAfterAppReady:\(reason)",
+                forceBypassFreshness: false
+            )
+        }
+    }
+
     func reconcileSavedProGamesAppleCalendar(reason: String, forceBypassFreshness: Bool) async {
         _ = await reconcileSavedProGamesAppleCalendarDetailed(
             reason: reason,
@@ -643,6 +729,7 @@ extension MapViewModel {
                 skippedReason: "syncDisabled",
                 forceBypassFreshness: forceBypassFreshness
             )
+            print("[CalendarSyncDebug] reason=syncDisabled")
             summary.firstError = "Calendar sync is off"
             return summary
         }
@@ -653,6 +740,19 @@ extension MapViewModel {
                 skippedReason: "proCategoryDisabled",
                 forceBypassFreshness: forceBypassFreshness
             )
+            print("[CalendarSyncDebug] reason=proCategoryDisabled")
+            return summary
+        }
+
+        if let skipReason = shouldSkipFullProGamesCalendarReconcile(forceBypassFreshness: forceBypassFreshness) {
+            logProGameCalendarSync(
+                action: "reconcile",
+                gameId: "all",
+                skippedReason: skipReason,
+                fingerprint: proGamesCalendarContentFingerprint(),
+                forceBypassFreshness: forceBypassFreshness
+            )
+            print("[CalendarSyncDebug] reason=\(skipReason)")
             return summary
         }
 
@@ -688,6 +788,7 @@ extension MapViewModel {
             )
             summary.merge(result)
         }
+        recordProGamesCalendarFullSyncCompleted()
         print("[CalendarSyncDebug] syncResult=\(summary.userMessage)")
         return summary
     }

@@ -45,6 +45,12 @@ extension MapViewModel {
            let lastCalendarTabPickupSourcesRefreshAt {
             let age = Date().timeIntervalSince(lastCalendarTabPickupSourcesRefreshAt)
             if age < 90 {
+                AppPerfDebug.networkFetchFinished(
+                    tab: "calendar",
+                    source: "pickupSources",
+                    durationMs: 0,
+                    cacheHit: true
+                )
 #if DEBUG
                 print("[TabPerfDebug] cacheAge=\(String(format: "%.1f", age)) tab=calendar source=pickupSources")
                 print("[TabPerfDebug] usedCachedData=true tab=calendar source=pickupSources")
@@ -67,6 +73,7 @@ extension MapViewModel {
         }
 
         let startedAt = Date()
+        AppPerfDebug.networkFetchStarted(tab: "calendar", source: "pickupSources:\(reason)")
 #if DEBUG
         print("[CalendarPickupPublicMode] personalStateHidden=true reason=refreshCalendarTabPickupSources")
         print("[TabPerfDebug] refreshStarted=calendar source=pickupSources force=\(forceRefresh) reason=\(reason)")
@@ -80,8 +87,9 @@ extension MapViewModel {
         calendarTabPickupSourcesRefreshTask = nil
         lastCalendarTabPickupSourcesRefreshAt = Date()
         lastCalendarTabPickupSourcesRefreshKey = key
-#if DEBUG
         let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
+        AppPerfDebug.networkFetchFinished(tab: "calendar", source: "pickupSources:\(reason)", durationMs: ms)
+#if DEBUG
         print("[TabPerfDebug] refreshDurationMs=\(ms) tab=calendar source=pickupSources reason=\(reason)")
 #endif
     }
@@ -258,13 +266,11 @@ extension MapViewModel {
 
     /// Bottom-tab Calendar: reset to today, refresh dots + schedule loads (does not mutate Discover ``selectedDate``).
     func noteCalendarTabBecameActive() {
-#if DEBUG
-        print("[PerfPhase1D] calendarWorkActivated")
-#endif
-        loadCalendarTabCalendarDotsAroundMonth(calendarTabSelectedDate, reason: "calendar_tab_active")
-        loadGamesFromSupabaseIfCalendarScheduleStale(reason: "calendar_tab_active")
-        Task {
-            await refreshCalendarTabPickupSources(reason: "calendar_tab_active")
+        AppPerfDebug.deferredWork(tab: "calendar", work: "calendarTabActivation", source: "noteCalendarTabBecameActive")
+        Task { @MainActor in
+            await Task.yield()
+            loadGamesFromSupabaseIfCalendarScheduleStale(reason: "calendar_tab_active")
+            loadCalendarTabCalendarDotsAroundMonth(calendarTabSelectedDate, reason: "calendar_tab_active")
         }
     }
 

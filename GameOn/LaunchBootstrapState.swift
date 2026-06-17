@@ -6,9 +6,14 @@ enum LaunchBootstrapState {
     private(set) static var didCompleteCriticalBootstrap = false
     private(set) static var didRunLaunchDiscoverCoreRefresh = false
     private(set) static var didStartWarmPreload = false
+    private(set) static var didBecomeAppReady = false
 
     static func markCriticalBootstrapCompleted() {
         didCompleteCriticalBootstrap = true
+    }
+
+    static func markAppReady() {
+        didBecomeAppReady = true
     }
 
     @discardableResult
@@ -30,6 +35,7 @@ enum LaunchBootstrapState {
         didCompleteCriticalBootstrap = false
         didRunLaunchDiscoverCoreRefresh = false
         didStartWarmPreload = false
+        didBecomeAppReady = false
     }
 #endif
 }

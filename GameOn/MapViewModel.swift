@@ -855,6 +855,28 @@ final class MapViewModel: ObservableObject {
     var calendarTabPickupSourcesRefreshTask: Task<Void, Never>?
     var lastCalendarTabPickupSourcesRefreshAt: Date?
     var lastCalendarTabPickupSourcesRefreshKey: String?
+
+    /// MainTabView tab-intent preload coordination (not published — avoids tab body churn).
+    private(set) var tabIntentPreloadInFlight: Set<String> = []
+    var lastTabIntentPreloadCompletedAt: [String: Date] = [:]
+
+    func markTabIntentPreloadBegan(_ tabKey: String) {
+        tabIntentPreloadInFlight.insert(tabKey)
+    }
+
+    func markTabIntentPreloadEnded(_ tabKey: String) {
+        tabIntentPreloadInFlight.remove(tabKey)
+        lastTabIntentPreloadCompletedAt[tabKey] = Date()
+    }
+
+    func isTabIntentPreloadInFlight(_ tabKey: String) -> Bool {
+        tabIntentPreloadInFlight.contains(tabKey)
+    }
+
+    func didCompleteTabIntentPreloadRecently(_ tabKey: String, within interval: TimeInterval = 12) -> Bool {
+        guard let last = lastTabIntentPreloadCompletedAt[tabKey] else { return false }
+        return Date().timeIntervalSince(last) < interval
+    }
     /// Bumped when join-request rows affecting organizer summaries may have changed (realtime / withdraw); drives ``PickupOrganizerRequestsSheet`` reload.
     @Published var pickupOrganizerRequestsSyncGeneration: UInt64 = 0
     /// Bumped after join-request mutations so pickup detail sheets reload request + counts.
@@ -1023,6 +1045,7 @@ final class MapViewModel: ObservableObject {
     var lastAppleCalendarPickupSyncAt: Date?
     var lastAppleCalendarPickupSyncKey: String?
     var appleCalendarGlobalSyncTask: Task<Void, Never>?
+    var deferredProGamesCalendarReconcileTask: Task<Void, Never>?
     var lastAppleCalendarGlobalSyncAt: Date?
     var lastAppleCalendarGlobalSyncKey: String?
 

@@ -58,6 +58,8 @@ final class BootstrapLoadingCoordinator: ObservableObject {
         print("[FanGeoLoadingDebug] appReady")
         print("[StartupPrefetchDebug] firstUsableScreenMs=\(Int(Date().timeIntervalSince(startedAt) * 1000))")
         #endif
+        LaunchBootstrapState.markAppReady()
+        viewModel.scheduleDeferredProGamesAppleCalendarReconcileAfterAppReady(reason: "appReady")
         isBootstrapping = false
         print("[BusinessLaunchPerf] splashNoLongerBlockedByBusinessRefresh=true")
         if completedInTime {

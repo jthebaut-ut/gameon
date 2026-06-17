@@ -2,7 +2,7 @@ import Foundation
 
 /// Single source of truth for sport **strings** used in Calendar filters, pickup/venue pickers, analytics, and Supabase payloads.
 /// Chip colors, SF Symbols, and search aliases live in ``SportFilterCatalog`` (SwiftUI).
-public enum AppSportCatalog {
+public nonisolated enum AppSportCatalog {
 
     // MARK: - Grouped catalog (Discover “More”, pickup game form, venue Manage Games)
 

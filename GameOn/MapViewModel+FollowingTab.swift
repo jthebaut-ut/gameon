@@ -21,6 +21,12 @@ extension MapViewModel {
     /// Skips ``refreshFollowingTabDataGlobally()`` when a global refresh completed recently (launch dedupe).
     func refreshFollowingTabDataGloballyUnlessFresh() async {
         if shouldSkipFollowingTabGlobalRefresh() {
+            AppPerfDebug.networkFetchFinished(
+                tab: "following",
+                source: "followingGlobal",
+                durationMs: 0,
+                cacheHit: true
+            )
 #if DEBUG
             let age = lastFollowingTabGlobalRefreshAt.map { Date().timeIntervalSince($0) } ?? 0
             print("[TabPerfDebug] cacheAge=\(String(format: "%.1f", age)) tab=going source=followingGlobal")
@@ -85,6 +91,7 @@ extension MapViewModel {
         }
 
         let startedAt = Date()
+        AppPerfDebug.networkFetchStarted(tab: "following", source: "followingGlobal")
 #if DEBUG
         print("[TabPerfDebug] refreshStarted=going source=followingGlobal")
 #endif
@@ -95,8 +102,9 @@ extension MapViewModel {
         followingTabGlobalRefreshTask = task
         await task.value
         followingTabGlobalRefreshTask = nil
-#if DEBUG
         let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
+        AppPerfDebug.networkFetchFinished(tab: "following", source: "followingGlobal", durationMs: ms)
+#if DEBUG
         print("[TabPerfDebug] refreshDurationMs=\(ms) tab=going source=followingGlobal")
 #endif
     }

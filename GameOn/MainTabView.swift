@@ -5,6 +5,7 @@ import SwiftUI
 /// Inactive tabs stay in the hierarchy with opacity and hit testing disabled so map and list state survive tab switches. The root bootstrap container usually preloads startup data first; this view keeps a fallback ``.task`` only for timeout / degraded-entry cases.
 struct MainTabView: View {
     private static var hasForcedDiscoverTabThisProcess = false
+    private static var didResetImageCacheDiagnosticsThisProcess = false
 
     @ObservedObject var viewModel: MapViewModel
     @ObservedObject var chatViewModel: ChatViewModel
@@ -184,6 +185,10 @@ struct MainTabView: View {
             dmInAppNotificationBannerLayer
         }
         .onAppear {
+            if !Self.didResetImageCacheDiagnosticsThisProcess {
+                Self.didResetImageCacheDiagnosticsThisProcess = true
+                ImageCacheDebug.resetSessionStats(reason: "coldLaunch")
+            }
             AdDebugContext.setVisibleTab(selectedTabStorage)
             mountedTabs.insert(.discover)
             let restoredTab = selectedTab
@@ -381,12 +386,22 @@ struct MainTabView: View {
             case .calendar:
                 privateChatUnlockedForCurrentSelection = false
                 updateDirectChatReadStateVisibility()
-                viewModel.noteCalendarTabBecameActive()
+                Task { @MainActor in
+                    await Task.yield()
+                    viewModel.noteCalendarTabBecameActive()
+                }
             case .chat:
                 updateDirectChatReadStateVisibility()
                 guard viewModel.isAuthenticatedForSocialFeatures else { return }
-                Task { await startChatSocialRealtimeIfNeeded(reason: "chatTabSelected") }
-                chatViewModel.requestBadgeRecalculation(reason: "chat_tab_selected", includeInboxSummaries: true)
+                Task {
+                    await Task.yield()
+                    await startChatSocialRealtimeIfNeeded(reason: "chatTabSelected")
+                    if !viewModel.didCompleteTabIntentPreloadRecently("chat", within: 10) {
+                        chatViewModel.requestBadgeRecalculation(reason: "chat_tab_selected", includeInboxSummaries: true)
+                    } else {
+                        AppPerfDebug.refreshSkipped(tab: "chat", source: "badgeRecalculation", reason: "tabPreloadRecent")
+                    }
+                }
             default:
                 privateChatUnlockedForCurrentSelection = false
                 updateDirectChatReadStateVisibility()
@@ -483,6 +498,13 @@ struct MainTabView: View {
         tabSwitchFromTab = selectedTab
         tabSwitchStartAt = Date()
         tabSwitchCachedData = tabHasCachedData(tab)
+        let cacheHit = tabSwitchCachedData ?? false
+        AppPerfDebug.tabSwitchStart(
+            tab: tab.rawValue,
+            from: tabSwitchFromTab?.rawValue,
+            cacheHit: cacheHit,
+            source: reason
+        )
         startTabIntentPreload(tab, reason: reason)
         UIPerformanceDiagnostics.signpost(
             "tab switch",
@@ -501,6 +523,7 @@ struct MainTabView: View {
     private func logTabFirstContentVisible(tab: AppTab, startedAt: Date, usedCachedData: Bool) {
         let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
         let from = tabSwitchFromTab?.rawValue ?? "unknown"
+        AppPerfDebug.tabSwitchEnd(tab: tab.rawValue, durationMs: ms, cacheHit: usedCachedData, source: "firstPaint")
         UIPerformanceDiagnostics.log("tabSwitch from=\(from) to=\(tab.rawValue) ms=\(ms) cached=\(usedCachedData)")
         print("[TabSwitchPerf] firstContentVisible from=\(from) to=\(tab.rawValue) durationMs=\(ms) cached=\(usedCachedData)")
         switch tab {
@@ -510,10 +533,12 @@ struct MainTabView: View {
         case .account:
             UIPerformanceDiagnostics.signpost("Profile tab open", "ms=\(ms)")
             print("[TabPreloadDebug] tab=account readyMs=\(ms)")
+            ImageCacheDebug.printSessionSummary(reason: "tabVisible:account")
         case .following:
             print("[TabPreloadDebug] tab=following readyMs=\(ms)")
         case .discover:
             print("[TabPreloadDebug] tab=discover readyMs=\(ms)")
+            ImageCacheDebug.printSessionSummary(reason: "tabVisible:discover")
         default:
             break
         }
@@ -572,8 +597,23 @@ struct MainTabView: View {
         tabPreloadTasks[tab] = task
     }
 
-    private func runTabIntentPreload(tab: AppTab, reason _: String) async {
+    private func runTabIntentPreload(tab: AppTab, reason: String) async {
         guard !hasConfirmedSuspensionGateForPreload else { return }
+        let tabKey = tab.rawValue
+        viewModel.markTabIntentPreloadBegan(tabKey)
+        defer { viewModel.markTabIntentPreloadEnded(tabKey) }
+        let preloadStartedAt = Date()
+        let cacheHit = tabHasCachedData(tab)
+        AppPerfDebug.networkFetchStarted(tab: tabKey, source: "tabIntentPreload:\(reason)")
+        defer {
+            let ms = Int(Date().timeIntervalSince(preloadStartedAt) * 1000)
+            AppPerfDebug.networkFetchFinished(
+                tab: tabKey,
+                source: "tabIntentPreload:\(reason)",
+                durationMs: ms,
+                cacheHit: cacheHit
+            )
+        }
         switch tab {
         case .chat:
             guard viewModel.isAuthenticatedForSocialFeatures else { return }
@@ -1407,11 +1447,16 @@ struct MainTabView: View {
 
     private func startChatSocialRealtimeIfNeeded(reason: String) async {
         guard viewModel.isAuthenticatedForSocialFeatures else { return }
-        guard !didStartChatSocialRealtime else { return }
+        guard !didStartChatSocialRealtime else {
+            AppPerfDebug.realtimeRestarted(false, source: "chatSocialAlreadyStarted:\(reason)")
+            await chatViewModel.ensureSignedInSocialRealtimeIfNeeded()
+            return
+        }
         didStartChatSocialRealtime = true
         chatSocialRealtimeDeferTask?.cancel()
         chatSocialRealtimeDeferTask = nil
         DebugLogGate.debug("[PerfPhase2D] chatRealtimeStarted reason=\(reason)")
+        AppPerfDebug.realtimeRestarted(true, source: "chatSocialStarted:\(reason)")
         await chatViewModel.ensureSignedInSocialRealtimeIfNeeded()
     }
 

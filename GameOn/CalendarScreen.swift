@@ -863,10 +863,18 @@ struct CalendarScreen: View {
 #endif
             return
         }
-        refreshCalendarProGamesIfNeeded(reason: "calendar_tab_appear")
-        guard viewModel.canFanUsePickupGamesUI else { return }
-        Task {
+        Task { @MainActor in
             await Task.yield()
+            refreshCalendarProGamesIfNeeded(reason: "calendar_tab_appear")
+            guard viewModel.canFanUsePickupGamesUI else { return }
+            guard !shouldDeferCalendarPickupRefreshAfterTabPreload() else {
+                AppPerfDebug.refreshSkipped(
+                    tab: "calendar",
+                    source: "pickupSources",
+                    reason: "tabPreloadRecentOrInFlight"
+                )
+                return
+            }
             await viewModel.refreshCalendarTabPickupSources(reason: "calendar_tab_appear")
         }
     }
@@ -915,9 +923,26 @@ struct CalendarScreen: View {
 
     private func handleCalendarTabSelectionChange(active: Bool) {
         guard active else { return }
+        AppPerfDebug.screenLoadStart(tab: "calendar", source: "tabSelected")
         sanitizeBusinessCalendarFilterIfNeeded()
-        refreshCalendarProGamesIfNeeded(reason: "calendar_tab_selected")
-        refreshCalendarPickupSourcesIfNeeded(reason: "calendar_tab_selected")
+        Task { @MainActor in
+            await Task.yield()
+            refreshCalendarProGamesIfNeeded(reason: "calendar_tab_selected")
+            guard shouldDeferCalendarPickupRefreshAfterTabPreload() else {
+                refreshCalendarPickupSourcesIfNeeded(reason: "calendar_tab_selected")
+                return
+            }
+            AppPerfDebug.refreshSkipped(
+                tab: "calendar",
+                source: "pickupSources",
+                reason: "tabPreloadRecentOrInFlight"
+            )
+        }
+    }
+
+    private func shouldDeferCalendarPickupRefreshAfterTabPreload() -> Bool {
+        viewModel.isTabIntentPreloadInFlight("calendar")
+            || viewModel.didCompleteTabIntentPreloadRecently("calendar", within: 12)
     }
 
     private func handleCalendarScenePhaseChange(_ phase: ScenePhase) {

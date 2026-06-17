@@ -188,6 +188,8 @@ final class ChatViewModel: ObservableObject {
     private var friendRequestRealtimeDebounceTask: Task<Void, Never>?
     /// Debounces ``ensureSignedInSocialRealtimeIfNeeded()`` after app foreground to avoid reconnect storms.
     private var socialRealtimeForegroundTask: Task<Void, Never>?
+    private var lastSocialRealtimeEnsureAt: Date?
+    private static let socialRealtimeForegroundSkipInterval: TimeInterval = 4
 
     func dmRealtimeIdentitySnapshot(fallbackAuthUserId: UUID? = nil) -> DMRealtimeIdentitySnapshot {
         let authUserId = currentUserAuthId ?? fallbackAuthUserId
@@ -334,6 +336,7 @@ final class ChatViewModel: ObservableObject {
         startInboxRealtimeListenerIfNeeded()
         startFriendshipsRealtimeListenerIfNeeded()
         syncChatPresenceRealtimeIfNeeded(reason: "ensureSignedInSocialRealtime")
+        lastSocialRealtimeEnsureAt = Date()
     }
 
     /// Debounced re-attach after foreground (avoids stacked reconnects with scene churn).
@@ -349,6 +352,13 @@ final class ChatViewModel: ObservableObject {
 #if DEBUG
             print("[RealtimeLifecycle] foreground debounced ensure")
 #endif
+            if let last = self.lastSocialRealtimeEnsureAt,
+               Date().timeIntervalSince(last) < Self.socialRealtimeForegroundSkipInterval {
+                AppPerfDebug.realtimeRestarted(false, source: "foregroundSkippedRecentEnsure")
+                await self.refreshChatPresenceSnapshots(reason: "foregroundReconnectSkipped")
+                self.requestForegroundBadgeRefresh()
+                return
+            }
             let identity = self.dmRealtimeIdentitySnapshot()
             DMRealtimeDiagnostics.debug(
                 "reconnectOnForeground=true accountType=\(identity.accountType) authUserId=\(identity.authUserIdLogValue) businessId=\(identity.businessIdLogValue)"
@@ -371,6 +381,7 @@ final class ChatViewModel: ObservableObject {
         RealtimeHealthDiagnostics.log("reconnectDetected=chat_social_foreground_resubscribe")
 #endif
         print("[PresenceDebug] foregroundReconnect=true")
+        AppPerfDebug.realtimeRestarted(true, source: "foregroundResubscribe")
         await stopInboxRealtimeListener()
         await stopFriendshipsRealtimeListener()
         await stopChatPresenceRealtimeListener()
@@ -828,6 +839,7 @@ final class ChatViewModel: ObservableObject {
     private func startInboxRealtimeListenerIfNeeded() {
         guard requiresSignIn == false else { return }
         guard inboxListenTask == nil, inboxChannel == nil else {
+            AppPerfDebug.realtimeRestarted(false, source: "inboxListenerAlreadyActive")
 #if DEBUG
             print("[RealtimeLifecycle] duplicate prevented (inbox listener already active)")
 #endif

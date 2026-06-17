@@ -51,6 +51,16 @@ struct FollowingScreen: View {
     @State private var selectedBusinessProGameFilter: BusinessProGameFilter = .all
     @State private var cachedGoingVenueGameItems: [FollowingGoingDisplayItem] = []
     @State private var cachedPlayingGameCards: [PickupGameJoinRequestCardDisplay] = []
+    @State private var goingTabPerf = GoingTabPerfState()
+
+    private struct GoingTabPerfState {
+        var cachedManualSavedProGamesForDisplay: [SavedProGame] = []
+        var cachedFavoriteTeamProGamesForDisplay: [FavoriteTeamProGame] = []
+        var firstPaintRecorded = false
+        var backgroundRefreshInFlight = false
+        var deferredWorkReady = false
+        var screenAppearAt: CFAbsoluteTime?
+    }
 
     private let followingMyPickupMinuteTicker = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
@@ -101,6 +111,18 @@ struct FollowingScreen: View {
     }
 
     var body: some View {
+        followingLifecycleRoot
+    }
+
+    private var followingLifecycleRoot: some View {
+        attachFollowingPresentation(to: followingLifecycleCore)
+    }
+
+    private var followingLifecycleCore: some View {
+        followingLifecycleEventHandlers
+    }
+
+    private var followingScreenShell: some View {
         ZStack {
             Color.clear
                 .fanGeoScreenBackground()
@@ -112,48 +134,59 @@ struct FollowingScreen: View {
                 loggedOutContent
             }
         }
-        .onAppear {
-            rebuildFollowingDisplayCaches(reason: "appear")
-            sanitizeBusinessGoingModeIfNeeded()
-            refreshFavoriteTeamProGamesIfVisible(reason: "appear")
-            if suppressInitialAutoRefresh && !didHandleInitialAutoRefresh {
-                didHandleInitialAutoRefresh = true
-                return
-            }
-            guard isFollowingTabSelected else { return }
-            guard viewModel.isAuthenticatedForSocialFeatures else { return }
-            Task {
-                await Task.yield()
-                await reloadFollowingDataForCurrentUser()
-            }
+    }
+
+    private var followingLifecycleEventHandlers: some View {
+        followingLifecycleTabOnChange
+    }
+
+    private var followingLifecycleOnChanges: some View {
+        followingLifecycleTasks
+        .onChange(of: scenePhase) {
+            handleFollowingScenePhaseChange(scenePhase)
         }
-        .onChange(of: viewModel.currentUserAuthId) { _, newId in
-            rebuildFollowingDisplayCaches(reason: "authChanged")
-            sanitizeBusinessGoingModeIfNeeded()
-            guard isFollowingTabSelected else { return }
-            if newId != nil {
-                Task {
-                    await Task.yield()
-                    await reloadFollowingDataForCurrentUser()
-                }
-            } else {
-                clearFollowingUserSpecificState()
-                interestedOnlyEncoded = ""
-            }
+        .onChange(of: viewModel.isAuthenticatedForSocialFeatures) { _, _ in
+            handleFollowingSocialAuthChange()
         }
+        .onChange(of: viewModel.followingTabGoingItems.count) { _, _ in
+            rebuildFollowingDisplayCaches(reason: "goingItemsChanged", prefetchAvatars: false)
+        }
+        .onChange(of: viewModel.myPickupGameJoinRequestCards) { _, _ in
+            rebuildFollowingDisplayCaches(reason: "pickupJoinCardsChanged", prefetchAvatars: false)
+        }
+        .onChange(of: viewModel.savedProGames.count) { _, _ in
+            scheduleGoingProGamesDisplayCacheRebuild(reason: "savedProGamesChanged")
+        }
+        .onChange(of: viewModel.favoriteTeamProGames.count) { _, _ in
+            scheduleGoingProGamesDisplayCacheRebuild(reason: "favoriteTeamProGamesChanged")
+        }
+        .onChange(of: proGamesAutoFollowFavoriteTeams) { _, _ in
+            scheduleGoingProGamesDisplayCacheRebuild(reason: "autoFollowToggled")
+        }
+        .onChange(of: clearedCompletedFavoriteTeamProGamesRaw) { _, _ in
+            scheduleGoingProGamesDisplayCacheRebuild(reason: "clearedCompletedChanged")
+        }
+        .onChange(of: viewModel.incomingPickupGameInvites.count) { _, _ in
+            prefetchVisibleGoingAvatars(reason: "incomingPickupInvitesChanged")
+        }
+    }
+
+    private var followingLifecycleTabOnChange: some View {
+        followingLifecycleOnChanges
+        .onChange(of: isFollowingTabSelected) {
+            handleFollowingTabSelectionChange(isFollowingTabSelected)
+        }
+    }
+
+    private var followingLifecycleTasks: some View {
+        followingLifecycleAuthOnChange
         .task(id: followingTabTaskIdentity) {
             guard isFollowingTabSelected else { return }
             guard viewModel.isAuthenticatedForSocialFeatures else { return }
-            await Task.yield()
-            if isBusinessProGamesOnly {
-                await reloadBusinessProGamesData(reason: "goingTabActivation")
-                return
-            }
-            guard viewModel.canUseFollowingTab else { return }
-            await viewModel.refreshFollowingTabDataGloballyUnlessFresh()
-            await viewModel.loadMyPickupGameJoinRequestsForFollowing(reason: "goingTabActivation")
-            await viewModel.loadIncomingPickupGameInvites()
-            await refreshFavoriteTeamProGames(reason: "goingTabActivation")
+            AppPerfDebug.screenLoadStart(tab: "following", source: "goingTabTask")
+            markGoingScreenAppear(source: "goingTabTask")
+            await prepareGoingTabVisibleSurface(reason: "goingTabTask")
+            await performGoingTabBackgroundRefresh(reason: "goingTabActivation")
         }
         .task(id: favoriteTeamAutoFollowTaskIdentity) {
             guard favoriteTeamAutoFollowTaskIdentity != nil else { return }
@@ -163,6 +196,86 @@ struct FollowingScreen: View {
             guard businessFavoriteTeamProGamesTaskIdentity != nil else { return }
             await refreshBusinessFavoriteTeamProGames(reason: "businessFavoriteTeamsChanged")
         }
+    }
+
+    private var followingLifecycleAuthOnChange: some View {
+        followingScreenShell
+        .onAppear(perform: handleFollowingScreenAppear)
+        .onChange(of: viewModel.currentUserAuthId) {
+            handleFollowingAuthIdChange(viewModel.currentUserAuthId)
+        }
+    }
+
+    private func handleFollowingScreenAppear() {
+        rebuildFollowingDisplayCaches(reason: "appear", prefetchAvatars: false)
+        scheduleGoingProGamesDisplayCacheRebuild(reason: "appear")
+        sanitizeBusinessGoingModeIfNeeded()
+        if suppressInitialAutoRefresh && !didHandleInitialAutoRefresh {
+            didHandleInitialAutoRefresh = true
+            return
+        }
+        guard isFollowingTabSelected else { return }
+        guard viewModel.isAuthenticatedForSocialFeatures else { return }
+        markGoingScreenAppear(source: "onAppear")
+        Task {
+            await prepareGoingTabVisibleSurface(reason: "onAppear")
+            await performGoingTabBackgroundRefresh(reason: "onAppear")
+        }
+    }
+
+    private func handleFollowingAuthIdChange(_ newId: UUID?) {
+        rebuildFollowingDisplayCaches(reason: "authChanged", prefetchAvatars: false)
+        scheduleGoingProGamesDisplayCacheRebuild(reason: "authChanged")
+        sanitizeBusinessGoingModeIfNeeded()
+        guard isFollowingTabSelected else { return }
+        if newId != nil {
+            Task {
+                await prepareGoingTabVisibleSurface(reason: "authChanged")
+                await performGoingTabBackgroundRefresh(reason: "authChanged")
+            }
+        } else {
+            clearFollowingUserSpecificState()
+            interestedOnlyEncoded = ""
+        }
+    }
+
+    private func handleFollowingScenePhaseChange(_ phase: ScenePhase) {
+        guard phase == .active, isFollowingTabSelected else { return }
+        guard viewModel.isAuthenticatedForSocialFeatures, viewModel.canFanUsePickupGamesUI else { return }
+        Task {
+            await viewModel.loadMyPickupGameJoinRequestsForFollowing(reason: "foreground")
+            await viewModel.loadIncomingPickupGameInvites()
+        }
+    }
+
+    private func handleFollowingSocialAuthChange() {
+        rebuildFollowingDisplayCaches(reason: "socialAuthChanged", prefetchAvatars: false)
+        scheduleGoingProGamesDisplayCacheRebuild(reason: "socialAuthChanged")
+        sanitizeBusinessGoingModeIfNeeded()
+        Task { await syncFollowingAfterAuthChange() }
+    }
+
+    private func handleFollowingTabSelectionChange(_ visible: Bool) {
+        if visible {
+            AppPerfDebug.screenLoadStart(tab: "following", source: "tabVisible")
+            markGoingScreenAppear(source: "tabVisible")
+            goingTabPerf.firstPaintRecorded = false
+            goingTabPerf.deferredWorkReady = false
+            Task { @MainActor in
+                await prepareGoingTabVisibleSurface(reason: "tabVisible")
+                GoingPerfDebug.deferredWork("goingAvatarPrefetch", source: "tabVisible")
+                prefetchVisibleGoingAvatars(reason: "followingTabVisibleDeferred")
+                await performGoingTabBackgroundRefresh(reason: "tabVisible")
+            }
+        } else {
+            goingTabPerf.firstPaintRecorded = false
+            goingTabPerf.deferredWorkReady = false
+        }
+    }
+
+    @ViewBuilder
+    private func attachFollowingPresentation<Content: View>(to content: Content) -> some View {
+        content
         .sheet(item: $pickupDetailNav, onDismiss: {
             Task {
                 await viewModel.loadMyPickupGameJoinRequestsForFollowing(
@@ -172,41 +285,6 @@ struct FollowingScreen: View {
             }
         }) { token in
             DiscoverPickupGameDetailSheet(viewModel: viewModel, gameId: token.id)
-        }
-        .onChange(of: scenePhase) { _, phase in
-            guard phase == .active, isFollowingTabSelected else { return }
-            guard viewModel.isAuthenticatedForSocialFeatures, viewModel.canFanUsePickupGamesUI else { return }
-            Task {
-                await viewModel.loadMyPickupGameJoinRequestsForFollowing(reason: "foreground")
-                await viewModel.loadIncomingPickupGameInvites()
-            }
-        }
-        .onChange(of: viewModel.isAuthenticatedForSocialFeatures) { _, _ in
-            rebuildFollowingDisplayCaches(reason: "socialAuthChanged")
-            sanitizeBusinessGoingModeIfNeeded()
-            Task { await syncFollowingAfterAuthChange() }
-        }
-        .onChange(of: viewModel.followingTabGoingItems.count) { _, _ in
-            rebuildFollowingDisplayCaches(reason: "goingItemsChanged")
-        }
-        .onChange(of: viewModel.myPickupGameJoinRequestCards) { _, _ in
-            rebuildFollowingDisplayCaches(reason: "pickupJoinCardsChanged")
-        }
-        .onChange(of: viewModel.incomingPickupGameInvites.count) { _, _ in
-            prefetchVisibleGoingAvatars(reason: "incomingPickupInvitesChanged")
-        }
-        .onChange(of: isFollowingTabSelected) { _, visible in
-#if DEBUG
-            let started = CFAbsoluteTimeGetCurrent()
-#endif
-            if visible {
-                rebuildFollowingDisplayCaches(reason: "followingTabVisible")
-                refreshFavoriteTeamProGamesIfVisible(reason: "followingTabVisible")
-            }
-#if DEBUG
-            let ms = (CFAbsoluteTimeGetCurrent() - started) * 1000
-            print("[TabRenderPerf] tab=going visible=\(visible) renderMs=\(String(format: "%.2f", ms))")
-#endif
         }
         .alert(item: $followingPickupWithdrawConfirm) { state in
             Alert(
@@ -274,44 +352,30 @@ struct FollowingScreen: View {
                 logFollowingMyPickupGames(action: "detailSheetDismiss")
             }
         }) { game in
-            NavigationStack {
-                ScrollView {
-                    SettingsPickupMyGameListCard(
-                        viewModel: viewModel,
-                        row: game,
-                        pendingJoinCount: viewModel.organizerPendingPickupJoinRequests(for: game.id),
-                        withdrawnJoinRows: viewModel.pickupOrganizerWithdrawnRequestsByGameId[game.id] ?? [],
-                        now: followingMyPickupClockTick,
-                        colorScheme: followingColorScheme,
-                        onEdit: {
-                            followingMyPickupDetailGame = nil
-                            followingMyPickupFormMode = .edit(game)
-                        },
-                        onDelete: {
-                            followingMyPickupDetailGame = nil
-                            followingMyPickupDeleteTarget = game
-                        },
-                        onManageRequests: {
-                            followingMyPickupDetailGame = nil
-                            followingMyPickupOrganizerRequestsGame = game
-                        },
-                        onInvite: {
-                            followingMyPickupDetailGame = nil
-                            followingPickupInviteGame = game
-                        }
-                    )
-                    .environmentObject(chatViewModel)
-                    .padding(.vertical, 8)
+            FollowingMyPickupHostedGameDetailSheet(
+                viewModel: viewModel,
+                game: game,
+                now: followingMyPickupClockTick,
+                colorScheme: followingColorScheme,
+                onDone: { followingMyPickupDetailGame = nil },
+                onEdit: {
+                    followingMyPickupDetailGame = nil
+                    followingMyPickupFormMode = .edit(game)
+                },
+                onDelete: {
+                    followingMyPickupDetailGame = nil
+                    followingMyPickupDeleteTarget = game
+                },
+                onManageRequests: {
+                    followingMyPickupDetailGame = nil
+                    followingMyPickupOrganizerRequestsGame = game
+                },
+                onInvite: {
+                    followingMyPickupDetailGame = nil
+                    followingPickupInviteGame = game
                 }
-                .fanGeoScreenBackground()
-                .navigationTitle("Pickup game")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Done") { followingMyPickupDetailGame = nil }
-                    }
-                }
-            }
+            )
+            .environmentObject(chatViewModel)
         }
         .sheet(item: $proGamePredictionSheet) { context in
             ProGamePredictionSheet(viewModel: viewModel, game: context.game)
@@ -346,9 +410,11 @@ struct FollowingScreen: View {
     /// Reload Following when fan or business-owner auth changes while a Supabase session may already exist.
     private func syncFollowingAfterAuthChange() async {
         if viewModel.isAuthenticatedForSocialFeatures, isBusinessProGamesOnly {
-            await reloadBusinessProGamesData(reason: "authChanged")
+            await prepareGoingTabVisibleSurface(reason: "authChanged")
+            await performGoingTabBackgroundRefresh(reason: "authChanged")
         } else if viewModel.isAuthenticatedForSocialFeatures, viewModel.canUseFollowingTab {
-            await reloadFollowingDataForCurrentUser()
+            await prepareGoingTabVisibleSurface(reason: "authChanged")
+            await performGoingTabBackgroundRefresh(reason: "authChanged")
         } else {
             clearFollowingUserSpecificState()
             interestedOnlyEncoded = ""
@@ -572,7 +638,7 @@ struct FollowingScreen: View {
         cachedGoingVenueGameItems
     }
 
-    private func rebuildFollowingDisplayCaches(reason: String) {
+    private func rebuildFollowingDisplayCaches(reason: String, prefetchAvatars: Bool = true) {
 #if DEBUG
         let started = CFAbsoluteTimeGetCurrent()
 #endif
@@ -590,7 +656,9 @@ struct FollowingScreen: View {
             }
         }
         logGoingTabSortDebug(sorted)
-        prefetchVisibleGoingAvatars(reason: reason)
+        if prefetchAvatars {
+            prefetchVisibleGoingAvatars(reason: reason)
+        }
 #if DEBUG
         let ms = (CFAbsoluteTimeGetCurrent() - started) * 1000
         print("[RenderPerf] view=FollowingScreen renderMs=\(String(format: "%.2f", ms)) rebuildReason=\(reason)")
@@ -869,6 +937,11 @@ struct FollowingScreen: View {
         }
         .padding(.top, 6)
         .task(id: manualSavedProGamesForDisplay.map(\.stableKey).joined(separator: "|")) {
+            guard goingTabPerf.deferredWorkReady || isFollowingTabSelected else { return }
+            await Task.yield()
+            try? await Task.sleep(nanoseconds: 50_000_000)
+            guard !Task.isCancelled else { return }
+            GoingPerfDebug.deferredWork("predictionVoteSummaries", source: "fanSavedProGamesContent")
             await viewModel.prefetchProGamePredictionSummaries(for: manualSavedProGamesForDisplay)
         }
     }
@@ -965,7 +1038,7 @@ struct FollowingScreen: View {
     private func goingNativeAdRow(slot: GoingNativeAdSlot) -> some View {
         GoingNativeAdCard(
             slot: slot,
-            shouldRequestAd: goingProNativeAdsHostVisible
+            shouldRequestAd: goingProNativeAdsHostVisible && goingTabPerf.deferredWorkReady
         )
     }
 
@@ -990,18 +1063,147 @@ struct FollowingScreen: View {
     }
 
     private var manualSavedProGamesForDisplay: [SavedProGame] {
-        viewModel.savedProGames
-            .map { viewModel.currentSavedProGameSnapshot($0) }
-            .sorted(by: SavedProGame.displaySort)
+        goingTabPerf.cachedManualSavedProGamesForDisplay
     }
 
     private var favoriteTeamProGamesForDisplay: [FavoriteTeamProGame] {
-        let manualKeys = Set(manualSavedProGamesForDisplay.map(\.stableKey))
-        return viewModel.favoriteTeamProGames
+        goingTabPerf.cachedFavoriteTeamProGamesForDisplay
+    }
+
+    private func markGoingScreenAppear(source: String) {
+        goingTabPerf.screenAppearAt = CFAbsoluteTimeGetCurrent()
+        GoingPerfDebug.screenAppear(source: source)
+    }
+
+    private func prepareGoingTabVisibleSurface(reason: String) async {
+        if goingTabPerf.screenAppearAt == nil {
+            markGoingScreenAppear(source: reason)
+        }
+        await Task.yield()
+        let started = CFAbsoluteTimeGetCurrent()
+        if viewModel.savedProGames.isEmpty, let userID = viewModel.currentUserAuthId {
+            viewModel.reloadSavedProGamesFromStorage(for: userID)
+        }
+        rebuildFollowingDisplayCaches(reason: reason, prefetchAvatars: false)
+        await rebuildGoingProGamesDisplayCaches(reason: reason)
+        let ms = (CFAbsoluteTimeGetCurrent() - started) * 1000
+        AppPerfDebug.mainActorBlocked(ms: ms, tab: "following", source: "prepareGoingTabVisibleSurface")
+#if DEBUG
+        print("[TabRenderPerf] tab=going visible=true renderMs=\(String(format: "%.2f", ms)) reason=\(reason)")
+#endif
+        recordGoingFirstPaintIfNeeded(source: reason)
+        goingTabPerf.deferredWorkReady = true
+    }
+
+    private func recordGoingFirstPaintIfNeeded(source: String) {
+        guard !goingTabPerf.firstPaintRecorded else { return }
+        goingTabPerf.firstPaintRecorded = true
+        let elapsedMs = Int(((goingTabPerf.screenAppearAt.map { CFAbsoluteTimeGetCurrent() - $0 } ?? 0) * 1000).rounded())
+        let usedCachedData =
+            !viewModel.savedProGames.isEmpty
+            || !viewModel.favoriteTeamProGames.isEmpty
+            || !viewModel.followingTabGoingItems.isEmpty
+            || !viewModel.myPickupGameJoinRequestCards.isEmpty
+        GoingPerfDebug.firstPaint(
+            ms: max(0, elapsedMs),
+            usedCachedData: usedCachedData,
+            savedGamesCount: viewModel.savedProGames.count,
+            favoriteTeamGamesCount: viewModel.favoriteTeamProGames.count,
+            source: source
+        )
+    }
+
+    private func performGoingTabBackgroundRefresh(reason: String) async {
+        guard viewModel.isAuthenticatedForSocialFeatures else { return }
+        if goingTabPerf.backgroundRefreshInFlight {
+            GoingPerfDebug.duplicateRefreshSkipped(source: reason, reason: "inFlight")
+            return
+        }
+        goingTabPerf.backgroundRefreshInFlight = true
+        defer { goingTabPerf.backgroundRefreshInFlight = false }
+
+        let startedAt = Date()
+        GoingPerfDebug.refreshStarted(source: reason)
+        defer {
+            let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
+            GoingPerfDebug.refreshFinished(source: reason, durationMs: ms)
+            Task { await rebuildGoingProGamesDisplayCaches(reason: "refreshFinished:\(reason)") }
+        }
+
+        if isBusinessProGamesOnly {
+            await reloadBusinessProGamesData(reason: reason)
+            return
+        }
+
+        guard viewModel.canUseFollowingTab else { return }
+
+        if viewModel.didCompleteTabIntentPreloadRecently("following", within: 12) {
+            AppPerfDebug.refreshSkipped(tab: "following", source: reason, reason: "tabPreloadRecent")
+            GoingPerfDebug.duplicateRefreshSkipped(source: reason, reason: "tabPreloadRecent")
+            await viewModel.fetchSavedProGames(reason: "goingDeferred:\(reason)")
+            await scheduleDeferredGoingTabWork(reason: reason)
+            return
+        }
+
+        if viewModel.isTabIntentPreloadInFlight("following") {
+            while viewModel.isTabIntentPreloadInFlight("following") {
+                await Task.yield()
+                try? await Task.sleep(nanoseconds: 40_000_000)
+                if Task.isCancelled { return }
+            }
+            GoingPerfDebug.duplicateRefreshSkipped(source: reason, reason: "awaitedTabPreload")
+            await viewModel.fetchSavedProGames(reason: "goingDeferred:\(reason)")
+            await scheduleDeferredGoingTabWork(reason: reason)
+            return
+        }
+
+        await viewModel.refreshFollowingTabDataGloballyUnlessFresh()
+        rebuildFollowingDisplayCaches(reason: "backgroundRefresh:\(reason)", prefetchAvatars: false)
+        await viewModel.fetchSavedProGames(reason: "goingBackground:\(reason)")
+        await viewModel.loadMyPickupGameJoinRequestsForFollowing(reason: reason)
+        await viewModel.loadIncomingPickupGameInvites()
+        await scheduleDeferredGoingTabWork(reason: reason)
+    }
+
+    private func scheduleDeferredGoingTabWork(reason: String) async {
+        GoingPerfDebug.deferredWork("favoriteTeamProGamesRefresh", source: reason)
+        await refreshFavoriteTeamProGames(reason: reason)
+        rebuildFollowingDisplayCaches(reason: "deferred:\(reason)", prefetchAvatars: false)
+        GoingPerfDebug.deferredWork("goingAvatarPrefetch", source: reason)
+        prefetchVisibleGoingAvatars(reason: "deferred:\(reason)")
+    }
+
+    private func scheduleGoingProGamesDisplayCacheRebuild(reason: String) {
+        Task { await rebuildGoingProGamesDisplayCaches(reason: reason) }
+    }
+
+    private func rebuildGoingProGamesDisplayCaches(reason: String) async {
+        let snapshots = viewModel.savedProGames.map { viewModel.currentSavedProGameSnapshot($0) }
+        let manualKeys = Set(snapshots.map(\.stableKey))
+        let filteredFavorites = viewModel.favoriteTeamProGames
             .map(currentFavoriteTeamProGameSnapshot)
             .filter { !manualKeys.contains($0.game.stableKey) }
             .filter { !isCompletedFavoriteTeamProGameCleared($0.game, scope: "fan") }
-            .sorted { SavedProGame.displaySort($0.game, $1.game) }
+
+        let sortedManual: [SavedProGame]
+        let sortedFavorites: [FavoriteTeamProGame]
+        if snapshots.count + filteredFavorites.count > 12 {
+            sortedManual = await Task.detached(priority: .utility) {
+                snapshots.sorted(by: SavedProGame.displaySort)
+            }.value
+            sortedFavorites = await Task.detached(priority: .utility) {
+                filteredFavorites.sorted { SavedProGame.displaySort($0.game, $1.game) }
+            }.value
+        } else {
+            sortedManual = snapshots.sorted(by: SavedProGame.displaySort)
+            sortedFavorites = filteredFavorites.sorted { SavedProGame.displaySort($0.game, $1.game) }
+        }
+
+        goingTabPerf.cachedManualSavedProGamesForDisplay = sortedManual
+        goingTabPerf.cachedFavoriteTeamProGamesForDisplay = sortedFavorites
+#if DEBUG
+        print("[GoingPerfDebug] rebuildProGamesDisplayCaches reason=\(reason) saved=\(sortedManual.count) favorite=\(sortedFavorites.count)")
+#endif
     }
 
     private var businessFavoriteTeamsForDisplay: [FavoriteTeam] {
@@ -4262,4 +4464,46 @@ private struct PickupHostedCardRenderToken: Equatable {
 
 private func encodeInterestedOnlyUUIDs(_ set: Set<UUID>) -> String {
     set.map(\.uuidString).sorted().joined(separator: ",")
+}
+
+private struct FollowingMyPickupHostedGameDetailSheet: View {
+    @ObservedObject var viewModel: MapViewModel
+    @EnvironmentObject private var chatViewModel: ChatViewModel
+    let game: PickupGameRow
+    let now: Date
+    let colorScheme: ColorScheme
+    let onDone: () -> Void
+    let onEdit: () -> Void
+    let onDelete: () -> Void
+    let onManageRequests: () -> Void
+    let onInvite: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                SettingsPickupMyGameListCard(
+                    viewModel: viewModel,
+                    row: game,
+                    pendingJoinCount: viewModel.organizerPendingPickupJoinRequests(for: game.id),
+                    withdrawnJoinRows: viewModel.pickupOrganizerWithdrawnRequestsByGameId[game.id] ?? [],
+                    now: now,
+                    colorScheme: colorScheme,
+                    onEdit: onEdit,
+                    onDelete: onDelete,
+                    onManageRequests: onManageRequests,
+                    onInvite: onInvite
+                )
+                .environmentObject(chatViewModel)
+                .padding(.vertical, 8)
+            }
+            .fanGeoScreenBackground()
+            .navigationTitle("Pickup game")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done", action: onDone)
+                }
+            }
+        }
+    }
 }

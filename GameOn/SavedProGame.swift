@@ -437,10 +437,13 @@ extension MapViewModel {
                 print("[TabPerfDebug] usedCachedData=true tab=going source=savedProGames")
                 print("[TabPerfDebug] refreshSkippedReason=fresh tab=going source=savedProGames reason=\(reason)")
 #endif
-                await reconcileSavedProGamesAppleCalendar(
-                    reason: "savedProGamesFresh:\(reason)",
-                    forceBypassFreshness: false
-                )
+                skipProGamesCalendarReconcileAtStartup(reason: "savedProGamesFresh:\(reason)")
+                if LaunchBootstrapState.didBecomeAppReady {
+                    scheduleDeferredProGamesAppleCalendarReconcileAfterAppReady(
+                        reason: "savedProGamesFresh:\(reason)",
+                        replaceExisting: true
+                    )
+                }
                 return
             }
         }
@@ -505,10 +508,13 @@ extension MapViewModel {
             lastSavedProGamesFetchAt = Date()
             lastSavedProGamesFetchUserId = userID
             await reconcileSavedProGameReminders(reason: "savedProGamesFetch")
-            await reconcileSavedProGamesAppleCalendar(
-                reason: "savedProGamesFetch",
-                forceBypassFreshness: true
-            )
+            skipProGamesCalendarReconcileAtStartup(reason: "savedProGamesFetch")
+            if LaunchBootstrapState.didBecomeAppReady {
+                scheduleDeferredProGamesAppleCalendarReconcileAfterAppReady(
+                    reason: "savedProGamesFetch",
+                    replaceExisting: true
+                )
+            }
 
             for snapshot in localSnapshots where !remoteKeys.contains(snapshot.stableKey) {
                 guard currentUserAuthId == userID else { return }
@@ -529,10 +535,13 @@ extension MapViewModel {
                 savedProGames = localSnapshots
                 ensureSavedProGameScoreUpdatePreferencesExist(for: localSnapshots)
             }
-            await reconcileSavedProGamesAppleCalendar(
-                reason: "savedProGamesFetchFallback",
-                forceBypassFreshness: true
-            )
+            skipProGamesCalendarReconcileAtStartup(reason: "savedProGamesFetchFallback")
+            if LaunchBootstrapState.didBecomeAppReady {
+                scheduleDeferredProGamesAppleCalendarReconcileAfterAppReady(
+                    reason: "savedProGamesFetchFallback",
+                    replaceExisting: true
+                )
+            }
         }
     }
 
@@ -1000,6 +1009,7 @@ extension MapViewModel {
         }
 
         var changedSavedSnapshots = false
+        var calendarSyncCandidates: [SavedProGame] = []
 
         for savedIndex in savedProGames.indices {
             let previousSavedSnapshot = savedProGames[savedIndex]
@@ -1039,6 +1049,9 @@ extension MapViewModel {
             if updatedSnapshot != previousSavedSnapshot {
                 savedProGames[savedIndex] = updatedSnapshot
                 changedSavedSnapshots = true
+                if savedProGameCalendarFieldsChanged(from: previousSavedSnapshot, to: updatedSnapshot) {
+                    calendarSyncCandidates.append(updatedSnapshot)
+                }
                 if savedProGamePersistentFieldsChanged(from: previousSavedSnapshot, to: updatedSnapshot) {
                     persistHydratedSavedProGameToBackend(
                         updatedSnapshot,
@@ -1069,14 +1082,31 @@ extension MapViewModel {
         if changedSavedSnapshots {
             sortSavedProGames()
             persistSavedProGames()
+            guard !calendarSyncCandidates.isEmpty else { return changedSavedSnapshots }
+            let gamesToSync = calendarSyncCandidates
             Task { [weak self] in
-                await self?.reconcileSavedProGamesAppleCalendar(
-                    reason: "savedProGameStatusUpdate:\(reason)",
-                    forceBypassFreshness: true
-                )
+                guard let self else { return }
+                guard notificationSettingsStore.syncGoingGamesToAppleCalendar,
+                      notificationSettingsStore.syncSavedProGamesToAppleCalendar else {
+                    return
+                }
+                for game in gamesToSync {
+                    await self.syncSavedProGameToAppleCalendar(
+                        game,
+                        action: "statusUpdate:\(reason)",
+                        forceBypassFreshness: true
+                    )
+                }
             }
         }
         return changedSavedSnapshots
+    }
+
+    private func savedProGameCalendarFieldsChanged(from previous: SavedProGame, to updated: SavedProGame) -> Bool {
+        previous.startTime != updated.startTime
+            || previous.league != updated.league
+            || previous.homeTeam != updated.homeTeam
+            || previous.awayTeam != updated.awayTeam
     }
 
     private func savedProGamePersistentFieldsChanged(from previous: SavedProGame, to updated: SavedProGame) -> Bool {
