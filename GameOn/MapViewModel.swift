@@ -116,8 +116,7 @@ final class MapViewModel: ObservableObject {
             Task {
                 await PushNotificationRegistrationService.shared.upsertCurrentTokenIfPossible(reason: "currentUserAuthIdChanged")
                 await PushNotificationRegistrationService.shared.registerForRemoteNotificationsIfAuthorized(reason: "currentUserAuthIdChanged")
-                await loadFavoriteTeamProGameAlertsPreferenceFromBackend(reason: "currentUserAuthIdChanged")
-                await syncProGameFinalScorePreferenceToBackend(reason: "currentUserAuthIdChanged")
+                await loadProGameNotificationPreferencesFromBackend(reason: "currentUserAuthIdChanged")
             }
         }
     }
@@ -477,7 +476,11 @@ final class MapViewModel: ObservableObject {
 
     var proGameReminderNotifications: Bool {
         get { notificationSettingsStore.proGameReminderNotifications }
-        set { notificationSettingsStore.proGameReminderNotifications = newValue }
+    }
+
+    var proGameReminderTiming: ProGameReminderTiming {
+        get { notificationSettingsStore.proGameReminderTiming }
+        set { notificationSettingsStore.proGameReminderTiming = newValue }
     }
     
     @Published var events: [SportsEvent] = SampleData.events

@@ -1140,7 +1140,8 @@ extension MapViewModel {
     private func calendarSyncProGameTitle(for game: SavedProGame) -> String {
         ProGameNotificationFormatting.matchupTitle(
             awayTeam: game.awayTeam,
-            homeTeam: game.homeTeam
+            homeTeam: game.homeTeam,
+            source: "AppleCalendar"
         )
     }
 
@@ -1317,25 +1318,29 @@ extension MapViewModel {
         if calendarSyncEventKind(fanGeoIdentifier: fanGeoIdentifier) == .pro {
             return calendarSyncProGameDisplayTitle(title: baseTitle, competition: location)
         }
-        guard !calendarSyncTitle(baseTitle, hasCaseInsensitivePrefix: "FanGeo:"),
-              !calendarSyncTitle(baseTitle, hasCaseInsensitivePrefix: "FanGeo Pickup:")
+        let flaggedTitle = ProGameNotificationFormatting.formatTextContainingTeamNames(
+            baseTitle,
+            source: "AppleCalendar"
+        )
+        guard !calendarSyncTitle(flaggedTitle, hasCaseInsensitivePrefix: "FanGeo:"),
+              !calendarSyncTitle(flaggedTitle, hasCaseInsensitivePrefix: "FanGeo Pickup:")
         else {
-            return baseTitle
+            return flaggedTitle
         }
 
         switch calendarSyncEventKind(fanGeoIdentifier: fanGeoIdentifier) {
         case .pickup:
-            return "FanGeo Pickup: \(baseTitle)"
+            return "FanGeo Pickup: \(flaggedTitle)"
         case .venue:
             let venueName = calendarSyncCleanLocation(location) ?? ""
             if venueName.isEmpty || venueName.localizedCaseInsensitiveCompare("Venue") == .orderedSame {
-                return "FanGeo: \(baseTitle)"
+                return "FanGeo: \(flaggedTitle)"
             }
-            return "FanGeo: \(baseTitle) @ \(venueName)"
+            return "FanGeo: \(flaggedTitle) @ \(venueName)"
         case .pro:
-            return calendarSyncProGameDisplayTitle(title: baseTitle, competition: location)
+            return calendarSyncProGameDisplayTitle(title: flaggedTitle, competition: location)
         case .general:
-            return "FanGeo: \(baseTitle)"
+            return "FanGeo: \(flaggedTitle)"
         }
     }
 
@@ -1358,7 +1363,11 @@ extension MapViewModel {
             )
         case .venue:
             if !cleanTitle.isEmpty {
-                lines.append("Teams: \(cleanTitle)")
+                let teamsLine = ProGameNotificationFormatting.formatTextContainingTeamNames(
+                    cleanTitle,
+                    source: "AppleCalendar"
+                )
+                lines.append("Teams: \(teamsLine)")
             }
             if !cleanLocation.isEmpty {
                 lines.append("Venue: \(cleanLocation)")
@@ -1414,8 +1423,35 @@ extension MapViewModel {
     private func calendarSyncProGameDisplayTitle(title: String, competition: String) -> String {
         let cleanTitle = calendarSyncTitleRemovingFanGeoPrefix(title)
         let icon = calendarSyncSportIcon(title: cleanTitle, competition: competition)
-        guard !icon.isEmpty else { return "FanGeo: \(cleanTitle)" }
-        return "FanGeo: \(icon) · \(cleanTitle)"
+        let displayTitle: String
+        if icon.isEmpty {
+            displayTitle = "FanGeo: \(cleanTitle)"
+        } else {
+            displayTitle = "FanGeo: \(icon) · \(cleanTitle)"
+        }
+#if DEBUG
+        if let teams = calendarSyncParseMatchupTeams(from: title) {
+            CountryFlagHelper.logCalendarMatchupFlagDebug(
+                awayTeam: teams.away,
+                homeTeam: teams.home,
+                finalTitle: displayTitle,
+                source: "AppleCalendar"
+            )
+        }
+#endif
+        return displayTitle
+    }
+
+    private func calendarSyncParseMatchupTeams(from title: String) -> (away: String, home: String)? {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        for separator in [" vs ", " v ", " @ ", " at "] {
+            guard let range = trimmed.range(of: separator, options: .caseInsensitive) else { continue }
+            let away = ProGameTeamScoreIdentity.cleanTeamName(String(trimmed[..<range.lowerBound]))
+            let home = ProGameTeamScoreIdentity.cleanTeamName(String(trimmed[range.upperBound...]))
+            guard !away.isEmpty, !home.isEmpty else { continue }
+            return (away, home)
+        }
+        return nil
     }
 
     private func calendarSyncTitleRemovingFanGeoPrefix(_ raw: String) -> String {
@@ -1428,14 +1464,38 @@ extension MapViewModel {
             title = String(title[range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
             break
         }
+        if calendarSyncTitleContainsMatchupSeparator(title) {
+            return title.isEmpty ? "Game" : title
+        }
+        calendarSyncStripLeadingDecorativePrefix(from: &title)
+        return title.isEmpty ? "Game" : title
+    }
+
+    private func calendarSyncTitleContainsMatchupSeparator(_ title: String) -> Bool {
+        [" vs ", " v ", " @ ", " at "].contains { separator in
+            title.range(of: separator, options: .caseInsensitive) != nil
+        }
+    }
+
+    private func calendarSyncStripLeadingDecorativePrefix(from title: inout String) {
         while let first = title.unicodeScalars.first,
-              first.properties.isEmojiPresentation || first.properties.generalCategory == .otherSymbol {
+              calendarSyncScalarIsDecorativeLeadingPrefix(first) {
             title = String(title.unicodeScalars.dropFirst()).trimmingCharacters(in: .whitespacesAndNewlines)
-            if title.hasPrefix("•") || title.hasPrefix("-") {
+            if title.hasPrefix("•") || title.hasPrefix("-") || title.hasPrefix("·") {
                 title = String(title.dropFirst()).trimmingCharacters(in: .whitespacesAndNewlines)
             }
         }
-        return title.isEmpty ? "Game" : title
+    }
+
+    private func calendarSyncScalarIsDecorativeLeadingPrefix(_ scalar: UnicodeScalar) -> Bool {
+        if scalar.properties.isEmojiPresentation {
+            return true
+        }
+        guard scalar.properties.generalCategory == .otherSymbol else {
+            return false
+        }
+        // Regional indicator symbols (country flags) must not be stripped from matchup titles.
+        return !(0x1F1E6...0x1F1FF).contains(scalar.value)
     }
 
     private func calendarSyncComparableTitle(_ raw: String) -> String {

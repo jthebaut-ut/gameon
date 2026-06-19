@@ -1,6 +1,14 @@
 import Foundation
 import Supabase
 
+enum VenueEventPredictionSummaryChangeKey {
+    static let eventIDs = "venueEventIDs"
+}
+
+extension Notification.Name {
+    static let venueEventPredictionSummaryDidChange = Notification.Name("VenueEventPredictionSummaryDidChange")
+}
+
 enum VenueEventPredictionType: String, CaseIterable, Identifiable, Codable, Sendable {
     case winner
     case score
@@ -151,10 +159,17 @@ final class VenueEventPredictionService {
 
     private let client: SupabaseClient
     private let cacheTTL: TimeInterval = 45
+    private let emptySummaryCacheTTL: TimeInterval = 8
     private var summaryCache: [UUID: (loadedAt: Date, userID: UUID?, summary: VenueEventPredictionSummary)] = [:]
 
     init(client: SupabaseClient = supabase) {
         self.client = client
+    }
+
+    private func cacheTTL(for summary: VenueEventPredictionSummary) -> TimeInterval {
+        summary.scorePredictionTotal == 0 && summary.totalCount == 0
+            ? emptySummaryCacheTTL
+            : cacheTTL
     }
 
     func fetchPredictionSummary(venueEventIds: [UUID], forceRefresh: Bool = false) async -> [UUID: VenueEventPredictionSummary] {
@@ -169,7 +184,7 @@ final class VenueEventPredictionService {
             if !forceRefresh,
                let cached = summaryCache[id],
                cached.userID == currentUserID,
-               now.timeIntervalSince(cached.loadedAt) < cacheTTL {
+               now.timeIntervalSince(cached.loadedAt) < cacheTTL(for: cached.summary) {
                 resolved[id] = cached.summary
             } else {
                 idsToFetch.append(id)
@@ -194,6 +209,11 @@ final class VenueEventPredictionService {
             let avatars = await loadAvatars(for: rows)
             for eventID in idsToFetch {
                 let eventRows = rows.filter { $0.venue_event_id == eventID }
+                Self.logVenuePredictionFetch(
+                    viewerUserID: currentUserID,
+                    venueEventID: eventID,
+                    rows: eventRows
+                )
                 let summary = Self.buildSummary(
                     eventID: eventID,
                     rows: eventRows,
@@ -330,8 +350,24 @@ final class VenueEventPredictionService {
                 choice: debugChoice
             )
 #endif
+            Self.logVenuePredictionSubmit(
+                userID: userID,
+                venueEventID: venueEventId,
+                predictionType: predictionType,
+                predictedHomeScore: predictedHomeScore,
+                predictedAwayScore: predictedAwayScore,
+                succeeded: false
+            )
             throw error
         }
+        Self.logVenuePredictionSubmit(
+            userID: userID,
+            venueEventID: venueEventId,
+            predictionType: predictionType,
+            predictedHomeScore: predictedHomeScore,
+            predictedAwayScore: predictedAwayScore,
+            succeeded: true
+        )
 #if DEBUG
         print("[PredictionDebug] voteSaved=true eventId=\(venueEventId.uuidString.lowercased()) type=\(predictionType.rawValue)")
         print("[PredictionDebug] voteUpserted=true eventId=\(venueEventId.uuidString.lowercased()) type=\(predictionType.rawValue)")
@@ -663,6 +699,45 @@ final class VenueEventPredictionService {
     private static func trimmed(_ value: String?) -> String? {
         let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private static func logVenuePredictionSubmit(
+        userID: UUID,
+        venueEventID: UUID,
+        predictionType: VenueEventPredictionType,
+        predictedHomeScore: Int?,
+        predictedAwayScore: Int?,
+        succeeded: Bool
+    ) {
+        guard predictionType == .score else { return }
+        let home = predictedHomeScore.map(String.init) ?? "nil"
+        let away = predictedAwayScore.map(String.init) ?? "nil"
+        print("[VenuePredictionDebug] submitUserId=\(userID.uuidString.lowercased())")
+        print("[VenuePredictionDebug] venueEventId=\(venueEventID.uuidString.lowercased())")
+        print("[VenuePredictionDebug] exactScoreSubmitted=\(home)-\(away)")
+        print("[VenuePredictionDebug] dbWriteSucceeded=\(succeeded)")
+    }
+
+    private static func logVenuePredictionFetch(
+        viewerUserID: UUID?,
+        venueEventID: UUID,
+        rows: [VenueEventPredictionRow]
+    ) {
+        let scoreRows = rows.filter { $0.prediction_type == VenueEventPredictionType.score.rawValue }
+        let crowdPicks = topScorePredictions(rows: scoreRows)
+        let topCrowd = crowdPicks
+            .filter { !$0.isOther }
+            .map { pick in
+                let home = pick.homeScore.map(String.init) ?? "nil"
+                let away = pick.awayScore.map(String.init) ?? "nil"
+                return "\(home)-\(away):\(pick.count)"
+            }
+            .joined(separator: ",")
+        print("[VenuePredictionDebug] fetchViewerUserId=\(viewerUserID?.uuidString.lowercased() ?? "nil")")
+        print("[VenuePredictionDebug] venueEventId=\(venueEventID.uuidString.lowercased())")
+        print("[VenuePredictionDebug] fetchedPredictionRows=\(rows.count)")
+        print("[VenuePredictionDebug] fetchedCrowdPickRows=\(scoreRows.count)")
+        print("[VenuePredictionDebug] topCrowdPicks=\(topCrowd.isEmpty ? "none" : topCrowd)")
     }
 }
 

@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - Legal & Safety (draft in-app policies; not legal advice)
+// MARK: - Legal & Safety (in-app policies)
 
 enum FanGeoLegalLinks {
     static let supportEmail = "support@fangeosports.com"
@@ -46,15 +46,15 @@ enum SettingsLegalDocumentKind: String, Identifiable, Hashable {
         }
     }
 
-    /// Placeholder date shown on every sheet (update when policies are revised).
-    static let lastUpdatedDisplay = "May 22, 2026"
+    /// Shown on every in-app legal/safety sheet header.
+    static let lastUpdatedDisplay = "June 18, 2026"
 
     var draftSections: [SettingsLegalContentSection] {
         switch self {
         case .privacyPolicy:
             return [
                 .init(heading: "Overview", body: """
-                This Privacy Policy explains how FanGeo collects, uses, shares, and retains information when you use the app. This in-app version is a draft for App Store submission and should be reviewed before public launch.
+                This Privacy Policy explains how FanGeo collects, uses, shares, and retains information when you use the FanGeo app.
                 """),
                 .init(heading: "Account and profile data", body: """
                 We collect information you provide or create for your account, such as email address, display name, username, bio, avatar, authentication identifiers, favorite teams, saved venues, saved games, attendance/interest signals, notification preferences, live visibility settings, blocks, reports, and similar profile or preference data.
@@ -81,13 +81,13 @@ enum SettingsLegalDocumentKind: String, Identifiable, Hashable {
                 We keep account and app data while needed to operate FanGeo, provide requested features, prevent abuse, resolve disputes, comply with law, and maintain safety records. Retention periods vary by data type. Public or shared content may remain after deletion when necessary to preserve conversations, reports, moderation history, venue records, business claims, or legal/compliance records.
                 """),
                 .init(heading: "Contact", body: """
-                For privacy or deletion questions, use the support channel available in the app or the final support contact listed in the hosted policy before launch.
+                For privacy or deletion questions, contact support@fangeosports.com or use the support channel available in the app.
                 """)
             ]
         case .termsOfService:
             return [
                 .init(heading: "Overview", body: """
-                These Terms of Service are draft rules for using FanGeo. By using the app, creating an account, posting content, sending messages, submitting reports, claiming a venue, or managing a business listing, you agree to follow these terms and any final version posted before public launch.
+                These Terms of Service govern your use of FanGeo. By using the app, creating an account, posting content, sending messages, submitting reports, claiming a venue, or managing a business listing, you agree to follow these terms.
                 """),
                 .init(heading: "Acceptable use", body: """
                 Use FanGeo only for lawful, personal, and legitimate business-listing purposes. Do not misuse the service, spam, scrape, crawl, harvest data, manipulate attendance or ratings, interfere with app security, bypass access controls, or attempt to access accounts, messages, reports, admin tools, venue tools, or data you are not authorized to use.
@@ -199,9 +199,6 @@ struct SettingsLegalDocumentSheet: View {
                     Text("Last updated: \(SettingsLegalDocumentKind.lastUpdatedDisplay)")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
-                    Text("Draft — for in-app reference only; not legal advice.")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
                 }
 
                 VStack(alignment: .leading, spacing: 18) {

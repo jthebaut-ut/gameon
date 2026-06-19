@@ -7,28 +7,48 @@ nonisolated enum ProGameNotificationFormatting {
     static let halftimeTitle = "⏱ Halftime"
     static let predictionResultTitle = "Prediction Results"
 
-    static func formattedTeam(_ rawTeamName: String) -> String {
+    static func formattedTeam(_ rawTeamName: String, source: String = "ProGameNotification") -> String {
         let cleaned = ProGameTeamScoreIdentity.cleanTeamName(rawTeamName)
         guard !cleaned.isEmpty else { return "" }
-        guard let flag = CountryFlagHelper.flag(for: cleaned, source: "ProGameNotification") else {
+        guard let flag = CountryFlagHelper.flag(for: cleaned, source: source)?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+              !flag.isEmpty else {
+            if source.localizedCaseInsensitiveContains("calendar") {
+                print("[CalendarFlagDebug] missingFlagFor=\(cleaned)")
+            }
             return cleaned
         }
         return "\(flag) \(cleaned)"
     }
 
-    static func flagEmoji(for rawTeamName: String) -> String? {
+    static func flagEmoji(for rawTeamName: String, source: String = "ProGameNotification") -> String? {
         let cleaned = ProGameTeamScoreIdentity.cleanTeamName(rawTeamName)
         guard !cleaned.isEmpty else { return nil }
-        return CountryFlagHelper.flag(for: cleaned, source: "ProGameNotification")
+        return CountryFlagHelper.flag(for: cleaned, source: source)
     }
 
-    static func matchupTitle(awayTeam: String, homeTeam: String) -> String {
-        let away = formattedTeam(awayTeam)
-        let home = formattedTeam(homeTeam)
-        if away.isEmpty, home.isEmpty { return "Saved Pro Game" }
-        if away.isEmpty { return home }
-        if home.isEmpty { return away }
-        return "\(away) vs \(home)"
+    static func matchupTitle(awayTeam: String, homeTeam: String, source: String = "ProGameNotification") -> String {
+        let away = formattedTeam(awayTeam, source: source)
+        let home = formattedTeam(homeTeam, source: source)
+        let title: String
+        if away.isEmpty, home.isEmpty {
+            title = "Saved Pro Game"
+        } else if away.isEmpty {
+            title = home
+        } else if home.isEmpty {
+            title = away
+        } else {
+            title = "\(away) vs \(home)"
+        }
+        if source.localizedCaseInsensitiveContains("calendar") {
+            CountryFlagHelper.logCalendarMatchupFlagDebug(
+                awayTeam: awayTeam,
+                homeTeam: homeTeam,
+                finalTitle: title,
+                source: source
+            )
+        }
+        return title
     }
 
     static func kickoffHeaderTitle(sport: String) -> String {
@@ -38,7 +58,7 @@ nonisolated enum ProGameNotificationFormatting {
         return "Kickoff"
     }
 
-    static func formatTextContainingTeamNames(_ text: String) -> String {
+    static func formatTextContainingTeamNames(_ text: String, source: String = "ProGameNotification") -> String {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return text }
 
@@ -47,10 +67,10 @@ nonisolated enum ProGameNotificationFormatting {
             let away = String(trimmed[..<range.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
             let home = String(trimmed[range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
             guard !away.isEmpty, !home.isEmpty else { continue }
-            return matchupTitle(awayTeam: away, homeTeam: home)
+            return matchupTitle(awayTeam: away, homeTeam: home, source: source)
         }
 
-        return formattedTeam(trimmed)
+        return formattedTeam(trimmed, source: source)
     }
 
     static func logPushFlagDebug(
@@ -122,6 +142,33 @@ nonisolated enum ProGameNotificationFormatting {
         case .baseball: return "⚾"
         case .nfl: return "🏈"
         default: return nil
+        }
+    }
+
+    static func cardNotificationTitle(cardType: LiveCardEventType, teamName: String) -> String {
+        let team = formattedTeam(teamName)
+        return "\(cardType.emoji) \(cardType.notificationTitleLabel) — \(team)"
+    }
+
+    static func cardNotificationBody(
+        cardType: LiveCardEventType,
+        minuteText: String?,
+        playerName: String?,
+        teamName: String
+    ) -> String {
+        let clock = minuteText ?? "?"
+        let player = playerName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        switch cardType {
+        case .yellow:
+            if !player.isEmpty {
+                return "\(clock) \(player) received a yellow card."
+            }
+            return "\(clock) \(formattedTeam(teamName)) received a yellow card."
+        case .red, .secondYellow:
+            if !player.isEmpty {
+                return "\(clock) \(player) was sent off."
+            }
+            return "\(clock) \(formattedTeam(teamName)) received a red card."
         }
     }
 }

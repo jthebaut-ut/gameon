@@ -1740,6 +1740,8 @@ struct LiveScreen: View {
                     emblemSize: 24
                 ),
                 timelineSummary: match.resolvedGoalDisplaySummary,
+                cardTimelineSummary: match.resolvedCardTimelineSummary,
+                gameId: SavedProGame.stableKey(for: match),
                 showsFramedFinalBackground: isFinalMatch,
                 flagSource: "Live"
             )

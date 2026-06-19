@@ -395,18 +395,19 @@ actor LiveSportsService {
         return "\"\(raw.replacingOccurrences(of: "\"", with: "\\\""))\""
     }
 
-#if DEBUG
     private func logSavedProHydrationQueryPlan(
         saved: SavedProGame,
         idsToFetch: [String],
         externalIdsToFetch: [String],
         source: String
     ) {
+#if DEBUG
         print("[SavedProGameHydrationDebug] savedId=\(saved.stableKey)")
         print("[SavedProGameHydrationDebug] providerId=\(saved.resolvedProviderExternalId ?? saved.externalId ?? saved.id)")
         print("[SavedProGameHydrationDebug] idsToFetch=\(idsToFetch.joined(separator: ","))")
         print("[SavedProGameHydrationDebug] externalIdsToFetch=\(externalIdsToFetch.joined(separator: ","))")
         print("[SavedProGameHydrationDebug] source=\(source)")
+#endif
     }
 
     private func logSavedProHydrationFetch(
@@ -415,10 +416,12 @@ actor LiveSportsService {
         source: String,
         lookup: String
     ) {
+#if DEBUG
         print("[SavedProGameHydrationDebug] lookup=\(lookup)")
         print("[SavedProGameHydrationDebug] idsToFetch=\(idsToFetch)")
         print("[SavedProGameHydrationDebug] externalIdsToFetch=\(externalIdsToFetch)")
         print("[SavedProGameHydrationDebug] source=\(source)")
+#endif
     }
 
     private func logSavedProHydrationFetchResult(
@@ -428,6 +431,7 @@ actor LiveSportsService {
         source: String,
         rows: [LiveMatchRow]
     ) {
+#if DEBUG
         print("[SavedProGameHydrationDebug] rawSupabaseRowsReturned=\(rows.count) lookup=\(lookup)")
         print("[SavedProGameHydrationDebug] idsToFetch=\(idsToFetch)")
         print("[SavedProGameHydrationDebug] externalIdsToFetch=\(externalIdsToFetch)")
@@ -440,8 +444,8 @@ actor LiveSportsService {
                 "timelineCount=\(row.timeline_events?.count ?? 0)"
             )
         }
-    }
 #endif
+    }
 
     private func sourceOrProviderIsTheSportsDB(_ saved: SavedProGame) -> Bool {
         if saved.source?.caseInsensitiveCompare("thesportsdb") == .orderedSame { return true }

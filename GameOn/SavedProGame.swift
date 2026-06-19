@@ -371,6 +371,7 @@ extension MapViewModel {
     private static let deliveredSavedProGameHalftimeNotificationsKey = "gameon.savedProGameHalftimeNotifications.v1"
     private static let deliveredSavedProGamePredictionResultNotificationsKey = "gameon.savedProGamePredictionResultNotifications.v1"
     private static let deliveredSavedProGameScoreNotificationsKey = "gameon.savedProGameScoreNotifications.v1"
+    private static let deliveredSavedProGameCardNotificationsKey = "gameon.savedProGameCardNotifications.v1"
     private static let savedProGameScoreUpdatePreferencesKey = "gameon.savedProGameScoreUpdatePreferences.v1"
     private static let legacySportDefaultsMigrationKeyPrefix = "gameon.savedProGameScoreUpdatePreferences.legacySportDefaultsMigrated.v1"
     private static let legacyProGameScoreUpdateDefaults: [(key: String, sportTokens: [String], defaultValue: Bool)] = [
@@ -1066,6 +1067,13 @@ extension MapViewModel {
                 deliverSavedProGameScoreUpdateNotificationIfNeeded(updatedSnapshot, previous: previousDisplaySnapshot, reason: reason)
             }
 
+            deliverSavedProGameCardNotificationsIfNeeded(
+                updatedSnapshot,
+                previous: previousDisplaySnapshot,
+                alertsEnabled: savedProGameScoreUpdatesEnabled(for: updatedSnapshot),
+                reason: reason
+            )
+
             if previousDisplaySnapshot.matchStatus == .live,
                updatedSnapshot.matchStatus == .halfTime {
                 deliverSavedProGameHalftimeNotificationIfNeeded(updatedSnapshot, reason: reason)
@@ -1548,6 +1556,86 @@ extension MapViewModel {
         "\(game.scoreAway)-\(game.scoreHome)"
     }
 
+    private func savedProGameCardNotificationToken(for gameId: String, eventKey: String) -> String {
+        let userScope = currentUserAuthId?.uuidString.lowercased() ?? "guest"
+        return "\(userScope)|\(gameId)|card|\(eventKey)"
+    }
+
+    private func savedProGameCardEvents(for game: SavedProGame) -> [LiveCardTimelineEntry] {
+        LiveCardTimelineBuilder.cardEvents(
+            sportType: game.liveSportVisualType,
+            timelineEvents: game.timelineEvents ?? [],
+            homeTeam: game.homeTeam,
+            awayTeam: game.awayTeam,
+            gameId: game.stableKey,
+            provider: game.source
+        )
+    }
+
+    private func deliverSavedProGameCardNotificationsIfNeeded(
+        _ game: SavedProGame,
+        previous: SavedProGame,
+        alertsEnabled: Bool,
+        reason: String
+    ) {
+        guard game.matchStatus.isHappeningNow else { return }
+
+        guard alertsEnabled else {
+            print("[ProGameCardNotificationDebug] gameId=\(game.stableKey) cardType=unknown eventKey=unknown notificationSent=false dedupeHit=false skipReason=scoreUpdatesOff reason=\(reason)")
+            return
+        }
+
+        let previousKeys = Set(savedProGameCardEvents(for: previous).map(\.stableEventKey))
+        let newCards = savedProGameCardEvents(for: game).filter { !previousKeys.contains($0.stableEventKey) }
+        guard !newCards.isEmpty else { return }
+
+        for card in newCards {
+            deliverSavedProGameCardNotification(card, game: game, reason: reason)
+        }
+    }
+
+    private func deliverSavedProGameCardNotification(
+        _ card: LiveCardTimelineEntry,
+        game: SavedProGame,
+        reason: String
+    ) {
+        let token = savedProGameCardNotificationToken(for: game.stableKey, eventKey: card.stableEventKey)
+        var delivered = Set(UserDefaults.standard.stringArray(forKey: Self.deliveredSavedProGameCardNotificationsKey) ?? [])
+        guard delivered.insert(token).inserted else {
+            print("[ProGameCardNotificationDebug] gameId=\(game.stableKey) cardType=\(card.cardType.stableToken) eventKey=\(card.stableEventKey) notificationSent=false dedupeHit=true reason=\(reason)")
+            return
+        }
+        UserDefaults.standard.set(Array(delivered).sorted(), forKey: Self.deliveredSavedProGameCardNotificationsKey)
+
+        guard let teamName = card.teamName else {
+            print("[ProGameCardNotificationDebug] gameId=\(game.stableKey) cardType=\(card.cardType.stableToken) eventKey=\(card.stableEventKey) notificationSent=false dedupeHit=false skipReason=missingTeam reason=\(reason)")
+            return
+        }
+
+        let title = ProGameNotificationFormatting.cardNotificationTitle(cardType: card.cardType, teamName: teamName)
+        let body = ProGameNotificationFormatting.cardNotificationBody(
+            cardType: card.cardType,
+            minuteText: card.minuteText,
+            playerName: card.playerName,
+            teamName: teamName
+        )
+        showSocialActionToast("\(title)\n\(body)", isError: false)
+
+        Task {
+            await GameReminderNotificationService.shared.scheduleProGameCardNotification(
+                for: ProGameCardNotificationEvent(
+                    identifier: game.stableKey,
+                    eventKey: card.stableEventKey,
+                    title: title,
+                    body: body,
+                    awayTeam: game.awayTeam,
+                    homeTeam: game.homeTeam,
+                    cardType: card.cardType
+                )
+            )
+        }
+    }
+
     func savedProGameScoreUpdatesEnabled(for game: SavedProGame) -> Bool {
         if let stored = savedProGameScoreUpdatePreference(for: game.stableKey) {
             return stored
@@ -1608,6 +1696,13 @@ extension MapViewModel {
                     reason: reason
                 )
             }
+
+            deliverSavedProGameCardNotificationsIfNeeded(
+                updatedGame,
+                previous: previousGame,
+                alertsEnabled: favoriteTeamProGameScoreUpdatesEnabled(for: updatedGame),
+                reason: reason
+            )
 
             if previousGame.matchStatus == .live,
                updatedGame.matchStatus == .halfTime,

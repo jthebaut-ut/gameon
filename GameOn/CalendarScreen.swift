@@ -1686,6 +1686,8 @@ struct CalendarScreen: View {
                         emblemSize: 22
                     ),
                     timelineSummary: match.resolvedGoalDisplaySummary,
+                    cardTimelineSummary: match.resolvedCardTimelineSummary,
+                    gameId: SavedProGame.stableKey(for: match),
                     showsFramedFinalBackground: false,
                     flagSource: "Calendar"
                 )

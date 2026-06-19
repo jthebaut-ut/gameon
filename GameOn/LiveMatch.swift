@@ -627,6 +627,72 @@ nonisolated enum LiveScoringEventResolver {
     }
 }
 
+// MARK: - Pro Game event team identity (display only)
+
+nonisolated enum ProGameEventTeamIdentity {
+    struct Resolved: Equatable {
+        let resolvedTeamName: String
+        let displaySuffix: String
+        let resolvedFlag: String?
+        let fallbackUsed: Bool
+    }
+
+    static func resolve(
+        rawTeamName: String?,
+        flagSource: String,
+        gameId: String? = nil,
+        eventType: String,
+        minute: String?,
+        playerName: String?
+    ) -> Resolved? {
+        guard let team = rawTeamName?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !team.isEmpty else {
+            return nil
+        }
+
+        let flag = CountryFlagHelper.flag(for: team, source: flagSource)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let shortCode = CountryFlagHelper.teamShortCode(for: team)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let suffix: String
+        let fallbackUsed: Bool
+        if let flag, !flag.isEmpty {
+            suffix = flag
+            fallbackUsed = false
+        } else if let shortCode, !shortCode.isEmpty {
+            suffix = shortCode.uppercased()
+            fallbackUsed = true
+        } else {
+            suffix = compactTeamAbbreviation(for: team)
+            fallbackUsed = true
+        }
+
+        if let gameId, !gameId.isEmpty {
+            print("[ProGameEventIdentityDebug] gameId=\(gameId) eventType=\(eventType) minute=\(minute ?? "nil") playerName=\(playerName ?? "nil") rawTeamName=\(team) resolvedTeamName=\(team) resolvedFlag=\(flag ?? "nil") fallbackUsed=\(fallbackUsed)")
+        }
+
+        return Resolved(
+            resolvedTeamName: team,
+            displaySuffix: suffix,
+            resolvedFlag: flag,
+            fallbackUsed: fallbackUsed
+        )
+    }
+
+    private static func compactTeamAbbreviation(for teamName: String) -> String {
+        let cleaned = ProGameTeamScoreIdentity.cleanTeamName(teamName)
+        let words = cleaned.split(whereSeparator: { $0.isWhitespace }).map(String.init)
+        if words.count >= 2 {
+            let acronym = words.prefix(3).compactMap(\.first).map { String($0) }.joined().uppercased()
+            if acronym.count >= 2 { return acronym }
+        }
+        let trimmed = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= 3 else { return trimmed.uppercased() }
+        return String(trimmed.prefix(3)).uppercased()
+    }
+}
+
 nonisolated struct LiveScoringTimelineEntry: Equatable {
     let teamName: String?
     let scorer: String
@@ -659,10 +725,21 @@ nonisolated struct LiveScoringTimelineEntry: Equatable {
         return parts.joined(separator: " ")
     }
 
-    func timelineLineText(showTeamMarker: Bool, flagSource: String = "GoingPro") -> String {
-        let flag = resolvedTeamFlag(flagSource: flagSource)
+    func timelineLineText(
+        showTeamMarker: Bool = true,
+        flagSource: String = "GoingPro",
+        gameId: String? = nil
+    ) -> String {
         let team = cleanTeamLabel(teamName)
         let player = cleanPlayerLabel(team: team)
+        let identity = ProGameEventTeamIdentity.resolve(
+            rawTeamName: team,
+            flagSource: flagSource,
+            gameId: gameId,
+            eventType: "goal",
+            minute: normalizedClock,
+            playerName: player
+        )
 
         if let clock = normalizedClock {
             if let player {
@@ -670,27 +747,25 @@ nonisolated struct LiveScoringTimelineEntry: Equatable {
                 if let marker, !marker.isEmpty {
                     line += " \(marker)"
                 }
-                if showTeamMarker, !flag.isEmpty {
-                    line += " \(flag)"
+                if let identity {
+                    line += " \(identity.displaySuffix)"
                 }
                 return line
             }
             if let team {
-                var line = clock
-                if !flag.isEmpty {
-                    line += " \(flag)"
+                var line = "\(clock) \(team)"
+                if let identity {
+                    line += " \(identity.displaySuffix)"
                 }
-                line += " \(team)"
                 return line
             }
         }
 
         if let team {
-            var line = "Goal:"
-            if !flag.isEmpty {
-                line += " \(flag)"
+            var line = "Goal: \(team)"
+            if let identity {
+                line += " \(identity.displaySuffix)"
             }
-            line += " \(team)"
             return line
         }
 
@@ -701,8 +776,8 @@ nonisolated struct LiveScoringTimelineEntry: Equatable {
         if let clock = normalizedClock, !line.isEmpty {
             line = "\(clock) \(line)"
         }
-        if showTeamMarker, !flag.isEmpty {
-            line = line.isEmpty ? flag : "\(line) \(flag)"
+        if let identity {
+            line = line.isEmpty ? identity.displaySuffix : "\(line) \(identity.displaySuffix)"
         }
         return line
     }
@@ -727,11 +802,6 @@ nonisolated struct LiveScoringTimelineEntry: Equatable {
             return nil
         }
         return trimmed
-    }
-
-    private func resolvedTeamFlag(flagSource: String) -> String {
-        guard let teamName = cleanTeamLabel(teamName) else { return "" }
-        return CountryFlagHelper.flag(for: teamName, source: flagSource) ?? ""
     }
 }
 
@@ -782,7 +852,8 @@ nonisolated struct LiveScoringTimelineSummary: Equatable {
         homeTeam: String,
         awayTeam: String,
         maxVisible: Int = Self.defaultMaxVisibleTimelineLines,
-        flagSource: String = "GoingPro"
+        flagSource: String = "GoingPro",
+        gameId: String? = nil
     ) -> (lines: [LiveScoringTimelineDisplayLine], overflowCount: Int) {
         if isScoreOnlyFallback {
             let allLines = scoreOnlyLines.map { LiveScoringTimelineDisplayLine(text: $0) }
@@ -792,10 +863,9 @@ nonisolated struct LiveScoringTimelineSummary: Equatable {
             return (Array(allLines.prefix(maxVisible)), allLines.count - maxVisible)
         }
 
-        let showTeamMarkers = shouldShowTeamMarkers()
         let allLines = entries.map { entry in
             LiveScoringTimelineDisplayLine(
-                text: entry.timelineLineText(showTeamMarker: showTeamMarkers, flagSource: flagSource)
+                text: entry.timelineLineText(flagSource: flagSource, gameId: gameId)
             )
         }
         guard allLines.count > maxVisible else {
@@ -816,20 +886,6 @@ nonisolated struct LiveScoringTimelineSummary: Equatable {
             parts.append("+\(display.overflowCount) more goals")
         }
         return parts.joined(separator: " | ")
-    }
-
-    private func shouldShowTeamMarkers() -> Bool {
-        let teams = Set(
-            entries.compactMap { entry -> String? in
-                guard let team = entry.teamName?.trimmingCharacters(in: .whitespacesAndNewlines),
-                      !team.isEmpty else {
-                    return nil
-                }
-                return LiveMatchFilters.normalizedSearchText(team)
-            }
-            .filter { !$0.isEmpty }
-        )
-        return teams.count >= 2
     }
 
     func teamGroupedLines(homeTeam: String, awayTeam: String) -> [String] {
@@ -1383,6 +1439,452 @@ nonisolated enum LiveScoringTimelineBuilder {
     private static func clean(_ raw: String?) -> String? {
         let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+// MARK: - Pro Game card / penalty timeline (soccer priority)
+
+nonisolated enum LiveCardEventType: String, Equatable, Codable {
+    case yellow
+    case red
+    case secondYellow
+
+    var emoji: String {
+        switch self {
+        case .yellow:
+            return "🟨"
+        case .red, .secondYellow:
+            return "🟥"
+        }
+    }
+
+    var notificationTitleLabel: String {
+        switch self {
+        case .yellow:
+            return "Yellow card"
+        case .red, .secondYellow:
+            return "Red card"
+        }
+    }
+
+    var stableToken: String {
+        switch self {
+        case .yellow:
+            return "yellow"
+        case .red:
+            return "red"
+        case .secondYellow:
+            return "second_yellow"
+        }
+    }
+}
+
+nonisolated struct LiveCardTimelineEntry: Equatable {
+    let eventKind: String
+    let cardType: LiveCardEventType
+    let minute: Int?
+    let minuteText: String?
+    let playerName: String?
+    let teamName: String?
+    let teamCountryCode: String?
+    let stableEventKey: String
+
+    func displayLine(flagSource: String, gameId: String? = nil) -> String {
+        let emoji = cardType.emoji
+        let clock = minuteText ?? minute.map { "\($0)'" } ?? "?"
+        let player = cleanedPlayerName
+        let team = cleanedTeamName
+        let eventType = cardType == .secondYellow ? "second_yellow_card" : "\(cardType.stableToken)_card"
+        let identity = ProGameEventTeamIdentity.resolve(
+            rawTeamName: team,
+            flagSource: flagSource,
+            gameId: gameId,
+            eventType: eventType,
+            minute: clock,
+            playerName: player
+        )
+
+        if cardType == .secondYellow {
+            if let player {
+                var line = "\(emoji) \(clock) \(player)"
+                if let identity {
+                    line += " \(identity.displaySuffix)"
+                }
+                return line
+            }
+            if let team {
+                var line = "\(emoji) \(clock) Second yellow — \(team)"
+                if let identity {
+                    line += " \(identity.displaySuffix)"
+                }
+                return line
+            }
+            return "\(emoji) \(clock) Second yellow"
+        }
+
+        if let player {
+            var line = "\(emoji) \(clock) \(player)"
+            if let identity {
+                line += " \(identity.displaySuffix)"
+            }
+            return line
+        }
+
+        if let team {
+            var line = "\(emoji) \(clock) \(team)"
+            if let identity {
+                line += " \(identity.displaySuffix)"
+            }
+            return line
+        }
+
+        return "\(emoji) \(clock)"
+    }
+
+    private var cleanedPlayerName: String? {
+        let trimmed = playerName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !trimmed.isEmpty else { return nil }
+        if let team = cleanedTeamName,
+           LiveCardTimelineBuilder.normalizedTeamText(trimmed) == LiveCardTimelineBuilder.normalizedTeamText(team) {
+            return nil
+        }
+        return trimmed
+    }
+
+    private var cleanedTeamName: String? {
+        let trimmed = teamName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+nonisolated struct LiveCardTimelineSummary: Equatable {
+    let entries: [LiveCardTimelineEntry]
+
+    static let defaultMaxVisibleCardLines = 2
+
+    var hasContent: Bool { !entries.isEmpty }
+
+    var cardsHeadingText: String { "Cards" }
+
+    var matchEventsHeadingText: String { "Match Events" }
+
+    func timelineDisplay(
+        maxVisible: Int = Self.defaultMaxVisibleCardLines,
+        flagSource: String = "GoingPro",
+        gameId: String? = nil
+    ) -> (lines: [String], overflowCount: Int) {
+        let allLines = entries.map { $0.displayLine(flagSource: flagSource, gameId: gameId) }
+        guard allLines.count > maxVisible else {
+            return (allLines, 0)
+        }
+        return (Array(allLines.prefix(maxVisible)), allLines.count - maxVisible)
+    }
+}
+
+nonisolated enum LiveCardTimelineBuilder {
+    static func buildSummary(
+        sportType: LiveSportVisualType,
+        timelineEvents: [LiveTimelineEvent],
+        homeTeam: String,
+        awayTeam: String,
+        gameId: String,
+        provider: String?
+    ) -> LiveCardTimelineSummary? {
+        let entries = cardEvents(
+            sportType: sportType,
+            timelineEvents: timelineEvents,
+            homeTeam: homeTeam,
+            awayTeam: awayTeam,
+            gameId: gameId,
+            provider: provider
+        )
+        guard !entries.isEmpty else { return nil }
+        return LiveCardTimelineSummary(entries: entries)
+    }
+
+    static func cardEvents(
+        sportType: LiveSportVisualType,
+        timelineEvents: [LiveTimelineEvent],
+        homeTeam: String,
+        awayTeam: String,
+        gameId: String,
+        provider: String?
+    ) -> [LiveCardTimelineEntry] {
+        let effectiveSport = resolvedSportType(for: sportType, timelineEvents: timelineEvents)
+        guard effectiveSport == .soccer || effectiveSport == .hockey else { return [] }
+
+        let sortedEvents = sortedTimelineEvents(timelineEvents)
+        var seenKeys = Set<String>()
+        var entries: [LiveCardTimelineEntry] = []
+
+        for event in sortedEvents {
+            guard let cardType = parseCardType(from: event, sportType: effectiveSport) else { continue }
+            guard let teamName = cardTeamName(for: event, homeTeam: homeTeam, awayTeam: awayTeam) else { continue }
+
+            let minuteText = cardMinuteText(for: event)
+            let minute = event.minuteValue
+            let playerName = cleaned(event.playerDisplayName)
+            let stableEventKey = stableCardEventKey(
+                gameId: gameId,
+                minuteText: minuteText ?? minute.map(String.init) ?? "",
+                cardType: cardType,
+                teamName: teamName,
+                playerName: playerName
+            )
+            guard seenKeys.insert(stableEventKey).inserted else { continue }
+
+            let entry = LiveCardTimelineEntry(
+                eventKind: "card",
+                cardType: cardType,
+                minute: minute,
+                minuteText: minuteText,
+                playerName: playerName,
+                teamName: teamName,
+                teamCountryCode: nil,
+                stableEventKey: stableEventKey
+            )
+            entries.append(entry)
+
+            logCardEventDebug(
+                gameId: gameId,
+                provider: provider,
+                timelineEventsCount: timelineEvents.count,
+                cardEventsCount: entries.count,
+                entry: entry
+            )
+        }
+
+#if DEBUG
+        if !entries.isEmpty {
+            print("[ProGameCardEventDebug] gameId=\(gameId) provider=\(provider ?? "unknown") timelineEventsCount=\(timelineEvents.count) cardEventsCount=\(entries.count)")
+        }
+#endif
+
+        return entries
+    }
+
+    static func normalizedTeamText(_ raw: String) -> String {
+        raw.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+    }
+
+#if DEBUG
+    static func debugSyntheticValidationSamples() {
+        let home = "Brazil"
+        let away = "Colombia"
+        let gameId = "debug-card-events"
+        let samples: [LiveTimelineEvent] = [
+            LiveTimelineEvent(
+                strTimeline: "card",
+                strTimelineDetail: "Yellow Card",
+                strHome: "Yes",
+                strPlayer: "Casemiro",
+                intTime: "38",
+                strTeam: home
+            ),
+            LiveTimelineEvent(
+                strTimeline: "card",
+                strTimelineDetail: "Red Card",
+                strHome: "No",
+                intTime: "72",
+                strTeam: away
+            ),
+            LiveTimelineEvent(
+                strTimeline: "Card",
+                strTimelineDetail: "Second Yellow Card",
+                strHome: "Yes",
+                strPlayer: "Player Name",
+                intTime: "45+2",
+                strTeam: "France"
+            ),
+            LiveTimelineEvent(
+                strTimeline: "Card",
+                strTimelineDetail: "Yellow Card",
+                strHome: "Yes",
+                intTime: "55",
+                strTeam: home
+            ),
+            LiveTimelineEvent(
+                strTimeline: "Card",
+                strTimelineDetail: "Red Card",
+                strHome: "Yes",
+                strPlayer: "A. Silva",
+                intTime: "72",
+                strTeam: "Portugal"
+            )
+        ]
+
+        let summary = buildSummary(
+            sportType: .soccer,
+            timelineEvents: samples,
+            homeTeam: home,
+            awayTeam: away,
+            gameId: gameId,
+            provider: "synthetic"
+        )
+        print("[ProGameCardEventDebug] syntheticValidation cardEventsCount=\(summary?.entries.count ?? 0)")
+        summary?.entries.forEach { entry in
+            print("[ProGameCardEventDebug] syntheticLine=\(entry.displayLine(flagSource: "Debug")) stableEventKey=\(entry.stableEventKey)")
+        }
+    }
+#endif
+
+    private static func resolvedSportType(
+        for sportType: LiveSportVisualType,
+        timelineEvents: [LiveTimelineEvent]
+    ) -> LiveSportVisualType {
+        if sportType == .soccer || sportType == .hockey { return sportType }
+        let hasCardRows = timelineEvents.contains { parseCardType(from: $0, sportType: .soccer) != nil }
+        if hasCardRows { return .soccer }
+        return sportType
+    }
+
+    private static func parseCardType(
+        from event: LiveTimelineEvent,
+        sportType: LiveSportVisualType
+    ) -> LiveCardEventType? {
+        let text = searchableText(for: event)
+        guard !text.isEmpty else { return nil }
+
+        if text.contains("second yellow")
+            || text.contains("yellow-red")
+            || text.contains("yellow red")
+            || text.contains("2nd yellow") {
+            return .secondYellow
+        }
+
+        if text.contains("red card")
+            || text.contains("redcard")
+            || (text.contains("red") && text.contains("card") && !text.contains("yellow")) {
+            return .red
+        }
+
+        if text.contains("yellow card")
+            || text.contains("yellowcard")
+            || (text.contains("yellow") && text.contains("card")) {
+            return .yellow
+        }
+
+        if sportType == .hockey,
+           text.contains("penalty"),
+           !text.contains("miss"),
+           !text.contains("shot"),
+           !text.contains("goal") {
+            return nil
+        }
+
+        if event.isCard || text == "card" {
+            if text.contains("yellow") { return .yellow }
+            if text.contains("red") { return .red }
+        }
+
+        return nil
+    }
+
+    private static func cardTeamName(
+        for event: LiveTimelineEvent,
+        homeTeam: String,
+        awayTeam: String
+    ) -> String? {
+        let homeFlag = event.strHome?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased() ?? ""
+        if ["yes", "true", "1", "home"].contains(homeFlag) { return homeTeam }
+        if ["no", "false", "0", "away"].contains(homeFlag) { return awayTeam }
+
+        guard let team = cleaned(event.strTeam), !team.isEmpty else { return nil }
+        let normalizedTeam = normalizedTeamText(team)
+        if normalizedTeam == normalizedTeamText(homeTeam) { return homeTeam }
+        if normalizedTeam == normalizedTeamText(awayTeam) { return awayTeam }
+        return team
+    }
+
+    private static func cardMinuteText(for event: LiveTimelineEvent) -> String? {
+        if let raw = cleaned(event.intTime) {
+            if raw.contains("+") || raw.contains("'") || raw.contains("’") {
+                return raw.replacingOccurrences(of: "’", with: "'").hasSuffix("'")
+                    ? raw.replacingOccurrences(of: "’", with: "'")
+                    : "\(raw)'"
+            }
+            if let minute = Int(raw), minute >= 0 {
+                return "\(minute)'"
+            }
+            return "\(raw)'"
+        }
+        return event.minuteText
+    }
+
+    private static func stableCardEventKey(
+        gameId: String,
+        minuteText: String,
+        cardType: LiveCardEventType,
+        teamName: String,
+        playerName: String?
+    ) -> String {
+        let normalizedGameId = gameId.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let normalizedMinute = minuteText
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+            .replacingOccurrences(of: "’", with: "'")
+        let normalizedTeam = normalizedTeamText(teamName)
+        let normalizedPlayer = normalizedTeamText(playerName ?? "")
+        return [
+            normalizedGameId,
+            normalizedMinute,
+            cardType.stableToken,
+            normalizedTeam,
+            normalizedPlayer
+        ].joined(separator: "|")
+    }
+
+    private static func sortedTimelineEvents(_ timelineEvents: [LiveTimelineEvent]) -> [LiveTimelineEvent] {
+        timelineEvents.sorted { lhs, rhs in
+            switch (lhs.minuteValue, rhs.minuteValue) {
+            case let (left?, right?):
+                if left != right { return left < right }
+                return lhs.id < rhs.id
+            case (_?, nil):
+                return true
+            case (nil, _?):
+                return false
+            case (nil, nil):
+                return lhs.id < rhs.id
+            }
+        }
+    }
+
+    private static func searchableText(for event: LiveTimelineEvent) -> String {
+        [
+            event.strTimeline,
+            event.strTimelineDetail,
+            event.strComment,
+            event.strPlayer,
+            event.strTeam
+        ]
+            .compactMap(cleaned)
+            .joined(separator: " ")
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
+    }
+
+    private static func cleaned(_ raw: String?) -> String? {
+        let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private static func logCardEventDebug(
+        gameId: String,
+        provider: String?,
+        timelineEventsCount: Int,
+        cardEventsCount: Int,
+        entry: LiveCardTimelineEntry
+    ) {
+#if DEBUG
+        print("[ProGameCardEventDebug] gameId=\(gameId) provider=\(provider ?? "unknown") timelineEventsCount=\(timelineEventsCount) cardEventsCount=\(cardEventsCount) cardType=\(entry.cardType.stableToken) minute=\(entry.minuteText ?? entry.minute.map(String.init) ?? "nil") teamName=\(entry.teamName ?? "nil") playerName=\(entry.playerName ?? "nil") stableEventKey=\(entry.stableEventKey)")
+#endif
     }
 }
 
@@ -2225,6 +2727,17 @@ nonisolated struct LiveMatch: Identifiable, Equatable, Codable {
             awayTeam: awayTeam,
             homeTeam: homeTeam,
             flagSource: "Live"
+        )
+    }
+
+    var resolvedCardTimelineSummary: LiveCardTimelineSummary? {
+        LiveCardTimelineBuilder.buildSummary(
+            sportType: liveSportVisualType,
+            timelineEvents: timelineEvents,
+            homeTeam: homeTeam,
+            awayTeam: awayTeam,
+            gameId: SavedProGame.stableKey(for: self),
+            provider: source
         )
     }
 

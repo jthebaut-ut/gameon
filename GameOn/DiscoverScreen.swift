@@ -939,6 +939,683 @@ struct DiscoverScreen: View {
         let awayTitle: String
     }
 
+    /// Classic football-club crest silhouette (generic, not any official mark).
+    private struct VenueSoccerClubShieldShape: Shape {
+        func path(in rect: CGRect) -> Path {
+            var path = Path()
+            let width = rect.width
+            let height = rect.height
+            path.move(to: CGPoint(x: width * 0.5, y: 0))
+            path.addLine(to: CGPoint(x: width * 0.94, y: height * 0.18))
+            path.addLine(to: CGPoint(x: width * 0.82, y: height))
+            path.addLine(to: CGPoint(x: width * 0.18, y: height))
+            path.addLine(to: CGPoint(x: width * 0.06, y: height * 0.18))
+            path.closeSubpath()
+            return path
+        }
+    }
+
+    /// Pro-style collapsed hero game card for the map venue preview (presentation only).
+    private struct VenuePreviewProHeroGameCard<GoingControl: View, ChatControl: View, PredictionRow: View>: View {
+        @Environment(\.colorScheme) private var colorScheme
+
+        let homeTheme: TeamTheme
+        let awayTheme: TeamTheme
+        let homeTitle: String
+        let awayTitle: String
+        let hasResolvedTeams: Bool
+        let fallbackTitle: String
+        let sportLabel: String
+        let sportIconName: String
+        let dateTimeText: String
+        let eventId: String
+        let goingCount: Int
+        let avatarProfiles: [UserProfileRow]
+        let viewerUserID: UUID?
+        let showsGoingSection: Bool
+        let onCardTap: () -> Void
+        @ViewBuilder let goingControl: () -> GoingControl
+        @ViewBuilder let chatControl: () -> ChatControl
+        @ViewBuilder let predictionRow: () -> PredictionRow
+
+        private let cornerRadius: CGFloat = 26
+
+        var body: some View {
+            VStack(spacing: 0) {
+                matchupHero
+                    .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+                    .onTapGesture {
+                        onCardTap()
+                    }
+
+                if showsGoingSection {
+                    VStack(spacing: 10) {
+                        goingSocialProofRow
+
+                        HStack(spacing: 10) {
+                            goingControl()
+                                .frame(maxWidth: .infinity)
+
+                            chatControl()
+                                .frame(maxWidth: .infinity)
+                        }
+
+                        predictionRow()
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .background {
+                        LinearGradient(
+                            colors: [
+                                Color.black.opacity(colorScheme == .dark ? 0.52 : 0.62),
+                                Color(red: 0.03, green: 0.06, blue: 0.14).opacity(0.94)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    }
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.14 : 0.10), lineWidth: 1)
+            }
+            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.38 : 0.16), radius: 18, y: 10)
+        }
+
+        private var matchupHero: some View {
+            ZStack {
+                safeVenueGameGradient(
+                    homeTheme: homeTheme,
+                    awayTheme: awayTheme,
+                    eventId: eventId,
+                    cardVariant: "proHero"
+                )
+
+                LinearGradient(
+                    colors: [
+                        Color.black.opacity(colorScheme == .dark ? 0.18 : 0.10),
+                        Color.black.opacity(colorScheme == .dark ? 0.44 : 0.34),
+                        Color(red: 0.02, green: 0.04, blue: 0.12).opacity(0.88)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+
+                RadialGradient(
+                    colors: [
+                        homeTheme.accentColor.opacity(0.22),
+                        Color.clear
+                    ],
+                    center: .leading,
+                    startRadius: 12,
+                    endRadius: 180
+                )
+
+                RadialGradient(
+                    colors: [
+                        awayTheme.accentColor.opacity(0.20),
+                        Color.clear
+                    ],
+                    center: .trailing,
+                    startRadius: 12,
+                    endRadius: 180
+                )
+
+                VStack(spacing: 0) {
+                    HStack(alignment: .top) {
+                        sportBadge
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 14)
+
+                    Spacer(minLength: 6)
+
+                    if hasResolvedTeams {
+                        let badgeSize = resolvedHeroBadgeSize()
+
+                        HStack(alignment: .center, spacing: 6) {
+                            teamMatchupBadge(
+                                theme: homeTheme,
+                                title: homeTitle,
+                                rawTeamName: homeTheme.rawName,
+                                badgeSize: badgeSize
+                            )
+                            .frame(width: badgeSize, alignment: .center)
+
+                            GeometryReader { geometry in
+                                let layout = matchupHeroLayoutMetrics(
+                                    centerWidth: geometry.size.width,
+                                    badgeSize: badgeSize
+                                )
+
+                                matchupCenterColumn(layout: layout)
+                                    .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: matchupHeroCenterStackHeight)
+
+                            teamMatchupBadge(
+                                theme: awayTheme,
+                                title: awayTitle,
+                                rawTeamName: awayTheme.rawName,
+                                badgeSize: badgeSize
+                            )
+                            .frame(width: badgeSize, alignment: .center)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.bottom, 12)
+                    } else {
+                        Text(fallbackTitle)
+                            .font(.system(size: 22, weight: .black, design: .rounded))
+                            .foregroundStyle(.white)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.72)
+                            .padding(.horizontal, 20)
+
+                        dateTimeRow
+                            .padding(.top, 8)
+                            .padding(.bottom, 14)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: showsGoingSection ? 208 : 200)
+        }
+
+        private var sportBadge: some View {
+            HStack(spacing: 6) {
+                Image(systemName: safeSportIconName)
+                    .font(.system(size: 11, weight: .black))
+                Text(safeSportLabel)
+                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .lineLimit(1)
+            }
+            .foregroundStyle(.white.opacity(0.88))
+            .textCase(.uppercase)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background {
+                Capsule(style: .continuous)
+                    .fill(Color.white.opacity(0.10))
+            }
+        }
+
+        private func resolvedHeroBadgeSize() -> CGFloat {
+            switch max(safeHomeTitle.count, safeAwayTitle.count) {
+            case ...11:
+                return 92
+            case ...16:
+                return 88
+            default:
+                return 84
+            }
+        }
+
+        private var matchupHeroCenterStackHeight: CGFloat {
+            let typography = matchupCenterTypography(
+                longestTitleLength: max(safeHomeTitle.count, safeAwayTitle.count)
+            )
+            let estimatedCenterWidth: CGFloat = 128
+            let homeBlock = matchupTeamBlockHeight(
+                title: safeHomeTitle,
+                fontSize: typography.teamSize,
+                availableWidth: estimatedCenterWidth
+            )
+            let awayBlock = matchupTeamBlockHeight(
+                title: safeAwayTitle,
+                fontSize: typography.teamSize,
+                availableWidth: estimatedCenterWidth
+            )
+            return homeBlock + awayBlock + typography.vsSize + 22
+        }
+
+        private struct MatchupHeroLayoutMetrics {
+            let badgeSize: CGFloat
+            let centerWidth: CGFloat
+            let typography: MatchupCenterTypography
+            let homeTeamBlockHeight: CGFloat
+            let awayTeamBlockHeight: CGFloat
+        }
+
+        private struct MatchupCenterTypography {
+            let teamSize: CGFloat
+            let vsSize: CGFloat
+            let minimumScaleFactor: CGFloat
+        }
+
+        private func matchupHeroLayoutMetrics(
+            centerWidth: CGFloat,
+            badgeSize: CGFloat
+        ) -> MatchupHeroLayoutMetrics {
+            let longestTitleLength = max(safeHomeTitle.count, safeAwayTitle.count)
+            let typography = matchupCenterTypography(longestTitleLength: longestTitleLength)
+            let homeTeamBlockHeight = matchupTeamBlockHeight(
+                title: safeHomeTitle,
+                fontSize: typography.teamSize,
+                availableWidth: centerWidth
+            )
+            let awayTeamBlockHeight = matchupTeamBlockHeight(
+                title: safeAwayTitle,
+                fontSize: typography.teamSize,
+                availableWidth: centerWidth
+            )
+
+            return MatchupHeroLayoutMetrics(
+                badgeSize: badgeSize,
+                centerWidth: centerWidth,
+                typography: typography,
+                homeTeamBlockHeight: homeTeamBlockHeight,
+                awayTeamBlockHeight: awayTeamBlockHeight
+            )
+        }
+
+        private func matchupCenterColumn(layout: MatchupHeroLayoutMetrics) -> some View {
+            VStack(spacing: 3) {
+                matchupTeamNameText(
+                    safeHomeTitle,
+                    typography: layout.typography,
+                    availableWidth: layout.centerWidth,
+                    blockHeight: layout.homeTeamBlockHeight,
+                    color: .white.opacity(0.96)
+                )
+
+                Text("VS")
+                    .font(.system(size: layout.typography.vsSize, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.78))
+                    .tracking(1.2)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity)
+                    .multilineTextAlignment(.center)
+
+                matchupTeamNameText(
+                    safeAwayTitle,
+                    typography: layout.typography,
+                    availableWidth: layout.centerWidth,
+                    blockHeight: layout.awayTeamBlockHeight,
+                    color: FGColor.accentGreen.opacity(0.98)
+                )
+
+                dateTimeRow
+                    .padding(.top, 4)
+            }
+            .frame(maxWidth: .infinity)
+            .layoutPriority(1)
+        }
+
+        private func matchupTeamNameText(
+            _ title: String,
+            typography: MatchupCenterTypography,
+            availableWidth: CGFloat,
+            blockHeight: CGFloat,
+            color: Color
+        ) -> some View {
+            Text(title)
+                .font(.system(size: typography.teamSize, weight: .heavy, design: .rounded))
+                .foregroundStyle(color)
+                .frame(maxWidth: availableWidth)
+                .frame(height: blockHeight, alignment: .center)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(typography.minimumScaleFactor)
+                .lineSpacing(-1)
+                .allowsTightening(true)
+        }
+
+        private func matchupCenterTypography(longestTitleLength: Int) -> MatchupCenterTypography {
+            let teamSize: CGFloat
+            switch longestTitleLength {
+            case ...11:
+                teamSize = 28
+            case ...16:
+                teamSize = 26
+            case ...20:
+                teamSize = 22
+            default:
+                teamSize = 20
+            }
+
+            return MatchupCenterTypography(
+                teamSize: teamSize,
+                vsSize: 17,
+                minimumScaleFactor: 0.75
+            )
+        }
+
+        private func matchupTeamBlockHeight(
+            title: String,
+            fontSize: CGFloat,
+            availableWidth: CGFloat
+        ) -> CGFloat {
+            if matchupTitleFitsSingleLine(title, fontSize: fontSize, availableWidth: availableWidth) {
+                return fontSize * 1.14
+            }
+            return fontSize * 2.12
+        }
+
+        private func matchupTitleFitsSingleLine(
+            _ title: String,
+            fontSize: CGFloat,
+            availableWidth: CGFloat
+        ) -> Bool {
+            let estimatedWidth = CGFloat(title.count) * fontSize * 0.50
+            return estimatedWidth <= availableWidth
+        }
+
+        private var dateTimeRow: some View {
+            HStack(spacing: 6) {
+                Image(systemName: "calendar")
+                    .font(.system(size: 9, weight: .bold))
+                Text(safeDateTimeText)
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.74)
+            }
+            .foregroundStyle(.white.opacity(0.76))
+        }
+
+        private var goingSocialProofRow: some View {
+            HStack(spacing: 8) {
+                HStack(spacing: 5) {
+                    Image(systemName: "flame.fill")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(FGColor.accentGreen)
+                    Text(goingCount == 1 ? "1 Going" : "\(max(0, goingCount)) Going")
+                        .font(FGTypography.caption.weight(.bold))
+                        .foregroundStyle(.white.opacity(0.92))
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 8)
+
+                if !avatarProfiles.isEmpty {
+                    GoingAvatarStack(
+                        profiles: Array(avatarProfiles.prefix(4)),
+                        viewerUserID: viewerUserID,
+                        diameter: 24
+                    )
+                }
+            }
+        }
+
+        @ViewBuilder
+        private func teamMatchupBadge(
+            theme: TeamTheme,
+            title: String,
+            rawTeamName: String,
+            badgeSize: CGFloat
+        ) -> some View {
+            let selection = ManualVenueTeamResolver.resolve(rawTeamName)
+            switch selection.type {
+            case .country:
+                nationalTeamCountryBadge(
+                    theme: theme,
+                    title: title,
+                    badgeSize: badgeSize,
+                    flag: selection.flag ?? theme.flag
+                )
+            case .club, .custom:
+                clubTeamCrestBadge(
+                    theme: theme,
+                    title: title,
+                    rawTeamName: rawTeamName,
+                    badgeSize: badgeSize,
+                    favoriteClub: favoriteClubTeam(for: selection)
+                )
+            }
+        }
+
+        private func favoriteClubTeam(for selection: ManualVenueTeamSelection) -> FavoriteTeam? {
+            guard selection.type == .club else { return nil }
+            return FavoriteTeamCatalog.searchTeams(selection.name).first { candidate in
+                candidate.kind == .team
+                    && candidate.name.caseInsensitiveCompare(selection.name) == .orderedSame
+            }
+        }
+
+        private func nationalTeamCountryBadge(
+            theme: TeamTheme,
+            title: String,
+            badgeSize: CGFloat,
+            flag: String?
+        ) -> some View {
+            let safeFlag = TeamTheme.safeFlag(flag)
+            let fallback = TeamTheme.safeFallbackText(
+                rawName: theme.rawName,
+                displayName: title,
+                shortName: theme.shortName
+            )
+            let primaryColor = orbThemeColor(theme, index: 0)
+            let secondaryColor = orbThemeColor(theme, index: 1)
+            let flagDiameter = badgeSize * 0.94
+            let flagFontSize = flagDiameter * 0.92
+            let initialsFontSize = badgeSize * 0.24
+
+            return ZStack {
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                primaryColor.opacity(1.0),
+                                secondaryColor.opacity(0.94),
+                                primaryColor.opacity(0.82)
+                            ],
+                            center: UnitPoint(x: 0.38, y: 0.30),
+                            startRadius: 2,
+                            endRadius: badgeSize * 0.58
+                        )
+                    )
+
+                if let safeFlag {
+                    Text(safeFlag)
+                        .font(.system(size: flagFontSize))
+                        .frame(width: flagDiameter, height: flagDiameter)
+                        .minimumScaleFactor(0.92)
+                        .lineLimit(1)
+                        .clipShape(Circle())
+                        .shadow(color: .black.opacity(0.18), radius: 3, y: 2)
+                } else {
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                colors: [
+                                    primaryColor.opacity(0.96),
+                                    secondaryColor.opacity(0.78)
+                                ],
+                                center: .topLeading,
+                                startRadius: 4,
+                                endRadius: badgeSize * 0.56
+                            )
+                        )
+                    Text(fallback.isEmpty ? "FG" : fallback)
+                        .font(.system(size: initialsFontSize, weight: .black, design: .rounded))
+                        .foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.30), radius: 4, y: 2)
+                }
+
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                Color.white.opacity(0.48),
+                                Color.white.opacity(0.10),
+                                Color.clear
+                            ],
+                            center: UnitPoint(x: 0.28, y: 0.18),
+                            startRadius: 1,
+                            endRadius: badgeSize * 0.46
+                        )
+                    )
+                    .blendMode(.softLight)
+                    .allowsHitTesting(false)
+
+                Circle()
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.42),
+                                Color.white.opacity(0.14),
+                                primaryColor.opacity(0.35)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.25
+                    )
+            }
+            .frame(width: badgeSize, height: badgeSize)
+            .shadow(color: .black.opacity(0.36), radius: 10, y: 6)
+            .shadow(color: primaryColor.opacity(0.24), radius: 12, y: 4)
+            .accessibilityHidden(true)
+        }
+
+        private func clubTeamCrestBadge(
+            theme: TeamTheme,
+            title: String,
+            rawTeamName: String,
+            badgeSize: CGFloat,
+            favoriteClub: FavoriteTeam?
+        ) -> some View {
+            let crestText = clubCrestLabel(
+                theme: theme,
+                title: title,
+                favoriteClub: favoriteClub
+            )
+            let primaryColor = favoriteClub?.badgeColor ?? orbThemeColor(theme, index: 0)
+            let secondaryColor = favoriteClub.map {
+                Color(
+                    red: min(1, $0.badgeRed * 0.72),
+                    green: min(1, $0.badgeGreen * 0.72),
+                    blue: min(1, $0.badgeBlue * 0.72)
+                )
+            } ?? orbThemeColor(theme, index: 1)
+            let crestWidth = badgeSize * 0.92
+            let crestHeight = badgeSize * 1.04
+            let initialsFontSize = badgeSize * 0.30
+
+            return ZStack {
+                VenueSoccerClubShieldShape()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                primaryColor.opacity(0.98),
+                                secondaryColor.opacity(0.88),
+                                primaryColor.opacity(0.72)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+
+                VenueSoccerClubShieldShape()
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                Color.white.opacity(0.34),
+                                Color.white.opacity(0.08),
+                                Color.clear
+                            ],
+                            center: UnitPoint(x: 0.34, y: 0.16),
+                            startRadius: 1,
+                            endRadius: crestHeight * 0.52
+                        )
+                    )
+                    .blendMode(.softLight)
+                    .allowsHitTesting(false)
+
+                Text(crestText)
+                    .font(.system(size: initialsFontSize, weight: .black, design: .rounded))
+                    .foregroundStyle(.white)
+                    .minimumScaleFactor(0.68)
+                    .lineLimit(1)
+                    .padding(.horizontal, crestWidth * 0.12)
+                    .padding(.top, crestHeight * 0.08)
+                    .shadow(color: .black.opacity(0.34), radius: 4, y: 2)
+
+                VenueSoccerClubShieldShape()
+                    .overlay {
+                        VenueSoccerClubShieldShape()
+                            .stroke(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(0.46),
+                                        Color.white.opacity(0.16),
+                                        primaryColor.opacity(0.42)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1.35
+                            )
+                    }
+            }
+            .frame(width: crestWidth, height: crestHeight)
+            .shadow(color: .black.opacity(0.36), radius: 10, y: 6)
+            .shadow(color: primaryColor.opacity(0.26), radius: 12, y: 4)
+            .accessibilityLabel("\(rawTeamName) club crest")
+        }
+
+        private func clubCrestLabel(
+            theme: TeamTheme,
+            title: String,
+            favoriteClub: FavoriteTeam?
+        ) -> String {
+            if let shortCode = favoriteClub?.shortCode?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !shortCode.isEmpty {
+                return shortCode.uppercased()
+            }
+            if let shortName = theme.shortName?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !shortName.isEmpty {
+                return shortName.uppercased()
+            }
+            return TeamTheme.safeFallbackText(
+                rawName: theme.rawName,
+                displayName: title,
+                shortName: theme.shortName
+            )
+        }
+
+        private func orbThemeColor(_ theme: TeamTheme, index: Int) -> Color {
+            guard !theme.usesFallback, theme.colors.indices.contains(index) else {
+                return index == 0 ? FGColor.accentGreen : Color(red: 0.02, green: 0.05, blue: 0.14)
+            }
+            return theme.colors[index]
+        }
+
+        private var safeHomeTitle: String {
+            let trimmed = homeTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? "HOME" : trimmed.uppercased()
+        }
+
+        private var safeAwayTitle: String {
+            let trimmed = awayTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? "AWAY" : trimmed.uppercased()
+        }
+
+        private var safeSportLabel: String {
+            let trimmed = sportLabel.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? "SPORT" : trimmed.uppercased()
+        }
+
+        private var safeDateTimeText: String {
+            let trimmed = dateTimeText.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? "Time TBD" : trimmed
+        }
+
+        private var safeSportIconName: String {
+            let trimmed = sportIconName.trimmingCharacters(in: .whitespacesAndNewlines)
+            let allowed: Set<String> = [
+                "sportscourt.fill", "soccerball", "basketball.fill", "football.fill",
+                "baseball.fill", "hockey.puck.fill", "tennisball.fill", "figure.run",
+                "flag.checkered", "trophy.fill"
+            ]
+            return allowed.contains(trimmed) ? trimmed : "sportscourt.fill"
+        }
+    }
+
     private struct VenuePreviewSportDisplayModel {
         let displaySport: String
         let displayLeague: String
@@ -6362,9 +7039,32 @@ struct DiscoverScreen: View {
 
         return ZStack(alignment: .topTrailing) {
             VStack(alignment: .leading, spacing: FGSpacing.sm) {
-                Text("Games at this venue")
-                    .font(FGTypography.sectionTitle.weight(.bold))
-                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text("Games at this venue")
+                        .font(FGTypography.sectionTitle.weight(.bold))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+
+                    Spacer(minLength: 8)
+
+                    if hasViewAllGames {
+                        Button {
+                            guard viewModel.canViewDiscoverDetails() || viewModel.isGuestDiscoverMode else {
+                                viewModel.showSocialActionToast("Sign in with a FanGeo account to view venue details.")
+                                return
+                            }
+                            showVenueDetails = true
+                        } label: {
+                            HStack(spacing: 4) {
+                                Text("View all")
+                                    .font(FGTypography.caption.weight(.bold))
+                                Image(systemName: "chevron.right")
+                                    .font(.caption2.weight(.bold))
+                            }
+                            .foregroundStyle(FGColor.accentBlue)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
 
                 if viewModel.isLoadingEvents && gamesToday.isEmpty {
                     loadingVenueGamesView
@@ -6503,7 +7203,6 @@ struct DiscoverScreen: View {
         )
         let displayTime = venuePreviewGameDateTimeText(for: event)
         let eventID = event.id.uuidString.lowercased()
-        let statusTitle = venuePreviewGameStatusTitle(bar: bar, event: event, venueEventID: venueEventID)
         let chatTitle = "\(venuePreviewHeroChatTitle(matchup: matchup, fallbackTitle: safeTitle)) Fan Chat"
         let attendancePresentation = showsAttendanceFooter
             ? venuePreviewAttendancePresentation(bar: bar, event: event, venueEventID: venueEventID)
@@ -6513,26 +7212,56 @@ struct DiscoverScreen: View {
         let safeGoingAvatarProfiles = venuePreviewVisibleGoingAvatarProfiles(
             attendancePresentation?.avatarProfiles ?? []
         )
+        let predictionVisibility = venuePredictionVisibility(
+            bar: bar,
+            event: event,
+            venueEventID: venueEventID
+        )
+        let predictionSummary = venueEventID.flatMap { viewModel.venueEventPredictionSummaries[$0] }
+        let fanChatCount = venueEventID.map { viewModel.fanUpdatesDisplayCommentCount(for: $0) } ?? 0
 
-        let card = VenueMatchupCardView(
+        let card = VenuePreviewProHeroGameCard(
             homeTheme: safeHomeTheme,
             awayTheme: safeAwayTheme,
             homeTitle: displayTitles.home,
             awayTitle: displayTitles.away,
+            hasResolvedTeams: matchup.hasResolvedTeams,
+            fallbackTitle: safeTitle,
             sportLabel: safeBadgeLabel,
             sportIconName: sportDisplay.iconName,
             dateTimeText: displayTime,
-            statusTitle: statusTitle,
-            statusTint: venuePreviewGameStatusTint(statusTitle),
             eventId: eventID,
-            cardVariant: "hero",
-            height: showsAttendanceFooter ? 190 : 196,
-            cornerRadius: 26
+            goingCount: safeGoingCount,
+            avatarProfiles: safeGoingAvatarProfiles,
+            viewerUserID: viewModel.currentUserAuthId,
+            showsGoingSection: showsAttendanceFooter,
+            onCardTap: {
+                FGInteractionHaptics.softImpact()
+                openVenuePreviewGameDetail(event)
+            },
+            goingControl: {
+                venuePreviewProHeroGoingButton(
+                    bar: bar,
+                    event: event,
+                    venueEventID: venueEventID,
+                    alreadyInterested: alreadyInterested
+                )
+            },
+            chatControl: {
+                venuePreviewProHeroChatButton(
+                    venueEventID: venueEventID,
+                    title: chatTitle,
+                    commentCount: fanChatCount
+                )
+            },
+            predictionRow: {
+                venuePreviewProHeroPredictionRow(
+                    event: event,
+                    visibility: predictionVisibility,
+                    summary: predictionSummary
+                )
+            }
         )
-        .onTapGesture {
-            FGInteractionHaptics.softImpact()
-            openVenuePreviewGameDetail(event)
-        }
         .onAppear {
 #if DEBUG
             print("[HeroCardFallbackDebug] renderingSafeHeroCard eventId=\(eventID)")
@@ -6559,21 +7288,228 @@ struct DiscoverScreen: View {
             eventId: eventID
         )
 
-        return VStack(spacing: 0) {
-            card
+        return card
+    }
 
-            if showsAttendanceFooter {
-                venuePreviewSafeTextFooter(
-                    bar: bar,
-                    event: event,
-                    venueEventID: venueEventID,
-                    alreadyInterested: alreadyInterested,
-                    chatTitle: chatTitle,
-                    goingCount: safeGoingCount,
-                    avatarProfiles: safeGoingAvatarProfiles
-                )
+    private func venuePreviewProHeroGoingButton(
+        bar: BarVenue,
+        event: SportsEvent,
+        venueEventID: UUID?,
+        alreadyInterested: Bool
+    ) -> some View {
+        let isPending = venueEventID.map { viewModel.isVenueEventInterestMutationInFlight($0) } ?? false
+        let isDisabled = venueEventID == nil || isPending
+        let fill = alreadyInterested
+            ? LinearGradient(
+                colors: [Color(red: 0.00, green: 0.72, blue: 0.34), Color(red: 0.00, green: 0.52, blue: 0.24)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            : LinearGradient(
+                colors: [
+                    FGColor.accentGreen.opacity(colorScheme == .dark ? 0.22 : 0.14),
+                    FGColor.accentGreen.opacity(colorScheme == .dark ? 0.14 : 0.08)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        let foreground = alreadyInterested ? Color.white : FGColor.accentGreen
+
+        return Button {
+            guard venueEventID != nil else { return }
+            FGInteractionHaptics.softImpact()
+            viewModel.toggleVenueGameGoingFromUI(
+                bar: bar,
+                gameTitle: event.title,
+                eventDate: event.date,
+                knownVenueEventID: venueEventID,
+                source: "discoverVenueHeroGoingButton",
+                onRequiresLogin: {
+                    viewModel.discoverPresentFanUserAuthSheet(openRegisterMode: false)
+                },
+                onBusinessBlocked: {
+                    viewModel.logBusinessUserGateBlocked(action: "markGoing")
+                    fanFeatureGateAlertMessage = BusinessFanGateCopy.actionTapBlocked
+                }
+            )
+        } label: {
+            HStack(spacing: 6) {
+                if isPending {
+                    ProgressView()
+                        .controlSize(.mini)
+                        .tint(foreground)
+                } else {
+                    Image(systemName: alreadyInterested ? "checkmark" : "plus")
+                        .font(.caption.weight(.black))
+                }
+                Text(alreadyInterested ? "Going" : "Going?")
+                    .font(FGTypography.metadata.weight(.heavy))
+                    .lineLimit(1)
             }
+            .foregroundStyle(foreground)
+            .frame(maxWidth: .infinity, minHeight: 40)
+            .background {
+                Capsule(style: .continuous)
+                    .fill(fill)
+            }
+            .overlay {
+                Capsule(style: .continuous)
+                    .strokeBorder(FGColor.accentGreen.opacity(alreadyInterested ? 0.36 : 0.24), lineWidth: 1)
+            }
+            .contentShape(Capsule(style: .continuous))
         }
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.68 : 1)
+        .accessibilityLabel(alreadyInterested ? "Going" : "Mark as going")
+    }
+
+    private func venuePreviewProHeroChatButton(
+        venueEventID: UUID?,
+        title: String,
+        commentCount: Int
+    ) -> some View {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let chatTitle = trimmedTitle.isEmpty ? "Game Fan Chat" : trimmedTitle
+        let isDisabled = venueEventID == nil
+
+        return Button {
+            guard let venueEventID else { return }
+            FGInteractionHaptics.selection()
+            presentFanUpdatesSheet(venueEventID: venueEventID, title: chatTitle)
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "bubble.left.and.bubble.right.fill")
+                    .font(.caption.weight(.bold))
+                Text("Chat")
+                    .font(FGTypography.metadata.weight(.heavy))
+                    .lineLimit(1)
+                if commentCount > 0 {
+                    Circle()
+                        .fill(FGColor.accentBlue)
+                        .frame(width: 7, height: 7)
+                }
+            }
+            .foregroundStyle(.white.opacity(0.92))
+            .frame(maxWidth: .infinity, minHeight: 40)
+            .background {
+                Capsule(style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(colorScheme == .dark ? 0.14 : 0.10),
+                                Color.black.opacity(colorScheme == .dark ? 0.34 : 0.28)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
+            .overlay {
+                Capsule(style: .continuous)
+                    .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.16 : 0.12), lineWidth: 1)
+            }
+            .contentShape(Capsule(style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.62 : 1)
+        .accessibilityLabel(
+            commentCount > 0
+                ? "Chat, \(commentCount) comments"
+                : chatTitle
+        )
+    }
+
+    @ViewBuilder
+    private func venuePreviewProHeroPredictionRow(
+        event: SportsEvent,
+        visibility: DiscoverVenuePredictionVisibility,
+        summary: VenueEventPredictionSummary?
+    ) -> some View {
+        if visibility.shouldRender,
+           visibility.eventID != nil,
+           visibility.teams != nil,
+           venuePredictionSportIsSupported(visibility.sportType) {
+            let voteCount = summary?.totalCount ?? 0
+            let consensusText = venuePreviewProHeroPredictionConsensusText(summary: summary)
+
+            Button {
+                FGInteractionHaptics.softImpact()
+                openVenuePreviewGameDetail(event)
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "trophy.fill")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(FGColor.accentYellow)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Fan Predictions")
+                            .font(FGTypography.caption.weight(.heavy))
+                            .foregroundStyle(.white.opacity(0.94))
+                            .lineLimit(1)
+
+                        if let consensusText {
+                            Text(consensusText)
+                                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.white.opacity(0.58))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.82)
+                        }
+                    }
+
+                    Spacer(minLength: 6)
+
+                    if voteCount > 0 {
+                        Text(voteCount == 1 ? "1 fan voted" : "\(voteCount) fans voted")
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.72))
+                            .lineLimit(1)
+                    }
+
+                    Text("Open")
+                        .font(FGTypography.caption.weight(.bold))
+                        .foregroundStyle(FGColor.accentGreen)
+
+                    Image(systemName: "chevron.right")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(FGColor.accentGreen.opacity(0.88))
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Color.white.opacity(colorScheme == .dark ? 0.07 : 0.06))
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.10 : 0.08), lineWidth: 1)
+                }
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func venuePreviewProHeroPredictionConsensusText(
+        summary: VenueEventPredictionSummary?
+    ) -> String? {
+        guard let summary,
+              let leader = summary.winnerLeader?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !leader.isEmpty else {
+            return nil
+        }
+
+        let displayLeader: String = {
+            if leader.caseInsensitiveCompare("Draw") == .orderedSame {
+                return "Draw"
+            }
+            return leader
+        }()
+
+        if let percent = summary.winnerPercent, percent > 0 {
+            return "\(displayLeader) favored by fans (\(percent)%)"
+        }
+        return "\(displayLeader) favored by fans"
     }
 
     private func venuePreviewFanChatChip(venueEventID: UUID?, chatTitle: String) -> some View {

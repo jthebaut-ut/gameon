@@ -17,6 +17,12 @@ extension MapViewModel {
             #endif
             venueEventPredictionSummaries[eventID] = summary
         }
+        guard !summaries.isEmpty else { return }
+        NotificationCenter.default.post(
+            name: .venueEventPredictionSummaryDidChange,
+            object: nil,
+            userInfo: [VenueEventPredictionSummaryChangeKey.eventIDs: Array(summaries.keys)]
+        )
     }
 
     func refreshVenueEventPredictionSummary(eventID: UUID) async {

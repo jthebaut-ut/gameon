@@ -4,6 +4,70 @@ import SwiftUI
 nonisolated enum ProGameNotificationPreferenceKeys {
     static let finalScoreAlerts = "proGameFinalScoreNotifications"
     static let favoriteTeamAlerts = "favoriteTeamProGameAlertsEnabled"
+    static let reminderTiming = "proGameReminderTiming"
+}
+
+nonisolated enum ProGameReminderTiming: String, CaseIterable, Identifiable {
+    case never
+    case oneDay
+    case oneHour
+    case thirtyMinutes
+    case tenMinutes
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .never:
+            return "Never"
+        case .oneDay:
+            return "1 Day Before"
+        case .oneHour:
+            return "1 Hour Before"
+        case .thirtyMinutes:
+            return "30 Minutes Before"
+        case .tenMinutes:
+            return "10 Minutes Before"
+        }
+    }
+
+    var schedulesKickoffReminder: Bool {
+        self != .never
+    }
+
+    var reminderMinutesBefore: Int? {
+        switch self {
+        case .never:
+            return nil
+        case .oneDay:
+            return 24 * 60
+        case .oneHour:
+            return 60
+        case .thirtyMinutes:
+            return 30
+        case .tenMinutes:
+            return 10
+        }
+    }
+
+    static func resolved(rawValue: String) -> ProGameReminderTiming {
+        ProGameReminderTiming(rawValue: rawValue) ?? .oneHour
+    }
+
+    static func from(reminderMinutesBefore minutes: Int) -> ProGameReminderTiming {
+        switch minutes {
+        case 24 * 60:
+            return .oneDay
+        case 60:
+            return .oneHour
+        case 30:
+            return .thirtyMinutes
+        case 10:
+            return .tenMinutes
+        default:
+            return .oneHour
+        }
+    }
 }
 
 nonisolated enum FanGeoCalendarAlertTiming: String, CaseIterable, Identifiable {
@@ -124,9 +188,18 @@ final class NotificationSettingsStore: ObservableObject {
         willSet { objectWillChange.send() }
     }
 
-    @AppStorage("proGameReminderNotifications")
-    var proGameReminderNotifications: Bool = true {
+    @AppStorage(ProGameNotificationPreferenceKeys.reminderTiming)
+    private var proGameReminderTimingRaw: String = ProGameReminderTiming.oneHour.rawValue {
         willSet { objectWillChange.send() }
+    }
+
+    var proGameReminderTiming: ProGameReminderTiming {
+        get { ProGameReminderTiming.resolved(rawValue: proGameReminderTimingRaw) }
+        set { proGameReminderTimingRaw = newValue.rawValue }
+    }
+
+    var proGameReminderNotifications: Bool {
+        proGameReminderTiming.schedulesKickoffReminder
     }
 
     @AppStorage(ProGameNotificationPreferenceKeys.finalScoreAlerts)
@@ -151,7 +224,26 @@ final class NotificationSettingsStore: ObservableObject {
     private var authorizationRefreshTask: Task<Void, Never>?
 
     init() {
+        migrateProGameReminderTimingIfNeeded()
         print("[NotificationSettingsStoreDebug] initialized")
+    }
+
+    private func migrateProGameReminderTimingIfNeeded() {
+        let migrationKey = "proGameReminderTimingMigrated.v1"
+        guard !UserDefaults.standard.bool(forKey: migrationKey) else { return }
+
+        if UserDefaults.standard.string(forKey: ProGameNotificationPreferenceKeys.reminderTiming) == nil {
+            let defaults = UserDefaults.standard
+            let legacyEnabled = defaults.object(forKey: "proGameReminderNotifications") as? Bool ?? true
+            if legacyEnabled {
+                let legacyMinutes = defaults.object(forKey: "reminderMinutesBefore") as? Int ?? 60
+                proGameReminderTimingRaw = ProGameReminderTiming.from(reminderMinutesBefore: legacyMinutes).rawValue
+            } else {
+                proGameReminderTimingRaw = ProGameReminderTiming.never.rawValue
+            }
+        }
+
+        UserDefaults.standard.set(true, forKey: migrationKey)
     }
 
     var venueCalendarAlertTiming: FanGeoCalendarAlertTiming {
@@ -186,12 +278,12 @@ final class NotificationSettingsStore: ObservableObject {
 
     private func performGameNotificationAuthorizationRefresh() async {
         let startedAt = Date()
-        print("[NotificationSettingsDebug] load authorizationState notifyBeforeGame=\(notifyBeforeGame) proGameReminderNotifications=\(proGameReminderNotifications) reminderMinutesBefore=\(reminderMinutesBefore) repeatGameReminder=\(repeatGameReminder) repeatEveryMinutes=\(repeatEveryMinutes)")
+        print("[NotificationSettingsDebug] load authorizationState notifyBeforeGame=\(notifyBeforeGame) proGameReminderTiming=\(proGameReminderTiming.rawValue) proGameReminderNotifications=\(proGameReminderNotifications) reminderMinutesBefore=\(reminderMinutesBefore) repeatGameReminder=\(repeatGameReminder) repeatEveryMinutes=\(repeatEveryMinutes)")
         let status = await gameReminderService.authorizationStatus()
         switch status {
         case .denied:
             notifyBeforeGame = false
-            proGameReminderNotifications = false
+            proGameReminderTiming = .never
             await gameReminderService.cancelAllGameReminders()
             await gameReminderService.cancelAllProGameReminders()
             notificationPermissionMessage = "Notifications are off for FanGeo. Turn them on in iOS Settings to receive game reminders."
@@ -230,24 +322,28 @@ final class NotificationSettingsStore: ObservableObject {
     }
 
     func setProGameRemindersEnabled(_ enabled: Bool) async -> Bool {
-        print("[NotificationSettingsDebug] save proGameReminderNotifications requested=\(enabled)")
-        if enabled {
+        await setProGameReminderTiming(enabled ? .oneHour : .never)
+    }
+
+    func setProGameReminderTiming(_ timing: ProGameReminderTiming) async -> Bool {
+        print("[NotificationSettingsDebug] save proGameReminderTiming requested=\(timing.rawValue)")
+        if timing.schedulesKickoffReminder {
             let granted = await gameReminderService.requestAuthorizationIfNeeded()
             guard granted else {
-                proGameReminderNotifications = false
+                proGameReminderTiming = .never
                 notificationPermissionMessage = "Notifications are off for FanGeo. Turn them on in iOS Settings to receive game reminders."
-                print("[NotificationSettingsDebug] save proGameReminderNotifications deniedBySystem")
+                print("[NotificationSettingsDebug] save proGameReminderTiming deniedBySystem")
                 return false
             }
 
-            proGameReminderNotifications = true
+            proGameReminderTiming = timing
             notificationPermissionMessage = ""
             return true
-        } else {
-            proGameReminderNotifications = false
-            notificationPermissionMessage = ""
-            await gameReminderService.cancelAllProGameReminders()
-            return false
         }
+
+        proGameReminderTiming = .never
+        notificationPermissionMessage = ""
+        await gameReminderService.cancelAllProGameReminders()
+        return true
     }
 }

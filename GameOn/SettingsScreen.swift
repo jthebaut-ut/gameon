@@ -7016,11 +7016,7 @@ private struct SettingsGameNotificationsCard: View {
                 systemImage: "heart.text.square.fill",
                 tint: FGColor.accentYellow
             ) {
-                notificationToggle(
-                    title: "Saved Pro Game reminders",
-                    subtitle: "Kickoff reminders for Pro Games you save.",
-                    isOn: proGameRemindersEnabledBinding
-                )
+                proGameReminderSettingsSection
 
                 notificationToggle(
                     title: "Final score alerts",
@@ -7028,7 +7024,7 @@ private struct SettingsGameNotificationsCard: View {
                     isOn: proGameFinalScoreAlertsBinding
                 )
 
-                Text("Pro Game reminders are local notifications for games you save in Calendar, Live, or Going.")
+                Text("Pro Game kickoff reminders are local notifications for games you save in Calendar, Live, or Going. Live score alerts are unchanged.")
                     .font(FGTypography.caption)
                     .foregroundStyle(FGColor.secondaryText(colorScheme))
                     .fixedSize(horizontal: false, vertical: true)
@@ -7083,7 +7079,7 @@ private struct SettingsGameNotificationsCard: View {
         .tint(FGColor.accentGreen)
         .task {
             print("[NotificationSettingsDebug] removedSocialFanSection=true")
-            print("[NotificationSettingsDebug] appear notifyBeforeGame=\(notificationSettingsStore.notifyBeforeGame) proGameReminderNotifications=\(notificationSettingsStore.proGameReminderNotifications) calendarSync=\(notificationSettingsStore.syncGoingGamesToAppleCalendar)")
+            print("[NotificationSettingsDebug] appear notifyBeforeGame=\(notificationSettingsStore.notifyBeforeGame) proGameReminderTiming=\(notificationSettingsStore.proGameReminderTiming.rawValue) calendarSync=\(notificationSettingsStore.syncGoingGamesToAppleCalendar)")
             await viewModel.refreshGameNotificationAuthorizationState()
             refreshCalendarAccessState()
         }
@@ -7434,14 +7430,69 @@ private struct SettingsGameNotificationsCard: View {
         )
     }
 
-    private var proGameRemindersEnabledBinding: Binding<Bool> {
-        Binding(
-            get: { notificationSettingsStore.proGameReminderNotifications },
-            set: { enabled in
-                print("[NotificationSettingsDebug] save key=proGameReminderNotifications value=\(enabled)")
-                Task { await viewModel.setProGameRemindersEnabled(enabled) }
+    private var proGameReminderSettingsSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Pro Game Reminders")
+                    .font(FGTypography.body.weight(.semibold))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                Text("Receive reminders for saved Pro Games.")
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
             }
-        )
+            .padding(.horizontal, FGSpacing.md)
+            .padding(.top, 10)
+            .padding(.bottom, 12)
+
+            Text("Reminder Timing")
+                .font(FGTypography.caption.weight(.bold))
+                .foregroundStyle(FGColor.mutedText(colorScheme))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, FGSpacing.md)
+                .padding(.bottom, 4)
+
+            ForEach(Array(ProGameReminderTiming.allCases.enumerated()), id: \.element.id) { index, timing in
+                if index > 0 {
+                    Divider()
+                        .padding(.leading, FGSpacing.md)
+                }
+                proGameReminderTimingOption(timing)
+            }
+
+            permissionMessage
+                .padding(.top, 4)
+        }
+    }
+
+    private func proGameReminderTimingOption(_ timing: ProGameReminderTiming) -> some View {
+        Button {
+            guard notificationSettingsStore.proGameReminderTiming != timing else { return }
+            print("[NotificationSettingsDebug] save key=proGameReminderTiming value=\(timing.rawValue)")
+            Task { await viewModel.setProGameReminderTiming(timing) }
+        } label: {
+            HStack(spacing: FGSpacing.md) {
+                Image(systemName: notificationSettingsStore.proGameReminderTiming == timing ? "largecircle.fill.circle" : "circle")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(
+                        notificationSettingsStore.proGameReminderTiming == timing
+                            ? FGColor.accentYellow
+                            : FGColor.mutedText(colorScheme)
+                    )
+
+                Text(timing.displayName)
+                    .font(FGTypography.body)
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, FGSpacing.md)
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(timing.displayName) reminder timing")
+        .accessibilityAddTraits(notificationSettingsStore.proGameReminderTiming == timing ? .isSelected : [])
     }
 
     private var proGameFinalScoreAlertsBinding: Binding<Bool> {

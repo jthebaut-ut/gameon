@@ -188,8 +188,10 @@ struct ProGameScoringTimelineView: View {
     let summary: LiveScoringTimelineSummary
     let homeTeam: String
     let awayTeam: String
+    var gameId: String? = nil
     var headingText: String?
     var maxVisibleLines: Int = LiveScoringTimelineSummary.defaultMaxVisibleTimelineLines
+    var supplementalLines: [String] = []
     var headingFont: Font = .caption2.weight(.bold)
     var lineFont: Font = .caption2.weight(.medium)
     var headingColor: Color?
@@ -203,9 +205,13 @@ struct ProGameScoringTimelineView: View {
             homeTeam: homeTeam,
             awayTeam: awayTeam,
             maxVisible: maxVisibleLines,
-            flagSource: flagSource
+            flagSource: flagSource,
+            gameId: gameId
         )
-        if display.lines.isEmpty {
+        let supplemental = supplementalLines
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        if display.lines.isEmpty && supplemental.isEmpty {
             EmptyView()
         } else {
             VStack(alignment: .leading, spacing: 3) {
@@ -217,6 +223,14 @@ struct ProGameScoringTimelineView: View {
                     Text(line.text)
                         .font(lineFont)
                         .foregroundStyle(resolvedLineColor)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+
+                ForEach(Array(supplemental.enumerated()), id: \.offset) { _, line in
+                    Text(line)
+                        .font(lineFont)
+                        .foregroundStyle(resolvedLineColor.opacity(0.88))
                         .lineLimit(1)
                         .truncationMode(.tail)
                 }
@@ -241,6 +255,55 @@ struct ProGameScoringTimelineView: View {
     }
 }
 
+struct ProGameCardEventsView: View {
+    let summary: LiveCardTimelineSummary
+    var gameId: String? = nil
+    var headingText: String = "Cards"
+    var maxVisibleLines: Int = LiveCardTimelineSummary.defaultMaxVisibleCardLines
+    var headingFont: Font = .caption2.weight(.bold)
+    var lineFont: Font = .caption2.weight(.medium)
+    var headingColor: Color?
+    var lineColor: Color?
+    var flagSource: String = "GoingPro"
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        let display = summary.timelineDisplay(maxVisible: maxVisibleLines, flagSource: flagSource, gameId: gameId)
+        if !display.lines.isEmpty {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(headingText)
+                    .font(headingFont)
+                    .foregroundStyle(resolvedHeadingColor)
+
+                ForEach(Array(display.lines.enumerated()), id: \.offset) { _, line in
+                    Text(line)
+                        .font(lineFont)
+                        .foregroundStyle(resolvedLineColor)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+
+                if display.overflowCount > 0 {
+                    Text("+\(display.overflowCount) more")
+                        .font(lineFont.weight(.semibold))
+                        .foregroundStyle(resolvedLineColor.opacity(0.85))
+                }
+            }
+            .padding(.top, 2)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var resolvedHeadingColor: Color {
+        headingColor ?? FGColor.secondaryText(colorScheme)
+    }
+
+    private var resolvedLineColor: Color {
+        lineColor ?? FGColor.primaryText(colorScheme)
+    }
+}
+
 struct ProGameScoreBlock: View {
     let awayTeam: String
     let homeTeam: String
@@ -255,6 +318,9 @@ struct ProGameScoreBlock: View {
     var accentColor: Color?
     var style: ProGameScoreboardStyle = ProGameScoreboardStyle()
     var timelineSummary: LiveScoringTimelineSummary?
+    var cardTimelineSummary: LiveCardTimelineSummary?
+    var cardEventsHeading: String = "Cards"
+    var gameId: String? = nil
     var showsFramedFinalBackground: Bool = true
     var flagSource: String = "GoingPro"
 
@@ -281,6 +347,18 @@ struct ProGameScoreBlock: View {
                     summary: timelineSummary,
                     homeTeam: homeTeam,
                     awayTeam: awayTeam,
+                    gameId: gameId,
+                    headingColor: resolvedGoalScorerHeadingColor,
+                    lineColor: resolvedGoalScorerLineColor,
+                    flagSource: flagSource
+                )
+            }
+
+            if let cardTimelineSummary, cardTimelineSummary.hasContent {
+                ProGameCardEventsView(
+                    summary: cardTimelineSummary,
+                    gameId: gameId,
+                    headingText: cardEventsHeading,
                     headingColor: resolvedGoalScorerHeadingColor,
                     lineColor: resolvedGoalScorerLineColor,
                     flagSource: flagSource

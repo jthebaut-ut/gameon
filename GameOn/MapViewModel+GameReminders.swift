@@ -23,13 +23,31 @@ extension MapViewModel {
         await syncProGameFinalScorePreferenceToBackend(reason: "proGameRemindersToggle")
     }
 
+    func setProGameReminderTiming(_ timing: ProGameReminderTiming) async {
+        let previousTiming = proGameReminderTiming
+        guard previousTiming != timing else { return }
+
+        await cancelAllProGameReminders()
+        guard await notificationSettingsStore.setProGameReminderTiming(timing) else { return }
+
+        if timing.schedulesKickoffReminder {
+            await rescheduleAvailableProGameReminders(reason: "timingChanged")
+        }
+        await syncProGameFinalScorePreferenceToBackend(reason: "proGameReminderTimingChanged")
+    }
+
     func gameReminderPreferenceDidChange() async {
-        print("[NotificationSettingsDebug] save reminderPreference notifyBeforeGame=\(notifyBeforeGame) proGameReminderNotifications=\(proGameReminderNotifications) reminderMinutesBefore=\(reminderMinutesBefore) repeatGameReminder=\(repeatGameReminder) repeatEveryMinutes=\(repeatEveryMinutes)")
+        print("[NotificationSettingsDebug] save reminderPreference notifyBeforeGame=\(notifyBeforeGame) proGameReminderTiming=\(proGameReminderTiming.rawValue) proGameReminderNotifications=\(proGameReminderNotifications) reminderMinutesBefore=\(reminderMinutesBefore) repeatGameReminder=\(repeatGameReminder) repeatEveryMinutes=\(repeatEveryMinutes)")
         print("[NotificationDebug] reminderPreference=\(reminderMinutesBefore)")
         if notifyBeforeGame {
             await rescheduleAvailableGameReminders(reason: "preferenceChanged")
         }
-        if proGameReminderNotifications {
+    }
+
+    func proGameReminderPreferenceDidChange() async {
+        print("[NotificationSettingsDebug] save proGameReminderTiming=\(proGameReminderTiming.rawValue)")
+        await cancelAllProGameReminders()
+        if proGameReminderTiming.schedulesKickoffReminder {
             await rescheduleAvailableProGameReminders(reason: "preferenceChanged")
         }
     }
@@ -72,16 +90,24 @@ extension MapViewModel {
     }
 
     func scheduleProGameReminderIfPossible(_ savedGame: SavedProGame) async {
-        guard proGameReminderNotifications else { return }
+        guard proGameReminderTiming.schedulesKickoffReminder else {
+            await cancelProGameReminder(savedGameIdentifier: savedGame.stableKey)
+            return
+        }
         guard savedProGames.contains(where: { $0.stableKey == savedGame.stableKey }) else { return }
+        guard let reminderMinutesBefore = proGameReminderTiming.reminderMinutesBefore else {
+            await cancelProGameReminder(savedGameIdentifier: savedGame.stableKey)
+            return
+        }
         guard let event = proGameReminderNotificationEvent(for: savedGame) else {
             await cancelProGameReminder(savedGameIdentifier: savedGame.stableKey)
             return
         }
         await gameReminderService.scheduleProGameReminder(
             for: event,
+            userPreference: proGameReminderTiming.rawValue,
             reminderMinutesBefore: reminderMinutesBefore,
-            repeatUntilStart: repeatGameReminder,
+            repeatUntilStart: false,
             repeatEveryMinutes: repeatEveryMinutes
         )
     }
@@ -95,7 +121,7 @@ extension MapViewModel {
     }
 
     func reconcileSavedProGameReminders(reason: String) async {
-        guard proGameReminderNotifications else { return }
+        guard proGameReminderTiming.schedulesKickoffReminder else { return }
         await rescheduleAvailableProGameReminders(reason: reason)
     }
 

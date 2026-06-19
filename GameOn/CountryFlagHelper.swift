@@ -16,7 +16,7 @@ nonisolated enum CountryFlagHelper {
 
     private static let entries: [NationalTeamFlagEntry] = [
         // North America
-        NationalTeamFlagEntry(code: "US", names: ["United States", "United States of America", "America"], providerCodes: ["USA"]),
+        NationalTeamFlagEntry(code: "US", names: ["United States", "United States of America", "America", "USA"], providerCodes: ["USA"]),
         NationalTeamFlagEntry(code: "MX", names: ["Mexico", "México"], providerCodes: ["MEX"]),
         NationalTeamFlagEntry(code: "CA", names: ["Canada"], providerCodes: ["CAN"]),
         NationalTeamFlagEntry(code: "CR", names: ["Costa Rica"], providerCodes: ["CRC"]),
@@ -32,7 +32,7 @@ nonisolated enum CountryFlagHelper {
         // South America
         NationalTeamFlagEntry(code: "BR", names: ["Brazil", "Brasil"], providerCodes: ["BRA"]),
         NationalTeamFlagEntry(code: "AR", names: ["Argentina"], providerCodes: ["ARG"]),
-        NationalTeamFlagEntry(code: "CO", names: ["Colombia"], providerCodes: ["COL"]),
+        NationalTeamFlagEntry(code: "CO", names: ["Colombia", "Republic of Colombia", "Colombie"], providerCodes: ["COL"]),
         NationalTeamFlagEntry(code: "UY", names: ["Uruguay"], providerCodes: ["URU"]),
         NationalTeamFlagEntry(code: "CL", names: ["Chile"], providerCodes: ["CHI"]),
         NationalTeamFlagEntry(code: "PE", names: ["Peru", "Perú"], providerCodes: ["PER"]),
@@ -85,7 +85,23 @@ nonisolated enum CountryFlagHelper {
         NationalTeamFlagEntry(code: "DZ", names: ["Algeria", "Algérie", "Algerie"], providerCodes: ["ALG", "DZA"]),
         NationalTeamFlagEntry(code: "ZA", names: ["South Africa"], providerCodes: ["RSA"]),
         NationalTeamFlagEntry(code: "ML", names: ["Mali"], providerCodes: ["MLI"]),
-        NationalTeamFlagEntry(code: "CD", names: ["DR Congo", "D.R. Congo", "Congo DR", "Congo DR", "Democratic Republic of Congo", "Congo Kinshasa", "Congo-Kinshasa"], providerCodes: ["COD"]),
+        NationalTeamFlagEntry(code: "CD", names: [
+            "DR Congo",
+            "D.R. Congo",
+            "D R Congo",
+            "Congo DR",
+            "Congo DRC",
+            "Democratic Republic of Congo",
+            "Democratic Republic of the Congo",
+            "Congo Kinshasa",
+            "Congo-Kinshasa",
+            "DRC",
+        ], providerCodes: ["COD", "DRC"]),
+        NationalTeamFlagEntry(code: "CG", names: [
+            "Republic of the Congo",
+            "Congo Brazzaville",
+            "Congo-Brazzaville",
+        ], providerCodes: ["CGO"]),
         NationalTeamFlagEntry(code: "BF", names: ["Burkina Faso"], providerCodes: ["BFA"]),
         NationalTeamFlagEntry(code: "CV", names: ["Cape Verde", "Cabo Verde"], providerCodes: ["CPV"]),
         NationalTeamFlagEntry(code: "GN", names: ["Guinea"], providerCodes: ["GUI"]),
@@ -111,6 +127,10 @@ nonisolated enum CountryFlagHelper {
         NationalTeamFlagEntry(code: "IN", names: ["India"], providerCodes: ["IND"]),
         NationalTeamFlagEntry(code: "TH", names: ["Thailand"], providerCodes: ["THA"]),
         NationalTeamFlagEntry(code: "VN", names: ["Vietnam", "Viet Nam"], providerCodes: ["VIE"]),
+        NationalTeamFlagEntry(code: "HK", names: ["Hong Kong", "Hong Kong SAR"], providerCodes: ["HKG"]),
+        NationalTeamFlagEntry(code: "PS", names: ["Palestine", "Palestinian Territories"], providerCodes: ["PLE", "PSE"]),
+        NationalTeamFlagEntry(code: "XK", names: ["Kosovo"], providerCodes: ["KOS", "KVX"]),
+        NationalTeamFlagEntry(code: "TW", names: ["Chinese Taipei", "Taiwan"], providerCodes: ["TPE", "TWN"]),
     ]
 
     private static let aliasesByRegionCode: [String: [String]] = {
@@ -160,6 +180,7 @@ nonisolated enum CountryFlagHelper {
     #if DEBUG
     nonisolated(unsafe) private static var loggedMissingFlags = Set<String>()
     nonisolated(unsafe) private static var didValidateWorldCupTeams = false
+    nonisolated(unsafe) private static var didLogAliasAudit = false
     #endif
 
     static func flag(for teamName: String, source: String? = nil) -> String? {
@@ -185,6 +206,88 @@ nonisolated enum CountryFlagHelper {
     static func countryCode(for teamName: String) -> String? {
         regionCode(for: teamName)
     }
+
+    /// FIFA/provider-style short code (e.g. CAN, QAT) when known; otherwise ISO region code.
+    static func teamShortCode(for teamName: String) -> String? {
+        let trimmed = teamName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        if let regionCode = regionCode(for: trimmed),
+           let entry = entries.first(where: { $0.code == regionCode }),
+           let providerCode = entry.providerCodes.first {
+            return providerCode
+        }
+        return countryCode(for: trimmed)
+    }
+
+    static func normalizedTeamName(_ teamName: String) -> String {
+        let trimmed = teamName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+        return normalize(trimmed)
+    }
+
+    static func logCalendarFlagDebug(teamName: String, source: String = "AppleCalendar") {
+        let trimmed = teamName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedName = normalizedTeamName(trimmed)
+        let countryCode = countryCode(for: trimmed)
+        let emojiFlag = flag(for: trimmed, source: source) ?? ""
+        print("[CalendarFlagDebug] teamName=\(trimmed)")
+        print("[CalendarFlagDebug] normalizedName=\(normalizedName)")
+        print("[CalendarFlagDebug] countryCode=\(countryCode ?? "nil")")
+        print("[CalendarFlagDebug] emojiFlag=\(emojiFlag)")
+    }
+
+    static func logCalendarMatchupFlagDebug(
+        awayTeam: String,
+        homeTeam: String,
+        finalTitle: String,
+        source: String = "AppleCalendar"
+    ) {
+        let away = awayTeam.trimmingCharacters(in: .whitespacesAndNewlines)
+        let home = homeTeam.trimmingCharacters(in: .whitespacesAndNewlines)
+        let awayCode = countryCode(for: away)
+        let homeCode = countryCode(for: home)
+        let awayFlag = flag(for: away, source: source) ?? ""
+        let homeFlag = flag(for: home, source: source) ?? ""
+
+        print("[CalendarFlagDebug]")
+        print("[CalendarFlagDebug] homeTeam=\(home)")
+        print("[CalendarFlagDebug] homeCountryCode=\(homeCode ?? "nil")")
+        print("[CalendarFlagDebug] homeFlag=\(homeFlag)")
+        print("[CalendarFlagDebug] awayTeam=\(away)")
+        print("[CalendarFlagDebug] awayCountryCode=\(awayCode ?? "nil")")
+        print("[CalendarFlagDebug] awayFlag=\(awayFlag)")
+        print("[CalendarFlagDebug] finalTitle=\(finalTitle)")
+
+        if !home.isEmpty, homeFlag.isEmpty {
+            print("[CalendarFlagDebug] missingFlagFor=\(home)")
+        }
+        if !away.isEmpty, awayFlag.isEmpty {
+            print("[CalendarFlagDebug] missingFlagFor=\(away)")
+        }
+    }
+
+#if DEBUG
+    static func auditSupportedNationalTeamAliases() -> [(code: String, aliases: [String], providerCodes: [String])] {
+        entries.map { entry in
+            (code: entry.code, aliases: entry.names, providerCodes: entry.providerCodes)
+        }
+        .sorted { $0.code < $1.code }
+    }
+
+    static func logSupportedNationalTeamAliasAudit(source: String = "CountryFlagHelperAudit") {
+        let audited = auditSupportedNationalTeamAliases()
+        print("[CalendarFlagDebug] aliasAudit source=\(source) entryCount=\(audited.count)")
+        for entry in audited {
+            let aliasList = entry.aliases.joined(separator: "|")
+            let providerList = entry.providerCodes.joined(separator: "|")
+            print("[CalendarFlagDebug] aliasAudit code=\(entry.code) aliases=\(aliasList) providers=\(providerList)")
+        }
+        let subdivisionList = subdivisionFlags
+            .map { "\($0.aliases.joined(separator: "|"))" }
+            .joined(separator: ";")
+        print("[CalendarFlagDebug] aliasAudit subdivisions=\(subdivisionList)")
+    }
+#endif
 
     static func isCountry(_ teamName: String) -> Bool {
         regionCode(for: teamName) != nil
@@ -288,7 +391,7 @@ nonisolated enum CountryFlagHelper {
     }
 
     private static func normalize(_ value: String) -> String {
-        value
+        let base = value
             .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "en_US_POSIX"))
             .replacingOccurrences(of: "&", with: " and ")
             .replacingOccurrences(of: "'", with: " ")
@@ -298,6 +401,29 @@ nonisolated enum CountryFlagHelper {
             .joined(separator: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased()
+        return collapseSpacedInitialisms(base)
+    }
+
+    private static func collapseSpacedInitialisms(_ normalized: String) -> String {
+        let parts = normalized.split(separator: " ").map(String.init)
+        guard !parts.isEmpty else { return normalized }
+
+        var result: [String] = []
+        var index = 0
+        while index < parts.count {
+            if parts[index].count == 1 {
+                var combined = ""
+                while index < parts.count, parts[index].count == 1 {
+                    combined += parts[index]
+                    index += 1
+                }
+                result.append(combined)
+            } else {
+                result.append(parts[index])
+                index += 1
+            }
+        }
+        return result.joined(separator: " ")
     }
 
     private static func logMissingFlag(rawName: String, source: String?) {
@@ -319,6 +445,10 @@ nonisolated enum CountryFlagHelper {
         guard !didValidateWorldCupTeams else { return }
         didValidateWorldCupTeams = true
         _ = validateWorldCupTeams()
+        if !didLogAliasAudit {
+            didLogAliasAudit = true
+            logSupportedNationalTeamAliasAudit()
+        }
     }
     #endif
 
@@ -357,6 +487,8 @@ nonisolated enum CountryFlagHelperWorldCupValidation {
         "Chile",
         "China",
         "Colombia",
+        "Republic of Colombia",
+        "Colombie",
         "Costa Rica",
         "Côte d'Ivoire",
         "Croatia",
@@ -365,10 +497,18 @@ nonisolated enum CountryFlagHelperWorldCupValidation {
         "Czech Republic",
         "Czechia",
         "DR Congo",
+        "D.R. Congo",
+        "Democratic Republic of the Congo",
+        "DRC",
+        "Republic of the Congo",
         "Denmark",
         "Ecuador",
         "Egypt",
         "England",
+        "Hong Kong",
+        "Chinese Taipei",
+        "Palestine",
+        "Kosovo",
         "France",
         "Germany",
         "Ghana",

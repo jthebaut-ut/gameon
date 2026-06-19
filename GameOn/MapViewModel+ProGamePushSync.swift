@@ -20,9 +20,11 @@ nonisolated enum FavoriteTeamProGameAlertOverride: String, Codable, Equatable {
 extension MapViewModel {
     func syncProGameFinalScorePreferenceToBackend(reason: String) async {
         guard let userID = currentUserAuthId, isAuthenticatedForSocialFeatures else { return }
+        let timing = notificationSettingsStore.proGameReminderTiming
         let row = ProGameNotificationPreferenceUpsertRow(
             user_id: userID.uuidString.lowercased(),
-            pro_game_reminder_notifications_enabled: notificationSettingsStore.proGameReminderNotifications,
+            pro_game_reminder_notifications_enabled: timing.schedulesKickoffReminder,
+            pro_game_reminder_timing: timing.rawValue,
             pro_game_final_score_alerts_enabled: notificationSettingsStore.proGameFinalScoreNotifications,
             favorite_team_pro_game_alerts_enabled: notificationSettingsStore.favoriteTeamProGameAlertsEnabled
         )
@@ -33,13 +35,69 @@ extension MapViewModel {
                 .upsert(row, onConflict: "user_id")
                 .execute()
 #if DEBUG
-            print("[RemoteNotificationDebug] proGamePreferenceSyncSucceeded reminders=\(row.pro_game_reminder_notifications_enabled) final=\(row.pro_game_final_score_alerts_enabled) reason=\(reason)")
+            print("[RemoteNotificationDebug] proGamePreferenceSyncSucceeded reminders=\(row.pro_game_reminder_notifications_enabled) timing=\(row.pro_game_reminder_timing) final=\(row.pro_game_final_score_alerts_enabled) reason=\(reason)")
 #endif
         } catch {
 #if DEBUG
             print("[RemoteNotificationDebug] proGamePreferenceSyncFailed reason=\(reason) error=\(error.localizedDescription)")
 #endif
         }
+    }
+
+    func loadProGameNotificationPreferencesFromBackend(reason: String) async {
+        guard let userID = currentUserAuthId, isAuthenticatedForSocialFeatures else { return }
+        do {
+            let rows: [ProGameNotificationPreferenceRow] = try await supabase
+                .from("user_notification_preferences")
+                .select("pro_game_reminder_notifications_enabled,pro_game_reminder_timing,pro_game_final_score_alerts_enabled,favorite_team_pro_game_alerts_enabled")
+                .eq("user_id", value: userID.uuidString.lowercased())
+                .limit(1)
+                .execute()
+                .value
+
+            if let row = rows.first {
+                applyProGameNotificationPreferences(from: row, reason: reason)
+                return
+            }
+
+            await syncProGameFinalScorePreferenceToBackend(reason: "preferencesSeed")
+#if DEBUG
+            print("[RemoteNotificationDebug] proGamePreferenceLoaded=seeded reason=\(reason)")
+#endif
+        } catch {
+#if DEBUG
+            print("[RemoteNotificationDebug] proGamePreferenceLoadFailed reason=\(reason) error=\(error.localizedDescription)")
+#endif
+        }
+    }
+
+    func loadFavoriteTeamProGameAlertsPreferenceFromBackend(reason: String) async {
+        await loadProGameNotificationPreferencesFromBackend(reason: reason)
+    }
+
+    private func applyProGameNotificationPreferences(from row: ProGameNotificationPreferenceRow, reason: String) {
+        if let timingRaw = row.pro_game_reminder_timing?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !timingRaw.isEmpty {
+            notificationSettingsStore.proGameReminderTiming = ProGameReminderTiming.resolved(rawValue: timingRaw)
+        } else if row.pro_game_reminder_notifications_enabled == false {
+            notificationSettingsStore.proGameReminderTiming = .never
+        }
+
+        if let finalAlerts = row.pro_game_final_score_alerts_enabled {
+            notificationSettingsStore.proGameFinalScoreNotifications = finalAlerts
+        }
+        if let teamAlerts = row.favorite_team_pro_game_alerts_enabled {
+            notificationSettingsStore.favoriteTeamProGameAlertsEnabled = teamAlerts
+        }
+
+        objectWillChange.send()
+        Task { [weak self] in
+            guard let self else { return }
+            await self.proGameReminderPreferenceDidChange()
+        }
+#if DEBUG
+        print("[RemoteNotificationDebug] proGamePreferenceLoaded timing=\(notificationSettingsStore.proGameReminderTiming.rawValue) final=\(notificationSettingsStore.proGameFinalScoreNotifications) teamAlerts=\(notificationSettingsStore.favoriteTeamProGameAlertsEnabled) reason=\(reason)")
+#endif
     }
 
     func syncProGameScoreAlertPreferenceToBackend(_ enabled: Bool, for game: SavedProGame) async {
@@ -87,28 +145,6 @@ extension MapViewModel {
         )
         if !notificationSettingsStore.favoriteTeamProGameAlertsEnabled {
             await disableFavoriteTeamAutoDefaultSubscriptions(userID: userID, reason: reason)
-        }
-    }
-
-    func loadFavoriteTeamProGameAlertsPreferenceFromBackend(reason: String) async {
-        guard let userID = currentUserAuthId, isAuthenticatedForSocialFeatures else { return }
-        do {
-            let rows: [ProGameNotificationPreferenceRow] = try await supabase
-                .from("user_notification_preferences")
-                .select("favorite_team_pro_game_alerts_enabled")
-                .eq("user_id", value: userID.uuidString.lowercased())
-                .limit(1)
-                .execute()
-                .value
-            let enabled = rows.first?.favorite_team_pro_game_alerts_enabled ?? false
-            notificationSettingsStore.favoriteTeamProGameAlertsEnabled = enabled
-#if DEBUG
-            print("[TeamAlertsDebug] settingLoaded=\(enabled) reason=\(reason)")
-#endif
-        } catch {
-#if DEBUG
-            print("[TeamAlertsDebug] settingLoaded=false reason=\(reason) error=\(error.localizedDescription)")
-#endif
         }
     }
 
@@ -363,11 +399,15 @@ extension MapViewModel {
 private struct ProGameNotificationPreferenceUpsertRow: Encodable {
     let user_id: String
     let pro_game_reminder_notifications_enabled: Bool
+    let pro_game_reminder_timing: String
     let pro_game_final_score_alerts_enabled: Bool
     let favorite_team_pro_game_alerts_enabled: Bool
 }
 
 private struct ProGameNotificationPreferenceRow: Decodable {
+    let pro_game_reminder_notifications_enabled: Bool?
+    let pro_game_reminder_timing: String?
+    let pro_game_final_score_alerts_enabled: Bool?
     let favorite_team_pro_game_alerts_enabled: Bool?
 }
 

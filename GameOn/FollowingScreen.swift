@@ -2315,6 +2315,14 @@ struct FollowingScreen: View {
             homeTeam: displayGame.homeTeam,
             flagSource: "GoingPro"
         )
+        let cardTimelineSummary = LiveCardTimelineBuilder.buildSummary(
+            sportType: displayGame.liveSportVisualType,
+            timelineEvents: mergedTimelineEvents,
+            homeTeam: displayGame.homeTeam,
+            awayTeam: displayGame.awayTeam,
+            gameId: displayGame.stableKey,
+            provider: displayGame.source
+        )
         return ProGameScoreBlock(
             awayTeam: displayGame.awayTeam,
             homeTeam: displayGame.homeTeam,
@@ -2327,6 +2335,8 @@ struct FollowingScreen: View {
             isLive: displayGame.matchStatus.isHappeningNow,
             accentColor: isFinal ? accent : FGColor.dangerRed,
             timelineSummary: timelineSummary?.hasContent == true ? timelineSummary : nil,
+            cardTimelineSummary: cardTimelineSummary,
+            gameId: displayGame.stableKey,
             showsFramedFinalBackground: isFinal
         )
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -2459,7 +2469,15 @@ struct FollowingScreen: View {
             for: displayGame,
             timelineEvents: mergedTimelineEvents
         )?.entries.count ?? 0
-        return "\(displayGame.stableKey)|\(displayGame.matchStatus.rawValue)|\(displayGame.scoreAway)-\(displayGame.scoreHome)|\(displayGame.minute ?? -1)|\(mergedTimelineEvents.count)|\(renderedCount)"
+        let cardCount = LiveCardTimelineBuilder.cardEvents(
+            sportType: displayGame.liveSportVisualType,
+            timelineEvents: mergedTimelineEvents,
+            homeTeam: displayGame.homeTeam,
+            awayTeam: displayGame.awayTeam,
+            gameId: displayGame.stableKey,
+            provider: displayGame.source
+        ).count
+        return "\(displayGame.stableKey)|\(displayGame.matchStatus.rawValue)|\(displayGame.scoreAway)-\(displayGame.scoreHome)|\(displayGame.minute ?? -1)|\(mergedTimelineEvents.count)|\(renderedCount)|\(cardCount)"
     }
 
     private func savedProGameTeamBadgeURL(for game: SavedProGame, team: String) -> String? {

@@ -248,6 +248,19 @@ final class ProGamePredictionService {
         let validTotalCount = winnerValues.count + validScoreRows.count + firstScoreValues.count
         let participantCount = Set(rows.map(\.user_id)).count
 
+#if DEBUG
+        Self.logParticipantCountDebug(
+            gameId: proGameID,
+            predictionRows: rows.count,
+            distinctUsers: participantCount,
+            displayedFanCount: participantCount,
+            winnerVotes: winnerValues.count,
+            scoreVotes: validScoreRows.count,
+            firstGoalVotes: firstScoreValues.count,
+            predictionRecordCount: validTotalCount
+        )
+#endif
+
         let winner = leaderPercent(values: winnerValues, denominator: winnerValues.count)
         let winnerPercents = optionPercents(values: winnerValues, denominator: winnerValues.count)
         let scoreMode = modeScore(rows: scoreRows)
@@ -384,6 +397,25 @@ final class ProGamePredictionService {
         let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return trimmed.isEmpty ? nil : trimmed
     }
+
+#if DEBUG
+    private static func logParticipantCountDebug(
+        gameId: String,
+        predictionRows: Int,
+        distinctUsers: Int,
+        displayedFanCount: Int,
+        winnerVotes: Int,
+        scoreVotes: Int,
+        firstGoalVotes: Int,
+        predictionRecordCount: Int
+    ) {
+        print("[ProPredictionDebug] gameId=\(gameId)")
+        print("[ProPredictionDebug] predictionRows=\(predictionRows)")
+        print("[ProPredictionDebug] distinctUsers=\(distinctUsers)")
+        print("[ProPredictionDebug] displayedFanCount=\(displayedFanCount)")
+        print("[ProPredictionDebug] winnerVotes=\(winnerVotes) scoreVotes=\(scoreVotes) firstGoalVotes=\(firstGoalVotes) predictionRecordCount=\(predictionRecordCount)")
+    }
+#endif
 }
 
 private struct ProGamePredictionRow: Decodable, Sendable {

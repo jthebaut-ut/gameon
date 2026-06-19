@@ -2,8 +2,8 @@ import SwiftUI
 import Combine
 
 private enum ProGamePredictionCardMetrics {
-    static let cornerRadius: CGFloat = 18
-    static let optionHeight: CGFloat = 118
+    static let cornerRadius: CGFloat = 16
+    static let optionHeight: CGFloat = 132
     static let scoreHeight: CGFloat = 156
     static let horizontalPadding: CGFloat = 10
 }
@@ -21,7 +21,7 @@ private enum ProGamePredictionFooterCopy {
     }()
 }
 
-private enum ProGamePredictionEmptySentimentCopy {
+private enum ProGamePredictionEmptyConsensusCopy {
     static func message(isFinal: Bool, isLocked: Bool) -> String {
         if isFinal {
             return "No fan predictions were submitted for this match."
@@ -162,8 +162,13 @@ struct ProGamePredictionSheet: View {
     @State private var awayScore = 0
     @State private var isLoading = true
     @State private var isSaving = false
+    @State private var isRefreshingSummary = false
+    @State private var isEditingPredictions = true
+    @State private var didSavePredictions = false
     @State private var errorMessage: String?
     @State private var now = Date()
+    @State private var baselineHomeScore = 0
+    @State private var baselineAwayScore = 0
 
     private let scoreRange = 0...20
     private let lockTimer = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
@@ -189,9 +194,43 @@ struct ProGamePredictionSheet: View {
     }
     private var isLocked: Bool { now > game.proGamePredictionLockTime }
     private var canEdit: Bool { !isLocked && viewModel.canUseFanSocialFeatures }
+    private var showResultsMode: Bool { displayGame.isFinal }
+    private var hasSubmittedPrediction: Bool {
+        didSavePredictions || summary.userPredictions?.hasAnyPrediction == true
+    }
+    private var showSummaryMode: Bool {
+        !showResultsMode && !isLocked && hasSubmittedPrediction && !isEditingPredictions
+    }
+    private var displayedFanCount: Int {
+        shouldUseOptimisticCrowd ? votingCrowdDisplay.displayedFanCount : summary.participantCount
+    }
+    private var fanVoteCountText: String {
+        let count = displayedFanCount
+        return count == 1 ? "1 fan has voted" : "\(count) fans have voted"
+    }
+    private var shouldUseOptimisticCrowd: Bool {
+        canEdit && !isLocked && !showSummaryMode && !showResultsMode && !isLoading
+    }
+    private var votingCrowdDisplay: ProGamePredictionOptimisticCrowd.Display {
+        ProGamePredictionOptimisticCrowd.display(
+            server: summary,
+            draftWinner: selectedWinner,
+            draftFirstScore: selectedFirstScore,
+            draftHomeScore: homeScore,
+            draftAwayScore: awayScore,
+            baselineHomeScore: baselineHomeScore,
+            baselineAwayScore: baselineAwayScore,
+            teams: teams,
+            isSoccer: isSoccer
+        )
+    }
     private var bottomInsetPadding: CGFloat {
-        if isLocked { return 24 }
+        if isLocked || showResultsMode { return 24 }
         return canEdit ? 96 : 24
+    }
+    private var votingContentSpacing: CGFloat {
+        if isLoading || showResultsMode || isLocked || showSummaryMode { return FGSpacing.lg }
+        return 14
     }
 
     var body: some View {
@@ -200,24 +239,24 @@ struct ProGamePredictionSheet: View {
                 VStack(alignment: .leading, spacing: FGSpacing.lg) {
                     predictionMatchHeader
 
-                    VStack(alignment: .leading, spacing: FGSpacing.lg) {
-                        if isLocked, shouldShowLivePredictionStatus {
-                            livePredictionStatusSection
-                        }
-
+                    if !showResultsMode {
                         lockBanner
+                    }
 
+                    VStack(alignment: .leading, spacing: votingContentSpacing) {
                         if isLoading {
                             ProgressView()
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 28)
+                        } else if showResultsMode {
+                            resultsContent
                         } else if isLocked {
-                            myPicksSection
+                            lockedContent
+                        } else if showSummaryMode {
+                            summaryContent
                         } else {
-                            editableSections
+                            votingContent
                         }
-
-                        fanSentimentSection
 
                         if let errorMessage {
                             Text(errorMessage)
@@ -244,6 +283,18 @@ struct ProGamePredictionSheet: View {
                             .font(.body.weight(.semibold))
                     }
                     .disabled(isSaving)
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        refreshSummaryManually()
+                    } label: {
+                        if isRefreshingSummary {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                    }
+                    .disabled(isRefreshingSummary)
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -280,6 +331,8 @@ struct ProGamePredictionSheet: View {
             }
 
             headerGoalScorerSection
+
+            headerCardEventsSection
 
             headerCompetitionRow
         }
@@ -407,13 +460,40 @@ struct ProGamePredictionSheet: View {
 
     @ViewBuilder
     private var headerGoalScorerSection: some View {
-        if let summary = headerGoalTimelineSummary {
+        if let presentation = headerScorerPresentation {
             ProGameScoringTimelineView(
-                summary: summary,
+                summary: presentation.summary,
                 homeTeam: displayGame.homeTeam,
                 awayTeam: displayGame.awayTeam,
-                headingText: summary.goalScorersHeadingText,
-                maxVisibleLines: headerGoalTimelineMaxVisibleLines,
+                gameId: displayGame.stableKey,
+                headingText: presentation.summary.goalScorersHeadingText,
+                maxVisibleLines: presentation.maxVisibleLines,
+                supplementalLines: presentation.supplementalLines,
+                headingFont: .subheadline.weight(.bold),
+                lineFont: .subheadline.weight(.medium),
+                headingColor: headerSecondaryText,
+                lineColor: headerPrimaryText,
+                flagSource: "Predictions"
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .onAppear {
+                logProPredictionScorerHeaderDebug(presentation)
+            }
+            .onChange(of: headerScorerDebugToken) { _, _ in
+                if let refreshed = headerScorerPresentation {
+                    logProPredictionScorerHeaderDebug(refreshed)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var headerCardEventsSection: some View {
+        if let cardSummary = headerCardTimelineSummary {
+            ProGameCardEventsView(
+                summary: cardSummary,
+                gameId: displayGame.stableKey,
+                headingText: cardSummary.matchEventsHeadingText,
                 headingFont: .subheadline.weight(.bold),
                 lineFont: .subheadline.weight(.medium),
                 headingColor: headerSecondaryText,
@@ -424,35 +504,189 @@ struct ProGamePredictionSheet: View {
         }
     }
 
-    private var headerGoalTimelineSummary: LiveScoringTimelineSummary? {
-        guard showsScoreboardHeader else { return nil }
-        guard savedProGameHasKnownScore else { return nil }
-
-        let mergedTimelineEvents = displayGame.timelineEvents ?? []
-        let summary = LiveScoringTimelineBuilder.resolvedGoalDisplaySummary(
+    private var headerCardTimelineSummary: LiveCardTimelineSummary? {
+        guard showsScoreboardHeader, savedProGameHasKnownScore else { return nil }
+        let mergedTimelineEvents = predictionMergedTimelineEvents()
+        return LiveCardTimelineBuilder.buildSummary(
             sportType: displayGame.liveSportVisualType,
             timelineEvents: mergedTimelineEvents,
-            scoreAway: displayGame.scoreAway,
-            scoreHome: displayGame.scoreHome,
-            awayTeam: displayGame.awayTeam,
             homeTeam: displayGame.homeTeam,
-            flagSource: "Predictions"
+            awayTeam: displayGame.awayTeam,
+            gameId: displayGame.stableKey,
+            provider: displayGame.source
         )
-        guard let summary, summary.hasContent else { return nil }
+    }
 
-        if displayGame.isFinal || summary.isScoreOnlyFallback {
-            return summary
+    private struct ProPredictionHeaderScorerPresentation: Equatable {
+        let summary: LiveScoringTimelineSummary
+        let supplementalLines: [String]
+        let scoreTimelineMismatch: Bool
+        let timelineEventsCount: Int
+        let scoringSummaryEntriesCount: Int
+        let renderedScorers: String
+
+        var maxVisibleLines: Int {
+            if summary.isScoreOnlyFallback {
+                return max(summary.scoreOnlyLines.count, 1)
+            }
+            return max(summary.entries.count + supplementalLines.count, 1)
         }
-        guard let firstEntry = summary.entries.first else { return nil }
-        return LiveScoringTimelineSummary(sportIcon: summary.sportIcon, entries: [firstEntry])
+    }
+
+    private var headerScorerPresentation: ProPredictionHeaderScorerPresentation? {
+        guard showsScoreboardHeader, savedProGameHasKnownScore else { return nil }
+
+        let mergedTimelineEvents = predictionMergedTimelineEvents()
+        let sportType = displayGame.liveSportVisualType
+        let scoreAway = displayGame.scoreAway
+        let scoreHome = displayGame.scoreHome
+        let awayTeam = displayGame.awayTeam
+        let homeTeam = displayGame.homeTeam
+        let totalGoals = scoreAway + scoreHome
+
+        var summary = LiveScoringTimelineBuilder.buildForGoalScorersCard(
+            sportType: sportType,
+            timelineEvents: mergedTimelineEvents,
+            homeTeam: homeTeam,
+            awayTeam: awayTeam
+        )
+
+        if summary?.hasContent != true {
+            if let latestScoringEvent = predictionResolvedLatestScoringEvent(
+                mergedTimelineEvents: mergedTimelineEvents
+            ),
+               let latestSummary = LiveScoringTimelineBuilder.summaryFromLatestScoringEvent(
+                latestScoringEvent,
+                sportType: sportType,
+                homeTeam: homeTeam,
+                awayTeam: awayTeam
+               ) {
+                summary = latestSummary
+            }
+        }
+
+        if summary?.hasContent != true {
+            if let firstScoringEvent = LiveScoringTimelineBuilder.resolveFirstScoringEvent(
+                sportType: sportType,
+                timelineEvents: mergedTimelineEvents,
+                homeTeam: homeTeam,
+                awayTeam: awayTeam,
+                scoreAway: scoreAway,
+                scoreHome: scoreHome
+            ),
+               let firstSummary = LiveScoringTimelineBuilder.summaryFromFirstScoringEvent(
+                firstScoringEvent,
+                sportType: sportType
+               ) {
+                summary = firstSummary
+            }
+        }
+
+        if summary?.hasContent != true {
+            summary = LiveScoringTimelineBuilder.buildScoreOnlyGoalCountSummary(
+                sportType: sportType,
+                scoreAway: scoreAway,
+                scoreHome: scoreHome,
+                awayTeam: awayTeam,
+                homeTeam: homeTeam,
+                flagSource: "Predictions"
+            )
+        }
+
+        guard let resolvedSummary = summary, resolvedSummary.hasContent else { return nil }
+
+        let knownGoalCount = resolvedSummary.isScoreOnlyFallback ? 0 : resolvedSummary.entries.count
+        let scoreTimelineMismatch = totalGoals > 0
+            && knownGoalCount > 0
+            && knownGoalCount < totalGoals
+        let supplementalLines = scoreTimelineMismatch ? ["Other scorers pending"] : []
+        let renderedScorers = resolvedSummary.renderedTimelineSummaryText(
+            homeTeam: homeTeam,
+            awayTeam: awayTeam,
+            maxVisible: max(knownGoalCount, resolvedSummary.scoreOnlyLines.count, 1)
+        )
+
+        return ProPredictionHeaderScorerPresentation(
+            summary: resolvedSummary,
+            supplementalLines: supplementalLines,
+            scoreTimelineMismatch: scoreTimelineMismatch,
+            timelineEventsCount: mergedTimelineEvents.count,
+            scoringSummaryEntriesCount: knownGoalCount,
+            renderedScorers: supplementalLines.isEmpty
+                ? renderedScorers
+                : "\(renderedScorers) | Other scorers pending"
+        )
+    }
+
+    private var headerScorerDebugToken: String {
+        let mergedTimelineEvents = predictionMergedTimelineEvents()
+        let presentation = headerScorerPresentation
+        return [
+            displayGame.stableKey,
+            "\(displayGame.scoreAway)-\(displayGame.scoreHome)",
+            "\(mergedTimelineEvents.count)",
+            "\(presentation?.scoringSummaryEntriesCount ?? -1)",
+            presentation?.renderedScorers ?? "none",
+            "\(presentation?.scoreTimelineMismatch ?? false)"
+        ].joined(separator: "|")
+    }
+
+    private func predictionMergedTimelineEvents() -> [LiveTimelineEvent] {
+        var byKey: [String: LiveTimelineEvent] = [:]
+        for event in displayGame.timelineEvents ?? [] {
+            byKey[event.id] = event
+        }
+        for match in predictionHydrationLiveMatches() {
+            for event in match.timelineEvents {
+                byKey[event.id] = event
+            }
+        }
+        return Array(byKey.values)
+    }
+
+    private func predictionHydrationLiveMatches() -> [LiveMatch] {
+        var matches: [LiveMatch] = []
+        if let exact = hydratedLiveMatch {
+            matches.append(exact)
+        }
+        if let source = displayGame.source?.trimmingCharacters(in: .whitespacesAndNewlines), !source.isEmpty,
+           let externalId = displayGame.externalId?.trimmingCharacters(in: .whitespacesAndNewlines), !externalId.isEmpty,
+           let external = viewModel.liveMatches.first(where: {
+               $0.source?.caseInsensitiveCompare(source) == .orderedSame
+                   && $0.externalId?.caseInsensitiveCompare(externalId) == .orderedSame
+           }),
+           !matches.contains(where: { $0.id == external.id }) {
+            matches.append(external)
+        }
+        return matches
+    }
+
+    private func predictionResolvedLatestScoringEvent(
+        mergedTimelineEvents: [LiveTimelineEvent]
+    ) -> LiveLatestScoringEvent? {
+        if let latest = hydratedLiveMatch?.latestScoringEvent {
+            return latest
+        }
+        if let latest = displayGame.latestScoringEvent {
+            return latest
+        }
+        return LiveScoringEventResolver.resolve(
+            sportType: displayGame.liveSportVisualType,
+            timelineEvents: mergedTimelineEvents
+        ).latestEvent
+    }
+
+    private func logProPredictionScorerHeaderDebug(_ presentation: ProPredictionHeaderScorerPresentation) {
+        print("[ProPredictionScorerHeaderDebug] gameId=\(displayGame.stableKey)")
+        print("[ProPredictionScorerHeaderDebug] score=\(displayGame.scoreAway)-\(displayGame.scoreHome)")
+        print("[ProPredictionScorerHeaderDebug] timelineEventsCount=\(presentation.timelineEventsCount)")
+        print("[ProPredictionScorerHeaderDebug] scoringSummaryEntriesCount=\(presentation.scoringSummaryEntriesCount)")
+        print("[ProPredictionScorerHeaderDebug] renderedScorers=\(presentation.renderedScorers)")
+        print("[ProPredictionScorerHeaderDebug] scoreTimelineMismatch=\(presentation.scoreTimelineMismatch)")
     }
 
     private var savedProGameHasKnownScore: Bool {
         displayGame.scoreHome > 0 || displayGame.scoreAway > 0
-    }
-
-    private var headerGoalTimelineMaxVisibleLines: Int {
-        displayGame.isFinal ? LiveScoringTimelineSummary.defaultMaxVisibleTimelineLines : 1
     }
 
     private var headerCompetitionRow: some View {
@@ -591,27 +825,407 @@ struct ProGamePredictionSheet: View {
         return "Closes in \(minutes)m"
     }
 
+    private var summaryContentSpacing: CGFloat { PredictionPremiumMetrics.sectionSpacing }
+
     @ViewBuilder
-    private var editableSections: some View {
-        predictionSection(number: 1, title: "Who will win?") {
-            horizontalWinnerOptions
-        }
+    private var votingContent: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            predictionSection(number: 1, title: "Who will win?", contentSpacing: 8, showsVoteCountInHeader: true) {
+                horizontalWinnerOptions
+            }
 
-        predictionSection(number: 2, title: "Exact score") {
-            scoreSteppers
-        }
+            predictionSection(number: 2, title: "Exact score", contentSpacing: 8) {
+                VStack(alignment: .leading, spacing: 10) {
+                    if !scoreCrowdChips.isEmpty {
+                        PredictionScoreCrowdChipRow(
+                            chips: scoreCrowdChips,
+                            colorScheme: colorScheme,
+                            showsHeader: false,
+                            compact: true,
+                            onSelect: { chip in
+                                guard canEdit, !isSaving else { return }
+                                applyScoreChip(chip)
+                            }
+                        )
+                    }
+                    scoreSteppers
+                }
+            }
 
-        predictionSection(number: 3, title: "Which team will score first?") {
-            horizontalFirstScoreOptions
+            predictionSection(number: 3, title: "Who will score first?", contentSpacing: 8, showsVoteCountInHeader: true) {
+                horizontalFirstScoreOptions
+            }
         }
     }
 
-    private var horizontalWinnerOptions: some View {
-        HStack(spacing: 8) {
-            ProGamePredictionOptionCard(
+    private var sectionVoteHeaderLabel: some View {
+        HStack(spacing: 5) {
+            Image(systemName: "person.2.fill")
+                .font(.caption2.weight(.semibold))
+            Text(fanVoteCountText)
+        }
+        .font(.caption2.weight(.semibold))
+        .foregroundStyle(FGColor.mutedText(colorScheme))
+    }
+
+    @ViewBuilder
+    private var summaryContent: some View {
+        VStack(alignment: .leading, spacing: summaryContentSpacing) {
+            PredictionSummaryCard(
+                title: "YOUR PREDICTION",
+                rows: yourPredictionRows,
+                editButtonTitle: "Edit",
+                colorScheme: colorScheme,
+                onEdit: { isEditingPredictions = true }
+            )
+
+            fanConsensusSection(title: "FAN CONSENSUS", trailingCount: fanVoteCountText)
+
+            popularScoresSection(title: "MOST POPULAR SCORES")
+
+            if hasFirstGoalCrowdData {
+                firstGoalConsensusSection(title: "FIRST GOAL CONSENSUS")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var lockedContent: some View {
+        VStack(alignment: .leading, spacing: summaryContentSpacing) {
+            if let predictions = resolvedUserPredictions, predictions.hasAnyPrediction {
+                PredictionSummaryCard(
+                    title: "YOUR PREDICTION",
+                    rows: yourPredictionRows(from: predictions),
+                    showsEdit: false,
+                    colorScheme: colorScheme,
+                    onEdit: {}
+                )
+            } else {
+                Text("You did not submit predictions before voting closed.")
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            if shouldShowLivePredictionStatus {
+                livePredictionStatusSection
+            }
+
+            fanConsensusSection(title: "FAN CONSENSUS", trailingCount: fanVoteCountText)
+
+            popularScoresSection(title: "MOST POPULAR SCORES")
+
+            if hasFirstGoalCrowdData {
+                firstGoalConsensusSection(title: "FIRST GOAL CONSENSUS")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var resultsContent: some View {
+        VStack(alignment: .leading, spacing: summaryContentSpacing) {
+            resultsSummaryCard
+
+            popularScoresSection(title: "TOP FAN SCORE PREDICTIONS")
+        }
+    }
+
+    @ViewBuilder
+    private func popularScoresSection(title: String, limit: Int = 5) -> some View {
+        if !summary.topScorePredictions.isEmpty {
+            let rows = Array(summary.topScorePredictions.prefix(limit)).map { pick in
+                (
+                    label: pick.isOther ? "Other" : "\(pick.awayScore ?? 0)–\(pick.homeScore ?? 0)",
+                    percent: pick.percent
+                )
+            }
+            PredictionRankedScoresCard(title: title, rows: rows, colorScheme: colorScheme)
+        }
+    }
+
+    private var resultsSummaryCard: some View {
+        let outcomes = predictionOutcomes
+        let correctCount = outcomes.filter { $0.status == .correct }.count
+        let gradedCount = outcomes.filter { $0.status == .correct || $0.status == .incorrect }.count
+
+        return PredictionPremiumCard {
+            VStack(alignment: .leading, spacing: 0) {
+                PredictionPremiumCardHeader(
+                    title: "YOUR RESULT",
+                    systemImage: "trophy.fill",
+                    usesGreenTint: true,
+                    colorScheme: colorScheme
+                )
+
+                VStack(spacing: 0) {
+                    ForEach(outcomes) { outcome in
+                        HStack(alignment: .center, spacing: 10) {
+                            Text(outcome.label)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                                .frame(width: 78, alignment: .leading)
+                            Spacer(minLength: 0)
+                            Text(outcome.value)
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(FGColor.primaryText(colorScheme))
+                                .multilineTextAlignment(.trailing)
+                            if let status = outcome.status {
+                                Text(status == .correct ? "✓" : (status == .incorrect ? "✗" : "–"))
+                                    .font(.subheadline.weight(.black))
+                                    .foregroundStyle(statusAccent(for: status))
+                                    .frame(width: 18, alignment: .trailing)
+                            }
+                        }
+                        .padding(.horizontal, PredictionPremiumMetrics.cardPadding)
+                        .padding(.vertical, 10)
+
+                        if outcome.id != outcomes.last?.id {
+                            Divider()
+                                .padding(.leading, PredictionPremiumMetrics.cardPadding)
+                                .opacity(0.28)
+                        }
+                    }
+                }
+
+                if gradedCount > 0 {
+                    HStack(spacing: 6) {
+                        Image(systemName: "star.fill")
+                            .font(.caption.weight(.bold))
+                        Text("\(correctCount) OF \(gradedCount) CORRECT")
+                            .font(.caption.weight(.heavy))
+                            .tracking(0.4)
+                    }
+                    .foregroundStyle(FGColor.accentGreen)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .frame(maxWidth: .infinity)
+                    .background(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.14 : 0.10))
+                    .clipShape(Capsule(style: .continuous))
+                    .padding(.horizontal, PredictionPremiumMetrics.cardPadding)
+                    .padding(.top, 8)
+                    .padding(.bottom, PredictionPremiumMetrics.cardPadding)
+                }
+            }
+        }
+    }
+
+    private struct PredictionOutcomeRow: Identifiable {
+        let id: String
+        let label: String
+        let value: String
+        let status: ProGamePredictionOutcomeStatus?
+    }
+
+    private var predictionOutcomes: [PredictionOutcomeRow] {
+        guard let predictions = resolvedUserPredictions else { return [] }
+        var rows: [PredictionOutcomeRow] = []
+
+        if let winner = predictions.winner, !winner.isEmpty {
+            rows.append(
+                PredictionOutcomeRow(
+                    id: "winner",
+                    label: "Winner",
+                    value: winnerPickTitle(winner),
+                    status: winnerPredictionStatus(predicted: winner, game: displayGame)
+                )
+            )
+        }
+        if let home = predictions.homeScore, let away = predictions.awayScore {
+            rows.append(
+                PredictionOutcomeRow(
+                    id: "score",
+                    label: "Exact Score",
+                    value: "\(away)–\(home)",
+                    status: exactScorePredictionStatus(predictedAway: away, predictedHome: home, game: displayGame)
+                )
+            )
+        }
+        if let first = predictions.firstScoreTeam, !first.isEmpty {
+            rows.append(
+                PredictionOutcomeRow(
+                    id: "firstGoal",
+                    label: "First Goal",
+                    value: firstGoalPickTitle(first),
+                    status: firstScorerPredictionStatus(predicted: first, game: displayGame)
+                )
+            )
+        }
+        return rows
+    }
+
+    private var yourPredictionRows: [PredictionSummaryRow] {
+        yourPredictionRows(from: resolvedUserPredictions)
+    }
+
+    private func yourPredictionRows(from predictions: VenueEventUserPredictions?) -> [PredictionSummaryRow] {
+        var rows: [PredictionSummaryRow] = []
+        if let winner = predictions?.winner, !winner.isEmpty {
+            rows.append(
+                PredictionSummaryRow(
+                    id: "winner",
+                    label: "Winner",
+                    value: winnerSummaryValue(winner),
+                    flag: summaryRowFlag(for: winner)
+                )
+            )
+        }
+        if let home = predictions?.homeScore, let away = predictions?.awayScore {
+            rows.append(
+                PredictionSummaryRow(
+                    id: "score",
+                    label: "Exact Score",
+                    value: "\(away)–\(home)",
+                    emphasizesValue: true
+                )
+            )
+        }
+        if let first = predictions?.firstScoreTeam, !first.isEmpty {
+            rows.append(
+                PredictionSummaryRow(
+                    id: "firstGoal",
+                    label: "First Goal",
+                    value: firstGoalSummaryValue(first),
+                    flag: summaryRowFlag(for: first)
+                )
+            )
+        }
+        return rows
+    }
+
+    private func summaryRowFlag(for team: String) -> String? {
+        if team == "Draw" || team == "No goals" { return nil }
+        return teamFlag(for: team)
+    }
+
+    private func winnerSummaryValue(_ winner: String) -> String {
+        if winner == "Draw" { return "Draw" }
+        return "\(compactTeamName(winner)) Win"
+    }
+
+    private func firstGoalSummaryValue(_ team: String) -> String {
+        if team == "No goals" { return "No goals" }
+        return compactTeamName(team)
+    }
+
+    private var scoreCrowdChips: [PredictionScoreCrowdChip] {
+        let picks = shouldUseOptimisticCrowd ? votingCrowdDisplay.topScorePredictions : summary.topScorePredictions
+        return picks
+            .filter { !$0.isOther }
+            .prefix(5)
+            .map { pick in
+                let label = "\(pick.awayScore ?? 0)–\(pick.homeScore ?? 0)"
+                let selected = awayScore == pick.awayScore && homeScore == pick.homeScore
+                return PredictionScoreCrowdChip(label: label, percent: pick.percent, isSelected: selected)
+            }
+    }
+
+    private func applyScoreChip(_ chip: PredictionScoreCrowdChip) {
+        let parts = chip.label.split(separator: "–", omittingEmptySubsequences: false)
+        guard parts.count == 2,
+              let away = Int(parts[0]),
+              let home = Int(parts[1]) else { return }
+        awayScore = away
+        homeScore = home
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+
+    @ViewBuilder
+    private func fanConsensusSection(title: String, trailingCount: String) -> some View {
+        PredictionConsensusSectionCard(title: title, trailingText: trailingCount, colorScheme: colorScheme) {
+            if summary.participantCount == 0 {
+                Text(emptyFanConsensusCopy)
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+            } else if hasWinnerCrowdData {
+                fanConsensusBar(
+                    title: compactTeamName(teams.away),
+                    flag: teamFlag(for: teams.away),
+                    percent: summary.winnerPercents[teams.away] ?? 0,
+                    tint: Color(red: 0.95, green: 0.45, blue: 0.28)
+                )
+                if isSoccer {
+                    fanConsensusBar(
+                        title: "Draw",
+                        flag: nil,
+                        percent: summary.winnerPercents["Draw"] ?? 0,
+                        tint: Color(red: 0.98, green: 0.78, blue: 0.18)
+                    )
+                }
+                fanConsensusBar(
+                    title: compactTeamName(teams.home),
+                    flag: teamFlag(for: teams.home),
+                    percent: summary.winnerPercents[teams.home] ?? 0,
+                    tint: FGColor.accentBlue
+                )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func firstGoalConsensusSection(title: String) -> some View {
+        PredictionConsensusSectionCard(title: title, colorScheme: colorScheme) {
+            fanConsensusBar(
                 title: compactTeamName(teams.away),
                 flag: teamFlag(for: teams.away),
+                percent: summary.firstScorePercents[teams.away] ?? 0,
+                tint: Color(red: 0.95, green: 0.45, blue: 0.28)
+            )
+            if isSoccer {
+                fanConsensusBar(
+                    title: "No goals",
+                    flag: nil,
+                    percent: summary.firstScorePercents["No goals"] ?? 0,
+                    tint: Color(red: 0.98, green: 0.78, blue: 0.18)
+                )
+            }
+            fanConsensusBar(
+                title: compactTeamName(teams.home),
+                flag: teamFlag(for: teams.home),
+                percent: summary.firstScorePercents[teams.home] ?? 0,
+                tint: FGColor.accentBlue
+            )
+        }
+    }
+
+    private var hasFirstGoalCrowdData: Bool {
+        !summary.firstScorePercents.isEmpty || summary.firstScoreLeader != nil
+    }
+
+    private func fanConsensusBar(title: String, flag: String?, percent: Int, tint: Color) -> some View {
+        PredictionConsensusBar(
+            title: title,
+            flag: flag,
+            percent: percent,
+            tint: tint,
+            colorScheme: colorScheme
+        )
+    }
+
+    private func refreshSummaryManually() {
+        guard !isRefreshingSummary else { return }
+        isRefreshingSummary = true
+        Task {
+            await viewModel.refreshProGamePredictionSummary(proGameId: game.stableKey)
+            await MainActor.run { isRefreshingSummary = false }
+        }
+    }
+
+    private var votingWinnerPercents: [String: Int] {
+        shouldUseOptimisticCrowd ? votingCrowdDisplay.winnerPercents : summary.winnerPercents
+    }
+
+    private var votingFirstScorePercents: [String: Int] {
+        shouldUseOptimisticCrowd ? votingCrowdDisplay.firstScorePercents : summary.firstScorePercents
+    }
+
+    private var horizontalWinnerOptions: some View {
+        HStack(spacing: 6) {
+            PredictionOptionCard(
+                title: compactTeamName(teams.away),
+                flag: teamFlag(for: teams.away),
+                percent: votingWinnerPercents[teams.away] ?? 0,
                 isSelected: selectedWinner == teams.away,
+                isSaving: false,
                 colorScheme: colorScheme
             ) {
                 guard canEdit, !isSaving else { return }
@@ -620,10 +1234,12 @@ struct ProGamePredictionSheet: View {
             }
 
             if isSoccer {
-                ProGamePredictionOptionCard(
+                PredictionOptionCard(
                     title: "Draw",
                     flag: nil,
+                    percent: votingWinnerPercents["Draw"] ?? 0,
                     isSelected: selectedWinner == "Draw",
+                    isSaving: false,
                     colorScheme: colorScheme
                 ) {
                     guard canEdit, !isSaving else { return }
@@ -632,10 +1248,12 @@ struct ProGamePredictionSheet: View {
                 }
             }
 
-            ProGamePredictionOptionCard(
+            PredictionOptionCard(
                 title: compactTeamName(teams.home),
                 flag: teamFlag(for: teams.home),
+                percent: votingWinnerPercents[teams.home] ?? 0,
                 isSelected: selectedWinner == teams.home,
+                isSaving: false,
                 colorScheme: colorScheme
             ) {
                 guard canEdit, !isSaving else { return }
@@ -646,11 +1264,13 @@ struct ProGamePredictionSheet: View {
     }
 
     private var horizontalFirstScoreOptions: some View {
-        HStack(spacing: 8) {
-            ProGamePredictionOptionCard(
+        HStack(spacing: 6) {
+            PredictionOptionCard(
                 title: compactTeamName(teams.away),
                 flag: teamFlag(for: teams.away),
+                percent: votingFirstScorePercents[teams.away] ?? 0,
                 isSelected: selectedFirstScore == teams.away,
+                isSaving: false,
                 colorScheme: colorScheme
             ) {
                 guard canEdit, !isSaving else { return }
@@ -659,10 +1279,12 @@ struct ProGamePredictionSheet: View {
             }
 
             if isSoccer {
-                ProGamePredictionOptionCard(
+                PredictionOptionCard(
                     title: "No goals",
                     flag: nil,
+                    percent: votingFirstScorePercents["No goals"] ?? 0,
                     isSelected: selectedFirstScore == "No goals",
+                    isSaving: false,
                     colorScheme: colorScheme
                 ) {
                     guard canEdit, !isSaving else { return }
@@ -671,10 +1293,12 @@ struct ProGamePredictionSheet: View {
                 }
             }
 
-            ProGamePredictionOptionCard(
+            PredictionOptionCard(
                 title: compactTeamName(teams.home),
                 flag: teamFlag(for: teams.home),
+                percent: votingFirstScorePercents[teams.home] ?? 0,
                 isSelected: selectedFirstScore == teams.home,
+                isSaving: false,
                 colorScheme: colorScheme
             ) {
                 guard canEdit, !isSaving else { return }
@@ -686,7 +1310,7 @@ struct ProGamePredictionSheet: View {
 
     private var scoreSteppers: some View {
         HStack(alignment: .center, spacing: 10) {
-            ProGamePredictionScoreCard(
+            PredictionScoreStepperCard(
                 teamName: compactTeamName(teams.away),
                 flag: teamFlag(for: teams.away),
                 score: awayScore,
@@ -702,7 +1326,7 @@ struct ProGamePredictionSheet: View {
                 .foregroundStyle(FGColor.secondaryText(colorScheme))
                 .padding(.horizontal, 2)
 
-            ProGamePredictionScoreCard(
+            PredictionScoreStepperCard(
                 teamName: compactTeamName(teams.home),
                 flag: teamFlag(for: teams.home),
                 score: homeScore,
@@ -722,46 +1346,13 @@ struct ProGamePredictionSheet: View {
         return displayGame.firstScoringTeam != nil
     }
 
-    private var myPicksSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            premiumSectionHeader(title: "MY PICKS", systemImage: "checkmark.seal.fill")
-
-            if let predictions = resolvedUserPredictions, predictions.hasAnyPrediction {
-                VStack(spacing: 10) {
-                    if let winner = predictions.winner, !winner.isEmpty {
-                        myPickRow(
-                            icon: "✅",
-                            title: winnerPickTitle(winner),
-                            crowdPercent: crowdPercentForWinnerPick(winner)
-                        )
-                    }
-                    if let home = predictions.homeScore, let away = predictions.awayScore {
-                        myPickRow(
-                            icon: "🎯",
-                            title: "Correct Score \(away)–\(home)",
-                            crowdPercent: crowdPercentForScorePick(away: away, home: home)
-                        )
-                    }
-                    if let first = predictions.firstScoreTeam, !first.isEmpty {
-                        myPickRow(
-                            icon: "⚽",
-                            title: firstGoalPickTitle(first),
-                            crowdPercent: crowdPercentForFirstGoalPick(first)
-                        )
-                    }
-                }
-            } else {
-                Text("You did not submit predictions before voting closed.")
-                    .font(FGTypography.caption)
-                    .foregroundStyle(premiumSecondaryText)
-            }
-        }
-        .premiumCardStyle(colorScheme: colorScheme)
-    }
-
     private var livePredictionStatusSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            premiumSectionHeader(title: "LIVE PREDICTION STATUS", systemImage: "dot.radiowaves.left.and.right")
+            PredictionSectionHeader(
+                number: nil,
+                title: "PREDICTION STATUS",
+                systemImage: "dot.radiowaves.left.and.right"
+            )
 
             VStack(spacing: 10) {
                 if let predictions = resolvedUserPredictions,
@@ -769,16 +1360,7 @@ struct ProGamePredictionSheet: View {
                    let status = winnerPredictionStatus(predicted: winner, game: displayGame) {
                     livePredictionStatusRow(
                         icon: status == .correct ? "checkmark.circle.fill" : (status == .incorrect ? "xmark.circle.fill" : "clock.fill"),
-                        title: "Winner prediction",
-                        status: status
-                    )
-                }
-                if let predictions = resolvedUserPredictions,
-                   let first = predictions.firstScoreTeam, !first.isEmpty,
-                   let status = firstScorerPredictionStatus(predicted: first, game: displayGame) {
-                    livePredictionStatusRow(
-                        icon: status == .correct ? "checkmark.circle.fill" : (status == .incorrect ? "xmark.circle.fill" : "clock.fill"),
-                        title: "First scorer prediction",
+                        title: "Winner",
                         status: status
                     )
                 }
@@ -788,13 +1370,28 @@ struct ProGamePredictionSheet: View {
                    let status = exactScorePredictionStatus(predictedAway: away, predictedHome: home, game: displayGame) {
                     livePredictionStatusRow(
                         icon: status == .correct ? "checkmark.circle.fill" : (status == .incorrect ? "xmark.circle.fill" : "clock.fill"),
-                        title: "Exact score prediction",
+                        title: "Exact Score",
+                        status: status
+                    )
+                }
+                if let predictions = resolvedUserPredictions,
+                   let first = predictions.firstScoreTeam, !first.isEmpty,
+                   let status = firstScorerPredictionStatus(predicted: first, game: displayGame) {
+                    livePredictionStatusRow(
+                        icon: status == .correct ? "checkmark.circle.fill" : (status == .incorrect ? "xmark.circle.fill" : "clock.fill"),
+                        title: "First Goal",
                         status: status
                     )
                 }
             }
         }
-        .premiumCardStyle(colorScheme: colorScheme, accent: FGColor.accentGreen)
+        .padding(14)
+        .background(FGColor.cardBackground(colorScheme).opacity(colorScheme == .dark ? 0.72 : 0.96))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme).opacity(0.45), lineWidth: 1)
+        }
     }
 
     private func premiumSectionHeader(title: String, systemImage: String) -> some View {
@@ -810,40 +1407,6 @@ struct ProGamePredictionSheet: View {
         }
     }
 
-    private func myPickRow(icon: String, title: String, crowdPercent: Int?) -> some View {
-        HStack(spacing: 12) {
-            Text(icon)
-                .font(.system(size: 18))
-                .frame(width: 24)
-
-            Text(title)
-                .font(.system(size: 15, weight: .bold, design: .rounded))
-                .foregroundStyle(premiumPrimaryText)
-                .lineLimit(2)
-                .minimumScaleFactor(0.85)
-
-            Spacer(minLength: 0)
-
-            if let crowdPercent {
-                Text("\(crowdPercent)% of fans")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(FGColor.accentGreen)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 13)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(premiumRowFill)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.06), lineWidth: 1)
-        )
-    }
-
     private func livePredictionStatusRow(icon: String, title: String, status: ProGamePredictionOutcomeStatus) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
@@ -853,7 +1416,7 @@ struct ProGamePredictionSheet: View {
 
             Text(title)
                 .font(.system(size: 14, weight: .semibold, design: .rounded))
-                .foregroundStyle(premiumPrimaryText)
+                .foregroundStyle(FGColor.primaryText(colorScheme))
                 .lineLimit(2)
 
             Spacer(minLength: 0)
@@ -872,144 +1435,40 @@ struct ProGamePredictionSheet: View {
         .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(premiumRowFill)
+                .fill(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.10 : 0.05))
         )
     }
 
     private func predictionSection<Content: View>(
         number: Int,
         title: String,
+        contentSpacing: CGFloat = 8,
+        showsVoteCountInHeader: Bool = false,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("\(number). \(title)")
-                .font(.system(size: 15, weight: .heavy, design: .rounded))
-                .foregroundStyle(FGColor.primaryText(colorScheme))
+        VStack(alignment: .leading, spacing: contentSpacing) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("\(number). \(title)")
+                    .font(.system(size: 15, weight: .heavy, design: .rounded))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                Spacer(minLength: 0)
+                if showsVoteCountInHeader, displayedFanCount > 0 {
+                    sectionVoteHeaderLabel
+                }
+            }
             content()
         }
     }
 
-    private var emptyFanSentimentCopy: String {
-        ProGamePredictionEmptySentimentCopy.message(
+    private var emptyFanConsensusCopy: String {
+        ProGamePredictionEmptyConsensusCopy.message(
             isFinal: displayGame.isFinal,
             isLocked: isLocked
         )
     }
 
-    private var fanSentimentSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .center, spacing: 8) {
-                Image(systemName: "person.3.fill")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(FGColor.accentGreen)
-                Text("FAN SENTIMENT")
-                    .font(.system(size: 12, weight: .heavy, design: .rounded))
-                    .tracking(0.6)
-                    .foregroundStyle(premiumPrimaryText)
-                Spacer(minLength: 0)
-                HStack(spacing: 4) {
-                    Image(systemName: "person.2.fill")
-                        .font(.caption2.weight(.bold))
-                    Text(summary.totalCount == 1 ? "1 prediction" : "\(summary.totalCount) predictions")
-                        .font(.caption.weight(.bold))
-                }
-                .foregroundStyle(FGColor.accentGreen)
-            }
-
-            if summary.totalCount == 0 {
-                Text(emptyFanSentimentCopy)
-                    .font(FGTypography.caption)
-                    .foregroundStyle(premiumSecondaryText)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
-                if hasWinnerCrowdData {
-                    VStack(spacing: 14) {
-                        fanSentimentBar(
-                            title: compactTeamName(teams.away),
-                            flag: teamFlag(for: teams.away),
-                            percent: summary.winnerPercents[teams.away] ?? 0,
-                            tint: Color(red: 0.95, green: 0.45, blue: 0.28)
-                        )
-                        if isSoccer {
-                            fanSentimentBar(
-                                title: "Draw",
-                                flag: nil,
-                                percent: summary.winnerPercents["Draw"] ?? 0,
-                                tint: Color(red: 0.98, green: 0.78, blue: 0.18)
-                            )
-                        }
-                        fanSentimentBar(
-                            title: compactTeamName(teams.home),
-                            flag: teamFlag(for: teams.home),
-                            percent: summary.winnerPercents[teams.home] ?? 0,
-                            tint: FGColor.accentBlue
-                        )
-                    }
-                }
-
-                if !summary.topScorePredictions.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Top score picks")
-                            .font(.caption.weight(.heavy))
-                            .foregroundStyle(premiumSecondaryText)
-                            .padding(.top, 4)
-
-                        ForEach(summary.topScorePredictions) { pick in
-                            HStack(spacing: 10) {
-                                Text(pick.isOther ? "Other" : "\(pick.awayScore ?? 0)–\(pick.homeScore ?? 0)")
-                                    .font(.system(size: 14, weight: .heavy, design: .rounded))
-                                    .foregroundStyle(premiumPrimaryText)
-                                Spacer(minLength: 0)
-                                Text("\(pick.percent)%")
-                                    .font(.caption.weight(.black))
-                                    .foregroundStyle(FGColor.accentGreen)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        .premiumCardStyle(colorScheme: colorScheme)
-    }
-
     private var hasWinnerCrowdData: Bool {
         !(summary.winnerPercents.isEmpty && summary.winnerLeader == nil)
-    }
-
-    private func fanSentimentBar(title: String, flag: String?, percent: Int, tint: Color) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                if let flag {
-                    Text(TeamTheme.safeFlag(flag) ?? "")
-                        .font(.body)
-                }
-                Text(title)
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-                    .foregroundStyle(premiumPrimaryText)
-                    .lineLimit(1)
-                Spacer(minLength: 0)
-                Text("\(percent)%")
-                    .font(.system(size: 22, weight: .black, design: .rounded))
-                    .foregroundStyle(tint)
-                    .monospacedDigit()
-            }
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.white.opacity(colorScheme == .dark ? 0.10 : 0.08))
-                    Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: [tint.opacity(0.95), tint.opacity(0.65)],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(width: max(8, proxy.size.width * CGFloat(percent) / 100))
-                }
-            }
-            .frame(height: ProGamePredictionSheetMetrics.sentimentBarHeight)
-        }
     }
 
     private var premiumCardFill: Color {
@@ -1051,26 +1510,6 @@ struct ProGamePredictionSheet: View {
     private func firstGoalPickTitle(_ team: String) -> String {
         if team == "No goals" { return "First Goal: No goals" }
         return "First Goal \(compactTeamName(team))"
-    }
-
-    private func crowdPercentForWinnerPick(_ winner: String) -> Int? {
-        let percent = summary.winnerPercents[winner]
-            ?? (winner == "Draw" ? summary.winnerPercents["Draw"] : nil)
-        guard let percent, percent > 0 else { return nil }
-        return percent
-    }
-
-    private func crowdPercentForScorePick(away: Int, home: Int) -> Int? {
-        let match = summary.topScorePredictions.first {
-            !$0.isOther && $0.awayScore == away && $0.homeScore == home
-        }
-        return match?.percent
-    }
-
-    private func crowdPercentForFirstGoalPick(_ team: String) -> Int? {
-        let percent = summary.firstScorePercents[team]
-        guard let percent, percent > 0 else { return nil }
-        return percent
     }
 
     private func teamsMatch(_ lhs: String, _ rhs: String) -> Bool {
@@ -1140,11 +1579,17 @@ struct ProGamePredictionSheet: View {
 
     @ViewBuilder
     private var footerNote: some View {
-        Text(isLocked ? "Predictions are closed." : "You can change your predictions until 10 minutes after kickoff.")
+        if !showResultsMode && !showSummaryMode {
+            HStack(spacing: 6) {
+                Image(systemName: "clock")
+                    .font(.caption2.weight(.semibold))
+                Text(isLocked ? "Predictions are closed." : "You can change your predictions until 10 minutes after kickoff.")
+            }
             .font(FGTypography.caption)
             .foregroundStyle(FGColor.mutedText(colorScheme))
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
+        }
     }
 
     @ViewBuilder
@@ -1156,10 +1601,21 @@ struct ProGamePredictionSheet: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
                 .background(.ultraThinMaterial)
-        } else if canEdit {
+        } else if showSummaryMode && canEdit {
             VStack(spacing: 0) {
                 Divider()
-                FGPrimaryButton(title: isSaving ? "Saving..." : "Save Predictions", systemImage: "checkmark") {
+                FGPrimaryButton(title: "Edit Prediction", systemImage: "pencil") {
+                    isEditingPredictions = true
+                }
+                .padding(.horizontal, 18)
+                .padding(.top, 12)
+                .padding(.bottom, 10)
+            }
+            .background(.ultraThinMaterial)
+        } else if canEdit && !showSummaryMode {
+            VStack(spacing: 0) {
+                Divider()
+                FGPrimaryButton(title: isSaving ? "Saving..." : "Save Prediction", systemImage: "checkmark") {
                     Task { await savePredictions() }
                 }
                 .disabled(isSaving || !hasValidSelections)
@@ -1203,6 +1659,12 @@ struct ProGamePredictionSheet: View {
             selectedFirstScore = predictions.firstScoreTeam ?? ""
             homeScore = predictions.homeScore ?? 0
             awayScore = predictions.awayScore ?? 0
+            baselineHomeScore = homeScore
+            baselineAwayScore = awayScore
+            if predictions.hasAnyPrediction {
+                didSavePredictions = true
+                isEditingPredictions = false
+            }
         } catch {
             if !VenueEventPredictionUserMessage.isCancellation(error) {
                 errorMessage = error.localizedDescription
@@ -1239,162 +1701,358 @@ struct ProGamePredictionSheet: View {
                 )
             }
             await viewModel.refreshProGamePredictionSummary(proGameId: game.stableKey)
+            didSavePredictions = true
+            isEditingPredictions = false
+            baselineHomeScore = homeScore
+            baselineAwayScore = awayScore
         } catch {
             errorMessage = VenueEventPredictionUserMessage.message(for: error)
+            await revertToServerPredictions()
+        }
+    }
+
+    @MainActor
+    private func revertToServerPredictions() async {
+        await viewModel.refreshProGamePredictionSummary(proGameId: game.stableKey)
+        do {
+            let predictions = try await ProGamePredictionService.shared.fetchUserPrediction(proGameId: game.stableKey)
+            selectedWinner = predictions.winner ?? ""
+            selectedFirstScore = predictions.firstScoreTeam ?? ""
+            homeScore = predictions.homeScore ?? 0
+            awayScore = predictions.awayScore ?? 0
+            baselineHomeScore = homeScore
+            baselineAwayScore = awayScore
+        } catch {
+            if let saved = summary.userPredictions {
+                selectedWinner = saved.winner ?? ""
+                selectedFirstScore = saved.firstScoreTeam ?? ""
+                homeScore = saved.homeScore ?? 0
+                awayScore = saved.awayScore ?? 0
+                baselineHomeScore = homeScore
+                baselineAwayScore = awayScore
+            }
         }
     }
 }
 
-private struct ProGamePredictionOptionCard: View {
-    let title: String
-    let flag: String?
-    let isSelected: Bool
-    let colorScheme: ColorScheme
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                if let flag {
-                    Text(TeamTheme.safeFlag(flag) ?? " ")
-                        .font(.system(size: 24))
-                        .frame(height: 28)
-                } else {
-                    Image(systemName: title == "Draw" ? "equal.circle.fill" : "minus.circle")
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundStyle(FGColor.mutedText(colorScheme))
-                        .frame(height: 28)
-                }
-
-                Text(title)
-                    .font(.system(size: 12.5, weight: .heavy, design: .rounded))
-                    .foregroundStyle(FGColor.primaryText(colorScheme))
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.75)
-                    .frame(maxWidth: .infinity, minHeight: 34, maxHeight: 34)
-
-                ZStack {
-                    if isSelected {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(FGColor.accentGreen)
-                    } else {
-                        Circle()
-                            .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
-                            .frame(width: 16, height: 16)
-                    }
-                }
-                .frame(height: 18)
-            }
-            .padding(.horizontal, ProGamePredictionCardMetrics.horizontalPadding)
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity, minHeight: ProGamePredictionCardMetrics.optionHeight)
-            .background(cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: ProGamePredictionCardMetrics.cornerRadius, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: ProGamePredictionCardMetrics.cornerRadius, style: .continuous)
-                    .strokeBorder(
-                        isSelected ? FGColor.accentGreen.opacity(0.82) : FGColor.divider(colorScheme),
-                        lineWidth: isSelected ? 2 : 1
-                    )
-            }
-            .shadow(
-                color: FGColor.accentGreen.opacity(isSelected ? (colorScheme == .dark ? 0.18 : 0.12) : 0),
-                radius: isSelected ? 10 : 0,
-                y: isSelected ? 4 : 0
-            )
-            .scaleEffect(isSelected ? 1.02 : 1)
-            .animation(.spring(response: 0.26, dampingFraction: 0.78), value: isSelected)
-        }
-        .buttonStyle(.plain)
+private enum ProGamePredictionOptimisticCrowd {
+    struct Display {
+        let winnerPercents: [String: Int]
+        let firstScorePercents: [String: Int]
+        let topScorePredictions: [VenueScorePredictionCrowdPick]
+        let displayedFanCount: Int
     }
 
-    private var cardBackground: some ShapeStyle {
-        LinearGradient(
-            colors: [
-                Color.white.opacity(colorScheme == .dark ? 0.08 : 0.94),
-                (isSelected ? FGColor.accentGreen : FGColor.accentBlue).opacity(colorScheme == .dark ? 0.14 : 0.07)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
+    static func display(
+        server: ProGamePredictionSummary,
+        draftWinner: String,
+        draftFirstScore: String,
+        draftHomeScore: Int,
+        draftAwayScore: Int,
+        baselineHomeScore: Int,
+        baselineAwayScore: Int,
+        teams: VenueEventPredictionTeams,
+        isSoccer: Bool
+    ) -> Display {
+        let saved = server.userPredictions
+        let winnerKeys = winnerOptionKeys(teams: teams, isSoccer: isSoccer)
+        let firstScoreKeys = firstScoreOptionKeys(teams: teams, isSoccer: isSoccer)
+
+        let winnerCounts = adjustedOptionCounts(
+            serverPercents: server.winnerPercents,
+            optionKeys: winnerKeys,
+            saved: saved?.winner,
+            draft: draftWinner
+        )
+        let firstScoreCounts = adjustedOptionCounts(
+            serverPercents: server.firstScorePercents,
+            optionKeys: firstScoreKeys,
+            saved: saved?.firstScoreTeam,
+            draft: draftFirstScore
+        )
+        let scoreResult = adjustedScorePredictions(
+            server: server,
+            savedHomeScore: saved?.homeScore,
+            savedAwayScore: saved?.awayScore,
+            draftHomeScore: draftHomeScore,
+            draftAwayScore: draftAwayScore,
+            baselineHomeScore: baselineHomeScore,
+            baselineAwayScore: baselineAwayScore
+        )
+
+        let displayedFanCount = adjustedParticipantCount(
+            server: server,
+            saved: saved,
+            draftWinner: draftWinner,
+            draftFirstScore: draftFirstScore,
+            draftHomeScore: draftHomeScore,
+            draftAwayScore: draftAwayScore,
+            baselineHomeScore: baselineHomeScore,
+            baselineAwayScore: baselineAwayScore
+        )
+
+        return Display(
+            winnerPercents: percentsFromCounts(winnerCounts),
+            firstScorePercents: percentsFromCounts(firstScoreCounts),
+            topScorePredictions: scoreResult.topScorePredictions,
+            displayedFanCount: displayedFanCount
         )
     }
-}
 
-private struct ProGamePredictionScoreCard: View {
-    let teamName: String
-    let flag: String?
-    let score: Int
-    let colorScheme: ColorScheme
-    let canDecrement: Bool
-    let canIncrement: Bool
-    let onDecrement: () -> Void
-    let onIncrement: () -> Void
-
-    var body: some View {
-        VStack(spacing: 8) {
-            Text(TeamTheme.safeFlag(flag) ?? " ")
-                .font(.system(size: 24))
-                .frame(height: 28)
-
-            Text(teamName)
-                .font(.system(size: 13, weight: .heavy, design: .rounded))
-                .foregroundStyle(FGColor.primaryText(colorScheme))
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .minimumScaleFactor(0.75)
-                .frame(maxWidth: .infinity, minHeight: 32, maxHeight: 32)
-
-            Text("\(score)")
-                .font(.system(size: 34, weight: .black, design: .rounded))
-                .foregroundStyle(FGColor.accentGreen)
-                .monospacedDigit()
-                .frame(height: 38)
-
-            HStack(spacing: 10) {
-                scoreButton(symbol: "minus", enabled: canDecrement, action: onDecrement)
-                scoreButton(symbol: "plus", enabled: canIncrement, action: onIncrement)
-            }
+    private static func adjustedParticipantCount(
+        server: ProGamePredictionSummary,
+        saved: VenueEventUserPredictions?,
+        draftWinner: String,
+        draftFirstScore: String,
+        draftHomeScore: Int,
+        draftAwayScore: Int,
+        baselineHomeScore: Int,
+        baselineAwayScore: Int
+    ) -> Int {
+        if saved?.hasAnyPrediction == true {
+            return server.participantCount
         }
-        .padding(.horizontal, ProGamePredictionCardMetrics.horizontalPadding)
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, minHeight: ProGamePredictionCardMetrics.scoreHeight)
-        .background(
-            LinearGradient(
-                colors: [
-                    Color.white.opacity(colorScheme == .dark ? 0.08 : 0.94),
-                    FGColor.accentGreen.opacity(colorScheme == .dark ? 0.14 : 0.08)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+        let draftParticipates = !draftWinner.isEmpty
+            || !draftFirstScore.isEmpty
+            || draftScoreParticipates(
+                savedHomeScore: saved?.homeScore,
+                savedAwayScore: saved?.awayScore,
+                draftHomeScore: draftHomeScore,
+                draftAwayScore: draftAwayScore,
+                baselineHomeScore: baselineHomeScore,
+                baselineAwayScore: baselineAwayScore
             )
-        )
-        .clipShape(RoundedRectangle(cornerRadius: ProGamePredictionCardMetrics.cornerRadius, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: ProGamePredictionCardMetrics.cornerRadius, style: .continuous)
-                .strokeBorder(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.34 : 0.22), lineWidth: 1.2)
-        }
-        .shadow(color: FGColor.accentGreen.opacity(colorScheme == .dark ? 0.12 : 0.08), radius: 10, y: 4)
+        return draftParticipates ? server.participantCount + 1 : server.participantCount
     }
 
-    private func scoreButton(symbol: String, enabled: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(size: 12, weight: .black))
-                .foregroundStyle(enabled ? FGColor.primaryText(colorScheme) : FGColor.mutedText(colorScheme))
-                .frame(width: 38, height: 32)
-                .background {
-                    Capsule(style: .continuous)
-                        .fill(.ultraThinMaterial)
-                        .overlay {
-                            Capsule(style: .continuous)
-                                .strokeBorder(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.22 : 0.14), lineWidth: 0.8)
-                        }
-                }
+    private static func draftScoreParticipates(
+        savedHomeScore: Int?,
+        savedAwayScore: Int?,
+        draftHomeScore: Int,
+        draftAwayScore: Int,
+        baselineHomeScore: Int,
+        baselineAwayScore: Int
+    ) -> Bool {
+        if let savedHomeScore, let savedAwayScore {
+            return draftHomeScore != savedHomeScore || draftAwayScore != savedAwayScore
         }
-        .buttonStyle(.plain)
-        .disabled(!enabled)
+        return draftHomeScore != baselineHomeScore || draftAwayScore != baselineAwayScore
+    }
+
+    private static func winnerOptionKeys(teams: VenueEventPredictionTeams, isSoccer: Bool) -> [String] {
+        if isSoccer {
+            return [teams.away, "Draw", teams.home]
+        }
+        return [teams.away, teams.home]
+    }
+
+    private static func firstScoreOptionKeys(teams: VenueEventPredictionTeams, isSoccer: Bool) -> [String] {
+        if isSoccer {
+            return [teams.away, "No goals", teams.home]
+        }
+        return [teams.away, teams.home]
+    }
+
+    private static func adjustedOptionCounts(
+        serverPercents: [String: Int],
+        optionKeys: [String],
+        saved: String?,
+        draft: String
+    ) -> [String: Int] {
+        let estimatedTotal = estimatedVoteTotal(from: serverPercents)
+        var counts = countsFromPercents(serverPercents, total: estimatedTotal)
+        applyOptionDelta(counts: &counts, optionKeys: optionKeys, saved: saved, draft: draft)
+        return counts
+    }
+
+    private static func applyOptionDelta(
+        counts: inout [String: Int],
+        optionKeys: [String],
+        saved: String?,
+        draft: String
+    ) {
+        let savedContributes = saved.map { !$0.isEmpty } ?? false
+        let draftContributes = !draft.isEmpty
+        let samePick = savedContributes && draftContributes && teamNamesMatch(saved!, draft)
+
+        if savedContributes, !samePick, let savedKey = resolveOptionKey(for: saved!, in: counts, optionKeys: optionKeys) {
+            counts[savedKey] = max(0, (counts[savedKey] ?? 0) - 1)
+            if counts[savedKey] == 0 {
+                counts.removeValue(forKey: savedKey)
+            }
+        }
+
+        if draftContributes, !samePick, let draftKey = resolveOptionKey(for: draft, in: counts, optionKeys: optionKeys) {
+            counts[draftKey, default: 0] += 1
+        }
+    }
+
+    private struct AdjustedScoreResult {
+        let topScorePredictions: [VenueScorePredictionCrowdPick]
+    }
+
+    private static func adjustedScorePredictions(
+        server: ProGamePredictionSummary,
+        savedHomeScore: Int?,
+        savedAwayScore: Int?,
+        draftHomeScore: Int,
+        draftAwayScore: Int,
+        baselineHomeScore: Int,
+        baselineAwayScore: Int
+    ) -> AdjustedScoreResult {
+        let savedScore = savedHomeScore.flatMap { home in
+            savedAwayScore.map { away in (home, away) }
+        }
+        let draftScore = (draftHomeScore, draftAwayScore)
+        let shouldAdjustScore: Bool
+        if let savedScore {
+            shouldAdjustScore = draftScore != savedScore
+        } else {
+            shouldAdjustScore = draftScore != (baselineHomeScore, baselineAwayScore)
+        }
+
+        guard shouldAdjustScore else {
+            return AdjustedScoreResult(topScorePredictions: server.topScorePredictions)
+        }
+
+        var counts: [String: Int] = [:]
+        var otherCount = 0
+        for pick in server.topScorePredictions {
+            if pick.isOther {
+                otherCount = pick.count
+            } else if let home = pick.homeScore, let away = pick.awayScore {
+                counts[scoreKey(home: home, away: away)] = pick.count
+            }
+        }
+
+        if let savedScore {
+            removeScore(savedScore.0, savedScore.1, counts: &counts, otherCount: &otherCount)
+        }
+        addScore(draftHomeScore, draftAwayScore, counts: &counts)
+
+        let effectiveTotal = counts.values.reduce(0, +) + otherCount
+        let topScorePredictions = buildTopScorePredictions(counts: counts, total: effectiveTotal)
+        return AdjustedScoreResult(topScorePredictions: topScorePredictions)
+    }
+
+    private static func removeScore(
+        _ home: Int,
+        _ away: Int,
+        counts: inout [String: Int],
+        otherCount: inout Int
+    ) {
+        let key = scoreKey(home: home, away: away)
+        if let existing = counts[key], existing > 0 {
+            counts[key] = existing - 1
+            if counts[key] == 0 {
+                counts.removeValue(forKey: key)
+            }
+        } else {
+            otherCount = max(0, otherCount - 1)
+        }
+    }
+
+    private static func addScore(
+        _ home: Int,
+        _ away: Int,
+        counts: inout [String: Int]
+    ) {
+        let key = scoreKey(home: home, away: away)
+        counts[key, default: 0] += 1
+    }
+
+    private static func buildTopScorePredictions(
+        counts: [String: Int],
+        total: Int
+    ) -> [VenueScorePredictionCrowdPick] {
+        guard total > 0 else { return [] }
+
+        let ranked = counts.compactMap { key, count -> VenueScorePredictionCrowdPick? in
+            guard let parsed = parseScoreKey(key) else { return nil }
+            return VenueScorePredictionCrowdPick(
+                homeScore: parsed.home,
+                awayScore: parsed.away,
+                count: count,
+                percent: Int((Double(count) / Double(total) * 100).rounded()),
+                isOther: false
+            )
+        }
+        .sorted { lhs, rhs in
+            if lhs.count != rhs.count { return lhs.count > rhs.count }
+            return (lhs.homeScore ?? 0) > (rhs.homeScore ?? 0)
+        }
+
+        let top = Array(ranked.prefix(3))
+        let topCount = top.reduce(0) { $0 + $1.count }
+        let remainingCount = max(0, total - topCount)
+        guard remainingCount > 0 else { return top }
+        return top + [
+            VenueScorePredictionCrowdPick(
+                homeScore: nil,
+                awayScore: nil,
+                count: remainingCount,
+                percent: Int((Double(remainingCount) / Double(total) * 100).rounded()),
+                isOther: true
+            )
+        ]
+    }
+
+    private static func estimatedVoteTotal(from percents: [String: Int]) -> Int {
+        guard !percents.isEmpty else { return 0 }
+        return percents.values.compactMap { percent in
+            percent > 0 ? Int(ceil(100.0 / Double(percent))) : nil
+        }.max() ?? 0
+    }
+
+    private static func countsFromPercents(_ percents: [String: Int], total: Int) -> [String: Int] {
+        guard total > 0, !percents.isEmpty else { return [:] }
+        let fractional = percents.map { (key: $0.key, raw: Double($0.value) / 100.0 * Double(total)) }
+        var counts = Dictionary(uniqueKeysWithValues: fractional.map { ($0.key, Int(floor($0.raw))) })
+        var remainder = total - counts.values.reduce(0, +)
+        let sorted = fractional.sorted { ($0.raw - floor($0.raw)) > ($1.raw - floor($0.raw)) }
+        for item in sorted where remainder > 0 {
+            counts[item.key, default: 0] += 1
+            remainder -= 1
+        }
+        return counts
+    }
+
+    private static func percentsFromCounts(_ counts: [String: Int]) -> [String: Int] {
+        let denominator = counts.values.reduce(0, +)
+        guard denominator > 0 else { return [:] }
+        return counts.mapValues { count in
+            Int((Double(count) / Double(denominator) * 100).rounded())
+        }
+    }
+
+    private static func resolveOptionKey(
+        for value: String,
+        in counts: [String: Int],
+        optionKeys: [String]
+    ) -> String? {
+        if let exact = optionKeys.first(where: { $0 == value }) {
+            return exact
+        }
+        if let fromCounts = counts.keys.first(where: { teamNamesMatch($0, value) }) {
+            return fromCounts
+        }
+        return optionKeys.first(where: { teamNamesMatch($0, value) }) ?? value
+    }
+
+    private static func teamNamesMatch(_ lhs: String, _ rhs: String) -> Bool {
+        LiveMatchFilters.normalizedSearchText(lhs) == LiveMatchFilters.normalizedSearchText(rhs)
+    }
+
+    private static func scoreKey(home: Int, away: Int) -> String {
+        "\(home)-\(away)"
+    }
+
+    private static func parseScoreKey(_ key: String) -> (home: Int, away: Int)? {
+        let parts = key.split(separator: "-", omittingEmptySubsequences: false)
+        guard parts.count == 2,
+              let home = Int(parts[0]),
+              let away = Int(parts[1]) else { return nil }
+        return (home, away)
     }
 }
 
