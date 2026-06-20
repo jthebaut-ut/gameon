@@ -1015,6 +1015,7 @@ struct UserProfileRow: Decodable {
     let national_team_flag: String?
     let national_team_supporter_label: String?
     let national_team_updated_at: String?
+    let ad_free_enabled: Bool?
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -1038,6 +1039,7 @@ struct UserProfileRow: Decodable {
         case national_team_flag
         case national_team_supporter_label
         case national_team_updated_at
+        case ad_free_enabled
     }
 
     init(
@@ -1061,7 +1063,8 @@ struct UserProfileRow: Decodable {
         national_team_country_name: String? = nil,
         national_team_flag: String? = nil,
         national_team_supporter_label: String? = nil,
-        national_team_updated_at: String? = nil
+        national_team_updated_at: String? = nil,
+        ad_free_enabled: Bool? = nil
     ) {
         self.id = id
         self.email = email
@@ -1084,6 +1087,7 @@ struct UserProfileRow: Decodable {
         self.national_team_flag = national_team_flag
         self.national_team_supporter_label = national_team_supporter_label
         self.national_team_updated_at = national_team_updated_at
+        self.ad_free_enabled = ad_free_enabled
     }
 
     init(from decoder: Decoder) throws {
@@ -1108,6 +1112,7 @@ struct UserProfileRow: Decodable {
         national_team_flag = try c.decodeIfPresent(String.self, forKey: .national_team_flag)
         national_team_supporter_label = try c.decodeIfPresent(String.self, forKey: .national_team_supporter_label)
         national_team_updated_at = try c.decodeIfPresent(String.self, forKey: .national_team_updated_at)
+        ad_free_enabled = try c.decodeIfPresent(Bool.self, forKey: .ad_free_enabled)
 
         if let ids = try? c.decodeIfPresent([UUID].self, forKey: .selected_live_visibility_friend_ids) {
             selected_live_visibility_friend_ids = ids
@@ -1120,6 +1125,10 @@ struct UserProfileRow: Decodable {
 
     var isBusinessIdentity: Bool {
         is_business_account == true
+    }
+
+    var adFreeEnabled: Bool {
+        ad_free_enabled == true
     }
 
     func isRegularFanProfile(excludingBusinessOwnerUserIDs businessOwnerUserIDs: Set<UUID> = []) -> Bool {

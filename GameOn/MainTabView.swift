@@ -1511,9 +1511,11 @@ struct MainTabView: View {
         if viewModel.isLoggedIn, !viewModel.isVenueOwnerLoggedIn {
             await viewModel.enforceFanSingleSessionOnForeground()
             await viewModel.startFanSingleSessionRealtimeIfNeeded()
+            await viewModel.refreshCurrentUserAdFreeEntitlementFromServer(reason: "foreground")
         }
 
         guard viewModel.isAuthenticatedForSocialFeatures else { return }
+        await PushNotificationRegistrationService.shared.refreshPushTokenRegistration(reason: "foreground")
         PresenceService.shared.startIfNeeded(
             userID: viewModel.currentUserAuthId,
             isAuthenticated: true,

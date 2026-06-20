@@ -16,28 +16,28 @@ extension MapViewModel {
         }
     }
 
-    func setProGameRemindersEnabled(_ enabled: Bool) async {
-        if await notificationSettingsStore.setProGameRemindersEnabled(enabled) {
-            await rescheduleAvailableProGameReminders(reason: "settingsEnabled")
+    func setProGameKickoffAlertEnabled(_ enabled: Bool) async {
+        await cancelAllProGameKickoffAlerts()
+        if await notificationSettingsStore.setProGameKickoffAlertEnabled(enabled), enabled {
+            await rescheduleAvailableProGameKickoffAlerts(reason: "kickoffAlertEnabled")
         }
-        await syncProGameFinalScorePreferenceToBackend(reason: "proGameRemindersToggle")
+        await syncProGameFinalScorePreferenceToBackend(reason: "proGameKickoffAlertToggle")
     }
 
-    func setProGameReminderTiming(_ timing: ProGameReminderTiming) async {
-        let previousTiming = proGameReminderTiming
-        guard previousTiming != timing else { return }
+    func setProGameGameReminderTiming(_ timing: ProGameReminderTiming) async {
+        guard proGameReminderTiming != timing else { return }
 
-        await cancelAllProGameReminders()
-        guard await notificationSettingsStore.setProGameReminderTiming(timing) else { return }
+        await cancelAllProGamePreKickoffReminders()
+        guard await notificationSettingsStore.setProGameGameReminderTiming(timing) else { return }
 
         if timing.schedulesKickoffReminder {
-            await rescheduleAvailableProGameReminders(reason: "timingChanged")
+            await rescheduleAvailableProGamePreKickoffReminders(reason: "gameReminderTimingChanged")
         }
-        await syncProGameFinalScorePreferenceToBackend(reason: "proGameReminderTimingChanged")
+        await syncProGameFinalScorePreferenceToBackend(reason: "proGameGameReminderTimingChanged")
     }
 
     func gameReminderPreferenceDidChange() async {
-        print("[NotificationSettingsDebug] save reminderPreference notifyBeforeGame=\(notifyBeforeGame) proGameReminderTiming=\(proGameReminderTiming.rawValue) proGameReminderNotifications=\(proGameReminderNotifications) reminderMinutesBefore=\(reminderMinutesBefore) repeatGameReminder=\(repeatGameReminder) repeatEveryMinutes=\(repeatEveryMinutes)")
+        print("[NotificationSettingsDebug] save reminderPreference notifyBeforeGame=\(notifyBeforeGame) proGameKickoffAlertEnabled=\(proGameKickoffAlertEnabled) proGameReminderTiming=\(proGameReminderTiming.rawValue) reminderMinutesBefore=\(reminderMinutesBefore) repeatGameReminder=\(repeatGameReminder) repeatEveryMinutes=\(repeatEveryMinutes)")
         print("[NotificationDebug] reminderPreference=\(reminderMinutesBefore)")
         if notifyBeforeGame {
             await rescheduleAvailableGameReminders(reason: "preferenceChanged")
@@ -45,11 +45,11 @@ extension MapViewModel {
     }
 
     func proGameReminderPreferenceDidChange() async {
-        print("[NotificationSettingsDebug] save proGameReminderTiming=\(proGameReminderTiming.rawValue)")
-        await cancelAllProGameReminders()
-        if proGameReminderTiming.schedulesKickoffReminder {
-            await rescheduleAvailableProGameReminders(reason: "preferenceChanged")
-        }
+        print("[NotificationSettingsDebug] save proGameKickoffAlertEnabled=\(proGameKickoffAlertEnabled) proGameReminderTiming=\(proGameReminderTiming.rawValue)")
+        await cancelAllProGameKickoffAlerts()
+        await cancelAllProGamePreKickoffReminders()
+        await rescheduleAvailableProGameKickoffAlerts(reason: "preferenceChanged")
+        await rescheduleAvailableProGamePreKickoffReminders(reason: "preferenceChanged")
     }
 
     func scheduleGameReminderIfPossible(venueEventID: UUID) async {
@@ -89,31 +89,48 @@ extension MapViewModel {
         }
     }
 
-    func scheduleProGameReminderIfPossible(_ savedGame: SavedProGame) async {
-        guard proGameReminderTiming.schedulesKickoffReminder else {
-            await cancelProGameReminder(savedGameIdentifier: savedGame.stableKey)
-            return
-        }
+    func scheduleProGameNotificationsIfPossible(_ savedGame: SavedProGame) async {
         guard savedProGames.contains(where: { $0.stableKey == savedGame.stableKey }) else { return }
-        guard let reminderMinutesBefore = proGameReminderTiming.reminderMinutesBefore else {
-            await cancelProGameReminder(savedGameIdentifier: savedGame.stableKey)
-            return
-        }
         guard let event = proGameReminderNotificationEvent(for: savedGame) else {
-            await cancelProGameReminder(savedGameIdentifier: savedGame.stableKey)
+            await cancelProGameNotificationSchedules(savedGameIdentifier: savedGame.stableKey)
             return
         }
-        await gameReminderService.scheduleProGameReminder(
-            for: event,
-            userPreference: proGameReminderTiming.rawValue,
-            reminderMinutesBefore: reminderMinutesBefore,
-            repeatUntilStart: false,
-            repeatEveryMinutes: repeatEveryMinutes
-        )
+
+        if proGameKickoffAlertEnabled {
+            await gameReminderService.scheduleProGameKickoffAlert(for: event)
+        } else {
+            await gameReminderService.cancelProGameKickoffAlert(identifier: savedGame.stableKey)
+        }
+
+        if proGameGameReminderEnabled, let reminderMinutesBefore = proGameReminderTiming.reminderMinutesBefore {
+            await gameReminderService.scheduleProGamePreKickoffReminder(
+                for: event,
+                userPreference: proGameReminderTiming.rawValue,
+                reminderMinutesBefore: reminderMinutesBefore
+            )
+        } else {
+            await gameReminderService.cancelProGamePreKickoffReminder(identifier: savedGame.stableKey)
+        }
+    }
+
+    func scheduleProGameReminderIfPossible(_ savedGame: SavedProGame) async {
+        await scheduleProGameNotificationsIfPossible(savedGame)
+    }
+
+    func cancelProGameNotificationSchedules(savedGameIdentifier: String) async {
+        await gameReminderService.cancelProGameReminder(identifier: savedGameIdentifier)
     }
 
     func cancelProGameReminder(savedGameIdentifier: String) async {
-        await gameReminderService.cancelProGameReminder(identifier: savedGameIdentifier)
+        await cancelProGameNotificationSchedules(savedGameIdentifier: savedGameIdentifier)
+    }
+
+    func cancelAllProGameKickoffAlerts() async {
+        await gameReminderService.cancelAllProGameKickoffAlerts()
+    }
+
+    func cancelAllProGamePreKickoffReminders() async {
+        await gameReminderService.cancelAllProGamePreKickoffReminders()
     }
 
     func cancelAllProGameReminders() async {
@@ -121,8 +138,8 @@ extension MapViewModel {
     }
 
     func reconcileSavedProGameReminders(reason: String) async {
-        guard proGameReminderTiming.schedulesKickoffReminder else { return }
-        await rescheduleAvailableProGameReminders(reason: reason)
+        await rescheduleAvailableProGameKickoffAlerts(reason: reason)
+        await rescheduleAvailableProGamePreKickoffReminders(reason: reason)
     }
 
     private func rescheduleAvailableGameReminders(reason: String) async {
@@ -133,11 +150,54 @@ extension MapViewModel {
         }
     }
 
-    private func rescheduleAvailableProGameReminders(reason: String) async {
+    private func rescheduleAvailableProGameKickoffAlerts(reason: String) async {
+        guard proGameKickoffAlertEnabled else { return }
         for savedGame in savedProGames {
-            print("[ProGameNotificationDebug] rescheduleReminder id=\(savedGame.stableKey) reason=\(reason)")
-            await scheduleProGameReminderIfPossible(savedGame)
+            print("[ProGameKickoffAlertDebug] rescheduleAlert id=\(savedGame.stableKey) reason=\(reason)")
+            await scheduleProGameKickoffAlertIfPossible(savedGame)
         }
+    }
+
+    private func rescheduleAvailableProGamePreKickoffReminders(reason: String) async {
+        guard proGameGameReminderEnabled else { return }
+        for savedGame in savedProGames {
+            print("[ProGameReminderDebug] rescheduleReminder id=\(savedGame.stableKey) reason=\(reason)")
+            await scheduleProGamePreKickoffReminderIfPossible(savedGame)
+        }
+    }
+
+    private func scheduleProGameKickoffAlertIfPossible(_ savedGame: SavedProGame) async {
+        guard proGameKickoffAlertEnabled else {
+            await gameReminderService.cancelProGameKickoffAlert(identifier: savedGame.stableKey)
+            return
+        }
+        guard savedProGames.contains(where: { $0.stableKey == savedGame.stableKey }) else { return }
+        guard let event = proGameReminderNotificationEvent(for: savedGame) else {
+            await gameReminderService.cancelProGameKickoffAlert(identifier: savedGame.stableKey)
+            return
+        }
+        await gameReminderService.scheduleProGameKickoffAlert(for: event)
+    }
+
+    private func scheduleProGamePreKickoffReminderIfPossible(_ savedGame: SavedProGame) async {
+        guard proGameGameReminderEnabled else {
+            await gameReminderService.cancelProGamePreKickoffReminder(identifier: savedGame.stableKey)
+            return
+        }
+        guard savedProGames.contains(where: { $0.stableKey == savedGame.stableKey }) else { return }
+        guard let reminderMinutesBefore = proGameReminderTiming.reminderMinutesBefore else {
+            await gameReminderService.cancelProGamePreKickoffReminder(identifier: savedGame.stableKey)
+            return
+        }
+        guard let event = proGameReminderNotificationEvent(for: savedGame) else {
+            await gameReminderService.cancelProGamePreKickoffReminder(identifier: savedGame.stableKey)
+            return
+        }
+        await gameReminderService.scheduleProGamePreKickoffReminder(
+            for: event,
+            userPreference: proGameReminderTiming.rawValue,
+            reminderMinutesBefore: reminderMinutesBefore
+        )
     }
 
     private func availableGoingVenueEventIDs() -> [UUID] {

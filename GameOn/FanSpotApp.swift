@@ -52,6 +52,9 @@ private final class FanGeoAppDelegate: NSObject, UIApplicationDelegate, UNUserNo
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         UNUserNotificationCenter.current().delegate = self
+        Task {
+            await PushNotificationRegistrationService.shared.refreshPushTokenRegistration(reason: "appLaunch")
+        }
         return true
     }
 

@@ -28,6 +28,9 @@ enum VenueCommentsAdPlacement {
     static let secondAdAfterCommentIndex = 19
 
     static func listItems(for comments: [VenueEventCommentRow]) -> [VenueCommentsListItem] {
+        guard FanGeoAdPolicy.shouldInsertAdsInFeeds() else {
+            return comments.map { .comment($0) }
+        }
         guard comments.count >= 8 else {
             return comments.map { .comment($0) }
         }

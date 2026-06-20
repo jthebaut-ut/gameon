@@ -140,12 +140,12 @@ struct BusinessVenueGamePostingStatus: Equatable {
     }
     var businessPlanDisplayTitle: String {
         if isBusinessProPromo { return "Free User Promotion" }
-        if isBusinessSubscriptionPro { return "Business Pro active" }
+        if isBusinessSubscriptionPro { return "Business Pro Active" }
         return "Business Regular"
     }
     var businessPlanDisplaySubtitle: String {
         if isBusinessProPromo { return "Promotion access" }
-        if isBusinessSubscriptionPro { return "Subscription Pro" }
+        if isBusinessSubscriptionPro { return "Launch Promotion" }
         return normalizedPlanStatusForDisplay
     }
     var businessProPromoIncludedThroughText: String? {

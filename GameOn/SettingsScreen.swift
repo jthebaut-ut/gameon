@@ -188,6 +188,8 @@ struct SettingsScreen: View {
     @State private var settingsBusinessHostedGameCycleAuditLoading = false
     @State private var settingsBusinessHostedGameCycleAuditUnavailable = false
     @State private var profileSettingsPath = NavigationPath()
+    @State private var isFanGeoPlusEntitlementRefreshing = false
+    @State private var fanGeoPlusEntitlementDisplayActive = FanGeoUserEntitlements.adFreeEnabled
     @State private var showUserAuthSheet = false
     @State private var showVenueAuthSheet = false
     @State private var showLiveSharingModeDialog = false
@@ -1036,6 +1038,9 @@ struct SettingsScreen: View {
             List {
                 profileSettingsPrivacySection()
                 profileSettingsNotificationsSection()
+                if !viewModel.currentUserIsBusinessAccount {
+                    profileSettingsFanGeoPlusSection()
+                }
                 profileSettingsExperienceSection()
                 profileSettingsProGamesSection()
                 profileSettingsHelpSafetySection()
@@ -1291,7 +1296,7 @@ struct SettingsScreen: View {
             }
         } label: {
             settingsRow(
-                title: settingsBusinessMembershipStatus?.businessPlanDisplayTitle ?? (isPro ? "Business Pro active" : "Business Regular"),
+                title: settingsBusinessMembershipStatus?.businessPlanDisplayTitle ?? (isPro ? "Business Pro Active" : "Business Regular"),
                 subtitle: settingsBusinessProRowSubtitle,
                 systemImage: isPro ? "crown.fill" : "lock.shield.fill",
                 tint: isPro ? SettingsPremiumChrome.proGold(colorScheme) : FGColor.accentGreen
@@ -1957,6 +1962,150 @@ struct SettingsScreen: View {
         } header: {
             settingsSectionHeader(L10n.t("notifications", languageCode: appLanguageRaw))
         }
+    }
+
+    private func profileSettingsFanGeoPlusSection() -> some View {
+        Section {
+            settingsSectionCard {
+                fanGeoPlusSettingsRow
+            }
+            .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 12, trailing: 16))
+            .listRowBackground(Color.clear)
+            .onAppear {
+                fanGeoPlusEntitlementDisplayActive = FanGeoUserEntitlements.adFreeEnabled
+            }
+        } header: {
+            settingsSectionHeader("FanGeo+")
+        }
+    }
+
+    private var fanGeoPlusSettingsRow: some View {
+        HStack(alignment: .center, spacing: FGSpacing.md) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .fill(SettingsPremiumChrome.iconSurface(colorScheme))
+                Image(systemName: "sparkles")
+                    .font(.system(size: 14, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(
+                        fanGeoPlusEntitlementIsActive
+                            ? SettingsPremiumChrome.proGold(colorScheme)
+                            : SettingsPremiumChrome.secondaryText(colorScheme)
+                    )
+            }
+            .frame(width: SettingsPremiumChrome.rowIconSize, height: SettingsPremiumChrome.rowIconSize)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text("FanGeo+")
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .foregroundStyle(SettingsPremiumChrome.primaryText(colorScheme))
+                    .lineLimit(1)
+
+                if fanGeoPlusEntitlementIsActive {
+                    Text("Active • Ad-free experience enabled")
+                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                        .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text("Regular account • Ads may appear")
+                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                        .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("FanGeo+ memberships coming soon.")
+                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                        .foregroundStyle(SettingsPremiumChrome.mutedText(colorScheme))
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Spacer(minLength: 0)
+
+            HStack(spacing: 8) {
+                if isFanGeoPlusEntitlementRefreshing {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(fanGeoPlusEntitlementIsActive ? SettingsPremiumChrome.proGold(colorScheme) : FGColor.accentGreen)
+                        .accessibilityLabel("Refreshing FanGeo+ status")
+                } else {
+                    Button {
+                        Task { await refreshFanGeoPlusEntitlementFromSettings() }
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
+                            .frame(width: 28, height: 28)
+                            .background(SettingsPremiumChrome.iconSurface(colorScheme), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Refresh FanGeo+ status")
+                }
+
+                settingsFanGeoPlusStatusBadge(isActive: fanGeoPlusEntitlementIsActive)
+            }
+        }
+        .padding(.horizontal, FGSpacing.md)
+        .padding(.vertical, 10)
+        .frame(minHeight: SettingsPremiumChrome.rowMinHeight, alignment: .center)
+        .contentShape(Rectangle())
+    }
+
+    private func refreshFanGeoPlusEntitlementFromSettings() async {
+        guard !isFanGeoPlusEntitlementRefreshing else { return }
+        isFanGeoPlusEntitlementRefreshing = true
+        defer { isFanGeoPlusEntitlementRefreshing = false }
+        await viewModel.refreshCurrentUserAdFreeEntitlementFromServer(reason: "settingsManualRefresh")
+        fanGeoPlusEntitlementDisplayActive = FanGeoUserEntitlements.adFreeEnabled
+    }
+
+    private var fanGeoPlusEntitlementIsActive: Bool {
+        fanGeoPlusEntitlementDisplayActive
+    }
+
+    private func settingsFanGeoPlusStatusBadge(isActive: Bool) -> some View {
+        Group {
+            if isActive {
+                Text("Active")
+                    .font(.system(size: 10, weight: .heavy, design: .rounded))
+                    .tracking(0.4)
+                    .foregroundStyle(SettingsPremiumChrome.proBadgeText(colorScheme))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        LinearGradient(
+                            colors: [
+                                SettingsPremiumChrome.proGold(colorScheme),
+                                SettingsPremiumChrome.proGoldDeep(colorScheme)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        in: Capsule(style: .continuous)
+                    )
+                    .overlay {
+                        Capsule(style: .continuous)
+                            .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.20 : 0.46), lineWidth: 0.75)
+                    }
+            } else {
+                Text("Regular")
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        SettingsPremiumChrome.iconSurface(colorScheme),
+                        in: Capsule(style: .continuous)
+                    )
+                    .overlay {
+                        Capsule(style: .continuous)
+                            .strokeBorder(SettingsPremiumChrome.divider(colorScheme), lineWidth: 0.75)
+                    }
+            }
+        }
+        .accessibilityLabel(isActive ? "FanGeo+ Active" : "FanGeo+ Regular")
     }
 
     private func profileSettingsExperienceSection() -> some View {
@@ -2746,7 +2895,7 @@ struct SettingsScreen: View {
         }
         if status.isBusinessSubscriptionPro {
             return [
-                "Subscription Pro",
+                "Launch Promotion",
                 status.businessProSubscriptionExpiryText
             ]
             .compactMap { $0 }
@@ -7018,68 +7167,22 @@ private struct SettingsGameNotificationsCard: View {
             ) {
                 proGameReminderSettingsSection
 
+                Divider()
+                    .padding(.leading, FGSpacing.md)
+
                 notificationToggle(
                     title: "Final score alerts",
                     subtitle: "One alert when a saved Pro Game goes final.",
                     isOn: proGameFinalScoreAlertsBinding
                 )
-
-                Text("Pro Game kickoff reminders are local notifications for games you save in Calendar, Live, or Going. Live score alerts are unchanged.")
-                    .font(FGTypography.caption)
-                    .foregroundStyle(FGColor.secondaryText(colorScheme))
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, FGSpacing.md)
-                    .padding(.bottom, 10)
             }
 
             calendarSyncSettingsSection
-
-            notificationSection(
-                title: "Calendar",
-                subtitle: "Sync FanGeo plans to your device calendar.",
-                systemImage: "calendar.badge.plus",
-                tint: FGColor.accentGreen
-            ) {
-                Text("Calendar Alerts")
-                    .font(FGTypography.caption.weight(.bold))
-                    .foregroundStyle(FGColor.mutedText(colorScheme))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, FGSpacing.md)
-                    .padding(.top, 10)
-                    .padding(.bottom, 2)
-
-                calendarAlertPreferenceRow(
-                    title: "Venue Games",
-                    subtitle: "Reminder for watch parties and venue events.",
-                    selection: venueCalendarAlertTimingBinding,
-                    isEnabled: appleCalendarDependentControlsEnabled
-                )
-
-                Divider()
-                    .padding(.leading, FGSpacing.md)
-
-                calendarAlertPreferenceRow(
-                    title: "Pickup Games",
-                    subtitle: "Reminder for games you host or join.",
-                    selection: pickupCalendarAlertTimingBinding,
-                    isEnabled: appleCalendarDependentControlsEnabled
-                )
-
-                Divider()
-                    .padding(.leading, FGSpacing.md)
-
-                calendarAlertPreferenceRow(
-                    title: "Pro Games",
-                    subtitle: "Reminder for saved professional games.",
-                    selection: proCalendarAlertTimingBinding,
-                    isEnabled: appleCalendarDependentControlsEnabled
-                )
-            }
         }
         .tint(FGColor.accentGreen)
         .task {
             print("[NotificationSettingsDebug] removedSocialFanSection=true")
-            print("[NotificationSettingsDebug] appear notifyBeforeGame=\(notificationSettingsStore.notifyBeforeGame) proGameReminderTiming=\(notificationSettingsStore.proGameReminderTiming.rawValue) calendarSync=\(notificationSettingsStore.syncGoingGamesToAppleCalendar)")
+            print("[NotificationSettingsDebug] appear notifyBeforeGame=\(notificationSettingsStore.notifyBeforeGame) proGameKickoffAlertEnabled=\(notificationSettingsStore.proGameKickoffAlertEnabled) proGameReminderTiming=\(notificationSettingsStore.proGameReminderTiming.rawValue) calendarSync=\(notificationSettingsStore.syncGoingGamesToAppleCalendar)")
             await viewModel.refreshGameNotificationAuthorizationState()
             refreshCalendarAccessState()
         }
@@ -7117,7 +7220,7 @@ private struct SettingsGameNotificationsCard: View {
 
     private var calendarSyncSettingsSection: some View {
         notificationSection(
-            title: "Calendar Sync",
+            title: "Apple Calendar Sync",
             subtitle: "Keep FanGeo and Apple Calendar aligned.",
             systemImage: "calendar.badge.checkmark",
             tint: FGColor.accentGreen
@@ -7177,6 +7280,46 @@ private struct SettingsGameNotificationsCard: View {
                 Divider()
                     .padding(.leading, FGSpacing.md)
 
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Calendar Reminder Timing")
+                        .font(FGTypography.caption.weight(.bold))
+                        .foregroundStyle(FGColor.mutedText(colorScheme))
+                    Text("Apple Calendar event reminders, not FanGeo push notifications.")
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, FGSpacing.md)
+                .padding(.top, 2)
+
+                calendarAlertPreferenceRow(
+                    title: "Saved Pro Games",
+                    selection: proCalendarAlertTimingBinding,
+                    isEnabled: appleCalendarDependentControlsEnabled
+                )
+
+                Divider()
+                    .padding(.leading, FGSpacing.md)
+
+                calendarAlertPreferenceRow(
+                    title: "Venue Games",
+                    selection: venueCalendarAlertTimingBinding,
+                    isEnabled: appleCalendarDependentControlsEnabled
+                )
+
+                Divider()
+                    .padding(.leading, FGSpacing.md)
+
+                calendarAlertPreferenceRow(
+                    title: "Pickup Games",
+                    selection: pickupCalendarAlertTimingBinding,
+                    isEnabled: appleCalendarDependentControlsEnabled
+                )
+
+                Divider()
+                    .padding(.leading, FGSpacing.md)
+
                 calendarSyncStatusRow(
                     title: calendarAccessEnabled ? "Calendar Access: Enabled" : "Calendar Access Required",
                     subtitle: calendarAccessEnabled
@@ -7195,12 +7338,6 @@ private struct SettingsGameNotificationsCard: View {
                     systemImage: "clock.arrow.circlepath",
                     tint: FGColor.accentBlue
                 )
-
-                Text("Keep your saved games, venue events, and pickup games synchronized with Apple Calendar.")
-                    .font(FGTypography.caption)
-                    .foregroundStyle(FGColor.secondaryText(colorScheme))
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, FGSpacing.md)
 
                 if !calendarSyncResultMessage.isEmpty {
                     Text(calendarSyncResultMessage)
@@ -7432,67 +7569,103 @@ private struct SettingsGameNotificationsCard: View {
 
     private var proGameReminderSettingsSection: some View {
         VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Pro Game Reminders")
-                    .font(FGTypography.body.weight(.semibold))
-                    .foregroundStyle(FGColor.primaryText(colorScheme))
-                Text("Receive reminders for saved Pro Games.")
-                    .font(FGTypography.caption)
-                    .foregroundStyle(FGColor.secondaryText(colorScheme))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(.horizontal, FGSpacing.md)
-            .padding(.top, 10)
-            .padding(.bottom, 12)
+            notificationToggle(
+                title: "Kickoff alert",
+                subtitle: "FanGeo notifies you when a saved Pro Game starts.",
+                isOn: proGameKickoffAlertBinding
+            )
 
-            Text("Reminder Timing")
-                .font(FGTypography.caption.weight(.bold))
-                .foregroundStyle(FGColor.mutedText(colorScheme))
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, FGSpacing.md)
-                .padding(.bottom, 4)
+            Divider()
+                .padding(.leading, FGSpacing.md)
 
-            ForEach(Array(ProGameReminderTiming.allCases.enumerated()), id: \.element.id) { index, timing in
-                if index > 0 {
-                    Divider()
-                        .padding(.leading, FGSpacing.md)
-                }
-                proGameReminderTimingOption(timing)
-            }
+            proGameGameReminderTimingRow(selection: proGameGameReminderTimingBinding)
 
             permissionMessage
                 .padding(.top, 4)
         }
     }
 
-    private func proGameReminderTimingOption(_ timing: ProGameReminderTiming) -> some View {
-        Button {
-            guard notificationSettingsStore.proGameReminderTiming != timing else { return }
-            print("[NotificationSettingsDebug] save key=proGameReminderTiming value=\(timing.rawValue)")
-            Task { await viewModel.setProGameReminderTiming(timing) }
-        } label: {
-            HStack(spacing: FGSpacing.md) {
-                Image(systemName: notificationSettingsStore.proGameReminderTiming == timing ? "largecircle.fill.circle" : "circle")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(
-                        notificationSettingsStore.proGameReminderTiming == timing
-                            ? FGColor.accentYellow
-                            : FGColor.mutedText(colorScheme)
-                    )
-
-                Text(timing.displayName)
-                    .font(FGTypography.body)
-                    .foregroundStyle(FGColor.primaryText(colorScheme))
-
-                Spacer(minLength: 0)
+    private var proGameKickoffAlertBinding: Binding<Bool> {
+        Binding(
+            get: { notificationSettingsStore.proGameKickoffAlertEnabled },
+            set: { enabled in
+                print("[NotificationSettingsDebug] save key=proGameKickoffAlertEnabled value=\(enabled)")
+                Task { await viewModel.setProGameKickoffAlertEnabled(enabled) }
             }
-            .padding(.horizontal, FGSpacing.md)
-            .padding(.vertical, 10)
-            .contentShape(Rectangle())
+        )
+    }
+
+    private var proGameGameReminderTimingBinding: Binding<ProGameReminderTiming> {
+        Binding(
+            get: { notificationSettingsStore.proGameReminderTiming },
+            set: { timing in
+                print("[NotificationSettingsDebug] save key=proGameReminderTiming value=\(timing.rawValue)")
+                Task { await viewModel.setProGameGameReminderTiming(timing) }
+            }
+        )
+    }
+
+    @ViewBuilder
+    private func proGameGameReminderTimingRow(
+        selection: Binding<ProGameReminderTiming>
+    ) -> some View {
+        let timingColor = FGColor.accentYellow
+        let chevronColor = FGColor.mutedText(colorScheme)
+
+        Menu {
+            ForEach(ProGameReminderTiming.pickerOptions) { timing in
+                Button {
+                    selection.wrappedValue = timing
+                } label: {
+                    if selection.wrappedValue == timing {
+                        Label(timing.displayName, systemImage: "checkmark")
+                    } else {
+                        Text(timing.displayName)
+                    }
+                }
+            }
+        } label: {
+            proGameGameReminderTimingRowLabel(
+                timingName: selection.wrappedValue.displayName,
+                timingColor: timingColor,
+                chevronColor: chevronColor
+            )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(timing.displayName) reminder timing")
-        .accessibilityAddTraits(notificationSettingsStore.proGameReminderTiming == timing ? .isSelected : [])
+        .accessibilityLabel("Game reminder \(selection.wrappedValue.displayName)")
+    }
+
+    private func proGameGameReminderTimingRowLabel(
+        timingName: String,
+        timingColor: Color,
+        chevronColor: Color
+    ) -> some View {
+        HStack(alignment: .center, spacing: FGSpacing.md) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Game reminder")
+                    .font(FGTypography.body.weight(.semibold))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                Text("Optional FanGeo reminder before kickoff.")
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: FGSpacing.md)
+
+            HStack(spacing: 6) {
+                Text(timingName)
+                    .font(FGTypography.caption.weight(.bold))
+                    .foregroundStyle(timingColor)
+                    .lineLimit(1)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(chevronColor)
+            }
+        }
+        .padding(.horizontal, FGSpacing.md)
+        .padding(.vertical, 10)
+        .contentShape(Rectangle())
     }
 
     private var proGameFinalScoreAlertsBinding: Binding<Bool> {
@@ -7665,7 +7838,6 @@ private struct SettingsGameNotificationsCard: View {
     @ViewBuilder
     private func calendarAlertPreferenceRow(
         title: String,
-        subtitle: String,
         selection: Binding<FanGeoCalendarAlertTiming>,
         isEnabled: Bool
     ) -> some View {
@@ -7689,7 +7861,6 @@ private struct SettingsGameNotificationsCard: View {
                 } label: {
                     calendarAlertPreferenceRowLabel(
                         title: title,
-                        subtitle: subtitle,
                         timingName: selection.wrappedValue.displayName,
                         timingColor: timingColor,
                         chevronColor: chevronColor,
@@ -7700,7 +7871,6 @@ private struct SettingsGameNotificationsCard: View {
             } else {
                 calendarAlertPreferenceRowLabel(
                     title: title,
-                    subtitle: subtitle,
                     timingName: selection.wrappedValue.displayName,
                     timingColor: timingColor,
                     chevronColor: chevronColor,
@@ -7710,27 +7880,20 @@ private struct SettingsGameNotificationsCard: View {
         }
         .disabled(!isEnabled)
         .opacity(isEnabled ? 1 : 0.45)
-        .accessibilityLabel("\(title) calendar alert \(selection.wrappedValue.displayName)")
+        .accessibilityLabel("\(title) Apple Calendar reminder \(selection.wrappedValue.displayName)")
     }
 
     private func calendarAlertPreferenceRowLabel(
         title: String,
-        subtitle: String,
         timingName: String,
         timingColor: Color,
         chevronColor: Color,
         showsChevron: Bool
     ) -> some View {
         HStack(alignment: .center, spacing: FGSpacing.md) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                    .font(FGTypography.body.weight(.semibold))
-                    .foregroundStyle(FGColor.primaryText(colorScheme))
-                Text(subtitle)
-                    .font(FGTypography.caption)
-                    .foregroundStyle(FGColor.secondaryText(colorScheme))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            Text(title)
+                .font(FGTypography.body.weight(.semibold))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
 
             Spacer(minLength: FGSpacing.md)
 
@@ -7740,7 +7903,7 @@ private struct SettingsGameNotificationsCard: View {
                     .foregroundStyle(timingColor)
                     .lineLimit(1)
                 if showsChevron {
-                    Image(systemName: "chevron.up.chevron.down")
+                    Image(systemName: "chevron.right")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(chevronColor)
                 }

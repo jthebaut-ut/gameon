@@ -62,6 +62,7 @@ final class GameReminderNotificationService {
     private let center: UNUserNotificationCenter
     private let identifierPrefix = "fangeo.gameReminder."
     private let proGameIdentifierPrefix = "fangeo.proGameReminder."
+    private let proGameKickoffAlertPrefix = "fangeo.proGameKickoffAlert."
     private let proGameFinalIdentifierPrefix = "fangeo.proGameFinal."
     private let proGameHalftimeIdentifierPrefix = "fangeo.proGameHalftime."
     private let proGamePredictionResultIdentifierPrefix = "fangeo.proGamePredictionResult."
@@ -182,7 +183,64 @@ final class GameReminderNotificationService {
         center.removePendingNotificationRequests(withIdentifiers: identifiers)
     }
 
-    func scheduleProGameReminder(
+    func scheduleProGameKickoffAlert(for event: ProGameReminderNotificationEvent) async {
+        let matchupTitle = ProGameNotificationFormatting.matchupTitle(
+            awayTeam: event.awayTeam,
+            homeTeam: event.homeTeam
+        )
+        ProGameNotificationFormatting.logPushFlagDebug(
+            notificationType: "kickoff",
+            awayTeam: event.awayTeam,
+            homeTeam: event.homeTeam
+        )
+        print("[ProGameKickoffAlertDebug] gameId=\(event.identifier)")
+        print("[ProGameKickoffAlertDebug] gameStart=\(Self.debugDateString(event.startDate))")
+        print("[ProGameKickoffAlertDebug] title=\"\(matchupTitle)\"")
+
+        guard await requestAuthorizationIfNeeded() else {
+            print("[ProGameKickoffAlertDebug] notificationCreated=false reason=permissionDenied")
+            return
+        }
+
+        let now = Date()
+        guard event.startDate > now else {
+            print("[ProGameKickoffAlertDebug] notificationCreated=false reason=kickoffInPast")
+            return
+        }
+
+        await cancelProGameKickoffAlert(identifier: event.identifier)
+
+        let content = UNMutableNotificationContent()
+        content.title = ProGameNotificationFormatting.kickoffHeaderTitle(sport: event.sport)
+        content.subtitle = matchupTitle
+        content.body = ProGameNotificationFormatting.kickoffStartingBody
+        content.sound = .default
+
+        let components = Calendar.current.dateComponents(
+            [.year, .month, .day, .hour, .minute, .second],
+            from: event.startDate
+        )
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        let scheduledIdentifier = proGameKickoffAlertIdentifier(for: event.identifier)
+        let request = UNNotificationRequest(
+            identifier: scheduledIdentifier,
+            content: content,
+            trigger: trigger
+        )
+
+        do {
+            try await center.add(request)
+            let pending = await center.pendingNotificationRequests()
+            let isPending = pending.contains { $0.identifier == scheduledIdentifier }
+            print("[ProGameKickoffAlertDebug] scheduledTime=\(Self.debugDateString(event.startDate))")
+            print("[ProGameKickoffAlertDebug] scheduledIdentifier=\(scheduledIdentifier)")
+            print("[ProGameKickoffAlertDebug] notificationCreated=\(isPending)")
+        } catch {
+            print("[ProGameKickoffAlertDebug] notificationCreated=false error=\(error.localizedDescription)")
+        }
+    }
+
+    func scheduleProGamePreKickoffReminder(
         for event: ProGameReminderNotificationEvent,
         userPreference: String,
         reminderMinutesBefore: Int,
@@ -194,7 +252,7 @@ final class GameReminderNotificationService {
             homeTeam: event.homeTeam
         )
         ProGameNotificationFormatting.logPushFlagDebug(
-            notificationType: "kickoff",
+            notificationType: "preKickoffReminder",
             awayTeam: event.awayTeam,
             homeTeam: event.homeTeam
         )
@@ -216,13 +274,11 @@ final class GameReminderNotificationService {
 
         let fireDate = event.startDate.addingTimeInterval(TimeInterval(-reminderMinutesBefore * 60))
 
-        await cancelProGameReminder(identifier: event.identifier)
+        await cancelProGamePreKickoffReminder(identifier: event.identifier)
 
-        let fireDates = proGameReminderFireDates(
+        let fireDates = proGamePreKickoffReminderFireDates(
             preferredFireDate: fireDate,
-            eventStartDate: event.startDate,
-            repeatUntilStart: repeatUntilStart,
-            repeatEveryMinutes: repeatEveryMinutes
+            eventStartDate: event.startDate
         )
 
         guard !fireDates.isEmpty else {
@@ -238,9 +294,7 @@ final class GameReminderNotificationService {
             let content = UNMutableNotificationContent()
             content.title = ProGameNotificationFormatting.kickoffHeaderTitle(sport: event.sport)
             content.subtitle = matchupTitle
-            content.body = scheduledDate >= event.startDate
-                ? ProGameNotificationFormatting.kickoffStartingBody
-                : "\(ProGameNotificationFormatting.kickoffLeadBodyPrefix) \(Self.leadDescription(minutes: minutesUntilStart))."
+            content.body = "\(ProGameNotificationFormatting.kickoffLeadBodyPrefix) \(Self.leadDescription(minutes: minutesUntilStart))."
             content.sound = .default
 
             let components = Calendar.current.dateComponents(
@@ -273,7 +327,7 @@ final class GameReminderNotificationService {
         }
     }
 
-    func cancelProGameReminder(identifier: String) async {
+    func cancelProGamePreKickoffReminder(identifier: String) async {
         print("[ProGameReminderDebug] cancelReminder gameId=\(identifier)")
         let baseIdentifier = proGameReminderIdentifier(for: identifier)
         let identifiers = await center.pendingNotificationRequests()
@@ -283,12 +337,52 @@ final class GameReminderNotificationService {
         print("[ProGameReminderDebug] canceledIdentifiers=\((identifiers.isEmpty ? [baseIdentifier] : identifiers).joined(separator: ","))")
     }
 
-    func cancelAllProGameReminders() async {
+    func cancelProGameKickoffAlert(identifier: String) async {
+        print("[ProGameKickoffAlertDebug] cancelAlert gameId=\(identifier)")
+        let scheduledIdentifier = proGameKickoffAlertIdentifier(for: identifier)
+        center.removePendingNotificationRequests(withIdentifiers: [scheduledIdentifier])
+    }
+
+    func cancelAllProGamePreKickoffReminders() async {
         let requests = await center.pendingNotificationRequests()
         let identifiers = requests
             .map(\.identifier)
             .filter { $0.hasPrefix(proGameIdentifierPrefix) }
         center.removePendingNotificationRequests(withIdentifiers: identifiers)
+    }
+
+    func cancelAllProGameKickoffAlerts() async {
+        let requests = await center.pendingNotificationRequests()
+        let identifiers = requests
+            .map(\.identifier)
+            .filter { $0.hasPrefix(proGameKickoffAlertPrefix) }
+        center.removePendingNotificationRequests(withIdentifiers: identifiers)
+    }
+
+    func cancelProGameReminder(identifier: String) async {
+        await cancelProGamePreKickoffReminder(identifier: identifier)
+        await cancelProGameKickoffAlert(identifier: identifier)
+    }
+
+    func cancelAllProGameReminders() async {
+        await cancelAllProGamePreKickoffReminders()
+        await cancelAllProGameKickoffAlerts()
+    }
+
+    func scheduleProGameReminder(
+        for event: ProGameReminderNotificationEvent,
+        userPreference: String,
+        reminderMinutesBefore: Int,
+        repeatUntilStart: Bool = false,
+        repeatEveryMinutes: Int = 30
+    ) async {
+        await scheduleProGamePreKickoffReminder(
+            for: event,
+            userPreference: userPreference,
+            reminderMinutesBefore: reminderMinutesBefore,
+            repeatUntilStart: repeatUntilStart,
+            repeatEveryMinutes: repeatEveryMinutes
+        )
     }
 
     func cancelProGameFinalNotification(identifier: String) async {
@@ -533,6 +627,21 @@ final class GameReminderNotificationService {
             next = advanced
         }
         return dates
+    }
+
+    private func proGameKickoffAlertIdentifier(for identifier: String) -> String {
+        "\(proGameKickoffAlertPrefix)\(identifier)"
+    }
+
+    private func proGamePreKickoffReminderFireDates(
+        preferredFireDate: Date,
+        eventStartDate: Date
+    ) -> [Date] {
+        let now = Date()
+        guard eventStartDate > now else { return [] }
+        guard preferredFireDate < eventStartDate, preferredFireDate > now else { return [] }
+        print("[ProGameReminderDebug] reminderDate=\(Self.debugDateString(preferredFireDate))")
+        return [preferredFireDate]
     }
 
     private func proGameReminderFireDates(

@@ -746,6 +746,7 @@ extension MapViewModel {
         isUpdatingLiveVisibilitySetting = false
         isUpdatingProfileDiscoverabilitySetting = false
         currentUserAuthId = nil
+        FanGeoUserEntitlements.reset()
         clearUnseenPokesBadgeState()
 
         Task { await GameReminderNotificationService.shared.cancelAllProGameReminders() }
@@ -1139,7 +1140,7 @@ extension MapViewModel {
     }
 
     private static let userProfileSelectColumns =
-        "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,is_business_account,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids,discoverable_by_fans,is_deleted,last_seen_at,national_team_country_code,national_team_country_name,national_team_flag,national_team_supporter_label,national_team_updated_at"
+        "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,is_business_account,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids,discoverable_by_fans,is_deleted,last_seen_at,national_team_country_code,national_team_country_name,national_team_flag,national_team_supporter_label,national_team_updated_at,ad_free_enabled"
 
     private static let userProfileIdentitySelectColumns =
         "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,is_deleted,national_team_country_code,national_team_country_name,national_team_flag,national_team_supporter_label,national_team_updated_at"
@@ -2381,6 +2382,38 @@ extension MapViewModel {
         await refreshUserPersonalizationInBackground()
     }
 
+    private struct UserAdFreeEntitlementRow: Decodable {
+        let ad_free_enabled: Bool?
+    }
+
+    /// Lightweight refresh of `user_profiles.ad_free_enabled` for the signed-in fan.
+    func refreshCurrentUserAdFreeEntitlementFromServer(reason: String) async {
+        let sessionResolution = await supabaseResolvedAuthSessionResult()
+        guard case .active(let session) = sessionResolution else { return }
+        guard await checkCurrentUserAdminStatus() else { return }
+
+        do {
+            let rows: [UserAdFreeEntitlementRow] = try await supabase
+                .from("user_profiles")
+                .select("ad_free_enabled")
+                .eq("id", value: session.user.id)
+                .limit(1)
+                .execute()
+                .value
+            let enabled = rows.first?.ad_free_enabled == true
+            await MainActor.run {
+                FanGeoUserEntitlements.apply(adFreeEnabled: enabled)
+            }
+#if DEBUG
+            print("[AdDebug] adFreeEntitlementRefresh reason=\(reason) ad_free_enabled=\(enabled)")
+#endif
+        } catch {
+#if DEBUG
+            print("[AdDebug] adFreeEntitlementRefreshFailed reason=\(reason) error=\(error.localizedDescription)")
+#endif
+        }
+    }
+
     // Fetches the row for the current user by `auth.uid` when a session exists; otherwise falls back to email (e.g. venue-owner context without fan session).
     func loadUserProfile() async {
         let sessionResolution = await supabaseResolvedAuthSessionResult()
@@ -2452,6 +2485,7 @@ extension MapViewModel {
                         currentUserSelectedLiveVisibilityFriendIDs = profile.selectedLiveVisibilityFriendIDs
                         currentUserDiscoverableByFans = profile.discoverableByFans
                         currentUserAuthId = authId
+                        FanGeoUserEntitlements.apply(adFreeEnabled: profile.adFreeEnabled)
                         cacheCurrentUserProfileLocally()
                         finishProfilePresentationLoad(profileExists: true)
                     }
@@ -2527,6 +2561,7 @@ extension MapViewModel {
                     currentUserLiveVisibilityMode = profile.liveVisibilityMode
                     currentUserSelectedLiveVisibilityFriendIDs = profile.selectedLiveVisibilityFriendIDs
                     currentUserDiscoverableByFans = profile.discoverableByFans
+                    FanGeoUserEntitlements.apply(adFreeEnabled: profile.adFreeEnabled)
                     cacheCurrentUserProfileLocally()
                     finishProfilePresentationLoad(profileExists: true)
                 }

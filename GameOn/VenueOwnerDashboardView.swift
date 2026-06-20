@@ -2743,7 +2743,7 @@ struct VenueOwnerDashboardView: View {
         }
         if status.isBusinessSubscriptionPro {
             return [
-                "Subscription Pro",
+                "Launch Promotion",
                 status.businessProSubscriptionExpiryText
             ]
             .compactMap { $0 }

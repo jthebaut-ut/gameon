@@ -44,6 +44,15 @@ struct CompactNativeAdCard: View {
     @State private var adFailed = false
 
     var body: some View {
+        if !FanGeoAdPolicy.shouldMountAdViews() {
+            EmptyView()
+        } else {
+            nativeAdContent
+        }
+    }
+
+    @ViewBuilder
+    private var nativeAdContent: some View {
         let adUnitID = AdMobConfiguration.nativeAdUnitID(for: placement)
         Group {
             if !adFailed {

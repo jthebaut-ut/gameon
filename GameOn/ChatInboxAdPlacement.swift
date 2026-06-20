@@ -60,6 +60,9 @@ enum ChatInboxAdPlacement {
     }
 
     static func listItems(for friends: [ChatViewModel.FriendDisplay]) -> [ChatInboxListItem] {
+        guard FanGeoAdPolicy.shouldInsertAdsInFeeds() else {
+            return friends.map { .conversation($0) }
+        }
         let slots = nativeAdSlots(for: friends.count)
         guard !slots.isEmpty else {
             return friends.map { .conversation($0) }

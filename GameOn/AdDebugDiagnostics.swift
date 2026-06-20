@@ -64,6 +64,9 @@ enum AdDebugDiagnostics {
                 "configuredApplicationID": configuredAppID,
                 "appIDMatch": "\(plistAppID == configuredAppID)",
                 "usesTestAds": "\(AdMobConfiguration.usesTestAds)",
+                "adDisplayMode": FanGeoAdPolicy.displayMode.rawValue,
+                "adsSuppressed": "\(FanGeoAdPolicy.adsSuppressed)",
+                "adFreeEnabled": "\(FanGeoUserEntitlements.adFreeEnabled)",
                 "testDeviceConfigured": "\(AdRuntimeDevice.testDeviceConfigured)",
                 "testDeviceIdentifierCount": "\(AdMobConfiguration.testDeviceIdentifiers.count)",
                 "deviceIsPhysical": "\(!AdRuntimeDevice.isSimulator)",
@@ -82,6 +85,16 @@ enum AdDebugDiagnostics {
                 "attPromptConfigured": "\(attPromptConfigured)"
             ]
         )
+
+        print("[AdDebug] appIDMatch=\(plistAppID == configuredAppID)")
+        print("[AdDebug] usesTestAds=\(AdMobConfiguration.usesTestAds)")
+        print("[AdDebug] buildIsDebug=\(buildIsDebugDescription())")
+        print("[AdDebug] adDisplayMode=\(FanGeoAdPolicy.displayMode.rawValue)")
+        if let reason = FanGeoAdPolicy.adsSuppressionReason {
+            print("[AdDebug] adsSuppressed=true reason=\(reason)")
+        } else {
+            print("[AdDebug] adsSuppressed=false")
+        }
 
         if skCount == 0 {
             log(
@@ -112,6 +125,36 @@ enum AdDebugDiagnostics {
     static func logConsent(_ message: String) {
         guard AdDiagnostics.enabled else { return }
         print("[AdConsentDebug] \(message)")
+    }
+
+    /// Discover map bottom banner decision + lifecycle (`[AdDebug] placement=discoverMapBanner`).
+    static func logDiscoverMapBanner(
+        phase: String,
+        placementAllowed: Bool = true,
+        consentAllowsAds: Bool? = nil,
+        adViewCreated: Bool? = nil,
+        adLoadStarted: Bool? = nil,
+        adLoadSucceeded: Bool? = nil,
+        adLoadFailed: Bool? = nil,
+        extra: [String: String] = [:]
+    ) {
+        guard AdDiagnostics.enabled else { return }
+        let consent = consentAllowsAds ?? GoogleMobileAdsBootstrap.canRequestAds
+        let shouldRender = FanGeoAdPolicy.shouldMountAdViews(placementAllowed: placementAllowed)
+        print("[AdDebug] placement=discoverMapBanner phase=\(phase)")
+        print("[AdDebug] adDisplayMode=\(FanGeoAdPolicy.displayMode.rawValue)")
+        print("[AdDebug] screenshotMode=\(FanGeoAdPolicy.isScreenshotModeActive)")
+        print("[AdDebug] adFree=\(FanGeoUserEntitlements.adFreeEnabled)")
+        print("[AdDebug] consentAllowsAds=\(consent)")
+        print("[AdDebug] placementAllowed=\(placementAllowed)")
+        print("[AdDebug] shouldRenderAds=\(shouldRender)")
+        if let adViewCreated { print("[AdDebug] adViewCreated=\(adViewCreated)") }
+        if let adLoadStarted { print("[AdDebug] adLoadStarted=\(adLoadStarted)") }
+        if let adLoadSucceeded { print("[AdDebug] adLoadSucceeded=\(adLoadSucceeded)") }
+        if let adLoadFailed { print("[AdDebug] adLoadFailed=\(adLoadFailed)") }
+        for (key, value) in extra.sorted(by: { $0.key < $1.key }) {
+            print("[AdDebug] \(key)=\(value)")
+        }
     }
 
     static func logUnitSelection(format: String, unitID: String) {

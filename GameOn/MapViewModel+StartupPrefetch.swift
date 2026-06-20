@@ -17,6 +17,7 @@ extension MapViewModel {
         }
         if let lastLightweightStartupPrefetchAt,
            Date().timeIntervalSince(lastLightweightStartupPrefetchAt) < Self.lightweightStartupPrefetchTTL {
+            await refreshCurrentUserAdFreeEntitlementFromServer(reason: "startupPrefetchFreshCache")
 #if DEBUG
             print("[StartupPrefetchDebug] started=false")
             print("[StartupPrefetchDebug] skippedReason=freshCache")

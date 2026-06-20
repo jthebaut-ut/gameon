@@ -1,21 +1,20 @@
 import SwiftUI
-import StoreKit
 
 struct BusinessProSubscriptionView: View {
-    @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.openURL) private var openURL
-    @ObservedObject private var purchaseService = BusinessProPurchaseService.shared
     let businessStatus: BusinessVenueGamePostingStatus?
 
     init(businessStatus: BusinessVenueGamePostingStatus? = nil) {
         self.businessStatus = businessStatus
     }
 
+    private static let billingComingSoonMessage = "Business Pro billing is coming soon."
+
     private let proFeatureListItems = [
         "Unlimited venues",
         "Unlimited hosted games",
-        "Analytics access"
+        "Analytics access",
+        "Ad-free business tools (coming soon)"
     ]
 
     private var regularFeatureListItems: [String] {
@@ -48,15 +47,11 @@ struct BusinessProSubscriptionView: View {
                 if !isCurrentBusinessRegular {
                     regularReferenceCard
                 }
-                entitlementExplanation
-                actionButtons
+                launchInformationFooter
             }
             .padding(20)
         }
         .background(background)
-        .task {
-            await purchaseService.prepare()
-        }
     }
 
     private var header: some View {
@@ -194,114 +189,24 @@ struct BusinessProSubscriptionView: View {
         }
     }
 
-    private var entitlementExplanation: some View {
-        Text(entitlementExplanationText)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(FGColor.secondaryText(colorScheme))
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 2)
-    }
+    private var launchInformationFooter: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Business Pro access is currently provided through the FanGeo launch promotion.")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .fixedSize(horizontal: false, vertical: true)
 
-    private var actionButtons: some View {
-        VStack(spacing: 10) {
-            if !purchaseService.purchaseMessage.isEmpty {
-                Text(purchaseService.purchaseMessage)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(messageTint)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(12)
-                    .background(messageTint.opacity(colorScheme == .dark ? 0.16 : 0.10), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            }
-
-            Button {
-                Task {
-                    await purchaseService.purchaseBusinessPro()
-                }
-            } label: {
-                HStack(spacing: 8) {
-                    if purchaseService.isLoadingProduct || purchaseService.isPurchasing {
-                        ProgressView()
-                            .tint(.white)
-                    }
-                    Text(purchaseButtonTitle)
-                        .font(.headline.weight(.bold))
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 15)
-                .foregroundStyle(.white)
-                .background(purchaseButtonBackground, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                .opacity(purchaseService.canPurchase ? 1 : 0.62)
-            }
-            .buttonStyle(.plain)
-            .disabled(!purchaseService.canPurchase)
-
-            Button {
-                Task {
-                    await purchaseService.restorePurchases()
-                }
-            } label: {
-                HStack(spacing: 8) {
-                    if purchaseService.isRestoring {
-                        ProgressView()
-                    }
-                    Text("Restore Purchases")
-                        .font(.subheadline.weight(.bold))
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 13)
-                .foregroundStyle(FGColor.primaryText(colorScheme))
-                .background(FGAdaptiveSurface.capsuleUnselected, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            }
-            .buttonStyle(.plain)
-            .disabled(purchaseService.isRestoring)
-
-            if let manageSubscriptionURL = purchaseService.manageSubscriptionURL {
-                Button {
-#if DEBUG
-                    print("[BusinessProPurchase] manageSubscriptionTapped=true")
-#endif
-                    openURL(manageSubscriptionURL)
-                } label: {
-                    Text("Manage Subscription")
-                        .font(.subheadline.weight(.bold))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 13)
-                        .foregroundStyle(FGColor.accentBlue)
-                        .background(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.16 : 0.10), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                }
-                .buttonStyle(.plain)
-            }
-
-            if isCurrentBusinessFreePromo {
-                Button {
-                    dismiss()
-                } label: {
-                    Text("Continue Free Promo Access")
-                        .font(.headline.weight(.bold))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 15)
-                        .foregroundStyle(.white)
-                        .background(
-                            LinearGradient(
-                                colors: [FGColor.accentGreen, FGColor.businessGreen],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            ),
-                            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        )
-                }
-                .buttonStyle(.plain)
-            }
+            Text("Business Pro billing and subscriptions will be available in a future update.")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 2)
     }
 
     private var futureBillingText: String {
-        guard let product = purchaseService.product else {
-            return purchaseService.billingUnavailableMessage
-        }
-        return "Future Apple subscription: \(product.displayPrice) / month"
+        Self.billingComingSoonMessage
     }
 
     private var entitlementTitle: String {
@@ -314,7 +219,7 @@ struct BusinessProSubscriptionView: View {
     private var entitlementSubtitle: String {
         guard businessStatus != nil else { return "Refreshing entitlement" }
         if isCurrentBusinessFreePromo { return "Promotion access" }
-        if isCurrentBusinessSubscriptionPro { return "Subscription Pro" }
+        if isCurrentBusinessSubscriptionPro { return "Launch Promotion" }
         return "Free plan"
     }
 
@@ -354,19 +259,6 @@ struct BusinessProSubscriptionView: View {
         return "Upgrade to Business Pro for unlimited venues and hosted games."
     }
 
-    private var entitlementExplanationText: String {
-        guard businessStatus != nil else {
-            return "FanGeo is checking this business’s current entitlement before showing plan details."
-        }
-        if isCurrentBusinessFreePromo {
-            return "This business has temporary Business Pro access through the Free User Promotion."
-        }
-        if isCurrentBusinessSubscriptionPro {
-            return "This business currently has Business Pro access from its subscription entitlement."
-        }
-        return "This business is on the Regular plan. Free plan limits are enforced by your business entitlement."
-    }
-
     private var isCurrentBusinessFreePromo: Bool {
         businessStatus?.isBusinessProPromo == true
     }
@@ -377,34 +269,6 @@ struct BusinessProSubscriptionView: View {
 
     private var isCurrentBusinessRegular: Bool {
         businessStatus != nil && !isCurrentBusinessFreePromo && !isCurrentBusinessSubscriptionPro
-    }
-
-    private var purchaseButtonTitle: String {
-        if purchaseService.isPurchasing { return "Processing..." }
-        if purchaseService.isLoadingProduct { return "Checking Billing..." }
-        guard let product = purchaseService.product else {
-            return purchaseService.billingUnavailableMessage
-        }
-        return "Prepare Business Pro Billing - \(product.displayPrice)"
-    }
-
-    private var messageTint: Color {
-        purchaseService.product == nil ? Color.orange : FGColor.accentGreen
-    }
-
-    private var purchaseButtonBackground: LinearGradient {
-        if purchaseService.canPurchase {
-            return LinearGradient(
-                colors: [FGColor.accentBlue, FGColor.accentGreen],
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        }
-        return LinearGradient(
-            colors: [Color.gray.opacity(0.72), Color.gray.opacity(0.54)],
-            startPoint: .leading,
-            endPoint: .trailing
-        )
     }
 
     private var background: some View {

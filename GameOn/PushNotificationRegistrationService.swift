@@ -14,20 +14,21 @@ final class PushNotificationRegistrationService {
 
     private init() {}
 
+    func refreshPushTokenRegistration(reason: String) async {
+        await upsertCurrentTokenIfPossible(reason: reason)
+        await registerForRemoteNotificationsIfAuthorized(reason: reason)
+    }
+
     func registerForRemoteNotificationsIfAuthorized(reason: String) async {
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         guard Self.canRegisterRemoteNotifications(status: settings.authorizationStatus) else {
-#if DEBUG
             print("[PushTokenDebug] registerSkipped reason=\(reason) permission=\(Self.authorizationStatusDescription(settings.authorizationStatus))")
-#endif
             return
         }
 
 #if canImport(UIKit)
         await MainActor.run {
-#if DEBUG
             print("[PushTokenDebug] registerForRemoteNotifications reason=\(reason)")
-#endif
             UIApplication.shared.registerForRemoteNotifications()
         }
 #endif
@@ -38,40 +39,33 @@ final class PushNotificationRegistrationService {
         let environment = Self.resolvedEnvironment()
         UserDefaults.standard.set(token, forKey: Self.deviceTokenDefaultsKey)
         UserDefaults.standard.set(environment, forKey: Self.environmentDefaultsKey)
-#if DEBUG
         print("[PushTokenDebug] didRegister tokenPrefix=\(String(token.prefix(12))) environment=\(environment)")
-#endif
         Task { await upsertCurrentTokenIfPossible(reason: "didRegisterForRemoteNotifications") }
     }
 
     func handleRegistrationFailure(_ error: Error) {
-#if DEBUG
         print("[PushTokenDebug] registrationFailed error=\(error.localizedDescription)")
-#endif
     }
 
     func upsertCurrentTokenIfPossible(reason: String) async {
         guard let token = Self.storedToken, !token.isEmpty else {
-#if DEBUG
             print("[PushTokenDebug] upsertSkipped reason=\(reason) missingToken=true")
-#endif
             return
         }
         guard let session = try? await supabase.auth.session else {
-#if DEBUG
             print("[PushTokenDebug] upsertSkipped reason=\(reason) missingSession=true")
-#endif
             return
         }
         let userID = session.user.id
         let environment = Self.resolvedEnvironment()
         UserDefaults.standard.set(environment, forKey: Self.environmentDefaultsKey)
+        let lastSeenAt = SupabaseTimestampParsing.encodeTimestamptz(Date())
 
         let row = UserPushTokenUpsertRow(
             user_id: userID.uuidString.lowercased(),
             token: token,
             environment: environment,
-            last_seen_at: SupabaseTimestampParsing.encodeTimestamptz(Date())
+            last_seen_at: lastSeenAt
         )
 
         do {
@@ -85,13 +79,24 @@ final class PushNotificationRegistrationService {
                 .from("user_push_tokens")
                 .upsert(row, onConflict: "user_id,token,environment")
                 .execute()
-#if DEBUG
-            print("[PushTokenDebug] upsertSucceeded userId=\(row.user_id) environment=\(row.environment) reason=\(reason)")
-#endif
+            try await supabase
+                .from("user_push_tokens")
+                .update(
+                    PushTokenReactivationPatch(
+                        is_active: true,
+                        last_seen_at: lastSeenAt
+                    )
+                )
+                .eq("user_id", value: row.user_id)
+                .eq("token", value: token)
+                .eq("environment", value: environment)
+                .execute()
+            print(
+                "[PushTokenDebug] upsertSucceeded userId=\(row.user_id) environment=\(row.environment) " +
+                "tokenPrefix=\(String(token.prefix(12))) reactivated=true reason=\(reason)"
+            )
         } catch {
-#if DEBUG
             print("[PushTokenDebug] upsertFailed reason=\(reason) error=\(error.localizedDescription)")
-#endif
         }
     }
 
@@ -233,6 +238,24 @@ private struct UserPushTokenUpsertRow: Encodable {
     let is_active: Bool = true
     let invalidated_at: String? = nil
     let last_seen_at: String
+}
+
+private struct PushTokenReactivationPatch: Encodable {
+    let is_active: Bool
+    let last_seen_at: String
+
+    enum CodingKeys: String, CodingKey {
+        case is_active
+        case invalidated_at
+        case last_seen_at
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(is_active, forKey: .is_active)
+        try container.encodeNil(forKey: .invalidated_at)
+        try container.encode(last_seen_at, forKey: .last_seen_at)
+    }
 }
 
 private struct PushTokenInvalidationPatch: Encodable {

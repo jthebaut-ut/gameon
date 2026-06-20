@@ -32,7 +32,8 @@ enum AdDiagnostics {
 
 /// Central AdMob IDs for FanGeo.
 enum AdMobConfiguration {
-    // MARK: Test (Google sample app / units — DEBUG only)
+    // MARK: Test ad units (Google sample units — DEBUG / internal diagnostics only)
+    /// Reference only. `GADApplicationIdentifier` in Info.plist always uses the FanGeo production app ID.
     static let testApplicationID = "ca-app-pub-3940256099942544~1458002511"
     static let testBannerAdUnitID = "ca-app-pub-3940256099942544/2435281174"
     /// Google-provided native test unit.
@@ -74,8 +75,12 @@ enum AdMobConfiguration {
         #endif
     }
 
+    /// Matches `GADApplicationIdentifier` in Info.plist. Test ads use test *unit* IDs, not a test app ID.
     static var applicationID: String {
-        usesTestAds ? testApplicationID : productionApplicationID
+        let plistID = Bundle.main.object(forInfoDictionaryKey: "GADApplicationIdentifier") as? String
+        let trimmed = plistID?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !trimmed.isEmpty { return trimmed }
+        return productionApplicationID
     }
 
     static var bannerAdUnitID: String {
@@ -209,6 +214,12 @@ enum GoogleMobileAdsBootstrap {
     static func startIfNeeded() {
         guard !didStart else { return }
         didStart = true
+        FanGeoAdPolicy.logStartupDiagnostics()
+        guard !FanGeoAdPolicy.shouldSkipAdNetworkBootstrap else {
+            didFinishConsentFlow = true
+            AdDebugDiagnostics.logConsent("adsBootstrapSkipped=true reason=screenshotMode")
+            return
+        }
         AdMobConfiguration.configureRequestConfiguration()
         AdDiagnostics.logStartupTestDeviceConfigurationIfNeeded()
         AdMobDiagnostics.logBootstrap()

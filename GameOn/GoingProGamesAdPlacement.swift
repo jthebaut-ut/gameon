@@ -91,6 +91,14 @@ enum GoingProGamesAdPlacement {
         businessMyTeamSavedGames: [SavedProGame] = [],
         businessMyTeamAutoGames: [FavoriteTeamProGame] = []
     ) -> GoingProGamesAdPlan {
+        guard FanGeoAdPolicy.shouldInsertAdsInFeeds() else {
+            return GoingProGamesAdPlan(
+                savedGamesItems: savedGames.map { .game($0) },
+                favoriteTeamItems: favoriteTeamGames.map { .game($0) },
+                businessMyTeamsItems: businessMyTeamSavedGames.map { .savedGame($0) }
+                    + businessMyTeamAutoGames.map { .autoGame($0) }
+            )
+        }
         let savedPositions = insertionPositions(
             cardCount: savedGames.count,
             maxAdsToInsert: min(1, maxAdsInProTab)

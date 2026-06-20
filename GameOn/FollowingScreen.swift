@@ -1038,7 +1038,9 @@ struct FollowingScreen: View {
     private func goingNativeAdRow(slot: GoingNativeAdSlot) -> some View {
         GoingNativeAdCard(
             slot: slot,
-            shouldRequestAd: goingProNativeAdsHostVisible && goingTabPerf.deferredWorkReady
+            shouldRequestAd: FanGeoAdPolicy.shouldMountAdViews()
+                && goingProNativeAdsHostVisible
+                && goingTabPerf.deferredWorkReady
         )
     }
 

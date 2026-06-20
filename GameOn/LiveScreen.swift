@@ -640,6 +640,9 @@ struct LiveScreen: View {
         }
 
         static func listItems(for matches: [LiveMatch]) -> [LiveGameFeedRow] {
+            guard FanGeoAdPolicy.shouldInsertAdsInFeeds() else {
+                return matches.map { .match($0) }
+            }
             let frequency = insertionFrequency
             guard frequency > 0, matches.count >= frequency else {
                 return matches.map { .match($0) }

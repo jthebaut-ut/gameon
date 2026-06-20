@@ -3993,7 +3993,7 @@ struct DiscoverScreen: View {
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 18)
 
-            if isDiscoverTabSelected {
+            if isDiscoverTabSelected, FanGeoAdPolicy.shouldMountAdViews() {
                 discoverBottomAdStrip(layoutWidth: layoutWidth)
                     .padding(.top, discoverBottomAdLoaded ? 6 : 0)
                     .padding(.bottom, discoverBottomAdLoaded ? 8 : 0)
@@ -5929,6 +5929,10 @@ struct DiscoverScreen: View {
                 layoutWidth: availableWidth,
                 requestBackoffUntil: discoverBottomAdBackoffUntil,
                 onAdLoaded: {
+                    AdDebugDiagnostics.logDiscoverMapBanner(
+                        phase: "stripCallback",
+                        adLoadSucceeded: true
+                    )
                     discoverBottomAdRetryTask?.cancel()
                     discoverBottomAdRetryTask = nil
                     discoverBottomAdNoFillRetryCount = 0
@@ -5937,6 +5941,11 @@ struct DiscoverScreen: View {
                     discoverBottomAdLoaded = true
                 },
                 onAdFailed: { error in
+                    AdDebugDiagnostics.logDiscoverMapBanner(
+                        phase: "stripCallback",
+                        adLoadFailed: true,
+                        extra: ["error": error.localizedDescription]
+                    )
                     let failureReason = AdDebugDiagnostics.loadFailedReason(for: error)
                     AdDebugDiagnostics.logCollapsedAdSpace(
                         format: "banner",
@@ -5969,6 +5978,9 @@ struct DiscoverScreen: View {
         .zIndex(8)
         .frame(maxWidth: .infinity, alignment: .center)
         .allowsHitTesting(discoverBottomAdLoaded)
+        .onAppear {
+            AdDebugDiagnostics.logDiscoverMapBanner(phase: "stripAppear")
+        }
     }
 
     private func scheduleDiscoverBottomAdRetry(

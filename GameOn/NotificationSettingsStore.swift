@@ -5,6 +5,7 @@ nonisolated enum ProGameNotificationPreferenceKeys {
     static let finalScoreAlerts = "proGameFinalScoreNotifications"
     static let favoriteTeamAlerts = "favoriteTeamProGameAlertsEnabled"
     static let reminderTiming = "proGameReminderTiming"
+    static let kickoffAlert = "proGameKickoffAlertEnabled"
 }
 
 nonisolated enum ProGameReminderTiming: String, CaseIterable, Identifiable {
@@ -67,6 +68,11 @@ nonisolated enum ProGameReminderTiming: String, CaseIterable, Identifiable {
         default:
             return .oneHour
         }
+    }
+
+    /// Timing choices for optional pre-kickoff game reminders.
+    static var pickerOptions: [ProGameReminderTiming] {
+        allCases
     }
 }
 
@@ -193,12 +199,17 @@ final class NotificationSettingsStore: ObservableObject {
         willSet { objectWillChange.send() }
     }
 
+    @AppStorage(ProGameNotificationPreferenceKeys.kickoffAlert)
+    var proGameKickoffAlertEnabled: Bool = true {
+        willSet { objectWillChange.send() }
+    }
+
     var proGameReminderTiming: ProGameReminderTiming {
         get { ProGameReminderTiming.resolved(rawValue: proGameReminderTimingRaw) }
         set { proGameReminderTimingRaw = newValue.rawValue }
     }
 
-    var proGameReminderNotifications: Bool {
+    var proGameGameReminderEnabled: Bool {
         proGameReminderTiming.schedulesKickoffReminder
     }
 
@@ -225,7 +236,25 @@ final class NotificationSettingsStore: ObservableObject {
 
     init() {
         migrateProGameReminderTimingIfNeeded()
+        migrateProGameKickoffAlertSplitIfNeeded()
         print("[NotificationSettingsStoreDebug] initialized")
+    }
+
+    private func migrateProGameKickoffAlertSplitIfNeeded() {
+        let migrationKey = "proGameKickoffAlertSplitMigrated.v1"
+        guard !UserDefaults.standard.bool(forKey: migrationKey) else { return }
+
+        let defaults = UserDefaults.standard
+        if defaults.object(forKey: ProGameNotificationPreferenceKeys.kickoffAlert) == nil {
+            proGameKickoffAlertEnabled = true
+            let legacyPreKickoffDisabled = defaults.object(forKey: "proGameReminderNotifications") as? Bool == false
+                || defaults.object(forKey: "proGameKickoffRemindersEnabled") as? Bool == false
+            if legacyPreKickoffDisabled {
+                proGameReminderTimingRaw = ProGameReminderTiming.never.rawValue
+            }
+        }
+
+        defaults.set(true, forKey: migrationKey)
     }
 
     private func migrateProGameReminderTimingIfNeeded() {
@@ -238,8 +267,10 @@ final class NotificationSettingsStore: ObservableObject {
             if legacyEnabled {
                 let legacyMinutes = defaults.object(forKey: "reminderMinutesBefore") as? Int ?? 60
                 proGameReminderTimingRaw = ProGameReminderTiming.from(reminderMinutesBefore: legacyMinutes).rawValue
+                proGameKickoffAlertEnabled = true
             } else {
                 proGameReminderTimingRaw = ProGameReminderTiming.never.rawValue
+                proGameKickoffAlertEnabled = true
             }
         }
 
@@ -278,19 +309,20 @@ final class NotificationSettingsStore: ObservableObject {
 
     private func performGameNotificationAuthorizationRefresh() async {
         let startedAt = Date()
-        print("[NotificationSettingsDebug] load authorizationState notifyBeforeGame=\(notifyBeforeGame) proGameReminderTiming=\(proGameReminderTiming.rawValue) proGameReminderNotifications=\(proGameReminderNotifications) reminderMinutesBefore=\(reminderMinutesBefore) repeatGameReminder=\(repeatGameReminder) repeatEveryMinutes=\(repeatEveryMinutes)")
+        print("[NotificationSettingsDebug] load authorizationState notifyBeforeGame=\(notifyBeforeGame) proGameKickoffAlertEnabled=\(proGameKickoffAlertEnabled) proGameReminderTiming=\(proGameReminderTiming.rawValue) reminderMinutesBefore=\(reminderMinutesBefore) repeatGameReminder=\(repeatGameReminder) repeatEveryMinutes=\(repeatEveryMinutes)")
         let status = await gameReminderService.authorizationStatus()
         switch status {
         case .denied:
             notifyBeforeGame = false
-            proGameReminderTiming = .never
+            proGameKickoffAlertEnabled = false
             await gameReminderService.cancelAllGameReminders()
-            await gameReminderService.cancelAllProGameReminders()
+            await gameReminderService.cancelAllProGameKickoffAlerts()
+            await gameReminderService.cancelAllProGamePreKickoffReminders()
             notificationPermissionMessage = "Notifications are off for FanGeo. Turn them on in iOS Settings to receive game reminders."
         case .authorized, .provisional, .ephemeral:
             notificationPermissionMessage = ""
         case .notDetermined:
-            notificationPermissionMessage = (notifyBeforeGame || proGameReminderNotifications || proGameFinalScoreNotifications)
+            notificationPermissionMessage = (notifyBeforeGame || proGameKickoffAlertEnabled || proGameGameReminderEnabled || proGameFinalScoreNotifications)
                 ? "FanGeo will ask for notification permission before scheduling game reminders."
                 : ""
         @unknown default:
@@ -321,29 +353,44 @@ final class NotificationSettingsStore: ObservableObject {
         }
     }
 
-    func setProGameRemindersEnabled(_ enabled: Bool) async -> Bool {
-        await setProGameReminderTiming(enabled ? .oneHour : .never)
-    }
-
-    func setProGameReminderTiming(_ timing: ProGameReminderTiming) async -> Bool {
-        print("[NotificationSettingsDebug] save proGameReminderTiming requested=\(timing.rawValue)")
-        if timing.schedulesKickoffReminder {
+    func setProGameKickoffAlertEnabled(_ enabled: Bool) async -> Bool {
+        print("[NotificationSettingsDebug] save proGameKickoffAlertEnabled requested=\(enabled)")
+        if enabled {
             let granted = await gameReminderService.requestAuthorizationIfNeeded()
             guard granted else {
-                proGameReminderTiming = .never
+                proGameKickoffAlertEnabled = false
                 notificationPermissionMessage = "Notifications are off for FanGeo. Turn them on in iOS Settings to receive game reminders."
-                print("[NotificationSettingsDebug] save proGameReminderTiming deniedBySystem")
+                print("[NotificationSettingsDebug] save proGameKickoffAlertEnabled deniedBySystem")
                 return false
             }
 
-            proGameReminderTiming = timing
+            proGameKickoffAlertEnabled = true
             notificationPermissionMessage = ""
             return true
         }
 
-        proGameReminderTiming = .never
+        proGameKickoffAlertEnabled = false
         notificationPermissionMessage = ""
-        await gameReminderService.cancelAllProGameReminders()
+        await gameReminderService.cancelAllProGameKickoffAlerts()
+        return true
+    }
+
+    func setProGameGameReminderTiming(_ timing: ProGameReminderTiming) async -> Bool {
+        print("[NotificationSettingsDebug] save proGameReminderTiming requested=\(timing.rawValue)")
+        if timing.schedulesKickoffReminder {
+            let granted = await gameReminderService.requestAuthorizationIfNeeded()
+            guard granted else {
+                notificationPermissionMessage = "Notifications are off for FanGeo. Turn them on in iOS Settings to receive game reminders."
+                print("[NotificationSettingsDebug] save proGameReminderTiming deniedBySystem")
+                return false
+            }
+            notificationPermissionMessage = ""
+        }
+
+        proGameReminderTiming = timing
+        if timing == .never {
+            await gameReminderService.cancelAllProGamePreKickoffReminders()
+        }
         return true
     }
 }

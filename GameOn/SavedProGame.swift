@@ -1607,18 +1607,16 @@ extension MapViewModel {
         }
         UserDefaults.standard.set(Array(delivered).sorted(), forKey: Self.deliveredSavedProGameCardNotificationsKey)
 
-        guard let teamName = card.teamName else {
-            print("[ProGameCardNotificationDebug] gameId=\(game.stableKey) cardType=\(card.cardType.stableToken) eventKey=\(card.stableEventKey) notificationSent=false dedupeHit=false skipReason=missingTeam reason=\(reason)")
-            return
-        }
-
-        let title = ProGameNotificationFormatting.cardNotificationTitle(cardType: card.cardType, teamName: teamName)
+        let title = ProGameNotificationFormatting.cardNotificationTitle(cardType: card.cardType)
         let body = ProGameNotificationFormatting.cardNotificationBody(
             cardType: card.cardType,
             minuteText: card.minuteText,
             playerName: card.playerName,
-            teamName: teamName
+            teamName: card.teamName
         )
+        if card.teamName == nil {
+            print("[ProGameCardNotificationDebug] gameId=\(game.stableKey) cardType=\(card.cardType.stableToken) eventKey=\(card.stableEventKey) notificationSent=pending teamFallback=true reason=\(reason)")
+        }
         showSocialActionToast("\(title)\n\(body)", isError: false)
 
         Task {

@@ -20,11 +20,10 @@ nonisolated enum FavoriteTeamProGameAlertOverride: String, Codable, Equatable {
 extension MapViewModel {
     func syncProGameFinalScorePreferenceToBackend(reason: String) async {
         guard let userID = currentUserAuthId, isAuthenticatedForSocialFeatures else { return }
-        let timing = notificationSettingsStore.proGameReminderTiming
         let row = ProGameNotificationPreferenceUpsertRow(
             user_id: userID.uuidString.lowercased(),
-            pro_game_reminder_notifications_enabled: timing.schedulesKickoffReminder,
-            pro_game_reminder_timing: timing.rawValue,
+            pro_game_reminder_notifications_enabled: notificationSettingsStore.proGameKickoffAlertEnabled,
+            pro_game_reminder_timing: notificationSettingsStore.proGameReminderTiming.rawValue,
             pro_game_final_score_alerts_enabled: notificationSettingsStore.proGameFinalScoreNotifications,
             favorite_team_pro_game_alerts_enabled: notificationSettingsStore.favoriteTeamProGameAlertsEnabled
         )
@@ -76,12 +75,20 @@ extension MapViewModel {
     }
 
     private func applyProGameNotificationPreferences(from row: ProGameNotificationPreferenceRow, reason: String) {
+        var kickoffAlertEnabled = notificationSettingsStore.proGameKickoffAlertEnabled
+        var timing = notificationSettingsStore.proGameReminderTiming
+
         if let timingRaw = row.pro_game_reminder_timing?.trimmingCharacters(in: .whitespacesAndNewlines),
            !timingRaw.isEmpty {
-            notificationSettingsStore.proGameReminderTiming = ProGameReminderTiming.resolved(rawValue: timingRaw)
-        } else if row.pro_game_reminder_notifications_enabled == false {
-            notificationSettingsStore.proGameReminderTiming = .never
+            timing = ProGameReminderTiming.resolved(rawValue: timingRaw)
         }
+
+        if let kickoffEnabled = row.pro_game_reminder_notifications_enabled {
+            kickoffAlertEnabled = kickoffEnabled
+        }
+
+        notificationSettingsStore.proGameKickoffAlertEnabled = kickoffAlertEnabled
+        notificationSettingsStore.proGameReminderTiming = timing
 
         if let finalAlerts = row.pro_game_final_score_alerts_enabled {
             notificationSettingsStore.proGameFinalScoreNotifications = finalAlerts
@@ -96,7 +103,7 @@ extension MapViewModel {
             await self.proGameReminderPreferenceDidChange()
         }
 #if DEBUG
-        print("[RemoteNotificationDebug] proGamePreferenceLoaded timing=\(notificationSettingsStore.proGameReminderTiming.rawValue) final=\(notificationSettingsStore.proGameFinalScoreNotifications) teamAlerts=\(notificationSettingsStore.favoriteTeamProGameAlertsEnabled) reason=\(reason)")
+        print("[RemoteNotificationDebug] proGamePreferenceLoaded kickoffAlert=\(notificationSettingsStore.proGameKickoffAlertEnabled) gameReminder=\(notificationSettingsStore.proGameReminderTiming.rawValue) final=\(notificationSettingsStore.proGameFinalScoreNotifications) teamAlerts=\(notificationSettingsStore.favoriteTeamProGameAlertsEnabled) reason=\(reason)")
 #endif
     }
 

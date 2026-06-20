@@ -114,8 +114,7 @@ final class MapViewModel: ObservableObject {
             reloadSavedProGamesFromStorage(for: userID)
             Task { await fetchSavedProGames(reason: "currentUserAuthIdChanged") }
             Task {
-                await PushNotificationRegistrationService.shared.upsertCurrentTokenIfPossible(reason: "currentUserAuthIdChanged")
-                await PushNotificationRegistrationService.shared.registerForRemoteNotificationsIfAuthorized(reason: "currentUserAuthIdChanged")
+                await PushNotificationRegistrationService.shared.refreshPushTokenRegistration(reason: "currentUserAuthIdChanged")
                 await loadProGameNotificationPreferencesFromBackend(reason: "currentUserAuthIdChanged")
             }
         }
@@ -474,8 +473,13 @@ final class MapViewModel: ObservableObject {
         set { notificationSettingsStore.syncGoingGamesToAppleCalendar = newValue }
     }
 
-    var proGameReminderNotifications: Bool {
-        get { notificationSettingsStore.proGameReminderNotifications }
+    var proGameKickoffAlertEnabled: Bool {
+        get { notificationSettingsStore.proGameKickoffAlertEnabled }
+        set { notificationSettingsStore.proGameKickoffAlertEnabled = newValue }
+    }
+
+    var proGameGameReminderEnabled: Bool {
+        notificationSettingsStore.proGameGameReminderEnabled
     }
 
     var proGameReminderTiming: ProGameReminderTiming {

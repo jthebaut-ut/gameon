@@ -344,6 +344,12 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
                 layoutWidth: layoutWidth,
                 extra: ["reason": reason, "loadTrigger": reason]
             )
+            if placement == "discover.bottomStrip" {
+                AdDebugDiagnostics.logDiscoverMapBanner(
+                    phase: "coordinatorRequest",
+                    adLoadStarted: true
+                )
+            }
 
             banner.load(Request())
             logDiscoverAdVisibility(phase: "request.\(reason).deferred")
@@ -608,8 +614,14 @@ struct AdaptiveBannerView: View {
     }
 
     var body: some View {
+        if FanGeoAdPolicy.shouldMountAdViews() {
+            bannerContent
+        }
+    }
+
+    private var bannerContent: some View {
         let slotSize = CGSize(width: bannerSlotWidth, height: adSize.size.height)
-        GeometryReader { geo in
+        return GeometryReader { geo in
             AdaptiveBannerRepresentable(
                 placement: placement,
                 adUnitID: adUnitID,
@@ -621,6 +633,12 @@ struct AdaptiveBannerView: View {
                 onAdFailed: onAdFailed
             )
             .onAppear {
+                if placement == "discover.bottomStrip" {
+                    AdDebugDiagnostics.logDiscoverMapBanner(
+                        phase: "bannerHostAppear",
+                        adViewCreated: true
+                    )
+                }
                 AdDebugDiagnostics.logSwiftUILayout(
                     format: "banner",
                     placement: placement,

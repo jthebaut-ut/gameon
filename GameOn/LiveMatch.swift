@@ -360,8 +360,8 @@ nonisolated struct LiveTimelineEvent: Codable, Equatable, Identifiable {
     }
 
     var isCard: Bool {
-        let type = "\(strTimeline ?? "") \(strTimelineDetail ?? "")".lowercased()
-        return type.contains("card")
+        let type = "\(strTimeline ?? "") \(strTimelineDetail ?? "") \(strComment ?? "")".lowercased()
+        return type.contains("card") || type.contains("booking") || type.contains("sent off")
     }
 
     var isSubstitution: Bool {
@@ -1461,9 +1461,9 @@ nonisolated enum LiveCardEventType: String, Equatable, Codable {
     var notificationTitleLabel: String {
         switch self {
         case .yellow:
-            return "Yellow card"
+            return "Yellow Card"
         case .red, .secondYellow:
-            return "Red card"
+            return "Red Card"
         }
     }
 
@@ -1538,7 +1538,8 @@ nonisolated struct LiveCardTimelineEntry: Equatable {
             return line
         }
 
-        return "\(emoji) \(clock)"
+        let cardLabel = cardType == .secondYellow ? "Second yellow" : cardType.notificationTitleLabel
+        return "\(emoji) \(clock) \(cardLabel)"
     }
 
     private var cleanedPlayerName: String? {
@@ -1599,6 +1600,10 @@ nonisolated enum LiveCardTimelineBuilder {
             provider: provider
         )
         guard !entries.isEmpty else { return nil }
+#if DEBUG
+        let renderedCards = entries.map { $0.displayLine(flagSource: "Debug", gameId: gameId) }.joined(separator: " | ")
+        print("[ProGameCardEventDebug] gameId=\(gameId) provider=\(provider ?? "unknown") timelineEventsCount=\(timelineEvents.count) cardEventsCount=\(entries.count) renderedCards=\(renderedCards)")
+#endif
         return LiveCardTimelineSummary(entries: entries)
     }
 
@@ -1619,16 +1624,16 @@ nonisolated enum LiveCardTimelineBuilder {
 
         for event in sortedEvents {
             guard let cardType = parseCardType(from: event, sportType: effectiveSport) else { continue }
-            guard let teamName = cardTeamName(for: event, homeTeam: homeTeam, awayTeam: awayTeam) else { continue }
 
             let minuteText = cardMinuteText(for: event)
             let minute = event.minuteValue
             let playerName = cleaned(event.playerDisplayName)
+            let teamName = cardTeamName(for: event, homeTeam: homeTeam, awayTeam: awayTeam)
             let stableEventKey = stableCardEventKey(
                 gameId: gameId,
                 minuteText: minuteText ?? minute.map(String.init) ?? "",
                 cardType: cardType,
-                teamName: teamName,
+                teamName: teamName ?? "",
                 playerName: playerName
             )
             guard seenKeys.insert(stableEventKey).inserted else { continue }
@@ -1650,7 +1655,8 @@ nonisolated enum LiveCardTimelineBuilder {
                 provider: provider,
                 timelineEventsCount: timelineEvents.count,
                 cardEventsCount: entries.count,
-                entry: entry
+                entry: entry,
+                teamResolved: teamName != nil
             )
         }
 
@@ -1681,15 +1687,15 @@ nonisolated enum LiveCardTimelineBuilder {
                 strTimeline: "card",
                 strTimelineDetail: "Yellow Card",
                 strHome: "Yes",
-                strPlayer: "Casemiro",
-                intTime: "38",
+                strPlayer: "Kim Min-jae",
+                intTime: "54",
                 strTeam: home
             ),
             LiveTimelineEvent(
                 strTimeline: "card",
                 strTimelineDetail: "Red Card",
                 strHome: "No",
-                intTime: "72",
+                intTime: "67",
                 strTeam: away
             ),
             LiveTimelineEvent(
@@ -1701,7 +1707,7 @@ nonisolated enum LiveCardTimelineBuilder {
                 strTeam: "France"
             ),
             LiveTimelineEvent(
-                strTimeline: "Card",
+                strTimeline: "booking",
                 strTimelineDetail: "Yellow Card",
                 strHome: "Yes",
                 intTime: "55",
@@ -1709,7 +1715,7 @@ nonisolated enum LiveCardTimelineBuilder {
             ),
             LiveTimelineEvent(
                 strTimeline: "Card",
-                strTimelineDetail: "Red Card",
+                strTimelineDetail: "sent off",
                 strHome: "Yes",
                 strPlayer: "A. Silva",
                 intTime: "72",
@@ -1756,7 +1762,8 @@ nonisolated enum LiveCardTimelineBuilder {
             return .secondYellow
         }
 
-        if text.contains("red card")
+        if text.contains("sent off")
+            || text.contains("red card")
             || text.contains("redcard")
             || (text.contains("red") && text.contains("card") && !text.contains("yellow")) {
             return .red
@@ -1764,6 +1771,7 @@ nonisolated enum LiveCardTimelineBuilder {
 
         if text.contains("yellow card")
             || text.contains("yellowcard")
+            || text.contains("booking")
             || (text.contains("yellow") && text.contains("card")) {
             return .yellow
         }
@@ -1776,7 +1784,7 @@ nonisolated enum LiveCardTimelineBuilder {
             return nil
         }
 
-        if event.isCard || text == "card" {
+        if event.isCard || text == "card" || text.contains("booking") || text.contains("sent off") {
             if text.contains("yellow") { return .yellow }
             if text.contains("red") { return .red }
         }
@@ -1880,10 +1888,11 @@ nonisolated enum LiveCardTimelineBuilder {
         provider: String?,
         timelineEventsCount: Int,
         cardEventsCount: Int,
-        entry: LiveCardTimelineEntry
+        entry: LiveCardTimelineEntry,
+        teamResolved: Bool
     ) {
 #if DEBUG
-        print("[ProGameCardEventDebug] gameId=\(gameId) provider=\(provider ?? "unknown") timelineEventsCount=\(timelineEventsCount) cardEventsCount=\(cardEventsCount) cardType=\(entry.cardType.stableToken) minute=\(entry.minuteText ?? entry.minute.map(String.init) ?? "nil") teamName=\(entry.teamName ?? "nil") playerName=\(entry.playerName ?? "nil") stableEventKey=\(entry.stableEventKey)")
+        print("[ProGameCardEventDebug] gameId=\(gameId) provider=\(provider ?? "unknown") timelineEventsCount=\(timelineEventsCount) cardEventsCount=\(cardEventsCount) cardType=\(entry.cardType.stableToken) minute=\(entry.minuteText ?? entry.minute.map(String.init) ?? "nil") teamName=\(entry.teamName ?? "nil") playerName=\(entry.playerName ?? "nil") teamResolved=\(teamResolved) stableEventKey=\(entry.stableEventKey) renderedLine=\(entry.displayLine(flagSource: "Debug", gameId: gameId))")
 #endif
     }
 }

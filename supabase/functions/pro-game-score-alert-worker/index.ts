@@ -22,7 +22,25 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 type SupabaseClient = ReturnType<typeof createClient>
 
 type TrackedGameSource = "saved" | "favorite_team"
-type NotificationType = "kickoff" | "score" | "final" | "halftime"
+type NotificationType =
+  | "kickoff"
+  | "score"
+  | "final"
+  | "halftime"
+  | "yellow_card"
+  | "red_card"
+  | "second_yellow_card"
+
+type CardKind = "yellow" | "red" | "second_yellow"
+
+type CardTimelineEntry = {
+  cardKind: CardKind
+  notificationType: "yellow_card" | "red_card" | "second_yellow_card"
+  stableEventKey: string
+  minuteText: string
+  playerName: string | null
+  teamName: string | null
+}
 
 type SavedProGameRow = {
   id: string
@@ -178,6 +196,13 @@ type WorkerCounts = {
   halftimeSkippedDuplicate: number
   halftimeSkippedSettings: number
   halftimeSkippedNoToken: number
+  cardsFound: number
+  cardPushEligibleUsers: number
+  cardPushSent: number
+  cardPushSkippedDuplicate: number
+  cardPushSkippedPreferenceOff: number
+  cardPushSkippedNoToken: number
+  cardPushError: number
   notificationsSent: number
   skippedNoLiveMatch: number
   invalidTokens: number
@@ -225,6 +250,13 @@ serve(async (req) => {
     halftimeSkippedDuplicate: 0,
     halftimeSkippedSettings: 0,
     halftimeSkippedNoToken: 0,
+    cardsFound: 0,
+    cardPushEligibleUsers: 0,
+    cardPushSent: 0,
+    cardPushSkippedDuplicate: 0,
+    cardPushSkippedPreferenceOff: 0,
+    cardPushSkippedNoToken: 0,
+    cardPushError: 0,
     notificationsSent: 0,
     skippedNoLiveMatch: 0,
     invalidTokens: 0,
@@ -304,6 +336,7 @@ serve(async (req) => {
           await maybeSendHalftimeUpdate(supabase, apns, game, live, tokensByUser, counts)
         }
         await maybeSendScoreUpdate(supabase, apns, game, live, tokensByUser, counts)
+        await maybeSendCardUpdates(supabase, apns, game, live, tokensByUser, counts)
       } else {
         if (isLikelyStaleLiveData(game, live, status)) {
           counts.scoreSkippedStaleLiveData += 1
@@ -314,6 +347,7 @@ serve(async (req) => {
 
       if (status === "FT") {
         await maybeSendFinalUpdate(supabase, apns, game, live, tokensByUser, preferencesByUser, counts)
+        await maybeSendCardUpdates(supabase, apns, game, live, tokensByUser, counts)
       } else {
         counts.finalSkippedNotFinal += 1
       }
@@ -344,6 +378,13 @@ serve(async (req) => {
     console.log(`[ProScorePushWorker] halftime skipped duplicate=${counts.halftimeSkippedDuplicate}`)
     console.log(`[ProScorePushWorker] halftime skipped settings=${counts.halftimeSkippedSettings}`)
     console.log(`[ProScorePushWorker] halftime skipped noToken=${counts.halftimeSkippedNoToken}`)
+    console.log(`[ProScorePushWorker] cardsFound=${counts.cardsFound}`)
+    console.log(`[ProScorePushWorker] cardPushEligibleUsers=${counts.cardPushEligibleUsers}`)
+    console.log(`[ProScorePushWorker] cardPushSent=${counts.cardPushSent}`)
+    console.log(`[ProScorePushWorker] cardPushSkippedDuplicate=${counts.cardPushSkippedDuplicate}`)
+    console.log(`[ProScorePushWorker] cardPushSkippedPreferenceOff=${counts.cardPushSkippedPreferenceOff}`)
+    console.log(`[ProScorePushWorker] cardPushSkippedNoToken=${counts.cardPushSkippedNoToken}`)
+    console.log(`[ProScorePushWorker] cardPushError=${counts.cardPushError}`)
     console.log(`[ProScorePushWorker] games checked=${counts.gamesChecked}`)
     console.log(`[ProScorePushWorker] live games checked=${counts.liveGamesChecked}`)
     console.log(`[ProScorePushWorker] notifications sent=${counts.notificationsSent}`)
@@ -672,6 +713,355 @@ async function maybeSendHalftimeUpdate(
   } else {
     logDeliveryRecorded("halftime", game, halftimeToken, false)
   }
+}
+
+async function maybeSendCardUpdates(
+  supabase: SupabaseClient,
+  apns: ApnsClient,
+  game: TrackedGame,
+  live: LiveMatchRow,
+  tokensByUser: Map<string, PushTokenRow[]>,
+  counts: WorkerCounts,
+) {
+  const liveWithTimeline = await hydrateLiveMatchWithTimeline(supabase, game, live)
+  const timelineCount = normalizeTimelineEventsForWorker(liveWithTimeline.timeline_events).length
+  const cards = parseCardTimelineEvents(game, liveWithTimeline)
+  if (cards.length === 0) {
+    if (timelineCount > 0) {
+      console.log(
+        `[ProScorePushWorker] cardParseSkipped timelineCount=${timelineCount} parsedCards=0 ` +
+          `gameId=${game.liveMatchId} sport=${live.sport ?? game.sport ?? "unknown"} status=${live.match_status}`,
+      )
+    }
+    return
+  }
+
+  counts.cardsFound += cards.length
+  console.log(
+    `[ProScorePushWorker] cardsFound=${cards.length} gameId=${game.liveMatchId} userId=${game.userId}`,
+  )
+
+  if (isMutedFavoriteTeamAutoAlert(game) || !game.scoreAlertsEnabled) {
+    counts.cardPushSkippedPreferenceOff += 1
+    console.log(
+      `[ProScorePushWorker] cardPushSkippedPreferenceOff=1 gameId=${game.liveMatchId} userId=${game.userId} ` +
+        `scoreAlertsEnabled=${game.scoreAlertsEnabled}`,
+    )
+    return
+  }
+
+  const tokens = tokensByUser.get(game.userId) ?? []
+  if (tokens.length === 0) {
+    counts.cardPushSkippedNoToken += 1
+    console.log(
+      `[ProScorePushWorker] cardPushSkippedNoToken=1 gameId=${game.liveMatchId} userId=${game.userId}`,
+    )
+    return
+  }
+
+  counts.cardPushEligibleUsers += 1
+  console.log(
+    `[ProScorePushWorker] cardPushEligibleUsers=1 gameId=${game.liveMatchId} userId=${game.userId} cards=${cards.length}`,
+  )
+
+  for (const card of cards) {
+    const duplicate = await deliveryDedupeExists(
+      supabase,
+      game,
+      card.notificationType,
+      card.stableEventKey,
+    )
+    if (duplicate) {
+      counts.cardPushSkippedDuplicate += 1
+      console.log(
+        `[ProScorePushWorker] cardPushSkippedDuplicate=1 gameId=${game.liveMatchId} userId=${game.userId} ` +
+          `type=${card.notificationType} eventKey=${card.stableEventKey}`,
+      )
+      continue
+    }
+
+    const alert = cardNotificationContent(game, card)
+    console.log(
+      `[ProScorePushWorker] cardPushAttempt gameId=${game.liveMatchId} userId=${game.userId} ` +
+        `type=${card.notificationType} eventKey=${card.stableEventKey} title=${alert.title}`,
+    )
+
+    let sent = 0
+    try {
+      sent = await sendToUserTokens(supabase, apns, tokens, alert, counts)
+    } catch (error) {
+      counts.cardPushError += 1
+      console.error(
+        `[ProScorePushWorker] cardPushError=1 gameId=${game.liveMatchId} userId=${game.userId} ` +
+          `type=${card.notificationType} eventKey=${card.stableEventKey} error=${errorMessage(error)}`,
+      )
+      continue
+    }
+
+    if (sent <= 0) {
+      counts.cardPushError += 1
+      console.warn(
+        `[ProScorePushWorker] cardPushError=1 gameId=${game.liveMatchId} userId=${game.userId} ` +
+          `type=${card.notificationType} eventKey=${card.stableEventKey} reason=noSuccessfulApnsSend`,
+      )
+      continue
+    }
+
+    let recorded = false
+    try {
+      recorded = await insertDeliveryDedupe(
+        supabase,
+        game,
+        card.notificationType,
+        card.stableEventKey,
+      )
+    } catch (error) {
+      counts.cardPushError += 1
+      console.error(
+        `[ProScorePushWorker] cardPushError=1 gameId=${game.liveMatchId} userId=${game.userId} ` +
+          `type=${card.notificationType} eventKey=${card.stableEventKey} error=${errorMessage(error)}`,
+      )
+      continue
+    }
+
+    logDeliveryRecorded(card.notificationType, game, card.stableEventKey, recorded)
+    if (recorded) {
+      counts.cardPushSent += sent
+      counts.notificationsSent += sent
+      console.log(
+        `[ProScorePushWorker] cardPushSent=${sent} gameId=${game.liveMatchId} userId=${game.userId} ` +
+          `type=${card.notificationType} eventKey=${card.stableEventKey}`,
+      )
+    } else {
+      counts.cardPushSkippedDuplicate += 1
+      console.log(
+        `[ProScorePushWorker] cardPushSkippedDuplicate=1 gameId=${game.liveMatchId} userId=${game.userId} ` +
+          `type=${card.notificationType} eventKey=${card.stableEventKey} reason=insertRace`,
+      )
+    }
+  }
+}
+
+function parseCardTimelineEvents(
+  game: TrackedGame,
+  live: LiveMatchRow,
+): CardTimelineEntry[] {
+  const timelineEvents = normalizeTimelineEventsForWorker(live.timeline_events)
+  let sportKind = proScoreSportKind(game, live)
+  if (sportKind !== "soccer" && sportKind !== "hockey") {
+    const hasCardRows = timelineEvents.some(
+      (event) => parseCardKindFromTimelineEvent(event, "soccer") !== null,
+    )
+    if (!hasCardRows) return []
+    sportKind = "soccer"
+  }
+
+  const sorted = [...timelineEvents].sort((lhs, rhs) => {
+    const lhsMinute = timelineEventMinuteNumber(lhs)
+    const rhsMinute = timelineEventMinuteNumber(rhs)
+    if (lhsMinute !== rhsMinute) return lhsMinute - rhsMinute
+    return timelineEventSortKey(lhs).localeCompare(timelineEventSortKey(rhs))
+  })
+
+  const seenKeys = new Set<string>()
+  const entries: CardTimelineEntry[] = []
+
+  for (const event of sorted) {
+    const cardKind = parseCardKindFromTimelineEvent(event, sportKind)
+    if (!cardKind) continue
+
+    const minuteText = cardMinuteTextForTimelineEvent(event)
+    const playerName = cleanTimelineText(event.strPlayer)
+    const teamName = cardTeamNameForTimelineEvent(event, live.home_team, live.away_team)
+    const stableEventKey = stableCardEventKey(
+      game.liveMatchId,
+      minuteText,
+      cardKind,
+      teamName ?? "",
+      playerName,
+    )
+    if (seenKeys.has(stableEventKey)) continue
+    seenKeys.add(stableEventKey)
+
+    entries.push({
+      cardKind,
+      notificationType: cardNotificationTypeForKind(cardKind),
+      stableEventKey,
+      minuteText,
+      playerName,
+      teamName,
+    })
+  }
+
+  return entries
+}
+
+function cardNotificationTypeForKind(
+  kind: CardKind,
+): CardTimelineEntry["notificationType"] {
+  switch (kind) {
+    case "yellow":
+      return "yellow_card"
+    case "red":
+      return "red_card"
+    case "second_yellow":
+      return "second_yellow_card"
+  }
+}
+
+function cardKindStableToken(kind: CardKind): string {
+  return kind === "second_yellow" ? "second_yellow" : kind
+}
+
+function stableCardEventKey(
+  gameId: string,
+  minuteText: string,
+  cardKind: CardKind,
+  teamName: string,
+  playerName: string | null,
+): string {
+  const normalizedMinute = minuteText
+    .trim()
+    .toLowerCase()
+    .replace(/’/g, "'")
+  return [
+    normalize(gameId),
+    normalizedMinute,
+    cardKindStableToken(cardKind),
+    normalizedTeamText(teamName),
+    normalizedTeamText(playerName ?? ""),
+  ].join("|")
+}
+
+function cardNotificationContent(
+  game: TrackedGame,
+  card: CardTimelineEntry,
+): PushAlertContent {
+  const matchup = `${formattedTeamName(game.awayTeam)} vs ${formattedTeamName(game.homeTeam)}`
+  const subject = cardNotificationSubject(card, game)
+  const isYellow = card.notificationType === "yellow_card"
+  return {
+    title: isYellow ? "Yellow card" : "Red card",
+    body: `${subject} received a ${isYellow ? "yellow" : "red"} card in ${matchup}.`,
+  }
+}
+
+function cardNotificationSubject(card: CardTimelineEntry, game: TrackedGame): string {
+  if (card.playerName?.trim()) return formattedTeamName(card.playerName)
+  if (card.teamName?.trim()) return formattedTeamName(card.teamName)
+  return `${formattedTeamName(game.awayTeam)} vs ${formattedTeamName(game.homeTeam)}`
+}
+
+function parseCardKindFromTimelineEvent(
+  event: TimelineEventRow,
+  sportKind: ProScoreSportKind,
+): CardKind | null {
+  const text = cardSearchableText(event)
+  if (!text) return null
+
+  if (
+    text.includes("second yellow")
+    || text.includes("yellow-red")
+    || text.includes("yellow red")
+    || text.includes("2nd yellow")
+  ) {
+    return "second_yellow"
+  }
+
+  if (
+    text.includes("sent off")
+    || text.includes("red card")
+    || text.includes("redcard")
+    || (text.includes("red") && text.includes("card") && !text.includes("yellow"))
+  ) {
+    return "red"
+  }
+
+  if (
+    text.includes("yellow card")
+    || text.includes("yellowcard")
+    || text.includes("booking")
+    || (text.includes("yellow") && text.includes("card"))
+  ) {
+    return "yellow"
+  }
+
+  if (
+    sportKind === "hockey"
+    && text.includes("penalty")
+    && !text.includes("miss")
+    && !text.includes("shot")
+    && !text.includes("goal")
+  ) {
+    return null
+  }
+
+  const timeline = normalize(event.strTimeline)
+  const isCardRow = timeline === "card"
+    || text.includes("booking")
+    || text.includes("sent off")
+  if (isCardRow) {
+    if (text.includes("yellow")) return "yellow"
+    if (text.includes("red")) return "red"
+  }
+
+  return null
+}
+
+function cardSearchableText(event: TimelineEventRow): string {
+  return normalize(
+    [
+      event.strTimeline,
+      event.strTimelineDetail,
+      event.strComment,
+      event.strPlayer,
+      event.strTeam,
+    ]
+      .map((value) => cleanTimelineText(value))
+      .filter(Boolean)
+      .join(" "),
+  )
+}
+
+function cardMinuteTextForTimelineEvent(event: TimelineEventRow): string {
+  const raw = cleanTimelineText(event.intTime)
+  if (raw) {
+    if (raw.includes("+") || raw.includes("'") || raw.includes("’")) {
+      const normalized = raw.replace(/’/g, "'")
+      return normalized.endsWith("'") ? normalized : `${normalized}'`
+    }
+    const minute = Number.parseInt(raw, 10)
+    if (Number.isFinite(minute) && minute >= 0) return `${minute}'`
+    return `${raw}'`
+  }
+  return "?"
+}
+
+function cardTeamNameForTimelineEvent(
+  event: TimelineEventRow,
+  homeTeam: string,
+  awayTeam: string,
+): string | null {
+  const homeFlag = normalize(event.strHome)
+  if (["yes", "true", "1", "home"].includes(homeFlag)) return homeTeam
+  if (["no", "false", "0", "away"].includes(homeFlag)) return awayTeam
+
+  const team = cleanTimelineText(event.strTeam)
+  if (!team) return null
+  if (normalizedTeamText(team) === normalizedTeamText(homeTeam)) return homeTeam
+  if (normalizedTeamText(team) === normalizedTeamText(awayTeam)) return awayTeam
+  return team
+}
+
+function timelineEventSortKey(event: TimelineEventRow): string {
+  return [
+    event.idTimeline ?? "",
+    event.idEvent ?? "",
+    event.strTimeline ?? "",
+    event.strTimelineDetail ?? "",
+    event.strPlayer ?? "",
+    event.intTime ?? "",
+  ].join("|")
 }
 
 async function maybeSendFinalUpdate(

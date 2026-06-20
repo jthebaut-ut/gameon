@@ -145,30 +145,52 @@ nonisolated enum ProGameNotificationFormatting {
         }
     }
 
-    static func cardNotificationTitle(cardType: LiveCardEventType, teamName: String) -> String {
-        let team = formattedTeam(teamName)
-        return "\(cardType.emoji) \(cardType.notificationTitleLabel) — \(team)"
+    static func cardNotificationTitle(cardType: LiveCardEventType) -> String {
+        "\(cardType.emoji) \(cardType.notificationTitleLabel)"
     }
 
     static func cardNotificationBody(
         cardType: LiveCardEventType,
         minuteText: String?,
         playerName: String?,
-        teamName: String
+        teamName: String?
     ) -> String {
-        let clock = minuteText ?? "?"
+        let clock = normalizedCardNotificationClock(minuteText)
         let player = playerName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let team = ProGameTeamScoreIdentity.cleanTeamName(teamName ?? "")
+
         switch cardType {
         case .yellow:
-            if !player.isEmpty {
-                return "\(clock) \(player) received a yellow card."
+            if !player.isEmpty, !team.isEmpty {
+                return "\(clock) \(player) (\(team))"
             }
-            return "\(clock) \(formattedTeam(teamName)) received a yellow card."
+            if !player.isEmpty {
+                return "\(clock) \(player)"
+            }
+            if !team.isEmpty {
+                return "\(clock) \(team) received a yellow card."
+            }
+            return "\(clock) Yellow card"
         case .red, .secondYellow:
-            if !player.isEmpty {
-                return "\(clock) \(player) was sent off."
+            if !player.isEmpty, !team.isEmpty {
+                return "\(clock) \(player) (\(team))"
             }
-            return "\(clock) \(formattedTeam(teamName)) received a red card."
+            if !player.isEmpty {
+                return "\(clock) \(player)"
+            }
+            if !team.isEmpty {
+                return "\(clock) \(team) received a red card."
+            }
+            return "\(clock) Red card"
         }
+    }
+
+    private static func normalizedCardNotificationClock(_ minuteText: String?) -> String {
+        let trimmed = minuteText?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !trimmed.isEmpty else { return "?" }
+        if trimmed.hasSuffix("'") || trimmed.hasSuffix("’") {
+            return trimmed.replacingOccurrences(of: "’", with: "'")
+        }
+        return "\(trimmed)'"
     }
 }
