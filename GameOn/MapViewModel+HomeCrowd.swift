@@ -123,6 +123,11 @@ extension MapViewModel {
     @MainActor
     func focusDiscoverOnHomeCrowdVenue() {
         guard let venueId = currentUserHomeCrowdVenueId else { return }
+        focusDiscoverOnVenue(venueId)
+    }
+
+    @MainActor
+    func focusDiscoverOnVenue(_ venueId: UUID) {
         discoverFocusVenueId = venueId
     }
 

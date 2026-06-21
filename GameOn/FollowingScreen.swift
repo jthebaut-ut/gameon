@@ -60,6 +60,8 @@ struct FollowingScreen: View {
         var backgroundRefreshInFlight = false
         var deferredWorkReady = false
         var screenAppearAt: CFAbsoluteTime?
+        var lastVisibleSurfacePrepareAt: Date?
+        static let visibleSurfacePrepareTTL: TimeInterval = 15
     }
 
     private let followingMyPickupMinuteTicker = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
@@ -149,24 +151,31 @@ struct FollowingScreen: View {
             handleFollowingSocialAuthChange()
         }
         .onChange(of: viewModel.followingTabGoingItems.count) { _, _ in
+            guard isFollowingTabSelected else { return }
             rebuildFollowingDisplayCaches(reason: "goingItemsChanged", prefetchAvatars: false)
         }
         .onChange(of: viewModel.myPickupGameJoinRequestCards) { _, _ in
+            guard isFollowingTabSelected else { return }
             rebuildFollowingDisplayCaches(reason: "pickupJoinCardsChanged", prefetchAvatars: false)
         }
         .onChange(of: viewModel.savedProGames.count) { _, _ in
+            guard isFollowingTabSelected else { return }
             scheduleGoingProGamesDisplayCacheRebuild(reason: "savedProGamesChanged")
         }
         .onChange(of: viewModel.favoriteTeamProGames.count) { _, _ in
+            guard isFollowingTabSelected else { return }
             scheduleGoingProGamesDisplayCacheRebuild(reason: "favoriteTeamProGamesChanged")
         }
         .onChange(of: proGamesAutoFollowFavoriteTeams) { _, _ in
+            guard isFollowingTabSelected else { return }
             scheduleGoingProGamesDisplayCacheRebuild(reason: "autoFollowToggled")
         }
         .onChange(of: clearedCompletedFavoriteTeamProGamesRaw) { _, _ in
+            guard isFollowingTabSelected else { return }
             scheduleGoingProGamesDisplayCacheRebuild(reason: "clearedCompletedChanged")
         }
         .onChange(of: viewModel.incomingPickupGameInvites.count) { _, _ in
+            guard isFollowingTabSelected else { return }
             prefetchVisibleGoingAvatars(reason: "incomingPickupInvitesChanged")
         }
     }
@@ -259,18 +268,38 @@ struct FollowingScreen: View {
         if visible {
             AppPerfDebug.screenLoadStart(tab: "following", source: "tabVisible")
             markGoingScreenAppear(source: "tabVisible")
-            goingTabPerf.firstPaintRecorded = false
-            goingTabPerf.deferredWorkReady = false
+            let hasWarmCaches =
+                goingTabPerf.deferredWorkReady
+                || !viewModel.followingTabGoingItems.isEmpty
+                || !goingTabPerf.cachedManualSavedProGamesForDisplay.isEmpty
+                || !viewModel.myPickupGameJoinRequestCards.isEmpty
+            if hasWarmCaches {
+                goingTabPerf.deferredWorkReady = true
+            } else {
+                goingTabPerf.deferredWorkReady = false
+                goingTabPerf.firstPaintRecorded = false
+            }
             Task { @MainActor in
-                await prepareGoingTabVisibleSurface(reason: "tabVisible")
+                await Task.yield()
+                TabPerf.tabSwitchRendered(tab: "following")
+                if goingTabRecentlyPrepared(within: GoingTabPerfState.visibleSurfacePrepareTTL) {
+                    TabPerf.refreshSkipped(name: "goingTabVisibleSurface", reason: "freshCache")
+                    recordGoingFirstPaintIfNeeded(source: "tabVisibleCached")
+                } else {
+                    await prepareGoingTabVisibleSurface(reason: "tabVisible")
+                }
                 GoingPerfDebug.deferredWork("goingAvatarPrefetch", source: "tabVisible")
                 prefetchVisibleGoingAvatars(reason: "followingTabVisibleDeferred")
                 await performGoingTabBackgroundRefresh(reason: "tabVisible")
             }
         } else {
             goingTabPerf.firstPaintRecorded = false
-            goingTabPerf.deferredWorkReady = false
         }
+    }
+
+    private func goingTabRecentlyPrepared(within interval: TimeInterval) -> Bool {
+        guard let last = goingTabPerf.lastVisibleSurfacePrepareAt else { return false }
+        return Date().timeIntervalSince(last) < interval
     }
 
     @ViewBuilder
@@ -1095,6 +1124,7 @@ struct FollowingScreen: View {
 #endif
         recordGoingFirstPaintIfNeeded(source: reason)
         goingTabPerf.deferredWorkReady = true
+        goingTabPerf.lastVisibleSurfacePrepareAt = Date()
     }
 
     private func recordGoingFirstPaintIfNeeded(source: String) {
@@ -1118,6 +1148,7 @@ struct FollowingScreen: View {
     private func performGoingTabBackgroundRefresh(reason: String) async {
         guard viewModel.isAuthenticatedForSocialFeatures else { return }
         if goingTabPerf.backgroundRefreshInFlight {
+            TabPerf.duplicateRefreshCoalesced(name: "goingTabBackgroundRefresh")
             GoingPerfDebug.duplicateRefreshSkipped(source: reason, reason: "inFlight")
             return
         }
@@ -1821,6 +1852,16 @@ struct FollowingScreen: View {
         .padding(.top, 6)
     }
 
+    private func openProGamePredictionSheet(for game: SavedProGame) {
+#if DEBUG
+        print("[ProPredictionPerf] tapReceived gameId=\(game.stableKey)")
+#endif
+        proGamePredictionSheet = ProGamePredictionSheetContext(game: game)
+#if DEBUG
+        print("[ProPredictionPerf] sheetPresented gameId=\(game.stableKey)")
+#endif
+    }
+
     private func savedProGameCard(
         _ game: SavedProGame,
         badges: [String],
@@ -1927,7 +1968,7 @@ struct FollowingScreen: View {
                     game: displayGame,
                     summary: viewModel.proGamePredictionSummaries[displayGame.stableKey]
                 ) {
-                    proGamePredictionSheet = ProGamePredictionSheetContext(game: displayGame)
+                    openProGamePredictionSheet(for: displayGame)
                 }
             }
         }

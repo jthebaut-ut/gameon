@@ -31,6 +31,10 @@ struct LiveScreen: View {
     @State private var liveMatchDetailSelection: LiveMatch?
     @State private var proGamePredictionSheet: ProGamePredictionSheetContext?
     @State private var showLiveCountryFilterSheet = false
+    @State private var liveNowFeedRowsExpanded = false
+    @State private var liveUpcomingFeedRowsExpanded = false
+
+    private static let liveGameFeedInitialRowCap = 12
 
     private struct LiveWatchSpotsPresentation: Identifiable {
         let id: String
@@ -134,12 +138,21 @@ struct LiveScreen: View {
         Calendar.current.startOfDay(for: Date())
     }
 
-    private var displayedLiveMatches: [LiveMatch] {
-        let matches = viewModel.liveTabTodayMatchesDisplayed(
+    private func liveTodayMatchesBase(calendarDay: Date) -> [LiveMatch] {
+        viewModel.liveTabTodayMatchesDisplayed(
             searchQuery: "",
-            sportFilter: selectedLiveFeaturedEvent == nil ? liveGamesSportFilter : nil,
-            calendarDay: liveCalendarToday
+            sportFilter: nil,
+            calendarDay: calendarDay
         )
+    }
+
+    private func liveDisplayedMatches(from todayBase: [LiveMatch]) -> [LiveMatch] {
+        let matches: [LiveMatch]
+        if selectedLiveFeaturedEvent == nil, let liveGamesSportFilter {
+            matches = todayBase.filter { $0.liveSportVisualType == liveGamesSportFilter }
+        } else {
+            matches = todayBase
+        }
         let featuredFiltered: [LiveMatch]
         if let selectedLiveFeaturedEvent {
             featuredFiltered = matches.filter {
@@ -154,16 +167,37 @@ struct LiveScreen: View {
         return liveMatchesFilteredBySelectedCountries(featuredFiltered)
     }
 
+    private func liveNowMatches(from displayed: [LiveMatch]) -> [LiveMatch] {
+        displayed.filter(\.matchStatus.isHappeningNow)
+    }
+
+    private func liveTodayUpcomingMatches(from displayed: [LiveMatch], calendarDay: Date) -> [LiveMatch] {
+        let cal = Calendar.current
+        return displayed
+            .filter { $0.matchStatus == .scheduled || $0.matchStatus == .fullTime }
+            .filter { cal.isDate($0.startTime, inSameDayAs: calendarDay) }
+            .sorted(by: todayUpcomingLiveMatchSort)
+    }
+
+    private func liveGamesSportFilterOptions(from todayBase: [LiveMatch]) -> [LiveSportVisualType] {
+        let present = Set(todayBase.map(\.liveSportVisualType))
+        return LiveSportVisualType.allCases.filter { present.contains($0) }
+    }
+
+    private var displayedLiveMatches: [LiveMatch] {
+        liveDisplayedMatches(from: liveTodayMatchesBase(calendarDay: liveCalendarToday))
+    }
+
     private var displayedLiveNowMatches: [LiveMatch] {
-        displayedLiveMatches.filter(\.matchStatus.isHappeningNow)
+        liveNowMatches(from: displayedLiveMatches)
     }
 
     private var displayedTodayUpcomingMatches: [LiveMatch] {
-        let cal = Calendar.current
-        return displayedLiveMatches
-            .filter { $0.matchStatus == .scheduled || $0.matchStatus == .fullTime }
-            .filter { cal.isDate($0.startTime, inSameDayAs: liveCalendarToday) }
-            .sorted(by: todayUpcomingLiveMatchSort)
+        liveTodayUpcomingMatches(from: displayedLiveMatches, calendarDay: liveCalendarToday)
+    }
+
+    private var liveGamesSportFilterOptions: [LiveSportVisualType] {
+        liveGamesSportFilterOptions(from: liveTodayMatchesBase(calendarDay: liveCalendarToday))
     }
 
     private func todayUpcomingLiveMatchSort(_ lhs: LiveMatch, _ rhs: LiveMatch) -> Bool {
@@ -179,14 +213,6 @@ struct LiveScreen: View {
         if status == .scheduled { return 1 }
         if status == .fullTime { return 2 }
         return 3
-    }
-
-    private var liveGamesSportFilterOptions: [LiveSportVisualType] {
-        let present = Set(
-            viewModel.liveTabTodayMatchesDisplayed(searchQuery: "", sportFilter: nil, calendarDay: liveCalendarToday)
-                .map(\.liveSportVisualType)
-        )
-        return LiveSportVisualType.allCases.filter { present.contains($0) }
     }
 
     private var liveFeaturedEvents: [FeaturedEvent] {
@@ -267,8 +293,28 @@ struct LiveScreen: View {
         selectedTab == .live && scenePhase == .active
     }
 
+    private var isLiveTabSelected: Bool {
+        selectedTab == .live
+    }
+
+    @ViewBuilder
+    private var liveRootContent: some View {
+        if isLiveTabSelected {
+            liveFeedLayer
+        } else {
+            liveOffTabPlaceholder
+        }
+    }
+
+    /// Preserved-tab shell: no feed ranking, cards, ads, or logo work while Live is off-screen.
+    private var liveOffTabPlaceholder: some View {
+        Color.clear
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .accessibilityHidden(true)
+    }
+
     var body: some View {
-        liveFeedLayer
+        liveRootContent
             .sheet(isPresented: Binding(
                 get: {
                     showVenueDetails
@@ -348,10 +394,13 @@ struct LiveScreen: View {
 
     private var liveFeedLayer: some View {
         let showPersonalLiveSections = canShowPersonalLiveSections
-        let rankedItems = liveRankedItems(for: liveCalendarToday)
-        let liveTabMatches = displayedLiveMatches
-        let liveNowMatches = displayedLiveNowMatches
-        let todayUpcomingMatches = displayedTodayUpcomingMatches
+        let calendarDay = liveCalendarToday
+        let todayMatchesBase = liveTodayMatchesBase(calendarDay: calendarDay)
+        let liveTabMatches = liveDisplayedMatches(from: todayMatchesBase)
+        let liveNowMatches = liveNowMatches(from: liveTabMatches)
+        let todayUpcomingMatches = liveTodayUpcomingMatches(from: liveTabMatches, calendarDay: calendarDay)
+        let sportFilterChipOptions = liveGamesSportFilterOptions(from: todayMatchesBase)
+        let rankedItems = liveRankedItems(for: calendarDay)
         let showVenuesAndPickupToday = !isBusinessLiveAudienceUser
         let venuesAndPickupToday = showVenuesAndPickupToday ? venuesAndPickupTodayRows(from: rankedItems) : []
         let friendsGoing = showPersonalLiveSections ? Array(rankedItems.filter { $0.energy.friendGoingCount > 0 }.prefix(6)) : []
@@ -375,7 +424,7 @@ struct LiveScreen: View {
 
             ScrollViewReader { scrollProxy in
                 ScrollView(.vertical, showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 22) {
+                    LazyVStack(alignment: .leading, spacing: 22) {
                         liveHeroHeader
 
                         liveSummaryChips(
@@ -407,7 +456,9 @@ struct LiveScreen: View {
                             matches: liveTabMatches,
                             liveNowMatches: liveNowMatches,
                             todayUpcomingMatches: todayUpcomingMatches,
-                            rankedItems: rankedItems
+                            rankedItems: rankedItems,
+                            allLiveGames: todayMatchesBase,
+                            sportFilterOptions: sportFilterChipOptions
                         )
                             .id(LiveScrollSection.liveGames.rawValue)
                         if showVenuesAndPickupToday {
@@ -792,13 +843,10 @@ struct LiveScreen: View {
         matches: [LiveMatch],
         liveNowMatches: [LiveMatch],
         todayUpcomingMatches: [LiveMatch],
-        rankedItems: [LiveFeedItem]
+        rankedItems: [LiveFeedItem],
+        allLiveGames: [LiveMatch],
+        sportFilterOptions: [LiveSportVisualType]
     ) -> some View {
-        let allLiveGames = viewModel.liveTabTodayMatchesDisplayed(
-            searchQuery: "",
-            sportFilter: nil,
-            calendarDay: liveCalendarToday
-        )
         let worldCupMatches = allLiveGames.filter(LiveMatchFilters.isFifaWorldCupMatch)
         let liveFeedRows = LiveFeedAdPlacement.listItems(for: liveNowMatches)
         let upcomingFeedRows = LiveFeedAdPlacement.listItems(for: todayUpcomingMatches)
@@ -826,8 +874,8 @@ struct LiveScreen: View {
             toggle: toggleLiveNowExpanded
         ) {
             if liveNowExpanded {
-                liveGamesSportFilterBar
-                if viewModel.isLoadingLiveMatches && matches.isEmpty {
+                liveGamesSportFilterBar(sportFilterOptions: sportFilterOptions)
+                if viewModel.isLoadingLiveMatches && viewModel.liveMatches.isEmpty {
                     liveGamesLoadingCard
                 } else if matches.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
@@ -842,33 +890,49 @@ struct LiveScreen: View {
 #endif
                     }
                 } else {
-                    VStack(spacing: 10) {
+                    LazyVStack(spacing: 10) {
                         if !liveNowMatches.isEmpty {
                             liveMatchSubsectionHeader("Live Now")
-                            ForEach(liveFeedRows) { row in
-                                switch row {
-                                case .match(let match):
-                                    liveMatchCard(match, relatedItems: liveMatchRelatedItems(for: match, in: rankedItems))
-                                case .nativeAd(let slotIndex, _):
-                                    liveFeedNativeAdCard(slotIndex: slotIndex)
-                                }
+                            liveGameFeedRowsList(
+                                cappedLiveGameFeedRows(liveFeedRows, showAll: liveNowFeedRowsExpanded),
+                                rankedItems: rankedItems
+                            )
+                            liveGameFeedShowMoreButton(
+                                totalRowCount: liveFeedRows.count,
+                                isExpanded: liveNowFeedRowsExpanded
+                            ) {
+                                liveNowFeedRowsExpanded = true
                             }
                         }
 
                         if !todayUpcomingMatches.isEmpty {
                             liveMatchSubsectionHeader("Today / Upcoming")
-                            ForEach(upcomingFeedRows) { row in
-                                switch row {
-                                case .match(let match):
-                                    liveMatchCard(match, relatedItems: liveMatchRelatedItems(for: match, in: rankedItems))
-                                case .nativeAd(let slotIndex, _):
-                                    liveFeedNativeAdCard(slotIndex: slotIndex)
-                                }
+                            liveGameFeedRowsList(
+                                cappedLiveGameFeedRows(upcomingFeedRows, showAll: liveUpcomingFeedRowsExpanded),
+                                rankedItems: rankedItems
+                            )
+                            liveGameFeedShowMoreButton(
+                                totalRowCount: upcomingFeedRows.count,
+                                isExpanded: liveUpcomingFeedRowsExpanded
+                            ) {
+                                liveUpcomingFeedRowsExpanded = true
                             }
                         }
                     }
                     .animation(.spring(response: 0.34, dampingFraction: 0.86), value: liveGamesSportFilter)
                     .animation(.spring(response: 0.34, dampingFraction: 0.86), value: liveFeaturedEventFilterSlug)
+                    .onChange(of: liveGamesSportFilter) { _, _ in
+                        liveNowFeedRowsExpanded = false
+                        liveUpcomingFeedRowsExpanded = false
+                    }
+                    .onChange(of: liveFeaturedEventFilterSlug) { _, _ in
+                        liveNowFeedRowsExpanded = false
+                        liveUpcomingFeedRowsExpanded = false
+                    }
+                    .onChange(of: liveLeagueCountryFilterRaw) { _, _ in
+                        liveNowFeedRowsExpanded = false
+                        liveUpcomingFeedRowsExpanded = false
+                    }
                 }
             }
         }
@@ -882,6 +946,42 @@ struct LiveScreen: View {
             .tracking(0.7)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, 2)
+    }
+
+    private func cappedLiveGameFeedRows(_ rows: [LiveGameFeedRow], showAll: Bool) -> [LiveGameFeedRow] {
+        guard !showAll, rows.count > Self.liveGameFeedInitialRowCap else { return rows }
+        return Array(rows.prefix(Self.liveGameFeedInitialRowCap))
+    }
+
+    @ViewBuilder
+    private func liveGameFeedRowsList(_ rows: [LiveGameFeedRow], rankedItems: [LiveFeedItem]) -> some View {
+        ForEach(rows) { row in
+            switch row {
+            case .match(let match):
+                liveMatchCard(match, relatedItems: liveMatchRelatedItems(for: match, in: rankedItems))
+            case .nativeAd(let slotIndex, _):
+                liveFeedNativeAdCard(slotIndex: slotIndex)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func liveGameFeedShowMoreButton(
+        totalRowCount: Int,
+        isExpanded: Bool,
+        expand: @escaping () -> Void
+    ) -> some View {
+        if !isExpanded, totalRowCount > Self.liveGameFeedInitialRowCap {
+            let remaining = totalRowCount - Self.liveGameFeedInitialRowCap
+            Button(action: expand) {
+                Text(remaining == 1 ? "Show 1 more" : "Show \(remaining) more")
+                    .font(FGTypography.caption.weight(.bold))
+                    .foregroundStyle(FGColor.accentBlue)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 8)
+            }
+            .buttonStyle(.plain)
+        }
     }
 
     private func toggleLiveNowExpanded() {
@@ -907,7 +1007,7 @@ struct LiveScreen: View {
         return "No live pro games right now"
     }
 
-    private var liveGamesSportFilterBar: some View {
+    private func liveGamesSportFilterBar(sportFilterOptions: [LiveSportVisualType]) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
                 SportFilterChip(
@@ -923,7 +1023,7 @@ struct LiveScreen: View {
                 ForEach(liveFeaturedEvents) { featuredEvent in
                     liveFeaturedEventChip(featuredEvent)
                 }
-                ForEach(liveGamesSportFilterOptions, id: \.self) { sport in
+                ForEach(sportFilterOptions, id: \.self) { sport in
                     SportFilterChip(
                         sport: sport.sportFilterCatalogKey,
                         displayTitle: sport.filterChipLabel,
@@ -1794,7 +1894,7 @@ struct LiveScreen: View {
                 }
             }
 
-            if match.supportsProGamePredictions {
+            if match.supportsProGamePredictions && isSaved {
                 liveProGamePredictionFooter(for: match)
             }
         }
@@ -1965,7 +2065,7 @@ struct LiveScreen: View {
                 .opacity(match.matchStatus.isHappeningNow && liveIndicatorPulse ? 0.55 : 1.0)
                 .shadow(color: statusTint.opacity(0.55), radius: match.matchStatus.isHappeningNow ? 4 : 0)
                 .animation(
-                    match.matchStatus.isHappeningNow
+                    match.matchStatus.isHappeningNow && isLiveTabSelected && liveIndicatorPulse
                         ? .easeInOut(duration: 0.95).repeatForever(autoreverses: true)
                         : .default,
                     value: liveIndicatorPulse
@@ -1984,7 +2084,7 @@ struct LiveScreen: View {
         }
         .accessibilityLabel(liveStatusText(match))
         .onAppear {
-            guard match.matchStatus.isHappeningNow else { return }
+            guard match.matchStatus.isHappeningNow, isLiveTabSelected else { return }
             liveIndicatorPulse = true
             logLiveBadgeDebug()
         }
@@ -2011,24 +2111,27 @@ struct LiveScreen: View {
             startLiveAutoRefresh(immediatelyRefresh: immediatelyRefresh)
         } else {
             stopLiveAutoRefresh()
+            liveIndicatorPulse = false
         }
     }
 
     private func startLiveAutoRefresh(immediatelyRefresh: Bool) {
         if liveAutoRefreshTask != nil {
             if immediatelyRefresh {
-                refreshLiveMatches(forceRefresh: true)
+                TabPerf.refreshStarted(name: "liveMatches")
+                refreshLiveMatches(forceRefresh: false)
 #if DEBUG
-                print("[PerfPhase1] liveAutoRefresh forceRefresh=true reason=immediateWhileTimerRunning")
+                print("[PerfPhase1] liveAutoRefresh forceRefresh=false reason=immediateWhileTimerRunning")
 #endif
             }
             return
         }
 
         if immediatelyRefresh {
-            refreshLiveMatches(forceRefresh: true)
+            TabPerf.refreshStarted(name: "liveMatches")
+            refreshLiveMatches(forceRefresh: false)
 #if DEBUG
-            print("[PerfPhase1] liveAutoRefresh forceRefresh=true reason=initialActivation")
+            print("[PerfPhase1] liveAutoRefresh forceRefresh=false reason=initialActivation")
 #endif
         }
 
@@ -2061,7 +2164,9 @@ struct LiveScreen: View {
     }
 
     private func refreshLiveMatches(forceRefresh: Bool) {
-        Task { await viewModel.refreshLiveMatchesForLiveTab(forceRefresh: forceRefresh) }
+        Task {
+            await viewModel.refreshLiveMatchesForLiveTab(forceRefresh: forceRefresh)
+        }
     }
 
     @MainActor
@@ -2793,7 +2898,12 @@ struct LiveScreen: View {
                 .frame(width: 6, height: 6)
                 .scaleEffect(liveIndicatorPulse ? 1.25 : 0.92)
                 .opacity(liveIndicatorPulse ? 0.7 : 1.0)
-                .animation(.easeInOut(duration: 0.95).repeatForever(autoreverses: true), value: liveIndicatorPulse)
+                .animation(
+                    isLiveTabSelected && liveIndicatorPulse
+                        ? .easeInOut(duration: 0.95).repeatForever(autoreverses: true)
+                        : .default,
+                    value: liveIndicatorPulse
+                )
             Text("LIVE")
                 .font(.system(size: 10, weight: .bold, design: .rounded))
         }
@@ -2806,6 +2916,7 @@ struct LiveScreen: View {
                 .strokeBorder(FGColor.dangerRed.opacity(0.24), lineWidth: 1)
         }
         .onAppear {
+            guard isLiveTabSelected else { return }
             liveIndicatorPulse = true
         }
     }

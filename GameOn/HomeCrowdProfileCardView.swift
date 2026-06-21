@@ -35,8 +35,12 @@ struct HomeCrowdProfileCardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let summary {
-                populatedCardBody(summary)
-                    .frame(height: cardHeight)
+                if isSelfProfile {
+                    selfProfilePopulatedBody(summary)
+                        .frame(height: cardHeight)
+                } else {
+                    publicProfilePopulatedBody(summary)
+                }
             } else {
                 emptyCardBody
                     .frame(height: cardHeight)
@@ -52,9 +56,9 @@ struct HomeCrowdProfileCardView: View {
         }
     }
 
-    // MARK: - Populated
+    // MARK: - Populated (self profile)
 
-    private func populatedCardBody(_ summary: HomeCrowdVenueSummary) -> some View {
+    private func selfProfilePopulatedBody(_ summary: HomeCrowdVenueSummary) -> some View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 7) {
                 homeCrowdTitleLabel
@@ -97,6 +101,90 @@ struct HomeCrowdProfileCardView: View {
                 .padding(.trailing, 12)
         }
         .homeCrowdCardChrome(colorScheme: colorScheme, accent: homeCrowdAccent)
+    }
+
+    // MARK: - Populated (public profile)
+
+    private func publicProfilePopulatedBody(_ summary: HomeCrowdVenueSummary) -> some View {
+        Button {
+            onExploreVenue?()
+        } label: {
+            VStack(alignment: .leading, spacing: 10) {
+                homeCrowdTitleLabel
+
+                HStack(alignment: .center, spacing: 12) {
+                    publicVenueThumbnail(summary)
+                        .frame(width: publicImageSide, height: publicImageSide)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(summary.name)
+                            .font(.system(size: 16, weight: .heavy, design: .rounded))
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.84)
+                            .multilineTextAlignment(.leading)
+
+                        if let sinceLine = HomeCrowdSinceFormatter.regularSinceLine(from: summary.setAtRaw) {
+                            Text(sinceLine)
+                                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                                .lineLimit(1)
+                        }
+
+                        if let localFansLine = HomeCrowdFanCountFormatter.localFansLine(count: summary.fanCount) {
+                            Text(localFansLine)
+                                .font(.system(size: 10.5, weight: .medium, design: .rounded))
+                                .foregroundStyle(FGColor.mutedText(colorScheme))
+                                .lineLimit(1)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    VStack(spacing: 8) {
+                        HomeCrowdShieldStarBadge(diameter: 30, visualState: .active)
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.85))
+                    }
+                    .padding(.trailing, 2)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 13)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .disabled(onExploreVenue == nil)
+        .accessibilityLabel("Open \(summary.name) venue")
+        .accessibilityHint("Opens this fan's Home Crowd venue in Discover")
+        .homeCrowdCardChrome(colorScheme: colorScheme, accent: homeCrowdAccent)
+    }
+
+    private var publicImageSide: CGFloat { 72 }
+
+    @ViewBuilder
+    private func publicVenueThumbnail(_ summary: HomeCrowdVenueSummary) -> some View {
+        Group {
+            if let raw = summary.thumbnailURL, let url = URL(string: raw) {
+                DiscoverCachedRemoteImage(url: url, contentMode: .fill) {
+                    homeCrowdPlaceholderVisual
+                }
+                .id(summary.venueId)
+            } else {
+                homeCrowdPlaceholderVisual
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(
+                    Color.white.opacity(colorScheme == .dark ? 0.18 : 0.72),
+                    lineWidth: 1
+                )
+        }
+        .shadow(color: homeCrowdAccent.opacity(colorScheme == .dark ? 0.22 : 0.12), radius: 8, y: 3)
     }
 
     private func compactCrowdSubtitle(_ summary: HomeCrowdVenueSummary) -> String? {

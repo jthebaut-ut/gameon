@@ -11,6 +11,10 @@ nonisolated enum ImageCacheDebug {
     private static var lookupCount = 0
     private static var networkFetchCountsByKey: [String: Int] = [:]
 
+    private static func trace(_ message: @autoclosure () -> String) {
+        DebugLogGate.hotPathPerf(message())
+    }
+
     private struct FirstNetworkFetchTrace {
         let rawURL: String
         let normalizedURL: String
@@ -33,12 +37,12 @@ nonisolated enum ImageCacheDebug {
     }
 
     static func logImageInvocationStart(actorIdentity: ObjectIdentifier, invocationId: UInt64, cacheKey: String, rawURL: String) {
-        print("[ImageCacheDebug] imageInvocationStart=true")
-        print("[ImageCacheDebug] actorIdentity=\(actorIdentity)")
-        print("[ImageCacheDebug] imageInvocationId=\(invocationId)")
-        print("[ImageCacheDebug] cacheKey=\(cacheKey)")
-        print("[ImageCacheDebug] rawURL=\(rawURL)")
-        print("[ImageCacheDebug] invocationThread=\(threadLabel())")
+        trace("[ImageCacheDebug] imageInvocationStart=true")
+        trace("[ImageCacheDebug] actorIdentity=\(actorIdentity)")
+        trace("[ImageCacheDebug] imageInvocationId=\(invocationId)")
+        trace("[ImageCacheDebug] cacheKey=\(cacheKey)")
+        trace("[ImageCacheDebug] rawURL=\(rawURL)")
+        trace("[ImageCacheDebug] invocationThread=\(threadLabel())")
     }
 
     static func logInFlightLookupConcurrency(
@@ -49,13 +53,13 @@ nonisolated enum ImageCacheDebug {
         activeKeys: [String],
         lookupBeforeInsertRaceSuspected: Bool
     ) {
-        print("[ImageCacheDebug] inflightLookupKey=\(cacheKey)")
-        print("[ImageCacheDebug] inflightExistingTaskFound=\(existingTaskFound)")
-        print("[ImageCacheDebug] inflightActiveKeys=\(activeKeys.joined(separator: ","))")
-        print("[ImageCacheDebug] actorIdentity=\(actorIdentity)")
-        print("[ImageCacheDebug] imageInvocationId=\(invocationId)")
-        print("[ImageCacheDebug] inflightLookupThread=\(threadLabel())")
-        print("[ImageCacheDebug] lookupBeforeInsertRaceSuspected=\(lookupBeforeInsertRaceSuspected)")
+        trace("[ImageCacheDebug] inflightLookupKey=\(cacheKey)")
+        trace("[ImageCacheDebug] inflightExistingTaskFound=\(existingTaskFound)")
+        trace("[ImageCacheDebug] inflightActiveKeys=\(activeKeys.joined(separator: ","))")
+        trace("[ImageCacheDebug] actorIdentity=\(actorIdentity)")
+        trace("[ImageCacheDebug] imageInvocationId=\(invocationId)")
+        trace("[ImageCacheDebug] inflightLookupThread=\(threadLabel())")
+        trace("[ImageCacheDebug] lookupBeforeInsertRaceSuspected=\(lookupBeforeInsertRaceSuspected)")
     }
 
     static func logInFlightInsertConcurrency(
@@ -66,13 +70,13 @@ nonisolated enum ImageCacheDebug {
         lookupThread: String,
         lookupInsertGapMs: Double
     ) {
-        print("[ImageCacheDebug] inflightInsertKey=\(cacheKey)")
-        print("[ImageCacheDebug] inflightActiveKeysAfterInsert=\(activeKeys.joined(separator: ","))")
-        print("[ImageCacheDebug] actorIdentity=\(actorIdentity)")
-        print("[ImageCacheDebug] imageInvocationId=\(invocationId)")
-        print("[ImageCacheDebug] inflightInsertThread=\(threadLabel())")
-        print("[ImageCacheDebug] inflightLookupThread=\(lookupThread)")
-        print("[ImageCacheDebug] lookupInsertGapMs=\(String(format: "%.3f", lookupInsertGapMs))")
+        trace("[ImageCacheDebug] inflightInsertKey=\(cacheKey)")
+        trace("[ImageCacheDebug] inflightActiveKeysAfterInsert=\(activeKeys.joined(separator: ","))")
+        trace("[ImageCacheDebug] actorIdentity=\(actorIdentity)")
+        trace("[ImageCacheDebug] imageInvocationId=\(invocationId)")
+        trace("[ImageCacheDebug] inflightInsertThread=\(threadLabel())")
+        trace("[ImageCacheDebug] inflightLookupThread=\(lookupThread)")
+        trace("[ImageCacheDebug] lookupInsertGapMs=\(String(format: "%.3f", lookupInsertGapMs))")
     }
 
     /// Global probe outside actor isolation to detect overlapping lookups before any insert.
@@ -136,19 +140,24 @@ nonisolated enum ImageCacheDebug {
         if inFlightJoin { inFlightJoins += 1 }
         lock.unlock()
 
-        print("[ImageCacheDebug] memoryHit=\(memoryHit)")
-        print("[ImageCacheDebug] diskHit=\(diskHit)")
-        print("[ImageCacheDebug] networkFetch=\(networkFetch)")
-        print("[ImageCacheDebug] inFlightJoin=\(inFlightJoin)")
-        print("[ImageCacheDebug] bucket=\(bucket)")
-        print("[ImageCacheDebug] normalizedURL=\(identity.normalizedURL)")
-        print("[ImageCacheDebug] cacheKey=\(identity.cacheKey)")
-        print("[ImageCacheDebug] source=\(source)")
+        trace("[ImageCacheDebug] memoryHit=\(memoryHit)")
+        trace("[ImageCacheDebug] diskHit=\(diskHit)")
+        trace("[ImageCacheDebug] networkFetch=\(networkFetch)")
+        trace("[ImageCacheDebug] inFlightJoin=\(inFlightJoin)")
+        trace("[ImageCacheDebug] bucket=\(bucket)")
+        trace("[ImageCacheDebug] normalizedURL=\(identity.normalizedURL)")
+        trace("[ImageCacheDebug] cacheKey=\(identity.cacheKey)")
+        trace("[ImageCacheDebug] source=\(source)")
         if duplicateNetwork {
-            print("[ImageCacheDebug] duplicateNetworkFetch=true cacheKey=\(identity.cacheKey)")
+            trace("[ImageCacheDebug] duplicateNetworkFetch=true cacheKey=\(identity.cacheKey)")
+        }
+        if memoryHit || diskHit {
+            PerformanceLog.imageCacheHit(urlHash: PerformanceLog.urlHash(for: identity.cacheKey))
+        } else if networkFetch {
+            PerformanceLog.imageCacheMiss(urlHash: PerformanceLog.urlHash(for: identity.cacheKey))
         }
         if networkFetch, url.absoluteString != identity.normalizedURL {
-            print("[ImageCacheDebug] versionedDisplayURL=true rawURL=\(url.absoluteString)")
+            trace("[ImageCacheDebug] versionedDisplayURL=true rawURL=\(url.absoluteString)")
         }
     }
 
@@ -163,31 +172,31 @@ nonisolated enum ImageCacheDebug {
         inFlightJoins += 1
         lock.unlock()
 
-        print("[ImageCacheDebug] memoryHit=false")
-        print("[ImageCacheDebug] diskHit=false")
-        print("[ImageCacheDebug] networkFetch=false")
-        print("[ImageCacheDebug] inFlightJoin=true")
-        print("[ImageCacheDebug] duplicateNetworkFetchPrevented=true")
-        print("[ImageCacheDebug] bucket=\(bucket)")
-        print("[ImageCacheDebug] normalizedURL=\(identity.normalizedURL)")
-        print("[ImageCacheDebug] cacheKey=\(identity.cacheKey)")
-        print("[ImageCacheDebug] source=\(source)")
+        trace("[ImageCacheDebug] memoryHit=false")
+        trace("[ImageCacheDebug] diskHit=false")
+        trace("[ImageCacheDebug] networkFetch=false")
+        trace("[ImageCacheDebug] inFlightJoin=true")
+        trace("[ImageCacheDebug] duplicateNetworkFetchPrevented=true")
+        trace("[ImageCacheDebug] bucket=\(bucket)")
+        trace("[ImageCacheDebug] normalizedURL=\(identity.normalizedURL)")
+        trace("[ImageCacheDebug] cacheKey=\(identity.cacheKey)")
+        trace("[ImageCacheDebug] source=\(source)")
     }
 
     static func logInFlightLookup(cacheKey: String, existingTaskFound: Bool, activeKeys: [String]) {
-        print("[ImageCacheDebug] inflightLookupKey=\(cacheKey)")
-        print("[ImageCacheDebug] inflightExistingTaskFound=\(existingTaskFound)")
-        print("[ImageCacheDebug] inflightActiveKeys=\(activeKeys.joined(separator: ","))")
+        trace("[ImageCacheDebug] inflightLookupKey=\(cacheKey)")
+        trace("[ImageCacheDebug] inflightExistingTaskFound=\(existingTaskFound)")
+        trace("[ImageCacheDebug] inflightActiveKeys=\(activeKeys.joined(separator: ","))")
     }
 
     static func logInFlightInsert(cacheKey: String, activeKeys: [String]) {
-        print("[ImageCacheDebug] inflightInsertKey=\(cacheKey)")
-        print("[ImageCacheDebug] inflightActiveKeysAfterInsert=\(activeKeys.joined(separator: ","))")
+        trace("[ImageCacheDebug] inflightInsertKey=\(cacheKey)")
+        trace("[ImageCacheDebug] inflightActiveKeysAfterInsert=\(activeKeys.joined(separator: ","))")
     }
 
     static func logInFlightRemove(cacheKey: String, activeKeys: [String]) {
-        print("[ImageCacheDebug] inflightRemoveKey=\(cacheKey)")
-        print("[ImageCacheDebug] inflightActiveKeysAfterRemove=\(activeKeys.joined(separator: ","))")
+        trace("[ImageCacheDebug] inflightRemoveKey=\(cacheKey)")
+        trace("[ImageCacheDebug] inflightActiveKeysAfterRemove=\(activeKeys.joined(separator: ","))")
     }
 
     static func registerInFlightLookupProbe(cacheKey: String, invocationId: UInt64) -> Bool {
@@ -199,9 +208,9 @@ nonisolated enum ImageCacheDebug {
     }
 
     static func logURLSessionStart(cacheKey: String, url: URL) {
-        print("[ImageCacheDebug] urlSessionStart=true")
-        print("[ImageCacheDebug] cacheKey=\(cacheKey)")
-        print("[ImageCacheDebug] rawURL=\(url.absoluteString)")
+        trace("[ImageCacheDebug] urlSessionStart=true")
+        trace("[ImageCacheDebug] cacheKey=\(cacheKey)")
+        trace("[ImageCacheDebug] rawURL=\(url.absoluteString)")
     }
 
     static func logNewNetworkFetchPath(
@@ -211,12 +220,12 @@ nonisolated enum ImageCacheDebug {
         normalizedURL: String,
         memoryLookupKey: String
     ) {
-        print("[ImageCacheDebug] newNetworkFetchPath=true")
-        print("[ImageCacheDebug] cacheKey=\(cacheKey)")
-        print("[ImageCacheDebug] inflightActiveKeysBeforeInsert=\(inFlightActiveKeysBeforeInsert.joined(separator: ","))")
-        print("[ImageCacheDebug] rawURL=\(rawURL)")
-        print("[ImageCacheDebug] normalizedURL=\(normalizedURL)")
-        print("[ImageCacheDebug] memoryLookupKey=\(memoryLookupKey)")
+        trace("[ImageCacheDebug] newNetworkFetchPath=true")
+        trace("[ImageCacheDebug] cacheKey=\(cacheKey)")
+        trace("[ImageCacheDebug] inflightActiveKeysBeforeInsert=\(inFlightActiveKeysBeforeInsert.joined(separator: ","))")
+        trace("[ImageCacheDebug] rawURL=\(rawURL)")
+        trace("[ImageCacheDebug] normalizedURL=\(normalizedURL)")
+        trace("[ImageCacheDebug] memoryLookupKey=\(memoryLookupKey)")
         recordDuplicateNetworkFetchIfNeeded(
             cacheKey: cacheKey,
             rawURL: rawURL,
@@ -235,8 +244,8 @@ nonisolated enum ImageCacheDebug {
         lock.lock()
         firstNetworkFetchByCacheKey[cacheKey]?.memoryStoreKey = memoryStoreKey
         lock.unlock()
-        print("[ImageCacheDebug] memoryStoreKey=\(memoryStoreKey)")
-        print("[ImageCacheDebug] cacheKey=\(cacheKey)")
+        trace("[ImageCacheDebug] memoryStoreKey=\(memoryStoreKey)")
+        trace("[ImageCacheDebug] cacheKey=\(cacheKey)")
     }
 
     private static func recordDuplicateNetworkFetchIfNeeded(
@@ -264,17 +273,17 @@ nonisolated enum ImageCacheDebug {
         let firstStillInFlight = first.completedAt == nil
         let versionTokenChanged = first.rawURL != rawURL && first.normalizedURL == normalizedURL
 
-        print("[ImageCacheDebug] duplicateFetchInvestigation=true")
-        print("[ImageCacheDebug] cacheKey=\(cacheKey)")
-        print("[ImageCacheDebug] firstRawURL=\(first.rawURL)")
-        print("[ImageCacheDebug] secondRawURL=\(rawURL)")
-        print("[ImageCacheDebug] firstNormalizedURL=\(first.normalizedURL)")
-        print("[ImageCacheDebug] secondNormalizedURL=\(normalizedURL)")
-        print("[ImageCacheDebug] firstMemoryStoreKey=\(first.memoryStoreKey ?? "nil")")
-        print("[ImageCacheDebug] secondMemoryLookupKey=\(memoryLookupKey)")
-        print("[ImageCacheDebug] firstFetchCompletedBeforeSecondStarted=\(firstCompletedBeforeSecond)")
-        print("[ImageCacheDebug] firstFetchStillInFlightAtSecondLookup=\(firstStillInFlight)")
-        print("[ImageCacheDebug] versionTokenChanged=\(versionTokenChanged)")
+        trace("[ImageCacheDebug] duplicateFetchInvestigation=true")
+        trace("[ImageCacheDebug] cacheKey=\(cacheKey)")
+        trace("[ImageCacheDebug] firstRawURL=\(first.rawURL)")
+        trace("[ImageCacheDebug] secondRawURL=\(rawURL)")
+        trace("[ImageCacheDebug] firstNormalizedURL=\(first.normalizedURL)")
+        trace("[ImageCacheDebug] secondNormalizedURL=\(normalizedURL)")
+        trace("[ImageCacheDebug] firstMemoryStoreKey=\(first.memoryStoreKey ?? "nil")")
+        trace("[ImageCacheDebug] secondMemoryLookupKey=\(memoryLookupKey)")
+        trace("[ImageCacheDebug] firstFetchCompletedBeforeSecondStarted=\(firstCompletedBeforeSecond)")
+        trace("[ImageCacheDebug] firstFetchStillInFlightAtSecondLookup=\(firstStillInFlight)")
+        trace("[ImageCacheDebug] versionTokenChanged=\(versionTokenChanged)")
     }
 
     static func logBypass(
@@ -284,18 +293,18 @@ nonisolated enum ImageCacheDebug {
         reason: String
     ) {
         guard let url else {
-            print("[ImageCacheDebug] bypassLoader=\(loader) reason=\(reason) url=nil")
+            trace("[ImageCacheDebug] bypassLoader=\(loader) reason=\(reason) url=nil")
             return
         }
         let identity = diagnosticIdentity(for: url, bucket: bucket)
-        print("[ImageCacheDebug] bypassLoader=\(loader)")
-        print("[ImageCacheDebug] bypassReason=\(reason)")
-        print("[ImageCacheDebug] bucket=\(bucket)")
-        print("[ImageCacheDebug] normalizedURL=\(identity.normalizedURL)")
-        print("[ImageCacheDebug] cacheKey=\(identity.cacheKey)")
-        print("[ImageCacheDebug] memoryHit=false")
-        print("[ImageCacheDebug] diskHit=false")
-        print("[ImageCacheDebug] networkFetch=unknown")
+        trace("[ImageCacheDebug] bypassLoader=\(loader)")
+        trace("[ImageCacheDebug] bypassReason=\(reason)")
+        trace("[ImageCacheDebug] bucket=\(bucket)")
+        trace("[ImageCacheDebug] normalizedURL=\(identity.normalizedURL)")
+        trace("[ImageCacheDebug] cacheKey=\(identity.cacheKey)")
+        trace("[ImageCacheDebug] memoryHit=false")
+        trace("[ImageCacheDebug] diskHit=false")
+        trace("[ImageCacheDebug] networkFetch=unknown")
     }
 
     static func printSessionSummary(reason: String) {
@@ -321,19 +330,19 @@ nonisolated enum ImageCacheDebug {
 
         let memoryRate = lookups > 0 ? Double(mem) / Double(lookups) : 0
         let diskRate = lookups > 0 ? Double(disk) / Double(lookups) : 0
-        print("[ImageCacheDebug] sessionSummary reason=\(reason)")
-        print("[ImageCacheDebug] lookupCount=\(lookups)")
-        print("[ImageCacheDebug] memoryHitRate=\(String(format: "%.3f", memoryRate))")
-        print("[ImageCacheDebug] diskHitRate=\(String(format: "%.3f", diskRate))")
-        print("[ImageCacheDebug] memoryHits=\(mem)")
-        print("[ImageCacheDebug] diskHits=\(disk)")
-        print("[ImageCacheDebug] networkFetchCount=\(net)")
-        print("[ImageCacheDebug] inFlightJoinCount=\(joins)")
-        print("[ImageCacheDebug] duplicateNetworkFetchCount=\(duplicates)")
+        trace("[ImageCacheDebug] sessionSummary reason=\(reason)")
+        trace("[ImageCacheDebug] lookupCount=\(lookups)")
+        trace("[ImageCacheDebug] memoryHitRate=\(String(format: "%.3f", memoryRate))")
+        trace("[ImageCacheDebug] diskHitRate=\(String(format: "%.3f", diskRate))")
+        trace("[ImageCacheDebug] memoryHits=\(mem)")
+        trace("[ImageCacheDebug] diskHits=\(disk)")
+        trace("[ImageCacheDebug] networkFetchCount=\(net)")
+        trace("[ImageCacheDebug] inFlightJoinCount=\(joins)")
+        trace("[ImageCacheDebug] duplicateNetworkFetchCount=\(duplicates)")
         if !duplicateKeys.isEmpty {
-            print("[ImageCacheDebug] duplicateNetworkKeys=\(duplicateKeys)")
+            trace("[ImageCacheDebug] duplicateNetworkKeys=\(duplicateKeys)")
         }
-        print("[ImageCacheDebug] diskLayerPresent=false")
+        trace("[ImageCacheDebug] diskLayerPresent=false")
     }
 
     static func resetSessionStats(reason: String = "reset") {
@@ -346,7 +355,7 @@ nonisolated enum ImageCacheDebug {
         networkFetchCountsByKey = [:]
         firstNetworkFetchByCacheKey = [:]
         lock.unlock()
-        print("[ImageCacheDebug] sessionReset reason=\(reason)")
+        trace("[ImageCacheDebug] sessionReset reason=\(reason)")
     }
 }
 
@@ -475,11 +484,11 @@ actor DiscoverMapImageCache {
         )
 
         let ms = Int(Date().timeIntervalSince(fetchStartedAt) * 1000)
-        print("[ImageCacheDebug] networkFetchFinished=true ms=\(ms) cacheKey=\(cacheKey)")
+        DebugLogGate.hotPathPerf("[ImageCacheDebug] networkFetchFinished=true ms=\(ms) cacheKey=\(cacheKey)")
         ImageCacheDebug.recordNetworkFetchCompleted(cacheKey: cacheKey)
 
         guard let ui = decoded else {
-            print("[ImageCacheDebug] networkFetchFailed=true cacheKey=\(cacheKey)")
+            DebugLogGate.hotPathPerf("[ImageCacheDebug] networkFetchFailed=true cacheKey=\(cacheKey)")
             return nil
         }
         storeDecoded(ui, for: url, bucket: bucket)

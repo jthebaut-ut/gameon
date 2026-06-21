@@ -32,6 +32,7 @@ extension MapViewModel {
             live_visibility_mode: currentUserLiveVisibilityMode.rawValue,
             selected_live_visibility_friend_ids: Array(currentUserSelectedLiveVisibilityFriendIDs),
             discoverable_by_fans: currentUserDiscoverableByFans,
+            created_at: currentUserProfileCreatedAt.isEmpty ? nil : currentUserProfileCreatedAt,
             national_team_country_code: currentUserNationalTeam?.countryCode,
             national_team_country_name: currentUserNationalTeam?.countryName,
             national_team_flag: currentUserNationalTeam?.flag,

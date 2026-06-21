@@ -70,6 +70,21 @@ enum FanOpenToCatalog {
         return SportFilterCatalog.resolve(id).accent
     }
 
+    /// Subtle fill for compact Open To interest tiles (Profile + editor).
+    static func compactTileFill(for id: String, colorScheme: ColorScheme) -> Color {
+        let opacity = colorScheme == .dark ? 0.24 : 0.13
+        if id == FanOpenToSocialID.watchParties {
+            return Color(red: 0.98, green: 0.67, blue: 0.33).opacity(opacity)
+        }
+        if id == FanOpenToSocialID.meetLocalFans {
+            return FGColor.accentBlue.opacity(opacity)
+        }
+        if id.caseInsensitiveCompare("Soccer") == .orderedSame || id.lowercased() == "soccer" {
+            return Color(red: 0.05, green: 0.55, blue: 0.28).opacity(opacity)
+        }
+        return tint(for: id, colorScheme: colorScheme).opacity(opacity)
+    }
+
     static func publicDisplayItems(from itemIDs: [String]) -> [PublicProfileOpenToItem] {
         definitions(ids: itemIDs).map { def in
             PublicProfileOpenToItem(

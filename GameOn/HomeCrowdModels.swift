@@ -269,6 +269,12 @@ enum HomeCrowdFanCountFormatter {
         return "\(count) fans call this home"
     }
 
+    static func localFansLine(count: Int) -> String? {
+        guard count > 0 else { return nil }
+        if count == 1 { return "1 local fan" }
+        return "\(count) local fans"
+    }
+
     static func selfLine(count: Int) -> String? {
         guard count > 0 else { return nil }
         if count == 1 { return "1 fan calls this home" }

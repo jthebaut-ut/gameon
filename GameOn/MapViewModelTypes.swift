@@ -305,6 +305,14 @@ struct BusinessRow: Decodable, Equatable, Identifiable {
     let created_at: String?
     let entitlement_updated_at: String?
     let free_active_venues_selected_at: String?
+    let business_fangeo_plus_enabled: Bool?
+
+    static let supabaseSelectColumns =
+        "id,display_name,owner_email,owner_user_id,admin_status,business_origin,created_at,entitlement_updated_at,free_active_venues_selected_at,business_fangeo_plus_enabled"
+
+    var businessFanGeoPlusManuallyEnabled: Bool {
+        business_fangeo_plus_enabled == true
+    }
 }
 
 enum BusinessOrigin {
@@ -1016,6 +1024,10 @@ struct UserProfileRow: Decodable {
     let national_team_supporter_label: String?
     let national_team_updated_at: String?
     let ad_free_enabled: Bool?
+    let home_city: String?
+    let home_region: String?
+    let home_country: String?
+    let show_home_city: Bool?
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -1040,6 +1052,10 @@ struct UserProfileRow: Decodable {
         case national_team_supporter_label
         case national_team_updated_at
         case ad_free_enabled
+        case home_city
+        case home_region
+        case home_country
+        case show_home_city
     }
 
     init(
@@ -1064,7 +1080,11 @@ struct UserProfileRow: Decodable {
         national_team_flag: String? = nil,
         national_team_supporter_label: String? = nil,
         national_team_updated_at: String? = nil,
-        ad_free_enabled: Bool? = nil
+        ad_free_enabled: Bool? = nil,
+        home_city: String? = nil,
+        home_region: String? = nil,
+        home_country: String? = nil,
+        show_home_city: Bool? = nil
     ) {
         self.id = id
         self.email = email
@@ -1088,6 +1108,10 @@ struct UserProfileRow: Decodable {
         self.national_team_supporter_label = national_team_supporter_label
         self.national_team_updated_at = national_team_updated_at
         self.ad_free_enabled = ad_free_enabled
+        self.home_city = home_city
+        self.home_region = home_region
+        self.home_country = home_country
+        self.show_home_city = show_home_city
     }
 
     init(from decoder: Decoder) throws {
@@ -1113,6 +1137,10 @@ struct UserProfileRow: Decodable {
         national_team_supporter_label = try c.decodeIfPresent(String.self, forKey: .national_team_supporter_label)
         national_team_updated_at = try c.decodeIfPresent(String.self, forKey: .national_team_updated_at)
         ad_free_enabled = try c.decodeIfPresent(Bool.self, forKey: .ad_free_enabled)
+        home_city = try c.decodeIfPresent(String.self, forKey: .home_city)
+        home_region = try c.decodeIfPresent(String.self, forKey: .home_region)
+        home_country = try c.decodeIfPresent(String.self, forKey: .home_country)
+        show_home_city = try c.decodeIfPresent(Bool.self, forKey: .show_home_city)
 
         if let ids = try? c.decodeIfPresent([UUID].self, forKey: .selected_live_visibility_friend_ids) {
             selected_live_visibility_friend_ids = ids
@@ -1172,6 +1200,18 @@ struct UserProfileRow: Decodable {
             flag: national_team_flag,
             supporterLabel: national_team_supporter_label
         )
+    }
+
+    var profileHomeCityDisplayLine: String? {
+        ProfileHomeCityIdentity.displayLine(
+            city: home_city,
+            region: home_region,
+            country: home_country
+        )
+    }
+
+    var showsHomeCityOnProfile: Bool {
+        show_home_city == true
     }
 
     func isVisibleForLiveFriendPresence(to viewerUserID: UUID?) -> Bool {
@@ -1274,6 +1314,13 @@ struct UserProfileNationalTeamPatch: Encodable {
     let national_team_flag: String?
     let national_team_supporter_label: String?
     let national_team_updated_at: String?
+}
+
+struct UserProfileHomeCityPatch: Encodable {
+    let home_city: String?
+    let home_region: String?
+    let home_country: String?
+    let show_home_city: Bool
 }
 
 struct FavoriteVenueRow: Decodable {

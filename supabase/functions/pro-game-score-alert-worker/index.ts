@@ -933,6 +933,18 @@ function stableCardEventKey(
   ].join("|")
 }
 
+function cardNotificationTitle(
+  notificationType: CardTimelineEntry["notificationType"],
+): string {
+  switch (notificationType) {
+    case "yellow_card":
+      return "🟨 Yellow card"
+    case "red_card":
+    case "second_yellow_card":
+      return "🟥 Red card"
+  }
+}
+
 function cardNotificationContent(
   game: TrackedGame,
   card: CardTimelineEntry,
@@ -941,7 +953,7 @@ function cardNotificationContent(
   const subject = cardNotificationSubject(card, game)
   const isYellow = card.notificationType === "yellow_card"
   return {
-    title: isYellow ? "Yellow card" : "Red card",
+    title: cardNotificationTitle(card.notificationType),
     body: `${subject} received a ${isYellow ? "yellow" : "red"} card in ${matchup}.`,
   }
 }

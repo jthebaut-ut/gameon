@@ -138,6 +138,21 @@ struct BusinessVenueGamePostingStatus: Equatable {
         let source = normalizedEntitlementSource
         return source == "subscription_pro" || source == "pro_paid" || !isBusinessProPromo
     }
+
+    /// Paid/subscription Pro that grants business FanGeo+ (excludes launch promo / `pro_promo`).
+    var includesFanGeoPlusWithPaidPro: Bool {
+        Self.includesFanGeoPlusWithPaidPro(from: self)
+    }
+
+    static func includesFanGeoPlusWithPaidPro(from status: BusinessVenueGamePostingStatus) -> Bool {
+        guard status.computedIsPro else { return false }
+        let planStatus = status.planStatus.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard planStatus == "active" else { return false }
+        let planType = status.planType.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard planType == "pro_paid" || planType == "subscription_pro" else { return false }
+        let source = status.normalizedEntitlementSource
+        return source == "pro_paid" || source == "subscription_pro"
+    }
     var businessPlanDisplayTitle: String {
         if isBusinessProPromo { return "Free User Promotion" }
         if isBusinessSubscriptionPro { return "Business Pro Active" }

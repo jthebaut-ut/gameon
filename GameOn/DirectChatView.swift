@@ -3094,24 +3094,44 @@ struct DirectChatView: View {
         }
     }
 
+    @ViewBuilder
     private func messageRow(for row: DirectMessageRow) -> some View {
         let isMine = row.sender_id == presenter.currentUserId
         let time = DirectChatTimeGrouping.shortTimeString(forCreatedAt: row.created_at)
-        return DirectMessageBubbleView(
-            text: row.body,
-            isFromCurrentUser: isMine,
-            showFriendAvatar: !isMine,
-            friendPreview: resolvedFriendPreview,
-            timestamp: time
-        )
-        .contextMenu {
-            if !isMine {
-                Button("Report message") {
-                    reportSheet = .message(row)
+        if let payload = FanProfileShareMessage.decode(from: row.body) {
+            FanProfileShareChatCardView(
+                payload: payload,
+                isFromCurrentUser: isMine,
+                showFriendAvatar: !isMine,
+                friendPreview: resolvedFriendPreview,
+                timestamp: time,
+                mapViewModel: mapViewModel
+            )
+            .contextMenu {
+                if !isMine {
+                    Button("Report message") {
+                        reportSheet = .message(row)
+                    }
                 }
             }
+            .id(row.id)
+        } else {
+            DirectMessageBubbleView(
+                text: row.body,
+                isFromCurrentUser: isMine,
+                showFriendAvatar: !isMine,
+                friendPreview: resolvedFriendPreview,
+                timestamp: time
+            )
+            .contextMenu {
+                if !isMine {
+                    Button("Report message") {
+                        reportSheet = .message(row)
+                    }
+                }
+            }
+            .id(row.id)
         }
-        .id(row.id)
     }
 
     private func scrollChatToBottom(proxy: ScrollViewProxy, animated: Bool = true) {

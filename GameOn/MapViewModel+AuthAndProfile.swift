@@ -615,6 +615,10 @@ extension MapViewModel {
         currentUserAvatarURL = ""
         currentUserAvatarThumbnailURL = ""
         currentUserNationalTeam = nil
+        currentUserHomeCity = ""
+        currentUserHomeRegion = ""
+        currentUserHomeCountry = ""
+        currentUserShowHomeCity = false
         isAuthSessionRestoringForProfilePresentation = false
         isUserProfileLoadingForPresentation = false
         hasLoadedUserProfileForPresentation = false
@@ -687,6 +691,10 @@ extension MapViewModel {
         currentUserAvatarURL = ""
         currentUserAvatarThumbnailURL = ""
         currentUserNationalTeam = nil
+        currentUserHomeCity = ""
+        currentUserHomeRegion = ""
+        currentUserHomeCountry = ""
+        currentUserShowHomeCity = false
         currentUserLiveVisibilityEnabled = true
         currentUserLiveVisibilityMode = .allFriends
         currentUserSelectedLiveVisibilityFriendIDs = []
@@ -707,12 +715,17 @@ extension MapViewModel {
         UserDefaults.standard.removeObject(forKey: "cachedUserDisplayName")
         UserDefaults.standard.removeObject(forKey: "cachedUserUsername")
         UserDefaults.standard.removeObject(forKey: "cachedUserBio")
+        UserDefaults.standard.removeObject(forKey: "cachedUserProfileCreatedAt")
         UserDefaults.standard.removeObject(forKey: "cachedUserAvatarURL")
         UserDefaults.standard.removeObject(forKey: "cachedUserAvatarThumbnailURL")
         UserDefaults.standard.removeObject(forKey: "cachedUserNationalTeamCountryCode")
         UserDefaults.standard.removeObject(forKey: "cachedUserNationalTeamCountryName")
         UserDefaults.standard.removeObject(forKey: "cachedUserNationalTeamFlag")
         UserDefaults.standard.removeObject(forKey: "cachedUserNationalTeamSupporterLabel")
+        UserDefaults.standard.removeObject(forKey: "cachedUserHomeCity")
+        UserDefaults.standard.removeObject(forKey: "cachedUserHomeRegion")
+        UserDefaults.standard.removeObject(forKey: "cachedUserHomeCountry")
+        UserDefaults.standard.removeObject(forKey: "cachedUserShowHomeCity")
         UserDefaults.standard.removeObject(forKey: "cachedUserLiveVisibilityEnabled")
         UserDefaults.standard.removeObject(forKey: "cachedUserLiveVisibilityMode")
         UserDefaults.standard.removeObject(forKey: "cachedUserSelectedLiveVisibilityFriendIDs")
@@ -726,6 +739,7 @@ extension MapViewModel {
         currentUserDisplayName = ""
         currentUserUsername = ""
         currentUserBio = ""
+        currentUserProfileCreatedAt = ""
         currentUserIsBusinessAccount = false
         isBusinessOwnerSessionRestorePending = false
         activeBusinessAccountBan = nil
@@ -739,6 +753,10 @@ extension MapViewModel {
         currentUserAvatarURL = ""
         currentUserAvatarThumbnailURL = ""
         currentUserNationalTeam = nil
+        currentUserHomeCity = ""
+        currentUserHomeRegion = ""
+        currentUserHomeCountry = ""
+        currentUserShowHomeCity = false
         currentUserLiveVisibilityEnabled = true
         currentUserLiveVisibilityMode = .allFriends
         currentUserSelectedLiveVisibilityFriendIDs = []
@@ -1140,7 +1158,7 @@ extension MapViewModel {
     }
 
     private static let userProfileSelectColumns =
-        "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,is_business_account,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids,discoverable_by_fans,is_deleted,last_seen_at,national_team_country_code,national_team_country_name,national_team_flag,national_team_supporter_label,national_team_updated_at,ad_free_enabled"
+        "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,is_business_account,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids,discoverable_by_fans,is_deleted,created_at,last_seen_at,national_team_country_code,national_team_country_name,national_team_flag,national_team_supporter_label,national_team_updated_at,ad_free_enabled,home_city,home_region,home_country,show_home_city"
 
     private static let userProfileIdentitySelectColumns =
         "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,is_deleted,national_team_country_code,national_team_country_name,national_team_flag,national_team_supporter_label,national_team_updated_at"
@@ -1994,10 +2012,15 @@ extension MapViewModel {
             currentUserDisplayName = UserDefaults.standard.string(forKey: "cachedUserDisplayName") ?? ""
             currentUserUsername = UserDefaults.standard.string(forKey: "cachedUserUsername") ?? ""
             currentUserBio = UserDefaults.standard.string(forKey: "cachedUserBio") ?? ""
+            currentUserProfileCreatedAt = UserDefaults.standard.string(forKey: "cachedUserProfileCreatedAt") ?? ""
             currentUserIsBusinessAccount = false
             currentUserAvatarURL = ImageDisplayURL.canonicalStorageURLString(UserDefaults.standard.string(forKey: "cachedUserAvatarURL"))
             currentUserAvatarThumbnailURL = ImageDisplayURL.canonicalStorageURLString(UserDefaults.standard.string(forKey: "cachedUserAvatarThumbnailURL"))
             currentUserNationalTeam = cachedNationalTeamIdentity()
+            currentUserHomeCity = UserDefaults.standard.string(forKey: "cachedUserHomeCity") ?? ""
+            currentUserHomeRegion = UserDefaults.standard.string(forKey: "cachedUserHomeRegion") ?? ""
+            currentUserHomeCountry = UserDefaults.standard.string(forKey: "cachedUserHomeCountry") ?? ""
+            currentUserShowHomeCity = UserDefaults.standard.object(forKey: "cachedUserShowHomeCity") as? Bool ?? false
             currentUserLiveVisibilityEnabled = UserDefaults.standard.object(forKey: "cachedUserLiveVisibilityEnabled") as? Bool ?? true
             currentUserLiveVisibilityMode = cachedLiveVisibilityMode()
             currentUserSelectedLiveVisibilityFriendIDs = cachedSelectedLiveVisibilityFriendIDs()
@@ -2243,10 +2266,15 @@ extension MapViewModel {
                         currentUserEmail = ""
                         currentUserDisplayName = UserDefaults.standard.string(forKey: "cachedUserDisplayName") ?? ""
                         currentUserBio = UserDefaults.standard.string(forKey: "cachedUserBio") ?? ""
+                        currentUserProfileCreatedAt = UserDefaults.standard.string(forKey: "cachedUserProfileCreatedAt") ?? ""
                         currentUserIsBusinessAccount = false
                         currentUserAvatarURL = ImageDisplayURL.canonicalStorageURLString(UserDefaults.standard.string(forKey: "cachedUserAvatarURL"))
                         currentUserAvatarThumbnailURL = ImageDisplayURL.canonicalStorageURLString(UserDefaults.standard.string(forKey: "cachedUserAvatarThumbnailURL"))
                         currentUserNationalTeam = cachedNationalTeamIdentity()
+                        currentUserHomeCity = UserDefaults.standard.string(forKey: "cachedUserHomeCity") ?? ""
+                        currentUserHomeRegion = UserDefaults.standard.string(forKey: "cachedUserHomeRegion") ?? ""
+                        currentUserHomeCountry = UserDefaults.standard.string(forKey: "cachedUserHomeCountry") ?? ""
+                        currentUserShowHomeCity = UserDefaults.standard.object(forKey: "cachedUserShowHomeCity") as? Bool ?? false
                         currentUserLiveVisibilityEnabled = UserDefaults.standard.object(forKey: "cachedUserLiveVisibilityEnabled") as? Bool ?? true
                         currentUserLiveVisibilityMode = cachedLiveVisibilityMode()
                         currentUserSelectedLiveVisibilityFriendIDs = cachedSelectedLiveVisibilityFriendIDs()
@@ -2476,10 +2504,12 @@ extension MapViewModel {
                         currentUserDisplayName = profile.display_name ?? ""
                         currentUserUsername = profile.username?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                         currentUserBio = profile.bio?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                        currentUserProfileCreatedAt = profile.created_at?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                         currentUserIsBusinessAccount = profile.isBusinessIdentity
                         currentUserAvatarURL = ImageDisplayURL.canonicalStorageURLString(profile.avatar_url)
                         currentUserAvatarThumbnailURL = ImageDisplayURL.canonicalStorageURLString(profile.avatar_thumbnail_url)
                         currentUserNationalTeam = profile.nationalTeamIdentity
+                        applyCurrentUserHomeCityFromProfile(profile)
                         currentUserLiveVisibilityEnabled = profile.isVisibleForLiveFriendPresence
                         currentUserLiveVisibilityMode = profile.liveVisibilityMode
                         currentUserSelectedLiveVisibilityFriendIDs = profile.selectedLiveVisibilityFriendIDs
@@ -2553,10 +2583,12 @@ extension MapViewModel {
                     currentUserDisplayName = profile.display_name ?? ""
                     currentUserUsername = profile.username?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                     currentUserBio = profile.bio?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    currentUserProfileCreatedAt = profile.created_at?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                     currentUserIsBusinessAccount = profile.isBusinessIdentity
                     currentUserAvatarURL = ImageDisplayURL.canonicalStorageURLString(profile.avatar_url)
                     currentUserAvatarThumbnailURL = ImageDisplayURL.canonicalStorageURLString(profile.avatar_thumbnail_url)
                         currentUserNationalTeam = profile.nationalTeamIdentity
+                    applyCurrentUserHomeCityFromProfile(profile)
                     currentUserLiveVisibilityEnabled = profile.isVisibleForLiveFriendPresence
                     currentUserLiveVisibilityMode = profile.liveVisibilityMode
                     currentUserSelectedLiveVisibilityFriendIDs = profile.selectedLiveVisibilityFriendIDs
@@ -2999,6 +3031,70 @@ extension MapViewModel {
 #endif
             return "Couldn’t save your national team. Please try again."
         }
+    }
+
+    @discardableResult
+    func saveUserProfileHomeCity(
+        city: String,
+        region: String,
+        country: String,
+        displayFallback: String,
+        showOnProfile: Bool
+    ) async -> String? {
+        let session: Session
+        do {
+            session = try await supabase.auth.session
+        } catch {
+            return "Sign in to update your home city."
+        }
+
+        func normalizedOptional(_ raw: String) -> String? {
+            let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? nil : trimmed
+        }
+
+        let resolvedCity = normalizedOptional(city) ?? normalizedOptional(displayFallback)
+        let resolvedRegion = normalizedOptional(region)
+        let resolvedCountry = normalizedOptional(country)
+        let resolvedShowOnProfile = showOnProfile && resolvedCity != nil
+
+        let patch = UserProfileHomeCityPatch(
+            home_city: resolvedCity,
+            home_region: resolvedRegion,
+            home_country: resolvedCountry,
+            show_home_city: resolvedShowOnProfile
+        )
+
+        do {
+            try await supabase
+                .from("user_profiles")
+                .update(patch)
+                .eq("id", value: session.user.id.uuidString.lowercased())
+                .execute()
+
+            await MainActor.run {
+                currentUserHomeCity = resolvedCity ?? ""
+                currentUserHomeRegion = resolvedRegion ?? ""
+                currentUserHomeCountry = resolvedCountry ?? ""
+                currentUserShowHomeCity = resolvedShowOnProfile
+                cacheCurrentUserProfileLocally()
+                publicProfileBioRevision &+= 1
+            }
+            return nil
+        } catch {
+#if DEBUG
+            Self.logPostgrestError("[HomeCityDebug] save failed", error)
+#endif
+            return "Couldn’t save your home city. Please try again."
+        }
+    }
+
+    @MainActor
+    private func applyCurrentUserHomeCityFromProfile(_ profile: UserProfileRow) {
+        currentUserHomeCity = profile.home_city?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        currentUserHomeRegion = profile.home_region?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        currentUserHomeCountry = profile.home_country?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        currentUserShowHomeCity = profile.showsHomeCityOnProfile
     }
 
     func setLiveVisibilityMode(_ mode: LiveVisibilityMode) async {
@@ -3518,6 +3614,7 @@ extension MapViewModel {
         UserDefaults.standard.set(currentUserDisplayName, forKey: "cachedUserDisplayName")
         UserDefaults.standard.set(currentUserUsername, forKey: "cachedUserUsername")
         UserDefaults.standard.set(currentUserBio, forKey: "cachedUserBio")
+        UserDefaults.standard.set(currentUserProfileCreatedAt, forKey: "cachedUserProfileCreatedAt")
         UserDefaults.standard.set(currentUserAvatarURL, forKey: "cachedUserAvatarURL")
         UserDefaults.standard.set(currentUserAvatarThumbnailURL, forKey: "cachedUserAvatarThumbnailURL")
         if let currentUserNationalTeam {
@@ -3534,6 +3631,10 @@ extension MapViewModel {
         UserDefaults.standard.set(currentUserLiveVisibilityEnabled, forKey: "cachedUserLiveVisibilityEnabled")
         UserDefaults.standard.set(currentUserLiveVisibilityMode.rawValue, forKey: "cachedUserLiveVisibilityMode")
         UserDefaults.standard.set(currentUserDiscoverableByFans, forKey: "cachedUserDiscoverableByFans")
+        UserDefaults.standard.set(currentUserHomeCity, forKey: "cachedUserHomeCity")
+        UserDefaults.standard.set(currentUserHomeRegion, forKey: "cachedUserHomeRegion")
+        UserDefaults.standard.set(currentUserHomeCountry, forKey: "cachedUserHomeCountry")
+        UserDefaults.standard.set(currentUserShowHomeCity, forKey: "cachedUserShowHomeCity")
         UserDefaults.standard.set(
             currentUserSelectedLiveVisibilityFriendIDs.map { $0.uuidString.lowercased() }.sorted(),
             forKey: "cachedUserSelectedLiveVisibilityFriendIDs"

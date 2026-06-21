@@ -1661,6 +1661,7 @@ extension MapViewModel {
         approvedVenueClaimMetadataByVenueID = [:]
         hasUnackedRejectedVenueClaimForOwnerEmail = false
         venueOwnerJustCompletedRegistration = false
+        FanGeoBusinessEntitlements.reset()
     }
 
     /// True when ``currentBusinessIdForAddLocation()`` can supply a ``business_id`` for an add-location claim (owned businesses and/or managed venues with ``business_id``).
@@ -2148,7 +2149,7 @@ extension MapViewModel {
 
         return try await supabase
             .from("businesses")
-            .select("id,display_name,owner_email,owner_user_id,admin_status,business_origin,created_at,entitlement_updated_at,free_active_venues_selected_at")
+            .select(BusinessRow.supabaseSelectColumns)
             .in("id", values: businessIds.map(\.uuidString))
             .eq("admin_status", value: "active")
             .in("business_origin", values: BusinessOrigin.loginOwnedValues)
@@ -4695,7 +4696,7 @@ extension MapViewModel {
             if let ownerEmail, OwnerBusinessEmail.isValidStrict(ownerEmail) {
                 return try await supabase
                     .from("businesses")
-                    .select("id,display_name,owner_email,owner_user_id,admin_status,business_origin,created_at,entitlement_updated_at,free_active_venues_selected_at")
+                    .select(BusinessRow.supabaseSelectColumns)
                     .eq("admin_status", value: adminStatus)
                     .eq("owner_email", value: ownerEmail)
                     .in("business_origin", values: BusinessOrigin.loginOwnedValues)
@@ -4704,7 +4705,7 @@ extension MapViewModel {
             } else if let ownerUserId {
                 return try await supabase
                     .from("businesses")
-                    .select("id,display_name,owner_email,owner_user_id,admin_status,business_origin,created_at,entitlement_updated_at,free_active_venues_selected_at")
+                    .select(BusinessRow.supabaseSelectColumns)
                     .eq("admin_status", value: adminStatus)
                     .eq("owner_user_id", value: ownerUserId)
                     .in("business_origin", values: BusinessOrigin.loginOwnedValues)
@@ -4726,7 +4727,7 @@ extension MapViewModel {
         do {
             return try await supabase
                 .from("businesses")
-                .select("id,display_name,owner_email,owner_user_id,admin_status,business_origin,created_at,entitlement_updated_at,free_active_venues_selected_at")
+                .select(BusinessRow.supabaseSelectColumns)
                 .in("id", values: ids.map(\.uuidString))
                 .eq("admin_status", value: "active")
                 .in("business_origin", values: BusinessOrigin.loginOwnedValues)
@@ -4863,7 +4864,7 @@ extension MapViewModel {
             if OwnerBusinessEmail.isValidStrict(emailTrimmed) {
                 businessesFromEmail = try await supabase
                     .from("businesses")
-                    .select("id,display_name,owner_email,owner_user_id,admin_status,business_origin,created_at,entitlement_updated_at,free_active_venues_selected_at")
+                    .select(BusinessRow.supabaseSelectColumns)
                     .eq("owner_email", value: emailTrimmed)
                     .eq("admin_status", value: "active")
                     .in("business_origin", values: BusinessOrigin.loginOwnedValues)
@@ -4875,7 +4876,7 @@ extension MapViewModel {
             if let authUid {
                 businessesFromUser = try await supabase
                     .from("businesses")
-                    .select("id,display_name,owner_email,owner_user_id,admin_status,business_origin,created_at,entitlement_updated_at,free_active_venues_selected_at")
+                    .select(BusinessRow.supabaseSelectColumns)
                     .eq("owner_user_id", value: authUid)
                     .eq("admin_status", value: "active")
                     .in("business_origin", values: BusinessOrigin.loginOwnedValues)
@@ -4892,7 +4893,7 @@ extension MapViewModel {
             if OwnerBusinessEmail.isValidStrict(emailTrimmed) {
                 archivedFromEmail = try await supabase
                     .from("businesses")
-                    .select("id,display_name,owner_email,owner_user_id,admin_status,business_origin,created_at,entitlement_updated_at,free_active_venues_selected_at")
+                    .select(BusinessRow.supabaseSelectColumns)
                     .eq("owner_email", value: emailTrimmed)
                     .eq("admin_status", value: "archived")
                     .in("business_origin", values: BusinessOrigin.loginOwnedValues)
@@ -4904,7 +4905,7 @@ extension MapViewModel {
             if let authUid {
                 archivedFromUser = try await supabase
                     .from("businesses")
-                    .select("id,display_name,owner_email,owner_user_id,admin_status,business_origin,created_at,entitlement_updated_at,free_active_venues_selected_at")
+                    .select(BusinessRow.supabaseSelectColumns)
                     .eq("owner_user_id", value: authUid)
                     .eq("admin_status", value: "archived")
                     .in("business_origin", values: BusinessOrigin.loginOwnedValues)
@@ -4948,7 +4949,7 @@ extension MapViewModel {
                     let idStrings = bids.map(\.uuidString)
                     let fromVenueLinks: [BusinessRow] = try await supabase
                         .from("businesses")
-                        .select("id,display_name,owner_email,owner_user_id,admin_status,business_origin,created_at,entitlement_updated_at,free_active_venues_selected_at")
+                        .select(BusinessRow.supabaseSelectColumns)
                         .in("id", values: idStrings)
                         .eq("admin_status", value: "active")
                         .in("business_origin", values: BusinessOrigin.loginOwnedValues)
@@ -5106,6 +5107,7 @@ extension MapViewModel {
                (!newlyApprovedManagedVenueIds.isEmpty || !coordinateBackfilledVenueIds.isEmpty || hasAuthenticatedVenueOwnerSession) {
                 await refreshDiscoverPublicVisibilityAfterApprovedVenueStatusChange()
             }
+            await refreshCurrentBusinessFanGeoPlusEntitlementFromServer(reason: "ownedBusinessesRefresh")
         } catch {
 #if DEBUG
             print("[BusinessPhaseB1] load failed:", error)

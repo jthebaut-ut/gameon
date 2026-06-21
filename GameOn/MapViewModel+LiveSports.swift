@@ -1,6 +1,10 @@
 import Foundation
 import MapKit
 
+private enum LiveMatchesRefreshState {
+    static var generation: UInt = 0
+}
+
 extension MapViewModel {
     @discardableResult
     func openLiveGameVenueOnDiscover(_ match: LiveMatch) -> Bool {
@@ -27,6 +31,8 @@ extension MapViewModel {
     @MainActor
     func refreshLiveMatchesForCalendar(selectedDate: Date? = nil, forceRefresh: Bool = false) async {
         if let inFlight = liveMatchesRefreshTask {
+            TabPerf.duplicateRefreshCoalesced(name: "liveMatches")
+            Perf.duplicateTaskCoalesced(name: "liveMatches")
 #if DEBUG
             print("[TabPerfDebug] refreshCoalesced=true source=liveMatches force=\(forceRefresh)")
 #endif
@@ -48,11 +54,16 @@ extension MapViewModel {
 
     @MainActor
     private func runLiveMatchesRefresh(forceRefresh: Bool) async {
-        isLoadingLiveMatches = true
-        defer { isLoadingLiveMatches = false }
+        LiveMatchesRefreshState.generation &+= 1
+        let refreshGeneration = LiveMatchesRefreshState.generation
+
+        let showBlockingLoader = liveMatches.isEmpty
+        if showBlockingLoader || forceRefresh {
+            isLoadingLiveMatches = true
+        }
 
 #if DEBUG
-        print("[LiveDebug] refreshStarted forceRefresh=\(forceRefresh)")
+        print("[LiveDebug] refreshStarted forceRefresh=\(forceRefresh) showBlockingLoader=\(showBlockingLoader) generation=\(refreshGeneration)")
         print("[LiveDebug] timezone=\(TimeZone.current.identifier)")
         print("[LiveDebug] provider=\(LiveSportsService.providerDescription)")
 #endif
@@ -62,21 +73,14 @@ extension MapViewModel {
         do {
             let matches = try await LiveSportsService.shared.fetchLiveMatches(forceRefresh: forceRefresh)
             activeFeaturedEvents = await featuredEventsTask.value
-            let diagnostics = await LiveSportsService.shared.lastFetchDiagnostics
-#if DEBUG
-            print("[LiveRefreshDebug] replace_not_append=true previous_count=\(liveMatches.count) incoming_count=\(matches.count)")
-#endif
-            handleSavedProGameStatusUpdates(from: matches, reason: "liveRefresh")
-            liveMatches = matches
-            liveMatchesLoadError = nil
-            liveMatchesEmptyDebugHint = Self.makeLiveMatchesEmptyDebugHint(
-                matches: matches,
-                diagnostics: diagnostics
-            )
-            invalidateCalendarTabEventsListCache()
-#if DEBUG
-            logLiveTabAssignment(matches: matches)
-#endif
+            await applyLiveMatchesFromLiveRefresh(matches)
+
+            if !forceRefresh {
+                if !matches.isEmpty {
+                    isLoadingLiveMatches = false
+                }
+                scheduleLiveMatchesBackgroundSyncIfNeeded(refreshGeneration: refreshGeneration)
+            }
         } catch {
 #if DEBUG
             print("[LiveDebug] ui_assignment_failed error=\(error)")
@@ -87,6 +91,62 @@ extension MapViewModel {
             liveMatchesEmptyDebugHint = "Live provider error: \(error.localizedDescription)"
             activeFeaturedEvents = await featuredEventsTask.value
         }
+
+        if isLoadingLiveMatches {
+            isLoadingLiveMatches = false
+        }
+    }
+
+    @MainActor
+    private func scheduleLiveMatchesBackgroundSyncIfNeeded(refreshGeneration: UInt) {
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                guard let refreshed = try await LiveSportsService.shared.fetchLiveMatchesAfterBackgroundSyncIfNeeded() else {
+                    return
+                }
+                guard refreshGeneration == LiveMatchesRefreshState.generation else {
+#if DEBUG
+                    print("[LiveDebug] backgroundSyncApplySkipped reason=staleGeneration expected=\(refreshGeneration) current=\(LiveMatchesRefreshState.generation)")
+#endif
+                    return
+                }
+#if DEBUG
+                print("[LiveDebug] backgroundSyncApplyStarted generation=\(refreshGeneration) count=\(refreshed.count)")
+#endif
+                await applyLiveMatchesFromLiveRefresh(refreshed)
+            } catch {
+#if DEBUG
+                print("[LiveDebug] backgroundSyncApplyFailed error=\(error.localizedDescription)")
+#endif
+            }
+        }
+    }
+
+    @MainActor
+    private func applyLiveMatchesFromLiveRefresh(_ matches: [LiveMatch]) async {
+        let diagnostics = await LiveSportsService.shared.lastFetchDiagnostics
+#if DEBUG
+        print("[LiveRefreshDebug] replace_not_append=true previous_count=\(liveMatches.count) incoming_count=\(matches.count)")
+#endif
+        handleSavedProGameStatusUpdates(from: matches, reason: "liveRefresh")
+        let previousIDs = liveMatches.map(\.id)
+        let incomingIDs = matches.map(\.id)
+        if previousIDs != incomingIDs {
+            liveMatches = matches
+        } else {
+            Perf.publishedWriteSkipped(name: "liveMatches", reason: "unchanged")
+        }
+        lastLiveMatchesRefreshAt = Date()
+        liveMatchesLoadError = nil
+        liveMatchesEmptyDebugHint = Self.makeLiveMatchesEmptyDebugHint(
+            matches: matches,
+            diagnostics: diagnostics
+        )
+        invalidateCalendarTabEventsListCache()
+#if DEBUG
+        logLiveTabAssignment(matches: matches)
+#endif
     }
 
     @MainActor

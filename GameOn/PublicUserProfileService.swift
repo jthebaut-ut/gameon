@@ -15,6 +15,8 @@ struct PublicUserProfileData {
     let displayName: String
     /// @handle line; may use temporary email-prefix fallback when username unset (email never shown).
     let publicHandleLine: String
+    /// Raw `user_profiles.created_at` for inline fan-since handle copy (display only).
+    let profileCreatedAt: String?
     let bio: String?
     let avatarURL: String?
     let avatarThumbnailURL: String?
@@ -36,11 +38,21 @@ struct PublicUserProfileData {
     let venueCount: Int
     let venueCards: [PublicProfileVenueCard]
     let homeCrowd: HomeCrowdVenueSummary?
+    /// Public home city line when `show_home_city` is enabled on the profile row (no GPS).
+    let homeCityDisplayLine: String?
     let pickupHostedCount: Int
     let pickupJoinedCount: Int
     let socialHighlightLabels: [String]
     let personalityTags: [String]
     let sharedTeamNames: [String]
+
+    var publicHandleDisplayLine: String {
+        FanGeoHandleRules.handleDisplayLine(
+            base: publicHandleLine,
+            profileCreatedAt: profileCreatedAt,
+            showFanSince: !isBusinessAccount
+        )
+    }
 }
 
 /// Compact venue chip for public profile cards (city only — no coordinates).
@@ -66,7 +78,7 @@ struct PublicProfileMutualFanAvatar: Equatable, Identifiable {
 
 enum PublicUserProfileService {
     private static let profileSelect =
-        "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,is_deleted,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids,discoverable_by_fans,created_at,national_team_country_code,national_team_country_name,national_team_flag,national_team_supporter_label,national_team_updated_at"
+        "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,is_deleted,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids,discoverable_by_fans,created_at,national_team_country_code,national_team_country_name,national_team_flag,national_team_supporter_label,national_team_updated_at,home_city,home_region,home_country,show_home_city"
 
     /// Always returns a displayable profile; optional sections use safe fallbacks.
     static func load(userId: UUID, cachedProfile: UserProfileRow? = nil) async -> PublicUserProfileData {
@@ -77,11 +89,10 @@ enum PublicUserProfileService {
             return hiddenProfile(userId: userId)
         }
 
-        if let identity = await fetchPublicIdentityRPC(targetUserId: userId), identity.visible {
-            return await assembleFromIdentityRPC(identity, userId: userId, cachedProfile: cachedProfile)
-        }
-
-        if let identity = await fetchPublicIdentityRPC(targetUserId: userId), !identity.visible {
+        if let identity = await fetchPublicIdentityRPC(targetUserId: userId) {
+            if identity.visible {
+                return await assembleFromIdentityRPC(identity, userId: userId, cachedProfile: cachedProfile)
+            }
             return hiddenProfile(userId: userId)
         }
 
@@ -151,6 +162,10 @@ enum PublicUserProfileService {
         let national_team_country_name: String?
         let national_team_flag: String?
         let national_team_supporter_label: String?
+        let home_city: String?
+        let home_region: String?
+        let home_country: String?
+        let show_home_city: Bool?
 
         struct MutualFanRow: Decodable {
             let user_id: UUID?
@@ -189,6 +204,10 @@ enum PublicUserProfileService {
             national_team_country_name = try? c.decode(String.self, forKey: .national_team_country_name)
             national_team_flag = try? c.decode(String.self, forKey: .national_team_flag)
             national_team_supporter_label = try? c.decode(String.self, forKey: .national_team_supporter_label)
+            home_city = try? c.decode(String.self, forKey: .home_city)
+            home_region = try? c.decode(String.self, forKey: .home_region)
+            home_country = try? c.decode(String.self, forKey: .home_country)
+            show_home_city = try? c.decode(Bool.self, forKey: .show_home_city)
             if c.contains(.home_crowd_venue) {
                 if (try? c.decodeNil(forKey: .home_crowd_venue)) == true {
                     home_crowd_venue = nil
@@ -246,6 +265,10 @@ enum PublicUserProfileService {
             case national_team_country_name
             case national_team_flag
             case national_team_supporter_label
+            case home_city
+            case home_region
+            case home_country
+            case show_home_city
         }
     }
 
@@ -422,10 +445,19 @@ enum PublicUserProfileService {
             live_visibility_mode: LiveVisibilityMode.allFriends.rawValue,
             selected_live_visibility_friend_ids: [],
             discoverable_by_fans: true,
+            created_at: {
+                let rpcSince = rpc.member_since?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                if !rpcSince.isEmpty { return rpcSince }
+                return cachedProfile?.created_at
+            }(),
             national_team_country_code: rpc.national_team_country_code,
             national_team_country_name: rpc.national_team_country_name,
             national_team_flag: rpc.national_team_flag,
-            national_team_supporter_label: rpc.national_team_supporter_label
+            national_team_supporter_label: rpc.national_team_supporter_label,
+            home_city: rpc.show_home_city == true ? rpc.home_city : nil,
+            home_region: rpc.show_home_city == true ? rpc.home_region : nil,
+            home_country: rpc.show_home_city == true ? rpc.home_country : nil,
+            show_home_city: rpc.show_home_city
         )
 
         let organizerStats = await fetchOrganizerStats(userId: userId)
@@ -485,6 +517,7 @@ enum PublicUserProfileService {
                 )
             },
             homeCrowd: resolvePublicHomeCrowd(rpc.home_crowd_venue),
+            homeCityDisplayLine: resolvePublicHomeCityDisplay(from: rpc),
             pickupHostedCount: pickupHosted,
             pickupJoinedCount: pickupJoined,
             sharedTeamNames: sharedTeamNames
@@ -494,6 +527,11 @@ enum PublicUserProfileService {
         if let homeId = built.homeCrowd?.venueId {
             print("[HomeCrowd] publicProfile venueId=\(homeId.uuidString.lowercased())")
         }
+#if DEBUG
+        print(
+            "[PublicProfileHomeCity] source=rpc visible=\(built.homeCityDisplayLine != nil) line=\(built.homeCityDisplayLine ?? "nil")"
+        )
+#endif
 
 #if DEBUG
         print(
@@ -509,6 +547,7 @@ enum PublicUserProfileService {
             userId: userId,
             displayName: "Fan",
             publicHandleLine: "",
+            profileCreatedAt: nil,
             bio: nil,
             avatarURL: nil,
             avatarThumbnailURL: nil,
@@ -528,11 +567,27 @@ enum PublicUserProfileService {
             venueCount: 0,
             venueCards: [],
             homeCrowd: nil,
+            homeCityDisplayLine: nil,
             pickupHostedCount: 0,
             pickupJoinedCount: 0,
             socialHighlightLabels: [],
             personalityTags: [],
             sharedTeamNames: []
+        )
+    }
+
+    private static func resolvePublicHomeCityDisplay(from row: UserProfileRow?) -> String? {
+        guard row?.showsHomeCityOnProfile == true else { return nil }
+        return row?.profileHomeCityDisplayLine
+    }
+
+    /// RPC path: server privacy-gates home city; client double-checks `show_home_city`.
+    private static func resolvePublicHomeCityDisplay(from rpc: PublicIdentityRPCResponse) -> String? {
+        guard rpc.show_home_city == true else { return nil }
+        return ProfileHomeCityIdentity.displayLine(
+            city: rpc.home_city,
+            region: rpc.home_region,
+            country: rpc.home_country
         )
     }
 
@@ -777,6 +832,7 @@ enum PublicUserProfileService {
         venueCount: Int,
         venueCards: [PublicProfileVenueCard],
         homeCrowd: HomeCrowdVenueSummary?,
+        homeCityDisplayLine: String? = nil,
         pickupHostedCount: Int,
         pickupJoinedCount: Int,
         sharedTeamNames: [String]
@@ -824,6 +880,7 @@ enum PublicUserProfileService {
             userId: userId,
             displayName: resolvedName,
             publicHandleLine: handleLine,
+            profileCreatedAt: row?.created_at,
             bio: trimmedBio.isEmpty ? nil : trimmedBio,
             avatarURL: avatarFull.isEmpty ? nil : avatarFull,
             avatarThumbnailURL: avatarThumb.isEmpty ? nil : avatarThumb,
@@ -847,6 +904,7 @@ enum PublicUserProfileService {
             venueCount: venueCount,
             venueCards: venueCards,
             homeCrowd: homeCrowd,
+            homeCityDisplayLine: homeCityDisplayLine ?? resolvePublicHomeCityDisplay(from: row),
             pickupHostedCount: pickupHostedCount,
             pickupJoinedCount: pickupJoinedCount,
             socialHighlightLabels: socialHighlights(

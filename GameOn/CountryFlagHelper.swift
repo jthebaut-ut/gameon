@@ -316,7 +316,7 @@ nonisolated enum CountryFlagHelper {
     static func countrySuggestions(matching query: String, languageCode: String? = nil) -> [(name: String, code: String, flag: String)] {
         let normalizedQuery = normalize(query)
         let localeIdentifier = L10n.normalizedLanguageCode(languageCode ?? UserDefaults.standard.string(forKey: L10n.appLanguageKey))
-        return entries.compactMap { entry in
+        let countryResults = entries.compactMap { entry -> (name: String, code: String, flag: String)? in
             let localized = Locale(identifier: localeIdentifier).localizedString(forRegionCode: entry.code) ?? entry.code
             let aliases = entry.names
             guard normalizedQuery.isEmpty
@@ -326,7 +326,33 @@ nonisolated enum CountryFlagHelper {
             }
             return (name: localized, code: entry.code, flag: flagEmoji(forRegionCode: entry.code))
         }
-        .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        let subdivisionResults = subdivisionCountrySuggestions(matching: normalizedQuery)
+        return (countryResults + subdivisionResults)
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
+    private static func subdivisionCountrySuggestions(
+        matching normalizedQuery: String
+    ) -> [(name: String, code: String, flag: String)] {
+        subdivisionFlags.compactMap { group in
+            guard let primaryAlias = group.aliases.first else { return nil }
+            let displayName = subdivisionDisplayName(forNormalizedAlias: primaryAlias)
+            let searchable = [displayName] + group.aliases
+            guard normalizedQuery.isEmpty
+                    || searchable.contains(where: { normalize($0).contains(normalizedQuery) }) else {
+                return nil
+            }
+            return (name: displayName, code: "GB", flag: group.flag)
+        }
+    }
+
+    private static func subdivisionDisplayName(forNormalizedAlias normalizedAlias: String) -> String {
+        normalizedAlias
+            .split(separator: " ")
+            .map { part in
+                part.prefix(1).uppercased() + part.dropFirst()
+            }
+            .joined(separator: " ")
     }
 
     #if DEBUG
@@ -341,6 +367,24 @@ nonisolated enum CountryFlagHelper {
             print("[CountryFlagDebug] worldCupValidation=passed count=\(CountryFlagHelperWorldCupValidation.teams.count)")
         } else {
             print("[CountryFlagDebug] worldCupValidation=failed missingCount=\(missing.count) missing=\(missing.joined(separator: ", "))")
+        }
+        return missing
+    }
+
+    static func validateSubdivisionCountrySuggestions(source: String = "CountryFlagHelperValidation") -> [String] {
+        var missing: [String] = []
+        for team in CountryFlagHelperWorldCupValidation.subdivisionSearchTeams {
+            let normalizedQuery = normalize(team)
+            let matched = subdivisionCountrySuggestions(matching: normalizedQuery)
+                .contains { normalize($0.name) == normalizedQuery }
+            if !matched {
+                missing.append(team)
+            }
+        }
+        if missing.isEmpty {
+            print("[CountryFlagDebug] subdivisionSuggestionsValidation=passed count=\(CountryFlagHelperWorldCupValidation.subdivisionSearchTeams.count) source=\(source)")
+        } else {
+            print("[CountryFlagDebug] subdivisionSuggestionsValidation=failed missingCount=\(missing.count) missing=\(missing.joined(separator: ", ")) source=\(source)")
         }
         return missing
     }
@@ -445,6 +489,10 @@ nonisolated enum CountryFlagHelper {
         guard !didValidateWorldCupTeams else { return }
         didValidateWorldCupTeams = true
         _ = validateWorldCupTeams()
+        _ = validateSubdivisionCountrySuggestions()
+        Task { @MainActor in
+            _ = TeamTheme.validateUKSubdivisionDisplayFlags()
+        }
         if !didLogAliasAudit {
             didLogAliasAudit = true
             logSupportedNationalTeamAliasAudit()
@@ -552,6 +600,14 @@ nonisolated enum CountryFlagHelperWorldCupValidation {
         "Uzbekistan",
         "Venezuela",
         "Wales",
+    ]
+
+    /// UK subdivisions that must appear in ``CountryFlagHelper/countrySuggestions(matching:languageCode:)`` search.
+    static let subdivisionSearchTeams: [String] = [
+        "England",
+        "Scotland",
+        "Wales",
+        "Northern Ireland",
     ]
 }
 #endif

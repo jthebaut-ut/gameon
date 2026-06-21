@@ -3406,6 +3406,7 @@ struct VenueOwnerDashboardView: View {
             newPlanState: businessPlanStateDescription(status),
             isBusinessPro: status.computedIsPro
         )
+        await viewModel.refreshCurrentBusinessFanGeoPlusEntitlementFromServer(reason: "businessPlan:\(source)")
     }
 
     private func businessPlanStateDescription(_ status: BusinessVenueGamePostingStatus?) -> String {
@@ -3483,6 +3484,7 @@ struct VenueOwnerDashboardView: View {
 #endif
             logBusinessDashboardDebug()
         }
+        await viewModel.refreshCurrentBusinessFanGeoPlusEntitlementFromServer(reason: "businessDashboard:\(source)")
     }
 
     private func refreshBusinessDashboardOverview(loadEngagementMetrics: Bool = false) async {

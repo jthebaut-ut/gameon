@@ -184,17 +184,392 @@ extension PublicUserProfileData {
 
 }
 
+// MARK: - Common interests (viewer overlap, no extra network)
+
+struct PublicProfileCommonInterestChip: Identifiable, Equatable {
+    let id: String
+    let label: String
+    let tint: Color
+}
+
+enum PublicProfileCommonInterestsBuilder {
+    static func chips(
+        viewedProfile: PublicUserProfileData,
+        currentUserFavoriteTeamIDs: [String],
+        currentUserNationalTeam: NationalTeamIdentity?,
+        currentUserHomeCrowdVenueId: UUID?,
+        currentUserOpenToIDs: [String]
+    ) -> [PublicProfileCommonInterestChip] {
+        var results: [PublicProfileCommonInterestChip] = []
+        var seenLabels = Set<String>()
+
+        func append(_ chip: PublicProfileCommonInterestChip) {
+            let key = chip.label
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .folding(options: .diacriticInsensitive, locale: .current)
+                .lowercased()
+            guard seenLabels.insert(key).inserted else { return }
+            results.append(chip)
+        }
+
+        for team in sharedFavoriteTeams(
+            viewedProfile: viewedProfile,
+            currentUserFavoriteTeamIDs: currentUserFavoriteTeamIDs
+        ) {
+            append(
+                PublicProfileCommonInterestChip(
+                    id: "team-\(team.id)",
+                    label: "🏆 \(team.name)",
+                    tint: team.badgeColor
+                )
+            )
+        }
+
+        if let nationalTeamChip = nationalTeamChip(
+            viewedNationalTeam: viewedProfile.nationalTeam,
+            currentUserNationalTeam: currentUserNationalTeam
+        ) {
+            append(nationalTeamChip)
+        }
+
+        if let homeCrowdChip = homeCrowdChip(
+            viewedHomeCrowd: viewedProfile.homeCrowd,
+            currentUserHomeCrowdVenueId: currentUserHomeCrowdVenueId
+        ) {
+            append(homeCrowdChip)
+        }
+
+        let currentOpenToIDs = Set(FanOpenToCatalog.canonicalizeItemIDs(currentUserOpenToIDs))
+        for item in viewedProfile.openToItems where currentOpenToIDs.contains(item.id) {
+            append(
+                PublicProfileCommonInterestChip(
+                    id: "openTo-\(item.id)",
+                    label: openToChipLabel(for: item),
+                    tint: item.tint
+                )
+            )
+        }
+
+        return results
+    }
+
+    private static func sharedFavoriteTeams(
+        viewedProfile: PublicUserProfileData,
+        currentUserFavoriteTeamIDs: [String]
+    ) -> [FavoriteTeam] {
+        let currentIDs = Set(currentUserFavoriteTeamIDs)
+        let intersected = viewedProfile.favoriteTeams.filter { currentIDs.contains($0.id) }
+        if !intersected.isEmpty { return intersected }
+
+        guard viewedProfile.sharedTeamsCount > 0 || !viewedProfile.sharedTeamNames.isEmpty else {
+            return []
+        }
+
+        let codes = Set(viewedProfile.sharedTeamNames.map { $0.uppercased() })
+        return viewedProfile.favoriteTeams.filter { team in
+            let code = (team.shortCode ?? "").uppercased()
+            let name = team.name.uppercased()
+            return codes.contains(code)
+                || codes.contains(name)
+                || viewedProfile.sharedTeamNames.contains(where: { name.contains($0.uppercased()) })
+        }
+    }
+
+    private static func nationalTeamChip(
+        viewedNationalTeam: NationalTeamIdentity?,
+        currentUserNationalTeam: NationalTeamIdentity?
+    ) -> PublicProfileCommonInterestChip? {
+        guard let viewed = viewedNationalTeam,
+              let current = currentUserNationalTeam,
+              !viewed.countryCode.isEmpty,
+              viewed.countryCode.uppercased() == current.countryCode.uppercased() else {
+            return nil
+        }
+        let flag = viewed.flag.isEmpty ? current.flag : viewed.flag
+        let name = viewed.countryName.isEmpty ? current.countryName : viewed.countryName
+        guard !name.isEmpty else { return nil }
+        return PublicProfileCommonInterestChip(
+            id: "nationalTeam-\(viewed.countryCode.uppercased())",
+            label: "\(flag) \(name)",
+            tint: FGColor.accentGreen
+        )
+    }
+
+    private static func homeCrowdChip(
+        viewedHomeCrowd: HomeCrowdVenueSummary?,
+        currentUserHomeCrowdVenueId: UUID?
+    ) -> PublicProfileCommonInterestChip? {
+        guard let viewedHomeCrowd,
+              let currentUserHomeCrowdVenueId,
+              viewedHomeCrowd.venueId == currentUserHomeCrowdVenueId else {
+            return nil
+        }
+        let name = viewedHomeCrowd.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return nil }
+        return PublicProfileCommonInterestChip(
+            id: "homeCrowd-\(viewedHomeCrowd.venueId.uuidString.lowercased())",
+            label: "🏟️ \(name)",
+            tint: FGColor.accentBlue
+        )
+    }
+
+    private static func openToChipLabel(for item: PublicProfileOpenToItem) -> String {
+        if item.isSocial {
+            let prefix: String
+            switch item.id {
+            case FanOpenToSocialID.watchParties:
+                prefix = "📺"
+            case FanOpenToSocialID.sportsBars:
+                prefix = "🍻"
+            case FanOpenToSocialID.meetLocalFans:
+                prefix = "👋"
+            default:
+                prefix = "✨"
+            }
+            return "\(prefix) \(item.title)"
+        }
+
+        let emoji = SportFilterCatalog.resolve(item.id).emoji
+        if emoji.isEmpty {
+            return item.title
+        }
+        return "\(emoji) \(item.title)"
+    }
+}
+
+struct PublicProfileCommonInterestsCard: View {
+    let chips: [PublicProfileCommonInterestChip]
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    private let chipColumns = [
+        GridItem(.adaptive(minimum: 96, maximum: 220), spacing: 8, alignment: .leading)
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            PublicProfileEditorialSectionTitle(
+                "Common Interests",
+                subtitle: "What you both share",
+                accent: FGColor.accentBlue
+            )
+
+            LazyVGrid(columns: chipColumns, alignment: .leading, spacing: 8) {
+                ForEach(chips) { chip in
+                    Text(chip.label)
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                        .lineLimit(1)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background {
+                            Capsule(style: .continuous)
+                                .fill(chip.tint.opacity(colorScheme == .dark ? 0.20 : 0.12))
+                        }
+                        .overlay {
+                            Capsule(style: .continuous)
+                                .strokeBorder(chip.tint.opacity(colorScheme == .dark ? 0.28 : 0.18), lineWidth: 0.75)
+                        }
+                }
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .publicProfileEditorialCard(cornerRadius: PublicProfileSheetLayout.gridCardRadius)
+    }
+}
+
+// MARK: - Fan identity strip (public profile)
+
+private enum PublicProfileFanIdentityColumnIcon {
+    case symbol(String, tint: PublicProfileFanIdentityTint)
+    case flag(String)
+}
+
+private enum PublicProfileFanIdentityTint {
+    case green
+    case blue
+    case orange
+    case secondary
+
+    func color(_ colorScheme: ColorScheme) -> Color {
+        switch self {
+        case .green:
+            return FGColor.accentGreen
+        case .blue:
+            return Color(red: 0.22, green: 0.48, blue: 0.96)
+        case .orange:
+            return Color(red: 0.96, green: 0.55, blue: 0.18)
+        case .secondary:
+            return FGColor.secondaryText(colorScheme)
+        }
+    }
+}
+
+private struct PublicProfileFanIdentityColumn: Identifiable {
+    enum Kind: String {
+        case nationalTeam
+        case homeCrowd
+        case homeCity
+        case memberSince
+    }
+
+    let id: Kind
+    let icon: PublicProfileFanIdentityColumnIcon
+    let title: String
+    let subtitle: String
+}
+
+struct PublicProfileFanIdentityCard: View {
+    let data: PublicUserProfileData
+    @Environment(\.colorScheme) private var colorScheme
+    @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
+
+    private var columns: [PublicProfileFanIdentityColumn] {
+        var result: [PublicProfileFanIdentityColumn] = []
+
+        if let identity = data.nationalTeam {
+            result.append(
+                PublicProfileFanIdentityColumn(
+                    id: .nationalTeam,
+                    icon: .flag(identity.flag),
+                    title: identity.resolvedSupporterLabel(languageCode: appLanguageRaw),
+                    subtitle: NationalTeamCopy.text("world_cup_2026", languageCode: appLanguageRaw)
+                )
+            )
+        }
+
+        if let crowd = data.homeCrowd {
+            let venueName = crowd.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !venueName.isEmpty {
+                result.append(
+                    PublicProfileFanIdentityColumn(
+                        id: .homeCrowd,
+                        icon: .symbol("sportscourt.fill", tint: .orange),
+                        title: venueName,
+                        subtitle: L10n.t("home_crowd", languageCode: appLanguageRaw)
+                    )
+                )
+            }
+        }
+
+        if let homeCity = data.homeCityDisplayLine?.trimmingCharacters(in: .whitespacesAndNewlines), !homeCity.isEmpty {
+            result.append(
+                PublicProfileFanIdentityColumn(
+                    id: .homeCity,
+                    icon: .symbol("mappin.and.ellipse", tint: .blue),
+                    title: homeCity,
+                    subtitle: "Home City"
+                )
+            )
+        }
+
+        if let memberSince = FanGeoHandleRules.fanSinceMonthYear(from: data.profileCreatedAt) {
+            result.append(
+                PublicProfileFanIdentityColumn(
+                    id: .memberSince,
+                    icon: .symbol("calendar", tint: .secondary),
+                    title: memberSince,
+                    subtitle: "Member Since"
+                )
+            )
+        }
+
+        return result
+    }
+
+    var body: some View {
+        if columns.isEmpty {
+            EmptyView()
+        } else {
+            HStack(alignment: .top, spacing: 0) {
+                ForEach(Array(columns.enumerated()), id: \.element.id) { index, column in
+                    if index > 0 {
+                        Rectangle()
+                            .fill(FGColor.divider(colorScheme).opacity(colorScheme == .dark ? 0.55 : 0.85))
+                            .frame(width: 1)
+                            .padding(.vertical, 6)
+                    }
+
+                    columnView(column)
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, index == 0 || index == columns.count - 1 ? 4 : 6)
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, minHeight: 96, maxHeight: 110, alignment: .top)
+            .background {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(FGColor.cardBackground(colorScheme).opacity(colorScheme == .dark ? 0.86 : 0.98))
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func columnView(_ column: PublicProfileFanIdentityColumn) -> some View {
+        VStack(spacing: 6) {
+            iconBadge(column.icon)
+
+            Text(column.title)
+                .font(.system(size: 11.5, weight: .bold, design: .rounded))
+                .foregroundStyle(FGColor.primaryText(colorScheme).opacity(0.9))
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.72)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(column.subtitle)
+                .font(.system(size: 10, weight: .medium, design: .rounded))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .multilineTextAlignment(.center)
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private func iconBadge(_ icon: PublicProfileFanIdentityColumnIcon) -> some View {
+        switch icon {
+        case .flag(let emoji):
+            Text(emoji)
+                .font(.system(size: 17))
+                .frame(width: 34, height: 34)
+                .background {
+                    Circle()
+                        .fill(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.18 : 0.12))
+                }
+        case .symbol(let name, let tint):
+            Image(systemName: name)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(tint.color(colorScheme))
+                .frame(width: 34, height: 34)
+                .background {
+                    Circle()
+                        .fill(tint.color(colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.12))
+                }
+        }
+    }
+}
+
 // MARK: - Two-column grid (mock layout)
 
 struct PublicProfileTwoColumnGrid: View {
     let data: PublicUserProfileData
     let colorScheme: ColorScheme
+    var onOpenHomeCrowdVenue: ((UUID) -> Void)? = nil
 
     var body: some View {
         VStack(spacing: PublicProfileSheetLayout.gridCardSpacing) {
             HomeCrowdProfileCardView(
                 summary: PublicProfileContentBuilder.homeCrowd(from: data),
-                isSelfProfile: false
+                isSelfProfile: false,
+                onExploreVenue: homeCrowdOpenAction
             )
             .frame(maxWidth: .infinity)
 
@@ -210,6 +585,12 @@ struct PublicProfileTwoColumnGrid: View {
             )
             .frame(maxWidth: .infinity)
         }
+    }
+
+    private var homeCrowdOpenAction: (() -> Void)? {
+        guard let venueId = data.homeCrowd?.venueId else { return nil }
+        guard let onOpenHomeCrowdVenue else { return nil }
+        return { onOpenHomeCrowdVenue(venueId) }
     }
 }
 
@@ -276,7 +657,7 @@ struct PublicProfileEditorialHero: View {
                         }
                     }
 
-                    Text(data.publicHandleLine)
+                    Text(data.publicHandleDisplayLine)
                         .font(.system(size: 13.5, weight: .semibold, design: .rounded))
                         .foregroundStyle(FGColor.secondaryText(colorScheme))
 
@@ -308,11 +689,6 @@ struct PublicProfileEditorialHero: View {
 #endif
                 }
 
-            if let memberSince = data.memberSinceLabel, !memberSince.isEmpty {
-                heroMemberSinceRow(memberSince)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, 2)
-            }
         }
         .padding(18)
         .background(heroSoftBackground)
@@ -450,19 +826,6 @@ struct PublicProfileEditorialHero: View {
                 .font(.system(size: 12, weight: .semibold, design: .rounded))
                 .foregroundStyle(FGColor.secondaryText(colorScheme))
                 .lineLimit(1)
-        }
-    }
-
-    private func heroMemberSinceRow(_ label: String) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: "calendar.badge.clock")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(FGColor.secondaryText(colorScheme).opacity(0.92))
-            Text(label)
-                .font(.system(size: 11.5, weight: .medium, design: .rounded))
-                .foregroundStyle(FGColor.secondaryText(colorScheme))
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
         }
     }
 
@@ -1029,5 +1392,229 @@ struct PublicProfileSocialActionBar: View {
         }
         .buttonStyle(.plain)
         .disabled(disabled)
+    }
+}
+
+// MARK: - Bottom safety actions (public fan profile)
+
+struct PublicProfileFanSafetyActionsCard: View {
+    let onShare: () -> Void
+    let onBlock: () -> Void
+    let onReport: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        VStack(spacing: 16) {
+            VStack(spacing: 0) {
+                actionRow(
+                    title: "Share Profile",
+                    subtitle: "Send this profile to a friend",
+                    systemImage: "square.and.arrow.up",
+                    tint: Color(red: 0.22, green: 0.48, blue: 0.96),
+                    action: onShare
+                )
+
+                rowDivider
+
+                actionRow(
+                    title: "Block Fan",
+                    subtitle: "You won't see this fan again",
+                    systemImage: "nosign",
+                    tint: Color(red: 0.94, green: 0.28, blue: 0.32),
+                    action: onBlock
+                )
+
+                rowDivider
+
+                actionRow(
+                    title: "Report",
+                    subtitle: "Report this fan",
+                    systemImage: "flag.fill",
+                    tint: Color(red: 0.96, green: 0.55, blue: 0.18),
+                    action: onReport
+                )
+            }
+            .background {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(FGColor.cardBackground(colorScheme).opacity(colorScheme == .dark ? 0.86 : 0.98))
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+            }
+
+            footerBrandLine
+        }
+    }
+
+    private var rowDivider: some View {
+        Rectangle()
+            .fill(FGColor.divider(colorScheme).opacity(colorScheme == .dark ? 0.55 : 0.85))
+            .frame(height: 1)
+            .padding(.leading, 64)
+    }
+
+    private func actionRow(
+        title: String,
+        subtitle: String,
+        systemImage: String,
+        tint: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(alignment: .center, spacing: 12) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(tint)
+                    .frame(width: 40, height: 40)
+                    .background {
+                        Circle()
+                            .fill(tint.opacity(colorScheme == .dark ? 0.2 : 0.12))
+                    }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                        .lineLimit(1)
+                    Text(subtitle)
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.65))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var footerBrandLine: some View {
+        HStack(spacing: 6) {
+            Image("FanGeoCircularLogo")
+                .resizable()
+                .interpolation(.high)
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 16, height: 16)
+            Text("FanGeo • Connect with fans worldwide")
+                .font(.system(size: 11, weight: .medium, design: .rounded))
+                .foregroundStyle(FGColor.mutedText(colorScheme))
+        }
+        .frame(maxWidth: .infinity)
+        .multilineTextAlignment(.center)
+    }
+}
+
+struct FanProfileUserReportSheet: View {
+    let reportedUserId: UUID
+    let onDismiss: () -> Void
+    let onSubmitted: () -> Void
+
+    @State private var reportCategory: ModerationReportCategory?
+    @State private var reportDetails = ""
+    @State private var isSubmitting = false
+    @State private var errorText: String?
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Picker("Category", selection: $reportCategory) {
+                        Text("Select category").tag(Optional<ModerationReportCategory>.none)
+                        ForEach(ModerationReportCategory.allCases) { category in
+                            Text(category.displayTitle).tag(Optional(category))
+                        }
+                    }
+                    .disabled(isSubmitting)
+                } footer: {
+                    if reportCategory == nil {
+                        Text("Choose a category to submit this report.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Section {
+                    TextField("Details (optional)", text: $reportDetails, axis: .vertical)
+                        .lineLimit(3...6)
+                        .disabled(isSubmitting)
+                }
+
+                if isSubmitting {
+                    Section {
+                        HStack(spacing: 10) {
+                            ProgressView()
+                            Text("Submitting…")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
+                if let errorText, !errorText.isEmpty {
+                    Section {
+                        Text(errorText)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                    }
+                }
+            }
+            .navigationTitle("Report User")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { onDismiss() }
+                        .disabled(isSubmitting)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Submit") {
+                        Task { await submitReport() }
+                    }
+                    .disabled(isSubmitting || reportCategory == nil)
+                }
+            }
+            .interactiveDismissDisabled(isSubmitting)
+        }
+    }
+
+    private func submitReport() async {
+        guard let category = reportCategory else {
+            await MainActor.run { errorText = "Please choose a category." }
+            return
+        }
+
+        await MainActor.run {
+            isSubmitting = true
+            errorText = nil
+        }
+
+        let moderation = ModerationService()
+        let trimmedDetails = reportDetails.trimmingCharacters(in: .whitespacesAndNewlines)
+        let detailsOpt = trimmedDetails.isEmpty ? nil : trimmedDetails
+
+        do {
+            try await moderation.reportUser(
+                reportedUserId: reportedUserId,
+                category: category,
+                details: detailsOpt
+            )
+            await MainActor.run {
+                isSubmitting = false
+                onSubmitted()
+            }
+        } catch {
+            ModerationService.logReportSubmitFailure(error, context: "report_user_public_profile")
+            await MainActor.run {
+                isSubmitting = false
+                errorText = ModerationService.userFacingReportSubmitError(error)
+            }
+        }
     }
 }

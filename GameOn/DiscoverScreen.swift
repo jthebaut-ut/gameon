@@ -149,6 +149,10 @@ private enum DiscoverRecentSearchStore {
         }
         return next
     }
+
+    static func clear() {
+        UserDefaults.standard.removeObject(forKey: storageKey)
+    }
 }
 
 @MainActor
@@ -226,6 +230,11 @@ private final class DiscoverSearchSuggestionController: NSObject, ObservableObje
 
     func remember(_ suggestion: DiscoverSearchSuggestion) {
         recentSearches = DiscoverRecentSearchStore.save(suggestion, into: recentSearches)
+    }
+
+    func clearRecentSearches() {
+        DiscoverRecentSearchStore.clear()
+        recentSearches = []
     }
 
     func rememberSearchText(_ text: String) {
@@ -813,6 +822,13 @@ struct DiscoverScreen: View {
     @Namespace private var discoverModeToggleNamespace
     private let livePulseThreshold = 16
     @State private var discoverAnnotationCache = DiscoverAnnotationCache.empty
+    @State private var lastDiscoverTabConsistencyAt: Date?
+
+    private static let discoverTabConsistencyTTL: TimeInterval = 20
+
+    private func isPassiveDiscoverTabConsistencyTrigger(_ trigger: String) -> Bool {
+        trigger == "tabVisible" || trigger == "appear"
+    }
 
     private var isPickupPlacesMode: Bool {
         viewModel.discoverMapContentMode == .pickupGames && viewModel.discoverPickupSubMode == .places
@@ -2102,10 +2118,11 @@ struct DiscoverScreen: View {
         }
         .onChange(of: isDiscoverTabSelected) { _, visible in
             guard visible else { return }
+            TabPerf.selectedTab("discover")
             AppPerfDebug.screenLoadStart(tab: "discover", source: "tabVisible")
-            rebuildDiscoverAnnotationCache(reason: "discoverTabVisible")
             Task { @MainActor in
                 await Task.yield()
+                TabPerf.tabSwitchRendered(tab: "discover")
                 AppPerfDebug.deferredWork(tab: "discover", work: "datasetConsistency", source: "tabVisible")
                 await ensureDiscoverDatasetConsistency(trigger: "tabVisible")
             }
@@ -2195,7 +2212,6 @@ struct DiscoverScreen: View {
     }
 
     private func handleDiscoverCoreAppear() {
-        rebuildDiscoverAnnotationCache(reason: "appear")
         isCalendarOverlayPresented = showDatePicker
         viewModel.clampDiscoverMapSelectedDateToMinimumCalendarDayIfNeeded()
         discoverLogRedesignDebug()
@@ -2203,7 +2219,8 @@ struct DiscoverScreen: View {
         Task {
             await viewModel.ensureBusinessOwnerSessionFlagsIfPossible(context: "discover_on_appear")
             viewModel.logBusinessOwnerSessionFlags(context: "discover_on_appear")
-            await ensureDiscoverDatasetConsistency(trigger: "tabVisible")
+            await Task.yield()
+            await ensureDiscoverDatasetConsistency(trigger: "appear")
         }
     }
 
@@ -2671,11 +2688,26 @@ struct DiscoverScreen: View {
         fastRegionJump: Bool = false,
         regionOverride: MKCoordinateRegion? = nil
     ) async {
+        if isPassiveDiscoverTabConsistencyTrigger(trigger),
+           !forceCurrentModeReload,
+           let last = lastDiscoverTabConsistencyAt,
+           Date().timeIntervalSince(last) < Self.discoverTabConsistencyTTL {
+            TabPerf.refreshSkipped(name: "discoverDatasetConsistency", reason: "freshCache")
+            rebuildDiscoverAnnotationCache(reason: "venueReloadConsistency_\(trigger)_cached")
+            return
+        }
+
+        let trackPassiveTabConsistency = isPassiveDiscoverTabConsistencyTrigger(trigger) && !forceCurrentModeReload
+        defer {
+            if trackPassiveTabConsistency {
+                lastDiscoverTabConsistencyAt = Date()
+            }
+        }
+
         let barsBefore = viewModel.bars.count
         let annotationsBefore = discoverAnnotationCache.counts.renderedCount(mode: viewModel.discoverMapContentMode)
         let region = regionOverride ?? viewModel.cameraPosition.region
 
-        invalidateDiscoverVenueAnnotationCaches(trigger: trigger)
         rebuildDiscoverAnnotationCache(reason: "venueReloadConsistency_\(trigger)")
         let annotationsAfterRebuild = discoverAnnotationCache.counts.renderedCount(mode: viewModel.discoverMapContentMode)
 
@@ -3460,6 +3492,7 @@ struct DiscoverScreen: View {
     private func rebuildDiscoverAnnotationCache(reason: String) {
         let key = discoverAnnotationCacheKey()
         if discoverAnnotationCache.key == key {
+            Perf.cacheHit(name: "discoverAnnotationCache", detail: reason)
 #if DEBUG
             if isDiscoverTabSelected {
                 DebugLogGate.noisy("[MapPerf] cacheHit=true clusterRebuildReason=\(reason)")
@@ -3843,6 +3876,22 @@ struct DiscoverScreen: View {
         return renderedAnnotationsCount == 0 && !venueRegionMessageVisible
     }
 
+    private var discoverVisibleSearchEmptyHintTitle: String {
+        switch viewModel.discoverMapContentMode {
+        case .venues:
+            return viewModel.mapDisplayMode == .gamesOnly
+                ? "No venue games nearby"
+                : "No sports venues nearby"
+        case .pickupGames:
+            switch viewModel.discoverPickupSubMode {
+            case .games:
+                return "No pickup games nearby"
+            case .places:
+                return "No pickup places nearby"
+            }
+        }
+    }
+
     private func discoverLogRedesignDebug() {
 #if DEBUG
         print("[DiscoverRedesignDebug] layout=map_overlay_light")
@@ -3882,7 +3931,7 @@ struct DiscoverScreen: View {
 
             if showDiscoverVisibleSearchEmptyHint {
                 HStack(spacing: FGSpacing.sm) {
-                    FGStatusPill(title: "No visible matches", kind: .custom(tint: FGColor.accentBlue))
+                    FGStatusPill(title: discoverVisibleSearchEmptyHintTitle, kind: .custom(tint: FGColor.accentBlue))
                     Text("Zoom out or search this area.")
                         .font(FGTypography.caption)
                         .foregroundStyle(FGColor.secondaryText(colorScheme))
@@ -4213,6 +4262,11 @@ struct DiscoverScreen: View {
         }
     }
 
+    private var discoverSearchAssistShowsClearRecent: Bool {
+        viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !searchSuggestionController.recentSearches.isEmpty
+    }
+
     @ViewBuilder
     private var discoverSearchAssistPanel: some View {
         if isSearchFocused && (!discoverSearchAssistRows.isEmpty || discoverShouldShowSuggestionLoading) {
@@ -4224,6 +4278,13 @@ struct DiscoverScreen: View {
                         .textCase(.uppercase)
                         .tracking(0.7)
                     Spacer(minLength: 0)
+                    if discoverSearchAssistShowsClearRecent {
+                        Button("Clear") {
+                            searchSuggestionController.clearRecentSearches()
+                        }
+                        .font(FGTypography.caption.weight(.semibold))
+                        .foregroundStyle(FGColor.accentBlue)
+                    }
                     if discoverShouldShowSuggestionLoading {
                         ProgressView()
                             .controlSize(.small)

@@ -1,6 +1,95 @@
 import SwiftUI
 
-// MARK: - Open To activity card
+// MARK: - Compact Open To tile (Profile preview + editor)
+
+enum FanOpenToCompactTileMetrics {
+    static let height: CGFloat = 84
+    static let cornerRadius: CGFloat = 18
+    static let iconPointSize: CGFloat = 24
+    static let sportBadgeSize: CGFloat = 30
+}
+
+struct FanOpenToCompactTile: View {
+    let itemID: String
+    let title: String
+    let systemImage: String
+    let isSocial: Bool
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var tint: Color {
+        FanOpenToCatalog.tint(for: itemID, colorScheme: colorScheme)
+    }
+
+    var body: some View {
+        VStack(spacing: 4) {
+            if isSocial {
+                Image(systemName: systemImage)
+                    .font(.system(size: FanOpenToCompactTileMetrics.iconPointSize, weight: .semibold))
+                    .foregroundStyle(tint)
+                    .frame(height: 28)
+            } else {
+                FanGeoSportBadgeView(
+                    sport: itemID,
+                    size: FanOpenToCompactTileMetrics.sportBadgeSize,
+                    style: .profile
+                )
+                .frame(height: 28)
+            }
+
+            Text(title)
+                .font(.system(size: 9, weight: .bold, design: .rounded))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.72)
+                .frame(maxWidth: .infinity)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: FanOpenToCompactTileMetrics.height)
+        .padding(.horizontal, 6)
+        .background {
+            RoundedRectangle(cornerRadius: FanOpenToCompactTileMetrics.cornerRadius, style: .continuous)
+                .fill(FanOpenToCatalog.compactTileFill(for: itemID, colorScheme: colorScheme))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: FanOpenToCompactTileMetrics.cornerRadius, style: .continuous)
+                .strokeBorder(tint.opacity(colorScheme == .dark ? 0.28 : 0.18), lineWidth: 0.75)
+        }
+    }
+}
+
+struct FanOpenToCompactAddTile: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Image(systemName: "plus")
+                .font(.system(size: FanOpenToCompactTileMetrics.iconPointSize, weight: .semibold))
+                .foregroundStyle(FGColor.accentBlue)
+                .frame(height: 28)
+
+            Text("Add")
+                .font(.system(size: 9, weight: .bold, design: .rounded))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+                .multilineTextAlignment(.center)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: FanOpenToCompactTileMetrics.height)
+        .padding(.horizontal, 6)
+        .background {
+            RoundedRectangle(cornerRadius: FanOpenToCompactTileMetrics.cornerRadius, style: .continuous)
+                .fill(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.18 : 0.10))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: FanOpenToCompactTileMetrics.cornerRadius, style: .continuous)
+                .strokeBorder(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.28 : 0.20), lineWidth: 0.75)
+        }
+    }
+}
+
+// MARK: - Open To activity card (editor)
 
 struct FanOpenToActivityCard: View {
     let activity: FanOpenToActivityDefinition
@@ -18,66 +107,45 @@ struct FanOpenToActivityCard: View {
     var body: some View {
         Button(action: onTap) {
             ZStack(alignment: .topTrailing) {
-                VStack(spacing: 6) {
-                    if activity.isSocial {
-                        Image(systemName: activity.systemImage)
-                            .font(.system(size: 22, weight: .semibold))
-                            .foregroundStyle(tint)
-                            .frame(height: 42)
-                    } else {
-                        FanGeoSportBadgeView(sport: activity.id, size: 42, style: .profile)
+                FanOpenToCompactTile(
+                    itemID: activity.id,
+                    title: activity.title,
+                    systemImage: activity.systemImage,
+                    isSocial: activity.isSocial
+                )
+                .overlay {
+                    if isSelected {
+                        RoundedRectangle(cornerRadius: FanOpenToCompactTileMetrics.cornerRadius, style: .continuous)
+                            .strokeBorder(tint.opacity(0.65), lineWidth: 1.5)
+                            .shadow(color: tint.opacity(0.22), radius: 4, y: 1)
                     }
-
-                    Text(activity.title)
-                        .font(.system(size: 9, weight: .bold, design: .rounded))
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
-                        .multilineTextAlignment(.center)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.75)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 9)
-                .padding(.horizontal, 6)
-                .background(cardBackground)
-                .overlay(cardBorder)
 
                 if showsRemoveButton, let onRemove {
                     Button(action: onRemove) {
                         Image(systemName: "xmark")
-                            .font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 18, height: 18)
-                            .background(Circle().fill(Color.black.opacity(0.55)))
+                            .font(.system(size: 7.5, weight: .bold))
+                            .foregroundStyle(FGColor.primaryText(colorScheme).opacity(0.92))
+                            .frame(width: 20, height: 20)
+                            .background {
+                                Circle()
+                                    .fill(Color.black.opacity(colorScheme == .dark ? 0.32 : 0.10))
+                                    .overlay {
+                                        Circle()
+                                            .strokeBorder(
+                                                Color.white.opacity(colorScheme == .dark ? 0.22 : 0.65),
+                                                lineWidth: 0.75
+                                            )
+                                    }
+                            }
+                            .contentShape(Circle())
                     }
                     .buttonStyle(.plain)
-                    .offset(x: 4, y: -4)
+                    .padding(5)
                 }
             }
         }
         .buttonStyle(.plain)
-    }
-
-    private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: 14, style: .continuous)
-            .fill(
-                LinearGradient(
-                    colors: [
-                        tint.opacity(colorScheme == .dark ? 0.22 : 0.14),
-                        Color.white.opacity(colorScheme == .dark ? 0.05 : 0.88)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
-    }
-
-    private var cardBorder: some View {
-        RoundedRectangle(cornerRadius: 14, style: .continuous)
-            .strokeBorder(
-                isSelected ? tint.opacity(0.65) : FGColor.divider(colorScheme).opacity(0.9),
-                lineWidth: isSelected ? 1.5 : 0.75
-            )
-            .shadow(color: isSelected ? tint.opacity(0.28) : .clear, radius: 6, y: 2)
     }
 }
 

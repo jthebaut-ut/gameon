@@ -271,4 +271,143 @@ extension MapViewModel {
         print("[BusinessEntitlementDebug] businessId=\(businessId?.uuidString.lowercased() ?? "nil") plan_type=\(status.planType) plan_status=\(status.planStatus) pro_expires_at=\(status.proExpiresAt ?? "nil") unlimited_venues=\(status.unlimitedVenues) unlimited_hosting=\(status.unlimitedHosting) activeVenueCount=\(status.activeVenueCount) activeVenueLimit=\(status.activeVenueLimit.map(String.init) ?? "unlimited") currentMonthHostedGameCount=\(status.currentMonthHostedGameCount) hostedGamesUsedForDisplay=\(status.hostedGamesUsedForDisplay) monthlyHostedGameLimit=\(status.monthlyHostedGameLimit.map(String.init) ?? "unlimited") canAddVenue=\(status.canAddVenue) canAddHostedGame=\(status.canAddHostedGame) venueLimitReason=\(status.venueLimitReason) hostedGameLimitReason=\(status.hostedGameLimitReason)")
 #endif
     }
+
+    private struct BusinessFanGeoPlusEnabledRow: Decodable {
+        let business_fangeo_plus_enabled: Bool?
+    }
+
+    private static let businessFanGeoPlusPassiveRefreshTTL: TimeInterval = 12
+
+    private static func isPassiveBusinessFanGeoPlusRefresh(_ reason: String) -> Bool {
+        reason == "foreground"
+            || reason == "ownedBusinessesRefresh"
+            || reason.hasPrefix("settingsBusinessProfile:")
+            || reason.hasPrefix("businessDashboard:")
+            || reason.hasPrefix("businessPlan:")
+    }
+
+    /// Lightweight refresh of `businesses.business_fangeo_plus_enabled` plus paid Pro check for the current business.
+    func refreshCurrentBusinessFanGeoPlusEntitlementFromServer(reason: String) async {
+        let isPassive = Self.isPassiveBusinessFanGeoPlusRefresh(reason)
+        if isPassive,
+           let last = await MainActor.run(body: { lastBusinessFanGeoPlusRefreshAt }),
+           Date().timeIntervalSince(last) < Self.businessFanGeoPlusPassiveRefreshTTL {
+            TabPerf.refreshSkipped(name: "businessFanGeoPlus", reason: "freshCache")
+            return
+        }
+
+        if let inFlight = await MainActor.run(body: { businessFanGeoPlusRefreshTask }) {
+            TabPerf.duplicateRefreshCoalesced(name: "businessFanGeoPlus")
+            Perf.duplicateTaskCoalesced(name: "businessFanGeoPlus")
+            await inFlight.value
+            return
+        }
+
+        let startedAt = Date()
+        TabPerf.refreshStarted(name: "businessFanGeoPlus")
+        let task = Task<Void, Never> { [weak self] in
+            guard let self else { return }
+            await self.performBusinessFanGeoPlusEntitlementRefresh(reason: reason)
+        }
+        await MainActor.run {
+            businessFanGeoPlusRefreshTask = task
+        }
+        await task.value
+        await MainActor.run {
+            businessFanGeoPlusRefreshTask = nil
+            lastBusinessFanGeoPlusRefreshAt = Date()
+        }
+        let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
+        TabPerf.refreshFinished(name: "businessFanGeoPlus", durationMs: ms)
+    }
+
+    private func performBusinessFanGeoPlusEntitlementRefresh(reason: String) async {
+        let businessId = await MainActor.run { currentBusinessIdForAddLocation() }
+        guard let businessId else {
+            await MainActor.run {
+                FanGeoBusinessEntitlements.reset()
+            }
+            logBusinessFanGeoPlusEntitlementRefresh(
+                businessId: nil,
+                manualEnabled: false,
+                planType: "unknown",
+                planStatus: "unknown",
+                includedWithPaidPro: false,
+                effective: false,
+                reason: reason
+            )
+            return
+        }
+
+        var manualEnabled = await MainActor.run {
+            ownedBusinesses.first(where: { $0.id == businessId })?.businessFanGeoPlusManuallyEnabled == true
+        }
+
+        do {
+            let rows: [BusinessFanGeoPlusEnabledRow] = try await supabase
+                .from("businesses")
+                .select("business_fangeo_plus_enabled")
+                .eq("id", value: businessId)
+                .limit(1)
+                .execute()
+                .value
+            if let row = rows.first {
+                manualEnabled = row.business_fangeo_plus_enabled == true
+            }
+        } catch {
+            print("[BusinessFanGeoPlusDebug] fetchFailed business_id=\(businessId.uuidString.lowercased()) reason=\(reason) error=\(error.localizedDescription)")
+        }
+
+        var planType = "unknown"
+        var planStatus = "unknown"
+        var includedWithPaidPro = false
+
+        if let entitlement = await loadBusinessEntitlements(businessId: businessId) {
+            let activeVenueCount = activeManagedVenueListingCount(businessId: businessId)
+            let status = BusinessVenueGamePostingStatus.fromServer(
+                entitlement,
+                activeVenueCount: activeVenueCount
+            )
+            planType = status.planType
+            planStatus = status.planStatus
+            includedWithPaidPro = status.includesFanGeoPlusWithPaidPro
+        }
+
+        let effective = manualEnabled || includedWithPaidPro
+        await MainActor.run {
+            FanGeoBusinessEntitlements.apply(
+                effectiveBusinessFanGeoPlus: effective,
+                businessId: businessId,
+                businessFanGeoPlusManuallyEnabled: manualEnabled,
+                includedWithPaidPro: includedWithPaidPro
+            )
+        }
+        logBusinessFanGeoPlusEntitlementRefresh(
+            businessId: businessId,
+            manualEnabled: manualEnabled,
+            planType: planType,
+            planStatus: planStatus,
+            includedWithPaidPro: includedWithPaidPro,
+            effective: effective,
+            reason: reason
+        )
+    }
+
+    private func logBusinessFanGeoPlusEntitlementRefresh(
+        businessId: UUID?,
+        manualEnabled: Bool,
+        planType: String,
+        planStatus: String,
+        includedWithPaidPro: Bool,
+        effective: Bool,
+        reason: String
+    ) {
+        print("[BusinessFanGeoPlusDebug] business_id=\(businessId?.uuidString.lowercased() ?? "nil")")
+        print("[BusinessFanGeoPlusDebug] business_fangeo_plus_enabled=\(manualEnabled)")
+        print("[BusinessFanGeoPlusDebug] plan_type=\(planType)")
+        print("[BusinessFanGeoPlusDebug] plan_status=\(planStatus)")
+        print("[BusinessFanGeoPlusDebug] includedWithPaidPro=\(includedWithPaidPro)")
+        print("[BusinessFanGeoPlusDebug] effectiveBusinessFanGeoPlus=\(effective)")
+        print("[BusinessFanGeoPlusDebug] reason=\(reason)")
+    }
 }

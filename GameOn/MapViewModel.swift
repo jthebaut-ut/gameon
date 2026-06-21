@@ -597,10 +597,15 @@ final class MapViewModel: ObservableObject {
     /// Stored without `@`, lowercase — public FanGeo handle.
     @Published var currentUserUsername: String = ""
     @Published var currentUserBio: String = ""
+    @Published var currentUserProfileCreatedAt: String = ""
     @Published var currentUserIsBusinessAccount: Bool = false
     @Published var currentUserAvatarURL: String = ""
     @Published var currentUserAvatarThumbnailURL: String = ""
     @Published var currentUserNationalTeam: NationalTeamIdentity?
+    @Published var currentUserHomeCity: String = ""
+    @Published var currentUserHomeRegion: String = ""
+    @Published var currentUserHomeCountry: String = ""
+    @Published var currentUserShowHomeCity: Bool = false
     @Published var isAuthSessionRestoringForProfilePresentation: Bool = false
     @Published var isUserProfileLoadingForPresentation: Bool = false
     @Published var hasLoadedUserProfileForPresentation: Bool = false
@@ -672,11 +677,26 @@ final class MapViewModel: ObservableObject {
     }
 
     var currentUserPublicHandleLine: String {
-        FanGeoHandleRules.publicHandleLine(
+        let base = FanGeoHandleRules.publicHandleLine(
             storedUsername: currentUserUsername,
             email: currentUserEmail
         )
+        return FanGeoHandleRules.handleDisplayLine(
+            base: base,
+            profileCreatedAt: currentUserProfileCreatedAt,
+            showFanSince: !currentUserIsBusinessAccount
+        )
     }
+
+    var currentUserVisibleHomeCityDisplayLine: String? {
+        guard currentUserShowHomeCity else { return nil }
+        return ProfileHomeCityIdentity.displayLine(
+            city: currentUserHomeCity,
+            region: currentUserHomeRegion,
+            country: currentUserHomeCountry
+        )
+    }
+
     /// Best-effort current auth email for social UI decisions (comment ownership, friend chips, etc.).
     var authenticatedSocialEmailForUI: String {
         let fan = OwnerBusinessEmail.normalized(currentUserEmail)
@@ -855,6 +875,8 @@ final class MapViewModel: ObservableObject {
     var followingTodayPlansLoadTask: Task<Void, Never>?
     var lastFollowingTodayPlansLoadAt: Date?
     var followingTabGlobalRefreshTask: Task<Void, Never>?
+    var businessFanGeoPlusRefreshTask: Task<Void, Never>?
+    var lastBusinessFanGeoPlusRefreshAt: Date?
     var myPickupGamesLightweightLoadTask: Task<Void, Never>?
     var lastMyPickupGamesLightweightLoadAt: Date?
     var incomingPickupInvitesLoadTask: Task<Void, Never>?
@@ -1035,6 +1057,8 @@ final class MapViewModel: ObservableObject {
     var discoverPickupMetadataPreloadTask: Task<Void, Never>?
     var discoverPickupMetadataPreloadCompleted = false
     var lastDiscoverCoreRefreshAt: Date?
+    var lastLiveMatchesRefreshAt: Date?
+    var lastCalendarTabBecameActiveAt: Date?
     var loadVenuesRequestID: UUID?
     var loadVenuesPhase1AppliedRequestID: UUID?
     var discoverSelectedDayRefreshTask: Task<Void, Never>?

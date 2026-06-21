@@ -197,48 +197,13 @@ struct PublicProfileOpenToChipGrid: View {
     var body: some View {
         LazyVGrid(columns: columns, spacing: 8) {
             ForEach(items) { item in
-                openToChipCard(item)
-            }
-        }
-    }
-
-    private func openToChipCard(_ item: PublicProfileOpenToItem) -> some View {
-        VStack(spacing: 6) {
-            if item.isSocial {
-                Image(systemName: item.systemImage)
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(item.tint)
-                    .frame(height: 44)
-            } else {
-                FanGeoSportBadgeView(sport: item.id, size: 44, style: .profile)
-            }
-
-            Text(item.title)
-                .font(.system(size: 9, weight: .bold, design: .rounded))
-                .foregroundStyle(FGColor.primaryText(colorScheme))
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .minimumScaleFactor(0.75)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 9)
-        .padding(.horizontal, 4)
-        .background {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            item.tint.opacity(colorScheme == .dark ? 0.22 : 0.14),
-                            Color.white.opacity(colorScheme == .dark ? 0.05 : 0.88)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+                FanOpenToCompactTile(
+                    itemID: item.id,
+                    title: item.title,
+                    systemImage: item.systemImage,
+                    isSocial: item.isSocial
                 )
-                .overlay {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .strokeBorder(item.tint.opacity(0.35), lineWidth: 0.85)
-                }
+            }
         }
     }
 }
@@ -260,54 +225,23 @@ struct SelfProfileOpenToPreviewGrid: View {
         LazyVGrid(columns: columns, spacing: 8) {
             ForEach(items) { item in
                 ZStack(alignment: .topTrailing) {
-                    openToChipCard(item)
+                    FanOpenToCompactTile(
+                        itemID: item.id,
+                        title: item.title,
+                        systemImage: item.systemImage,
+                        isSocial: item.isSocial
+                    )
 
                     removeOpenToButton(item: item)
                         .padding(5)
                 }
             }
 
-            addOpenToButton
-        }
-    }
-
-    private func openToChipCard(_ item: PublicProfileOpenToItem) -> some View {
-        VStack(spacing: 6) {
-            if item.isSocial {
-                Image(systemName: item.systemImage)
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(item.tint)
-                    .frame(height: 44)
-            } else {
-                FanGeoSportBadgeView(sport: item.id, size: 44, style: .profile)
+            Button(action: onAdd) {
+                FanOpenToCompactAddTile()
             }
-
-            Text(item.title)
-                .font(.system(size: 9, weight: .bold, design: .rounded))
-                .foregroundStyle(FGColor.primaryText(colorScheme))
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .minimumScaleFactor(0.75)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 9)
-        .padding(.horizontal, 4)
-        .background {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            item.tint.opacity(colorScheme == .dark ? 0.22 : 0.14),
-                            Color.white.opacity(colorScheme == .dark ? 0.05 : 0.88)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .overlay {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .strokeBorder(item.tint.opacity(0.35), lineWidth: 0.85)
-                }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Add Open To")
         }
     }
 
@@ -334,46 +268,6 @@ struct SelfProfileOpenToPreviewGrid: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Remove \(item.title) from Open To")
-    }
-
-    private var addOpenToButton: some View {
-        Button(action: onAdd) {
-            VStack(spacing: 6) {
-                Image(systemName: "plus")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(FGColor.accentBlue)
-                    .frame(height: 44)
-
-                Text("Add")
-                    .font(.system(size: 9, weight: .bold, design: .rounded))
-                    .foregroundStyle(FGColor.primaryText(colorScheme))
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.75)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 9)
-            .padding(.horizontal, 4)
-            .background {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                FGColor.accentBlue.opacity(colorScheme == .dark ? 0.18 : 0.10),
-                                Color.white.opacity(colorScheme == .dark ? 0.05 : 0.88)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .strokeBorder(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.30 : 0.24), lineWidth: 0.85)
-                    }
-            }
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Add Open To")
     }
 }
 

@@ -1106,7 +1106,8 @@ final class ChatViewModel: ObservableObject {
         let senderPreview = previewFromFriendRow
             ?? deletedUserPreview(userId: row.sender_id)
         let trimmed = row.body.trimmingCharacters(in: .whitespacesAndNewlines)
-        let snippet = trimmed.isEmpty ? "New message" : String(trimmed.prefix(120))
+        let previewSource = FanProfileShareMessage.inboxPreview(from: trimmed) ?? trimmed
+        let snippet = previewSource.isEmpty ? "New message" : String(previewSource.prefix(120))
         dmInAppNotification = DmInAppNotificationPayload(
             id: row.id,
             conversationId: row.conversation_id,
@@ -1581,12 +1582,13 @@ final class ChatViewModel: ObservableObject {
                 logDeletedUserRenderDebug(surface: "dm_inbox", preview: preview)
 
                 let body = row.last_message_body?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+                let displayBody = body.flatMap { FanProfileShareMessage.inboxPreview(from: $0) ?? $0 }
                 let rawPreview: String
-                if let body, !body.isEmpty {
+                if let displayBody, !displayBody.isEmpty {
                     if row.last_message_sender_id == me {
-                        rawPreview = "You: \(body)"
+                        rawPreview = "You: \(displayBody)"
                     } else {
-                        rawPreview = body
+                        rawPreview = displayBody
                     }
                 } else {
                     rawPreview = "Say hi"
@@ -1723,6 +1725,40 @@ final class ChatViewModel: ObservableObject {
         try await directChatService.startDirectConversation(friendUserId: friendUserId)
     }
 
+    /// Sends an encoded profile-share DM to one or more existing friends/chats.
+    func shareFanProfileMessage(body: String, toRecipientUserIds friendUserIds: [UUID]) async -> String? {
+        guard !friendUserIds.isEmpty else { return "Choose at least one friend." }
+        let trimmedBody = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedBody.isEmpty else { return "This profile can't be shared right now." }
+
+        do {
+            let me = try await directChatService.currentUserId()
+            var sentCount = 0
+            for friendUserId in friendUserIds {
+                if isEitherDirectionBlocked(with: friendUserId) { continue }
+                let conversationId = try await directChatService.startDirectConversation(friendUserId: friendUserId)
+                if let limited = RateLimitService.checkDirectChatSend(conversationId: conversationId, body: trimmedBody) {
+                    if sentCount == 0 { return limited }
+                    continue
+                }
+                _ = try await directChatService.sendMessage(
+                    conversationId: conversationId,
+                    senderId: me,
+                    body: trimmedBody
+                )
+                RateLimitService.recordDirectChatSend(conversationId: conversationId, body: trimmedBody)
+                FanGeoAnalyticsService.recordDMSent(conversationId: conversationId)
+                sentCount += 1
+            }
+            guard sentCount > 0 else { return "Couldn't share profile. Try again." }
+            await refreshInboxSummaries()
+            requestBadgeRecalculation(reason: "profileShareSent", includeInboxSummaries: true)
+            return nil
+        } catch {
+            return "Couldn't share profile. Try again."
+        }
+    }
+
     func refresh() async {
         let fullRefreshStartedAt = CFAbsoluteTimeGetCurrent()
         isLoading = true
@@ -1761,12 +1797,13 @@ final class ChatViewModel: ObservableObject {
                 logDeletedUserRenderDebug(surface: "dm_inbox", preview: preview)
 
                 let body = row.last_message_body?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+                let displayBody = body.flatMap { FanProfileShareMessage.inboxPreview(from: $0) ?? $0 }
                 let rawPreview: String
-                if let body, !body.isEmpty {
+                if let displayBody, !displayBody.isEmpty {
                     if row.last_message_sender_id == me {
-                        rawPreview = "You: \(body)"
+                        rawPreview = "You: \(displayBody)"
                     } else {
-                        rawPreview = body
+                        rawPreview = displayBody
                     }
                 } else {
                     rawPreview = "Say hi"

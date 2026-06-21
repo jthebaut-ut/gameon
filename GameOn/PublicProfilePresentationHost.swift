@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Observes ``MapViewModel/publicProfileSheetUserId`` and drives ``PublicProfileOverlayWindowPresenter`` (no SwiftUI modal).
+/// Observes ``MapViewModel/publicProfileSheetUserId`` and drives full-screen ``PublicProfileOverlayWindowPresenter``.
 struct PublicProfilePresentationHost<Content: View>: View {
     @ObservedObject var viewModel: MapViewModel
     @ObservedObject var chatViewModel: ChatViewModel

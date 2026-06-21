@@ -619,9 +619,11 @@ struct FriendsTabView: View {
                         if !fansLiveNowEntries.isEmpty {
                             fansLiveNowStrip
                                 .padding(.horizontal, 16)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                         chatsInboxList(layoutWidth: layoutGeo.size.width)
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 }
             }
         }
@@ -1589,6 +1591,15 @@ private struct AddFriendGlassSheet: View {
 
 // MARK: - Fans Live Now (Chat Chats tab)
 
+private enum ChatFansLiveNowMetrics {
+    static let avatarSize: CGFloat = 58
+    static let ringSize: CGFloat = 66
+    static let labelSpacing: CGFloat = 6
+    static let nameLineHeight: CGFloat = 16
+    static let subtitleLineHeight: CGFloat = 14
+    static let rowHeight: CGFloat = ringSize + labelSpacing + nameLineHeight + labelSpacing + subtitleLineHeight
+}
+
 struct ChatFansLiveNowEntry: Identifiable, Hashable {
     let id: UUID
     let preview: UserPreview
@@ -1710,7 +1721,9 @@ private struct ChatFansLiveNowStripView: View {
                     }
                 }
             }
+            .frame(height: ChatFansLiveNowMetrics.rowHeight)
         }
+        .fixedSize(horizontal: false, vertical: true)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Fans live now")
     }
@@ -1722,14 +1735,14 @@ private struct ChatFansLiveNowCell: View {
     let entry: ChatFansLiveNowEntry
     let onOpenProfile: (UUID) -> Void
 
-    private let avatarSize: CGFloat = 58
-    private let ringSize: CGFloat = 66
+    private var avatarSize: CGFloat { ChatFansLiveNowMetrics.avatarSize }
+    private var ringSize: CGFloat { ChatFansLiveNowMetrics.ringSize }
 
     var body: some View {
         Button {
             onOpenProfile(entry.id)
         } label: {
-            VStack(spacing: 6) {
+            VStack(spacing: ChatFansLiveNowMetrics.labelSpacing) {
                 ZStack {
                     Circle()
                         .strokeBorder(FGColor.accentGreen.opacity(0.92), lineWidth: 2.5)

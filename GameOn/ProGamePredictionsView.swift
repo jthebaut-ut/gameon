@@ -148,6 +148,18 @@ private enum ProGamePredictionSheetMetrics {
     static let headerEmblemSize: CGFloat = 40
 }
 
+#if DEBUG
+private enum ProPredictionPerf {
+    static func log(_ event: String, gameId: String, durationMs: Int? = nil) {
+        if let durationMs {
+            print("[ProPredictionPerf] \(event) gameId=\(gameId) durationMs=\(durationMs)")
+        } else {
+            print("[ProPredictionPerf] \(event) gameId=\(gameId)")
+        }
+    }
+}
+#endif
+
 struct ProGamePredictionSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
@@ -169,6 +181,8 @@ struct ProGamePredictionSheet: View {
     @State private var now = Date()
     @State private var baselineHomeScore = 0
     @State private var baselineAwayScore = 0
+    @State private var isSheetContentExpanded = false
+    @State private var sheetDisplayGame: SavedProGame?
 
     private let scoreRange = 0...20
     private let lockTimer = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
@@ -179,7 +193,7 @@ struct ProGamePredictionSheet: View {
         viewModel.proGamePredictionSummaries[game.stableKey] ?? .empty(proGameID: game.stableKey)
     }
     private var displayGame: SavedProGame {
-        viewModel.currentSavedProGameSnapshot(game)
+        sheetDisplayGame ?? game
     }
     private var resolvedUserPredictions: VenueEventUserPredictions? {
         if isLocked {
@@ -195,6 +209,12 @@ struct ProGamePredictionSheet: View {
     private var isLocked: Bool { now > game.proGamePredictionLockTime }
     private var canEdit: Bool { !isLocked && viewModel.canUseFanSocialFeatures }
     private var showResultsMode: Bool { displayGame.isFinal }
+    private var hasPrefetchedSummary: Bool {
+        viewModel.proGamePredictionSummaries[game.stableKey] != nil
+    }
+    private var shouldShowFullScreenLoading: Bool {
+        isLoading && !hasPrefetchedSummary
+    }
     private var hasSubmittedPrediction: Bool {
         didSavePredictions || summary.userPredictions?.hasAnyPrediction == true
     }
@@ -209,7 +229,7 @@ struct ProGamePredictionSheet: View {
         return count == 1 ? "1 fan has voted" : "\(count) fans have voted"
     }
     private var shouldUseOptimisticCrowd: Bool {
-        canEdit && !isLocked && !showSummaryMode && !showResultsMode && !isLoading
+        canEdit && !isLocked && !showSummaryMode && !showResultsMode && !shouldShowFullScreenLoading
     }
     private var votingCrowdDisplay: ProGamePredictionOptimisticCrowd.Display {
         ProGamePredictionOptimisticCrowd.display(
@@ -229,7 +249,7 @@ struct ProGamePredictionSheet: View {
         return canEdit ? 96 : 24
     }
     private var votingContentSpacing: CGFloat {
-        if isLoading || showResultsMode || isLocked || showSummaryMode { return FGSpacing.lg }
+        if shouldShowFullScreenLoading || showResultsMode || isLocked || showSummaryMode { return FGSpacing.lg }
         return 14
     }
 
@@ -237,14 +257,26 @@ struct ProGamePredictionSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: FGSpacing.lg) {
-                    predictionMatchHeader
+                    if isSheetContentExpanded {
+                        if shouldShowFullScreenLoading {
+                            loadingMatchHeader
+                        } else {
+                            predictionMatchHeader
+                        }
+                    } else {
+                        loadingMatchHeader
+                    }
 
                     if !showResultsMode {
                         lockBanner
                     }
 
                     VStack(alignment: .leading, spacing: votingContentSpacing) {
-                        if isLoading {
+                        if !isSheetContentExpanded {
+                            ProgressView()
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 28)
+                        } else if shouldShowFullScreenLoading {
                             ProgressView()
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 28)
@@ -265,13 +297,20 @@ struct ProGamePredictionSheet: View {
                                 .frame(maxWidth: .infinity, alignment: .center)
                         }
 
-                        footerNote
+                        if isSheetContentExpanded {
+                            footerNote
+                        }
                     }
                     .padding(.horizontal, 18)
                 }
                 .padding(.bottom, bottomInsetPadding)
             }
             .fanGeoScreenBackground()
+            .onAppear {
+#if DEBUG
+                ProPredictionPerf.log("firstBodyPaint", gameId: game.stableKey)
+#endif
+            }
             .navigationTitle("Predictions")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -301,6 +340,12 @@ struct ProGamePredictionSheet: View {
                 bottomBar
             }
             .task {
+                sheetDisplayGame = game
+                await Task.yield()
+                isSheetContentExpanded = true
+#if DEBUG
+                ProPredictionPerf.log("contentExpanded", gameId: game.stableKey)
+#endif
                 await loadPredictionData()
                 await viewModel.startProGamePredictionRealtime(for: game.stableKey)
             }
@@ -310,6 +355,26 @@ struct ProGamePredictionSheet: View {
             .onReceive(lockTimer) { value in
                 now = value
             }
+        }
+    }
+
+    private var loadingMatchHeader: some View {
+        VStack(spacing: 20) {
+            scheduledHeaderContent
+            Text(headerDateLine)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(headerSecondaryText)
+                .multilineTextAlignment(.center)
+            headerCompetitionRow
+        }
+        .padding(.horizontal, ProGamePredictionSheetMetrics.headerHorizontalPadding)
+        .padding(.vertical, ProGamePredictionSheetMetrics.headerVerticalPadding)
+        .frame(maxWidth: .infinity)
+        .background(predictionHeaderBackground)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(FGColor.divider(colorScheme).opacity(colorScheme == .dark ? 0.35 : 0.18))
+                .frame(height: 1)
         }
     }
 
@@ -330,9 +395,10 @@ struct ProGamePredictionSheet: View {
                     .multilineTextAlignment(.center)
             }
 
-            headerGoalScorerSection
-
-            headerCardEventsSection
+            if isSheetContentExpanded {
+                headerGoalScorerSection
+                headerCardEventsSection
+            }
 
             headerCompetitionRow
         }
@@ -1650,25 +1716,59 @@ struct ProGamePredictionSheet: View {
 
     @MainActor
     private func loadPredictionData() async {
-        isLoading = true
-        defer { isLoading = false }
-        await viewModel.refreshProGamePredictionSummary(proGameId: game.stableKey)
-        do {
-            let predictions = try await ProGamePredictionService.shared.fetchUserPrediction(proGameId: game.stableKey)
-            selectedWinner = predictions.winner ?? ""
-            selectedFirstScore = predictions.firstScoreTeam ?? ""
-            homeScore = predictions.homeScore ?? 0
-            awayScore = predictions.awayScore ?? 0
-            baselineHomeScore = homeScore
-            baselineAwayScore = awayScore
-            if predictions.hasAnyPrediction {
-                didSavePredictions = true
-                isEditingPredictions = false
+#if DEBUG
+        let loadStartedAt = CFAbsoluteTimeGetCurrent()
+        ProPredictionPerf.log("loadStarted", gameId: game.stableKey)
+#endif
+        applyDraftFromCachedSummaryIfAvailable()
+        if !hasPrefetchedSummary {
+            isLoading = true
+        }
+
+        await viewModel.loadProGamePredictionSummaries(proGameIds: [game.stableKey], forceRefresh: false)
+        applyDraftFromCachedSummaryIfAvailable()
+
+        if let summary = viewModel.proGamePredictionSummaries[game.stableKey],
+           summary.userPredictionsLoaded,
+           let predictions = summary.userPredictions {
+            applyDraftFromUserPredictions(predictions)
+        } else {
+            do {
+                let predictions = try await ProGamePredictionService.shared.fetchUserPrediction(proGameId: game.stableKey)
+                applyDraftFromUserPredictions(predictions)
+            } catch {
+                if !VenueEventPredictionUserMessage.isCancellation(error) {
+                    errorMessage = error.localizedDescription
+                }
             }
-        } catch {
-            if !VenueEventPredictionUserMessage.isCancellation(error) {
-                errorMessage = error.localizedDescription
-            }
+        }
+
+        isLoading = false
+        sheetDisplayGame = viewModel.currentSavedProGameSnapshot(game)
+#if DEBUG
+        let durationMs = Int((CFAbsoluteTimeGetCurrent() - loadStartedAt) * 1000)
+        ProPredictionPerf.log("loadFinished", gameId: game.stableKey, durationMs: durationMs)
+#endif
+    }
+
+    @MainActor
+    private func applyDraftFromCachedSummaryIfAvailable() {
+        guard let predictions = viewModel.proGamePredictionSummaries[game.stableKey]?.userPredictions,
+              predictions.hasAnyPrediction else { return }
+        applyDraftFromUserPredictions(predictions)
+    }
+
+    @MainActor
+    private func applyDraftFromUserPredictions(_ predictions: VenueEventUserPredictions) {
+        selectedWinner = predictions.winner ?? ""
+        selectedFirstScore = predictions.firstScoreTeam ?? ""
+        homeScore = predictions.homeScore ?? 0
+        awayScore = predictions.awayScore ?? 0
+        baselineHomeScore = homeScore
+        baselineAwayScore = awayScore
+        if predictions.hasAnyPrediction {
+            didSavePredictions = true
+            isEditingPredictions = false
         }
     }
 

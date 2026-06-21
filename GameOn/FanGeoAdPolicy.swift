@@ -25,6 +25,36 @@ enum FanGeoUserEntitlements {
     }
 }
 
+@MainActor
+enum FanGeoBusinessEntitlements {
+    /// Effective business FanGeo+ (manual admin flag or paid/subscription Pro — not launch promo).
+    private(set) static var effectiveBusinessFanGeoPlus = false
+    private(set) static var businessId: UUID?
+    private(set) static var businessFanGeoPlusManuallyEnabled = false
+    private(set) static var includedWithPaidPro = false
+
+    static func apply(
+        effectiveBusinessFanGeoPlus effective: Bool,
+        businessId id: UUID?,
+        businessFanGeoPlusManuallyEnabled manualEnabled: Bool = false,
+        includedWithPaidPro paidProIncluded: Bool = false
+    ) {
+        effectiveBusinessFanGeoPlus = effective
+        businessId = id
+        businessFanGeoPlusManuallyEnabled = manualEnabled
+        includedWithPaidPro = paidProIncluded
+        FanGeoAdPolicy.logMountPolicy(source: "businessEntitlementApply")
+    }
+
+    static func reset() {
+        effectiveBusinessFanGeoPlus = false
+        businessId = nil
+        businessFanGeoPlusManuallyEnabled = false
+        includedWithPaidPro = false
+        FanGeoAdPolicy.logMountPolicy(source: "businessEntitlementReset")
+    }
+}
+
 // MARK: - Central ad visibility policy
 
 enum FanGeoAdPolicy {
@@ -74,22 +104,22 @@ enum FanGeoAdPolicy {
         }
     }
 
-    /// Reserved hook for future business-account ad policy.
+    /// Business FanGeo+ ad suppression (manual admin flag or paid/subscription Pro only).
     static func shouldSuppressForBusinessPolicy(isBusinessAccount: Bool) -> Bool {
-        _ = isBusinessAccount
-        return false
+        guard isBusinessAccount else { return false }
+        return FanGeoBusinessEntitlements.effectiveBusinessFanGeoPlus
     }
 
     static var adsSuppressed: Bool {
         isScreenshotModeActive
             || FanGeoUserEntitlements.adFreeEnabled
-            || shouldSuppressForBusinessPolicy(isBusinessAccount: false)
+            || FanGeoBusinessEntitlements.effectiveBusinessFanGeoPlus
     }
 
     static var adsSuppressionReason: String? {
         if isScreenshotModeActive { return "screenshotMode" }
         if FanGeoUserEntitlements.adFreeEnabled { return "adFreeEntitlement" }
-        if shouldSuppressForBusinessPolicy(isBusinessAccount: false) { return "businessPolicy" }
+        if FanGeoBusinessEntitlements.effectiveBusinessFanGeoPlus { return "businessFanGeoPlus" }
         return nil
     }
 

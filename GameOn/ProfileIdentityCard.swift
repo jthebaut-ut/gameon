@@ -88,6 +88,11 @@ struct ProfileIdentityCard: View {
     @State private var editedDisplayName = ""
     @State private var editedUsername = ""
     @State private var editedBio = ""
+    @State private var editedHomeCity = ""
+    @State private var editedHomeRegion = ""
+    @State private var editedHomeCountry = ""
+    @State private var editedHomeCityDisplay = ""
+    @State private var editedShowHomeCity = false
     @State private var identityMessage = ""
     @State private var handleStatusMessage = ""
     @State private var handleStatusIsPositive = false
@@ -229,9 +234,63 @@ struct ProfileIdentityCard: View {
         return local.prefix(1).uppercased() + local.dropFirst()
     }
 
-    /// Persisted @handle, or temporary email-prefix fallback only (never saved as username).
+    /// Persisted @handle without fan-since suffix (shown separately in compact identity rows).
     private var handleLine: String {
-        viewModel.currentUserPublicHandleLine
+        let base = FanGeoHandleRules.publicHandleLine(
+            storedUsername: viewModel.currentUserUsername,
+            email: viewModel.currentUserEmail
+        )
+        return FanGeoHandleRules.handleDisplayLine(
+            base: base,
+            profileCreatedAt: viewModel.currentUserProfileCreatedAt,
+            showFanSince: false
+        )
+    }
+
+    private var profileIdentityStripColumns: [ProfileIdentityStripColumn] {
+        var columns: [ProfileIdentityStripColumn] = []
+        if let identity = viewModel.currentUserNationalTeam {
+            columns.append(
+                ProfileIdentityStripColumn(
+                    id: .nationalTeam,
+                    title: identity.resolvedSupporterLabel(languageCode: appLanguageRaw),
+                    subtitle: NationalTeamCopy.text("world_cup_2026", languageCode: appLanguageRaw),
+                    action: { openNationalTeamPicker() }
+                )
+            )
+        }
+        if let venue = viewModel.currentUserHomeCrowdVenue {
+            let venueName = venue.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !venueName.isEmpty {
+                columns.append(
+                    ProfileIdentityStripColumn(
+                        id: .homeCrowd,
+                        title: L10n.t("home_crowd", languageCode: appLanguageRaw),
+                        subtitle: venueName,
+                        action: { viewModel.focusDiscoverOnHomeCrowdVenue() }
+                    )
+                )
+            }
+        }
+        if let homeCity = viewModel.currentUserVisibleHomeCityDisplayLine {
+            columns.append(
+                ProfileIdentityStripColumn(
+                    id: .homeCity,
+                    title: "Location",
+                    subtitle: homeCity
+                )
+            )
+        }
+        if let fanSince = FanGeoHandleRules.fanSinceMonthYear(from: viewModel.currentUserProfileCreatedAt) {
+            columns.append(
+                ProfileIdentityStripColumn(
+                    id: .fanSince,
+                    title: "Fan Since",
+                    subtitle: fanSince
+                )
+            )
+        }
+        return columns
     }
 
     private var bioLine: String {
@@ -336,10 +395,6 @@ struct ProfileIdentityCard: View {
 
                 profileSectionContainer(.hero) {
                     heroBlock
-                }
-
-                profileSectionContainer(.primary, accent: [FGColor.accentGreen, FGColor.accentBlue]) {
-                    nationalTeamSection
                 }
 
                 if canShowOwnerPokesHighlights {
@@ -1923,17 +1978,19 @@ struct ProfileIdentityCard: View {
         .padding(.top, 12)
     }
 
-    // MARK: - Hero (compact header + stats)
+    // MARK: - Hero
 
     private var heroBlock: some View {
         VStack(alignment: .leading, spacing: 16) {
             headerRow
-                .padding(.horizontal, 18)
-                .padding(.top, 18)
 
-            statsRow
-                .padding(.horizontal, 16)
+            if !profileIdentityStripColumns.isEmpty {
+                profileHeroIdentityPanel
+            }
         }
+        .padding(.horizontal, 18)
+        .padding(.top, 18)
+        .padding(.bottom, 18)
     }
 
     private var headerRow: some View {
@@ -1945,33 +2002,29 @@ struct ProfileIdentityCard: View {
             .buttonStyle(.plain)
             .accessibilityLabel("Update profile photo")
 
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 10) {
                 Button {
                     presentIdentityEditor(focusedField: .displayName)
                 } label: {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 5) {
                         HStack(spacing: 6) {
                             Text(displayName)
-                                .font(.system(size: 24, weight: .bold, design: .rounded))
+                                .font(.system(size: 26, weight: .bold, design: .rounded))
                                 .foregroundStyle(FGColor.primaryText(colorScheme))
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.72)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.82)
 
                             if reputation.privileges.isVerifiedOrganizer {
                                 Image(systemName: "checkmark.seal.fill")
-                                    .font(.system(size: 14, weight: .bold))
+                                    .font(.system(size: 15, weight: .bold))
                                     .foregroundStyle(FGColor.accentBlue)
                             }
                         }
 
                         Text(handleLine)
-                            .font(.system(size: 12.5, weight: .semibold, design: .rounded))
+                            .font(.system(size: 13.5, weight: .semibold, design: .rounded))
                             .foregroundStyle(FGColor.secondaryText(colorScheme))
                             .lineLimit(1)
-
-                        if let primaryFavoriteTeam {
-                            trophyTeamHeaderBadge(primaryFavoriteTeam)
-                        }
                     }
                     .contentShape(Rectangle())
                 }
@@ -1982,10 +2035,10 @@ struct ProfileIdentityCard: View {
                     presentIdentityEditor(focusedField: .bio)
                 } label: {
                     Text(bioLine.isEmpty ? "Add a short bio so fans know your vibe." : bioLine)
-                        .font(.system(size: 13, weight: .medium, design: .rounded))
-                        .foregroundStyle(bioLine.isEmpty ? FGColor.mutedText(colorScheme) : FGColor.primaryText(colorScheme).opacity(0.82))
-                        .lineLimit(2)
-                        .lineSpacing(2)
+                        .font(.system(size: 14.5, weight: .medium, design: .rounded))
+                        .foregroundStyle(bioLine.isEmpty ? FGColor.mutedText(colorScheme) : FGColor.primaryText(colorScheme).opacity(0.88))
+                        .lineLimit(3)
+                        .lineSpacing(3)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1994,85 +2047,172 @@ struct ProfileIdentityCard: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(bioLine.isEmpty ? "Add bio" : "Edit bio")
 
-                HStack(spacing: 7) {
-                    reputationPill
-
-                    if !identityMessage.isEmpty {
-                        Text(identityMessage)
-                            .font(.system(size: 10, weight: .semibold, design: .rounded))
-                            .foregroundStyle(identityMessage.contains("updated") || identityMessage == "Saved." ? FGColor.accentGreen : FGColor.secondaryText(colorScheme))
-                            .lineLimit(1)
-                    }
+                if reputation.privileges.isVerifiedOrganizer {
+                    verifiedOrganizerHeroBadge
                 }
-                .padding(.top, 1)
+
+                editProfileHeroButton
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
-    private var reputationPill: some View {
+    private var editProfileHeroButton: some View {
+        Button {
+            presentIdentityEditor(focusedField: .displayName)
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "square.and.pencil")
+                    .font(.system(size: 9, weight: .bold))
+                Text("Edit Profile")
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+            }
+            .foregroundStyle(FGColor.accentBlue)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background {
+                Capsule()
+                    .fill(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.14 : 0.10))
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Edit Profile")
+    }
+
+    private var profileHeroIdentityPanel: some View {
+        let columns = profileIdentityStripColumns
+        return HStack(alignment: .top, spacing: 0) {
+            ForEach(Array(columns.enumerated()), id: \.element.id) { index, column in
+                if index > 0 {
+                    Rectangle()
+                        .fill(FGColor.divider(colorScheme).opacity(colorScheme == .dark ? 0.5 : 0.75))
+                        .frame(width: 1)
+                        .padding(.vertical, 8)
+                }
+
+                profileHeroIdentityColumnView(column)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, index == 0 || index == columns.count - 1 ? 2 : 6)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 14)
+        .frame(maxWidth: .infinity, alignment: .top)
+        .background {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(profileHeroIdentityPanelFill)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(profileHeroIdentityPanelBorder, lineWidth: 1)
+        }
+    }
+
+    private var profileHeroIdentityPanelFill: Color {
+        colorScheme == .dark
+            ? Color(red: 0.10, green: 0.14, blue: 0.20).opacity(0.92)
+            : Color(red: 0.93, green: 0.95, blue: 0.99)
+    }
+
+    private var profileHeroIdentityPanelBorder: Color {
+        colorScheme == .dark
+            ? FGColor.divider(colorScheme).opacity(0.65)
+            : Color(red: 0.84, green: 0.88, blue: 0.95)
+    }
+
+    private func profileHeroIdentityColumnView(_ column: ProfileIdentityStripColumn) -> some View {
+        let content = VStack(spacing: 8) {
+            profileHeroIdentityIcon(for: column)
+
+            Text(column.title)
+                .font(.system(size: 12.5, weight: .bold, design: .rounded))
+                .foregroundStyle(FGColor.primaryText(colorScheme).opacity(0.92))
+                .multilineTextAlignment(.center)
+                .lineLimit(3)
+                .minimumScaleFactor(0.82)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(column.subtitle)
+                .font(.system(size: 11.5, weight: .medium, design: .rounded))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .multilineTextAlignment(.center)
+                .lineLimit(3)
+                .minimumScaleFactor(0.82)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity)
+
+        return Group {
+            if let action = column.action {
+                Button(action: action) {
+                    content
+                }
+                .buttonStyle(.plain)
+            } else {
+                content
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func profileHeroIdentityIcon(for column: ProfileIdentityStripColumn) -> some View {
+        switch column.id {
+        case .nationalTeam:
+            if let flag = viewModel.currentUserNationalTeam?.flag.trimmingCharacters(in: .whitespacesAndNewlines),
+               !flag.isEmpty {
+                Text(flag)
+                    .font(.system(size: 20))
+                    .frame(width: 38, height: 38)
+                    .background {
+                        Circle()
+                            .fill(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.18 : 0.12))
+                    }
+            } else {
+                profileHeroIdentitySymbolIcon("globe.americas.fill", tint: FGColor.accentGreen)
+            }
+        case .homeCrowd:
+            profileHeroIdentitySymbolIcon(
+                "sportscourt.fill",
+                tint: Color(red: 0.58, green: 0.42, blue: 0.92)
+            )
+        case .homeCity:
+            profileHeroIdentitySymbolIcon(
+                "mappin.and.ellipse",
+                tint: Color(red: 0.22, green: 0.48, blue: 0.96)
+            )
+        case .fanSince:
+            profileHeroIdentitySymbolIcon(
+                "calendar",
+                tint: Color(red: 0.22, green: 0.48, blue: 0.96)
+            )
+        }
+    }
+
+    private func profileHeroIdentitySymbolIcon(_ name: String, tint: Color) -> some View {
+        Image(systemName: name)
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundStyle(tint)
+            .frame(width: 38, height: 38)
+            .background {
+                Circle()
+                    .fill(tint.opacity(colorScheme == .dark ? 0.2 : 0.12))
+            }
+    }
+
+    private var verifiedOrganizerHeroBadge: some View {
         HStack(spacing: 5) {
-            Image(systemName: reputation.privileges.isVerifiedOrganizer ? "checkmark.seal.fill" : "bolt.heart.fill")
-                .font(.system(size: 9.5, weight: .bold))
-            Text(localizedReputationTitle(reputation.title).uppercased())
-                .font(.system(size: 9.5, weight: .bold, design: .rounded))
-                .tracking(0.55)
+            Image(systemName: "checkmark.seal.fill")
+                .font(.system(size: 10, weight: .bold))
+            Text("VERIFIED ORGANIZER")
+                .font(.system(size: 10, weight: .bold, design: .rounded))
+                .tracking(0.45)
                 .lineLimit(1)
         }
         .foregroundStyle(FGColor.accentGreen)
-        .padding(.horizontal, 8)
+        .padding(.horizontal, 9)
         .padding(.vertical, 5)
         .background(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.16 : 0.11))
         .clipShape(Capsule())
-    }
-
-    private func localizedReputationTitle(_ title: String) -> String {
-        switch title {
-        case "Rookie Fan":
-            return L10n.t("rookie_fan", languageCode: appLanguageRaw)
-        case "Venue Regular":
-            return L10n.t("venue_regular", languageCode: appLanguageRaw)
-        case "Home Crowd":
-            return L10n.t("home_crowd", languageCode: appLanguageRaw)
-        default:
-            return title
-        }
-    }
-
-    private func trophyTeamHeaderBadge(_ team: FavoriteTeam) -> some View {
-        HStack(spacing: 7) {
-            Image(systemName: "trophy.fill")
-                .font(.system(size: 11, weight: .heavy))
-                .foregroundStyle(FGColor.accentYellow)
-            Text(L10n.t("my_team", languageCode: appLanguageRaw))
-                .font(.system(size: 9, weight: .heavy, design: .rounded))
-                .foregroundStyle(FGColor.accentYellow)
-                .textCase(.uppercase)
-                .tracking(0.6)
-            Text(team.shortCode?.isEmpty == false ? team.shortCode! : team.name)
-                .font(.system(size: 12, weight: .heavy, design: .rounded))
-                .foregroundStyle(FGColor.primaryText(colorScheme))
-                .lineLimit(1)
-                .minimumScaleFactor(0.78)
-        }
-        .padding(.horizontal, 9)
-        .padding(.vertical, 5)
-        .background {
-            Capsule(style: .continuous)
-                .fill(FGColor.accentYellow.opacity(colorScheme == .dark ? 0.16 : 0.11))
-                .overlay {
-                    Capsule(style: .continuous)
-                        .strokeBorder(FGColor.accentYellow.opacity(colorScheme == .dark ? 0.30 : 0.22), lineWidth: 1)
-                }
-        }
-        .shadow(color: FGColor.accentYellow.opacity(colorScheme == .dark ? 0.20 : 0.12), radius: 9, y: 3)
-        .onAppear {
-#if DEBUG
-            print("[FavoriteTeamsDebug] primaryTeamDisplayed=\(team.id)")
-            print("[FavoriteTeamsDebug] userFacingPrimaryLabel=MyTeam")
-            print("[FavoriteTeamsDebug] primaryTeamDisplayUpdated=true")
-#endif
-        }
     }
 
     private var profileHeroPokesBadgeVisible: Bool {
@@ -2227,6 +2367,23 @@ struct ProfileIdentityCard: View {
                             .frame(maxWidth: .infinity, alignment: .trailing)
                     }
 
+                    identityFieldCard(title: "Home City", subtitle: "Optional. Example: Lehi, Utah") {
+                        ProfileHomeCityAutocompleteField(
+                            city: $editedHomeCity,
+                            region: $editedHomeRegion,
+                            country: $editedHomeCountry,
+                            displayText: $editedHomeCityDisplay
+                        )
+
+                        Toggle(isOn: $editedShowHomeCity) {
+                            Text("Show Home City on Profile")
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .foregroundStyle(FGColor.primaryText(colorScheme))
+                        }
+                        .tint(FGColor.accentGreen)
+                        .disabled(editedHomeCityDisplay.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+
                     if !identityMessage.isEmpty {
                         Text(identityMessage)
                             .font(.system(size: 12, weight: .semibold, design: .rounded))
@@ -2299,6 +2456,15 @@ struct ProfileIdentityCard: View {
         editedDisplayName = displayName
         editedUsername = viewModel.currentUserUsername
         editedBio = limitedBio(viewModel.currentUserBio)
+        editedHomeCity = viewModel.currentUserHomeCity
+        editedHomeRegion = viewModel.currentUserHomeRegion
+        editedHomeCountry = viewModel.currentUserHomeCountry
+        editedHomeCityDisplay = ProfileHomeCityIdentity.displayLine(
+            city: viewModel.currentUserHomeCity,
+            region: viewModel.currentUserHomeRegion,
+            country: viewModel.currentUserHomeCountry
+        ) ?? viewModel.currentUserHomeCity
+        editedShowHomeCity = viewModel.currentUserShowHomeCity
         handleStatusMessage = ""
         handleStatusIsPositive = false
     }
@@ -2392,26 +2558,41 @@ struct ProfileIdentityCard: View {
             return
         }
 
+        if let err = await viewModel.saveUserProfileHomeCity(
+            city: editedHomeCity,
+            region: editedHomeRegion,
+            country: editedHomeCountry,
+            displayFallback: editedHomeCityDisplay,
+            showOnProfile: editedShowHomeCity
+        ) {
+            await MainActor.run { identityMessage = err }
+            return
+        }
+
         await MainActor.run {
-            identityMessage = "Saved."
+            identityMessage = ""
             showIdentityEditor = false
+            viewModel.showSocialActionToast("Saved.", isError: false)
         }
     }
 
     private func replaceAvatar(with item: PhotosPickerItem) async {
         guard viewModel.isLoggedIn else {
-            await MainActor.run { identityMessage = "Please sign in to update your avatar." }
+            await MainActor.run {
+                viewModel.showSocialActionToast("Please sign in to update your avatar.", isError: true)
+            }
             return
         }
 
         await MainActor.run {
             isUploadingAvatar = true
-            identityMessage = "Uploading avatar..."
         }
         defer { Task { @MainActor in isUploadingAvatar = false } }
 
         guard let data = try? await item.loadTransferable(type: Data.self) else {
-            await MainActor.run { identityMessage = profilePhotoPickFailureHint() }
+            await MainActor.run {
+                viewModel.showSocialActionToast(profilePhotoPickFailureHint(), isError: true)
+            }
             return
         }
         let previewImage = UIImage(data: data)
@@ -2421,7 +2602,7 @@ struct ProfileIdentityCard: View {
         guard let urls = await viewModel.uploadUserAvatar(data: data, fileName: "avatar.jpg") else {
             await MainActor.run {
                 localAvatarPreviewImage = nil
-                identityMessage = "Unable to upload avatar."
+                viewModel.showSocialActionToast("Unable to upload avatar.", isError: true)
             }
             return
         }
@@ -2429,7 +2610,9 @@ struct ProfileIdentityCard: View {
         let trimmed = editedDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
         let nextName = trimmed.isEmpty ? displayName : trimmed
         if ModerationService.containsProfanity(nextName) {
-            await MainActor.run { identityMessage = ModerationService.profanityRejectionUserMessage() }
+            await MainActor.run {
+                viewModel.showSocialActionToast(ModerationService.profanityRejectionUserMessage(), isError: true)
+            }
             return
         }
         if let err = await viewModel.saveUserProfile(
@@ -2439,7 +2622,7 @@ struct ProfileIdentityCard: View {
         ) {
             await MainActor.run {
                 localAvatarPreviewImage = nil
-                identityMessage = err
+                viewModel.showSocialActionToast(err, isError: true)
             }
             return
         }
@@ -2454,77 +2637,8 @@ struct ProfileIdentityCard: View {
         }
         await MainActor.run {
             localAvatarPreviewImage = nil
-            identityMessage = "Avatar updated."
+            viewModel.showSocialActionToast("Avatar updated.", isError: false)
         }
-    }
-
-    // MARK: - Stats
-
-    private var statsRow: some View {
-        HStack(spacing: 0) {
-            statCell(value: pickupGamesValue, label: "Pickup\nGames")
-            statDivider
-            statCell(value: venueGamesValue, label: "Venue\nGames")
-            statDivider
-            statCell(value: favoriteTeamsValue, label: "Fav\nTeams")
-            statDivider
-            statCell(value: friendsValue, label: "Friends")
-        }
-        .padding(.horizontal, 4)
-        .padding(.vertical, 9)
-        .background {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color.white.opacity(colorScheme == .dark ? 0.055 : 0.92))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .strokeBorder(Color.black.opacity(colorScheme == .dark ? 0.0 : 0.045), lineWidth: 0.75)
-                }
-        }
-        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.08 : 0.035), radius: 10, y: 5)
-    }
-
-    private var statDivider: some View {
-        Rectangle()
-            .fill(Color.black.opacity(colorScheme == .dark ? 0.14 : 0.06))
-            .frame(width: 1)
-            .padding(.vertical, 3)
-    }
-
-    private var pickupGamesValue: String {
-        let localApproved = viewModel.myPickupGameJoinRequestCards.filter { $0.pill == .approved }.count
-        let n = profileStatsCounts?.pickupGamesCount ?? localApproved
-        return n > 0 ? "\(n)" : "—"
-    }
-
-    private var venueGamesValue: String {
-        let n = profileStatsCounts?.venueGamesCount ?? viewModel.followingTabGoingItems.filter { $0.isServerGoing }.count
-        return n > 0 ? "\(n)" : "—"
-    }
-
-    private var favoriteTeamsValue: String {
-        let n = profileStatsCounts?.favoriteTeamsCount ?? selectedTeams.count
-        return n > 0 ? "\(n)" : "—"
-    }
-
-    private var friendsValue: String {
-        let n = profileStatsCounts?.friendsCount ?? chatViewModel.friends.count
-        return n > 0 ? "\(n)" : "—"
-    }
-
-    private func statCell(value: String, label: String) -> some View {
-        VStack(spacing: 2) {
-            Text(value)
-                .font(.system(size: 17, weight: .bold, design: .rounded))
-                .foregroundStyle(FGColor.primaryText(colorScheme))
-
-            Text(label)
-                .font(.system(size: 10, weight: .semibold, design: .rounded))
-                .foregroundStyle(FGColor.mutedText(colorScheme))
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .minimumScaleFactor(0.7)
-        }
-        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Home Crowd
@@ -2628,51 +2742,6 @@ struct ProfileIdentityCard: View {
                 return
             }
             print("[FanIdentityOpenTo] quickRemoveSaved")
-        }
-    }
-
-    // MARK: - National Team
-
-    private var nationalTeamSection: some View {
-        VStack(alignment: .leading, spacing: 9) {
-            HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(NationalTeamCopy.text("national_team", languageCode: appLanguageRaw))
-                        .font(.system(size: 11, weight: .heavy, design: .rounded))
-                        .foregroundStyle(FGColor.accentGreen)
-                        .textCase(.uppercase)
-                        .tracking(0.78)
-                    Text(NationalTeamCopy.text("national_team_subtitle", languageCode: appLanguageRaw))
-                        .font(.system(size: 10.5, weight: .medium, design: .rounded))
-                        .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.82))
-                }
-                Spacer(minLength: 0)
-            }
-
-            if let identity = viewModel.currentUserNationalTeam {
-                NationalTeamIdentityCard(identity: identity, showsEditAffordance: true, compact: true) {
-                    openNationalTeamPicker()
-                }
-            } else {
-                Button {
-                    openNationalTeamPicker()
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: "flag.fill")
-                            .font(.system(size: 15, weight: .bold))
-                        Text(NationalTeamCopy.text("choose_national_team", languageCode: appLanguageRaw))
-                            .font(.system(size: 13, weight: .heavy, design: .rounded))
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption.weight(.bold))
-                    }
-                    .foregroundStyle(FGColor.accentGreen)
-                    .padding(13)
-                    .background(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.14 : 0.09))
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                }
-                .buttonStyle(.plain)
-            }
         }
     }
 
@@ -4568,31 +4637,32 @@ private struct ProfileSuggestedFansSection: View {
     }
 
     private var header: some View {
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .center, spacing: 8) {
                 Text(L10n.t("suggested_fans", languageCode: appLanguageRaw))
                     .font(.system(size: 11, weight: .heavy, design: .rounded))
                     .foregroundStyle(FGColor.accentBlue)
                     .textCase(.uppercase)
                     .tracking(0.78)
 
-                Text(L10n.t("suggested_fans_subtitle", languageCode: appLanguageRaw))
-                    .font(.system(size: 10, weight: .medium, design: .rounded))
-                    .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.82))
-                    .lineLimit(1)
+                Spacer(minLength: 0)
+
+                if !suggestions.isEmpty {
+                    Text("\(suggestions.count)")
+                        .font(.system(size: 10, weight: .black, design: .rounded))
+                        .foregroundStyle(FGColor.accentBlue)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.16 : 0.10), in: Capsule())
+                }
             }
 
-            Spacer(minLength: 0)
-
-            if !suggestions.isEmpty {
-                Text("\(suggestions.count)")
-                    .font(.system(size: 10, weight: .black, design: .rounded))
-                    .foregroundStyle(FGColor.accentBlue)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
-                    .background(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.16 : 0.10), in: Capsule())
-            }
+            Text(L10n.t("suggested_fans_subtitle", languageCode: appLanguageRaw))
+                .font(.system(size: 10, weight: .medium, design: .rounded))
+                .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.82))
+                .lineLimit(1)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var loadingRow: some View {
@@ -5098,5 +5168,19 @@ private struct PremiumTeamIdentityOrb: View {
         .frame(width: diameter, height: diameter)
         .accessibilityLabel("\(team.name), \(team.sport.chipTitle)")
     }
+}
+
+private struct ProfileIdentityStripColumn: Identifiable {
+    enum Kind: String {
+        case nationalTeam
+        case homeCrowd
+        case homeCity
+        case fanSince
+    }
+
+    let id: Kind
+    let title: String
+    let subtitle: String
+    var action: (() -> Void)? = nil
 }
 

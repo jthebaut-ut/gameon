@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Polished read-only profile preview for another fan (no email, no UUID in UI). Shown via ``PublicProfileOverlayWindowPresenter``.
+/// Polished read-only profile preview for another fan (no email, no UUID in UI). Shown full-screen via ``PublicProfileOverlayWindowPresenter``.
 struct PublicUserProfilePreviewView: View {
     let userId: UUID
     @ObservedObject var viewModel: MapViewModel
@@ -19,8 +19,14 @@ struct PublicUserProfilePreviewView: View {
     @State private var isPokeInFlight = false
     @State private var pokeActionError: String?
     @State private var pokeJustSucceeded = false
+    @State private var showShareFanProfileSheet = false
+    @State private var showBlockFanConfirmation = false
+    @State private var showReportFanSheet = false
+    @State private var isBlockActionInFlight = false
+    @State private var safetyActionBanner: String?
 
     private let profilePokesService = ProfilePokesService()
+    private static let reportSubmittedBannerText = "Report submitted. FanGeo moderation will review it."
 
     private var profileContentHorizontalPadding: CGFloat {
         PublicProfileSheetLayout.horizontalPadding()
@@ -56,6 +62,48 @@ struct PublicUserProfilePreviewView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L10n.t("done", languageCode: appLanguageRaw)) { onDismiss() }
                 }
+                if profile?.isPubliclyVisible == true {
+                    ToolbarItem(placement: .primaryAction) {
+                        Menu {
+                            Button {
+                                showShareFanProfileSheet = true
+                            } label: {
+                                Label("Share Profile", systemImage: "square.and.arrow.up")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                        }
+                        .accessibilityLabel("More")
+                    }
+                }
+            }
+            .sheet(isPresented: $showShareFanProfileSheet) {
+                if let profile, profile.isPubliclyVisible {
+                    ShareFanProfileSheet(profile: profile, mapViewModel: viewModel)
+                        .environmentObject(chatViewModel)
+                }
+            }
+            .sheet(isPresented: $showReportFanSheet) {
+                FanProfileUserReportSheet(
+                    reportedUserId: userId,
+                    onDismiss: { showReportFanSheet = false },
+                    onSubmitted: {
+                        showReportFanSheet = false
+                        safetyActionBanner = Self.reportSubmittedBannerText
+                    }
+                )
+            }
+            .confirmationDialog(
+                "Block \(profile?.displayName ?? "this fan")?",
+                isPresented: $showBlockFanConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Block Fan", role: .destructive) {
+                    Task { await blockFan() }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("They won't be able to message you or send friend requests. You won't see each other in chat lists while the block is active.")
             }
         }
         .task(id: userId) {
@@ -63,12 +111,15 @@ struct PublicUserProfilePreviewView: View {
             await loadPokeSummary(for: userId)
         }
         .onChange(of: viewModel.publicProfileOpenToRevision) { _, _ in
+            guard userId == viewModel.currentUserAuthId else { return }
             Task { await loadProfile() }
         }
         .onChange(of: viewModel.publicProfileHomeCrowdRevision) { _, _ in
+            guard userId == viewModel.currentUserAuthId else { return }
             Task { await loadProfile() }
         }
         .onChange(of: viewModel.publicProfileBioRevision) { _, _ in
+            guard userId == viewModel.currentUserAuthId else { return }
             Task { await loadProfile() }
         }
         .onChange(of: chatViewModel.friendshipChipByOtherUserId) { _, _ in
@@ -105,22 +156,25 @@ struct PublicUserProfilePreviewView: View {
                 )
             }
 
-            if let nationalTeam = data.nationalTeam {
-                NationalTeamIdentityCard(identity: nationalTeam)
+            PublicProfileFanIdentityCard(data: data)
+                .frame(maxWidth: .infinity)
+
+            if let commonInterestChips = commonInterests(for: data), !commonInterestChips.isEmpty {
+                PublicProfileCommonInterestsCard(chips: commonInterestChips)
                     .frame(maxWidth: .infinity)
-                    .onAppear {
-#if DEBUG
-                        print("[NationalTeamDebug] publicProfileNationalTeamDisplayed=true")
-                        print("[NationalTeamDebug] publicProfileRawLabel=\(nationalTeam.supporterLabel)")
-                        print("[NationalTeamDebug] publicProfileResolvedLabel=\(nationalTeam.resolvedSupporterLabel(languageCode: appLanguageRaw))")
-#endif
-                    }
             }
 
             PublicProfileFavoriteTeamsCard(data: data)
                 .frame(maxWidth: .infinity)
 
-            PublicProfileTwoColumnGrid(data: data, colorScheme: colorScheme)
+            PublicProfileTwoColumnGrid(
+                data: data,
+                colorScheme: colorScheme,
+                onOpenHomeCrowdVenue: { venueId in
+                    onDismiss()
+                    viewModel.focusDiscoverOnVenue(venueId)
+                }
+            )
 
             if data.organizerStats?.hasPublicOrganizerRatings == true || data.pickupHostedCount > 0 {
                 PublicProfilePickupOrganizerCard(
@@ -136,7 +190,84 @@ struct PublicUserProfilePreviewView: View {
             if let pokeActionError, !pokeActionError.isEmpty {
                 inlineError(pokeActionError)
             }
+
+            if canShowBottomSafetyActions {
+                PublicProfileFanSafetyActionsCard(
+                    onShare: { showShareFanProfileSheet = true },
+                    onBlock: { showBlockFanConfirmation = true },
+                    onReport: { showReportFanSheet = true }
+                )
+                .padding(.top, 4)
+            }
+
+            if let safetyActionBanner, !safetyActionBanner.isEmpty {
+                safetyActionBannerView(safetyActionBanner)
+            }
         }
+    }
+
+    private var canShowBottomSafetyActions: Bool {
+        guard let profile, profile.isPubliclyVisible, !profile.isBusinessAccount else { return false }
+        guard viewModel.currentUserAuthId != nil else { return false }
+        return userId != viewModel.currentUserAuthId
+    }
+
+    private func commonInterests(for data: PublicUserProfileData) -> [PublicProfileCommonInterestChip]? {
+        guard data.isPubliclyVisible, !data.isBusinessAccount else { return nil }
+        guard let currentUserId = viewModel.currentUserAuthId, currentUserId != data.userId else { return nil }
+
+        let currentTeamIDs = FavoriteTeamsStore.decodeIDs(
+            from: UserDefaults.standard.string(forKey: FavoriteTeamsStore.appStorageKey) ?? ""
+        )
+
+        return PublicProfileCommonInterestsBuilder.chips(
+            viewedProfile: data,
+            currentUserFavoriteTeamIDs: currentTeamIDs,
+            currentUserNationalTeam: viewModel.currentUserNationalTeam,
+            currentUserHomeCrowdVenueId: viewModel.currentUserHomeCrowdVenueId,
+            currentUserOpenToIDs: viewModel.currentUserFanIdentityPreferences.resolvedOpenToItemIDs
+        )
+    }
+
+    private func safetyActionBannerView(_ text: String) -> some View {
+        let isPositive = text == Self.reportSubmittedBannerText || text.contains("blocked")
+        return HStack(spacing: 8) {
+            Image(systemName: isPositive ? "checkmark.circle.fill" : "info.circle.fill")
+                .font(.system(size: 13, weight: .semibold))
+            Text(text)
+                .font(.system(size: 12, weight: .medium, design: .rounded))
+                .multilineTextAlignment(.leading)
+            Spacer(minLength: 0)
+        }
+        .foregroundStyle(isPositive ? FGColor.accentGreen : FGColor.secondaryText(colorScheme))
+        .padding(12)
+        .background {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(
+                    (isPositive ? FGColor.accentGreen : FGColor.accentBlue)
+                        .opacity(colorScheme == .dark ? 0.16 : 0.10)
+                )
+        }
+    }
+
+    @MainActor
+    private func blockFan() async {
+        guard !isBlockActionInFlight else { return }
+        isBlockActionInFlight = true
+        safetyActionBanner = nil
+
+        let moderation = ModerationService()
+        do {
+            try await moderation.block(userId: userId)
+            await chatViewModel.refreshBlockedUsers()
+            await chatViewModel.refreshInboxSummaries()
+            await chatViewModel.refresh()
+            refreshFriendButtonState()
+            safetyActionBanner = "Fan blocked. They can't message you or send friend requests."
+        } catch {
+            safetyActionBanner = error.localizedDescription
+        }
+        isBlockActionInFlight = false
     }
 
     @MainActor
@@ -268,11 +399,16 @@ struct PublicUserProfilePreviewView: View {
 
     private func loadProfile() async {
         await MainActor.run {
-            isLoading = true
-            friendActionError = nil
-            pokeSummary = nil
-            pokeActionError = nil
-            pokeJustSucceeded = false
+            let isSilentRefresh = profile != nil
+            if isSilentRefresh {
+                friendActionError = nil
+            } else {
+                isLoading = true
+                friendActionError = nil
+                pokeSummary = nil
+                pokeActionError = nil
+                pokeJustSucceeded = false
+            }
         }
 
         await chatViewModel.loadIfNeeded()

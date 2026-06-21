@@ -21,6 +21,7 @@ extension MapViewModel {
     /// Skips ``refreshFollowingTabDataGlobally()`` when a global refresh completed recently (launch dedupe).
     func refreshFollowingTabDataGloballyUnlessFresh() async {
         if shouldSkipFollowingTabGlobalRefresh() {
+            TabPerf.refreshSkipped(name: "followingGlobal", reason: "freshCache")
             AppPerfDebug.networkFetchFinished(
                 tab: "following",
                 source: "followingGlobal",
@@ -82,6 +83,8 @@ extension MapViewModel {
     /// Saved venues and venue-game membership are handled separately: failures loading interests or aggregate counts must not clear favorite venues (see ``clearFollowingTabVenueGamePlanCachesOnly()``).
     func refreshFollowingTabDataGlobally() async {
         if let inFlight = followingTabGlobalRefreshTask {
+            TabPerf.duplicateRefreshCoalesced(name: "followingGlobal")
+            Perf.duplicateTaskCoalesced(name: "followingGlobal")
 #if DEBUG
             print("[TabPerfDebug] refreshCoalesced=true tab=going source=followingGlobal")
             print("[PerfPhase1] followingRefreshCoalesced=true")
@@ -91,10 +94,8 @@ extension MapViewModel {
         }
 
         let startedAt = Date()
+        TabPerf.refreshStarted(name: "followingGlobal")
         AppPerfDebug.networkFetchStarted(tab: "following", source: "followingGlobal")
-#if DEBUG
-        print("[TabPerfDebug] refreshStarted=going source=followingGlobal")
-#endif
         let task = Task<Void, Never> { [weak self] in
             guard let self else { return }
             await self.refreshFollowingTabDataGloballyNow()
@@ -103,10 +104,8 @@ extension MapViewModel {
         await task.value
         followingTabGlobalRefreshTask = nil
         let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
+        TabPerf.refreshFinished(name: "followingGlobal", durationMs: ms)
         AppPerfDebug.networkFetchFinished(tab: "following", source: "followingGlobal", durationMs: ms)
-#if DEBUG
-        print("[TabPerfDebug] refreshDurationMs=\(ms) tab=going source=followingGlobal")
-#endif
     }
 
     private func refreshFollowingTabDataGloballyNow() async {

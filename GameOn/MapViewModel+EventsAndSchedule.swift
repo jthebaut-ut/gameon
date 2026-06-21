@@ -266,6 +266,12 @@ extension MapViewModel {
 
     /// Bottom-tab Calendar: reset to today, refresh dots + schedule loads (does not mutate Discover ``selectedDate``).
     func noteCalendarTabBecameActive() {
+        if let last = lastCalendarTabBecameActiveAt,
+           Date().timeIntervalSince(last) < 8 {
+            TabPerf.refreshSkipped(name: "calendarTabActivation", reason: "freshCache")
+            return
+        }
+        lastCalendarTabBecameActiveAt = Date()
         AppPerfDebug.deferredWork(tab: "calendar", work: "calendarTabActivation", source: "noteCalendarTabBecameActive")
         Task { @MainActor in
             await Task.yield()

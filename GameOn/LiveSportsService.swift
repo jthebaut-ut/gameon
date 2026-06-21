@@ -26,6 +26,8 @@ actor LiveSportsService {
     private var cachedMatches: (fetchedAt: Date, matches: [LiveMatch])?
     private var cachedFeaturedEvents: (fetchedAt: Date, events: [FeaturedEvent])?
     private var inFlightFetch: Task<[LiveMatch], Error>?
+    private var inFlightRead: Task<[LiveMatch], Error>?
+    private var inFlightBackgroundSync: Task<[LiveMatch], Error>?
     private var inFlightFeaturedEventsFetch: Task<[FeaturedEvent], Never>?
     private var lastCacheSyncAt: Date?
     private(set) var lastFetchDiagnostics: LiveMatchesFetchDiagnostics?
@@ -36,8 +38,11 @@ actor LiveSportsService {
         print("[LiveDebug] timezone=\(TimeZone.current.identifier)")
         print("[LiveDebug] provider=\(Self.providerDescription)")
 #endif
-        if !forceRefresh,
-           let cachedMatches,
+        if forceRefresh {
+            return try await fetchLiveMatchesSyncThenRead(force: true)
+        }
+
+        if let cachedMatches,
            Date().timeIntervalSince(cachedMatches.fetchedAt) < cacheTTL {
 #if DEBUG
             print("[LiveDebug] cache_hit=true cached_count=\(cachedMatches.matches.count)")
@@ -45,18 +50,56 @@ actor LiveSportsService {
             return cachedMatches.matches
         }
 
+        return try await fetchLiveMatchesReadOnly()
+    }
+
+    /// Automatic Live loads: sync-live-matches (if cooldown expired) then re-read. Coalesced across callers.
+    func fetchLiveMatchesAfterBackgroundSyncIfNeeded() async throws -> [LiveMatch]? {
+        guard shouldScheduleBackgroundSync() else {
+#if DEBUG
+            print("[LiveDebug] backgroundSyncSkipped reason=syncCooldownFresh")
+#endif
+            return nil
+        }
+
+        if let inFlightBackgroundSync {
+#if DEBUG
+            print("[LiveDebug] backgroundSyncCoalesced=true")
+#endif
+            return try await inFlightBackgroundSync.value
+        }
+
+#if DEBUG
+        print("[LiveDebug] backgroundSyncStarted")
+#endif
+        let task = Task<[LiveMatch], Error> {
+            let syncAttempted = await self.triggerCacheSyncIfNeeded(force: false)
+            return try await self.fetchLiveMatchesFromSupabase(cacheSyncAttempted: syncAttempted)
+        }
+        inFlightBackgroundSync = task
+        defer { inFlightBackgroundSync = nil }
+
+        let matches = try await task.value
+        cachedMatches = (Date(), matches)
+#if DEBUG
+        print("[LiveDebug] backgroundSyncFinished count=\(matches.count)")
+#endif
+        return matches
+    }
+
+    private func fetchLiveMatchesSyncThenRead(force: Bool) async throws -> [LiveMatch] {
         if let inFlightFetch {
 #if DEBUG
-            print("[LiveDebug] awaiting_in_flight_fetch=true")
+            print("[LiveDebug] awaiting_in_flight_fetch=true force=\(force)")
 #endif
             return try await inFlightFetch.value
         }
 
 #if DEBUG
-        print("[LiveDebug] query_execution_started forceRefresh=\(forceRefresh)")
+        print("[LiveDebug] query_execution_started forceRefresh=\(force)")
 #endif
-        let task = Task<[LiveMatch], Error> { [forceRefresh] in
-            let syncAttempted = await self.triggerCacheSyncIfNeeded(force: forceRefresh)
+        let task = Task<[LiveMatch], Error> { [force] in
+            let syncAttempted = await self.triggerCacheSyncIfNeeded(force: force)
             return try await self.fetchLiveMatchesFromSupabase(cacheSyncAttempted: syncAttempted)
         }
         inFlightFetch = task
@@ -65,6 +108,40 @@ actor LiveSportsService {
         let matches = try await task.value
         cachedMatches = (Date(), matches)
         return matches
+    }
+
+    private func fetchLiveMatchesReadOnly() async throws -> [LiveMatch] {
+        if let inFlightRead {
+#if DEBUG
+            print("[LiveDebug] awaiting_in_flight_read=true")
+#endif
+            return try await inFlightRead.value
+        }
+
+#if DEBUG
+        print("[LiveDebug] readFirstStarted sync=false")
+#endif
+        let task = Task<[LiveMatch], Error> {
+            try await self.fetchLiveMatchesFromSupabase(cacheSyncAttempted: false)
+        }
+        inFlightRead = task
+        defer { inFlightRead = nil }
+
+        let matches = try await task.value
+        cachedMatches = (Date(), matches)
+#if DEBUG
+        print("[LiveDebug] readFirstFinished count=\(matches.count)")
+#endif
+        return matches
+    }
+
+    private func shouldScheduleBackgroundSync() -> Bool {
+        let now = Date()
+        if let lastCacheSyncAt,
+           now.timeIntervalSince(lastCacheSyncAt) < cacheSyncCooldown {
+            return false
+        }
+        return true
     }
 
     func fetchActiveFeaturedEvents(forceRefresh: Bool = false) async -> [FeaturedEvent] {

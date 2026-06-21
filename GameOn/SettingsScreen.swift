@@ -153,6 +153,18 @@ private enum ProfileSettingsRoute: Hashable {
     case venueResetPassword
 }
 
+private enum SettingsAboutFanGeoMetadata {
+    static let supportEmail = "support@fangeosports.com"
+
+    static var version: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "-"
+    }
+
+    static var build: String {
+        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "-"
+    }
+}
+
 /// Account tab: end-user and venue-owner auth, profile, notifications, Apple Calendar sync, and entry to venue dashboard flows.
 struct SettingsScreen: View {
     @ObservedObject var viewModel: MapViewModel
@@ -1038,7 +1050,7 @@ struct SettingsScreen: View {
             List {
                 profileSettingsPrivacySection()
                 profileSettingsNotificationsSection()
-                if !viewModel.currentUserIsBusinessAccount {
+                if !settingsFanGeoPlusUsesBusinessDisplay {
                     profileSettingsFanGeoPlusSection()
                 }
                 profileSettingsExperienceSection()
@@ -1046,6 +1058,7 @@ struct SettingsScreen: View {
                 profileSettingsHelpSafetySection()
                 profileSettingsLegalSection()
                 profileSettingsAccountSection()
+                profileSettingsAboutSection()
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 Color.clear.frame(height: SettingsScrollBottomLayout.sheetScrollComfortInset)
@@ -1717,7 +1730,7 @@ struct SettingsScreen: View {
                         if isBusinessAccountProfileContext {
                             settingsBusinessProButton(presentingFromProfileSettings: true)
 
-                            settingsRowDivider()
+                            profileSettingsBusinessAccountFanGeoPlusRows
                         }
 
                         Button {
@@ -1740,7 +1753,7 @@ struct SettingsScreen: View {
                     } else if viewModel.isVenueOwnerLoggedIn {
                         settingsBusinessProButton(presentingFromProfileSettings: true)
 
-                        settingsRowDivider()
+                        profileSettingsBusinessAccountFanGeoPlusRows
 
                         Button {
                             profileSettingsPath.append(ProfileSettingsRoute.venueResetPassword)
@@ -1972,10 +1985,112 @@ struct SettingsScreen: View {
             .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 12, trailing: 16))
             .listRowBackground(Color.clear)
             .onAppear {
-                fanGeoPlusEntitlementDisplayActive = FanGeoUserEntitlements.adFreeEnabled
+                syncFanGeoPlusDisplayFromEntitlements()
             }
         } header: {
             settingsSectionHeader("FanGeo+")
+        }
+    }
+
+    @ViewBuilder
+    private var profileSettingsBusinessAccountFanGeoPlusRows: some View {
+        if settingsFanGeoPlusUsesBusinessDisplay {
+            settingsRowDivider()
+
+            fanGeoPlusSettingsRow
+                .onAppear {
+                    syncFanGeoPlusDisplayFromEntitlements()
+                    logBusinessFanGeoPlusSettingsRender()
+                }
+
+            settingsRowDivider()
+        }
+    }
+
+    private var settingsFanGeoPlusUsesBusinessDisplay: Bool {
+        isBusinessAccountProfileContext
+    }
+
+    private func syncFanGeoPlusDisplayFromEntitlements() {
+        if settingsFanGeoPlusUsesBusinessDisplay {
+            fanGeoPlusEntitlementDisplayActive = FanGeoBusinessEntitlements.effectiveBusinessFanGeoPlus
+        } else {
+            fanGeoPlusEntitlementDisplayActive = FanGeoUserEntitlements.adFreeEnabled
+        }
+    }
+
+    private func logBusinessFanGeoPlusSettingsRender() {
+        guard settingsFanGeoPlusUsesBusinessDisplay else { return }
+        print("[BusinessFanGeoPlusDebug] settingsRowRender business_id=\(FanGeoBusinessEntitlements.businessId?.uuidString.lowercased() ?? "nil")")
+        print("[BusinessFanGeoPlusDebug] business_fangeo_plus_enabled=\(FanGeoBusinessEntitlements.businessFanGeoPlusManuallyEnabled)")
+        print("[BusinessFanGeoPlusDebug] includedWithPaidPro=\(FanGeoBusinessEntitlements.includedWithPaidPro)")
+        print("[BusinessFanGeoPlusDebug] effectiveBusinessFanGeoPlus=\(FanGeoBusinessEntitlements.effectiveBusinessFanGeoPlus)")
+    }
+
+    @ViewBuilder
+    private var fanGeoPlusSettingsSubtitle: some View {
+        if settingsFanGeoPlusUsesBusinessDisplay {
+            fanGeoPlusBusinessSettingsSubtitle
+        } else {
+            fanGeoPlusFanSettingsSubtitle
+        }
+    }
+
+    @ViewBuilder
+    private var fanGeoPlusFanSettingsSubtitle: some View {
+        if fanGeoPlusEntitlementIsActive {
+            Text("Active • Ad-free experience enabled")
+                .font(.system(size: 12, weight: .regular, design: .rounded))
+                .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        } else {
+            Text("Regular account • Ads may appear")
+                .font(.system(size: 12, weight: .regular, design: .rounded))
+                .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("FanGeo+ memberships coming soon.")
+                .font(.system(size: 12, weight: .regular, design: .rounded))
+                .foregroundStyle(SettingsPremiumChrome.mutedText(colorScheme))
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    @ViewBuilder
+    private var fanGeoPlusBusinessSettingsSubtitle: some View {
+        if FanGeoBusinessEntitlements.effectiveBusinessFanGeoPlus {
+            if FanGeoBusinessEntitlements.businessFanGeoPlusManuallyEnabled {
+                Text("Manual FanGeo+ • Ad-free business experience enabled")
+                    .font(.system(size: 12, weight: .regular, design: .rounded))
+                    .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else if FanGeoBusinessEntitlements.includedWithPaidPro {
+                Text("Included with Paid Pro • Ad-free business experience enabled")
+                    .font(.system(size: 12, weight: .regular, design: .rounded))
+                    .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text("Regular business • Ads may appear")
+                    .font(.system(size: 12, weight: .regular, design: .rounded))
+                    .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        } else {
+            Text("Regular business • Ads may appear")
+                .font(.system(size: 12, weight: .regular, design: .rounded))
+                .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("FanGeo+ memberships coming soon.")
+                .font(.system(size: 12, weight: .regular, design: .rounded))
+                .foregroundStyle(SettingsPremiumChrome.mutedText(colorScheme))
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -2001,24 +2116,7 @@ struct SettingsScreen: View {
                     .foregroundStyle(SettingsPremiumChrome.primaryText(colorScheme))
                     .lineLimit(1)
 
-                if fanGeoPlusEntitlementIsActive {
-                    Text("Active • Ad-free experience enabled")
-                        .font(.system(size: 12, weight: .regular, design: .rounded))
-                        .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                } else {
-                    Text("Regular account • Ads may appear")
-                        .font(.system(size: 12, weight: .regular, design: .rounded))
-                        .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text("FanGeo+ memberships coming soon.")
-                        .font(.system(size: 12, weight: .regular, design: .rounded))
-                        .foregroundStyle(SettingsPremiumChrome.mutedText(colorScheme))
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                fanGeoPlusSettingsSubtitle
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -2057,12 +2155,20 @@ struct SettingsScreen: View {
         guard !isFanGeoPlusEntitlementRefreshing else { return }
         isFanGeoPlusEntitlementRefreshing = true
         defer { isFanGeoPlusEntitlementRefreshing = false }
-        await viewModel.refreshCurrentUserAdFreeEntitlementFromServer(reason: "settingsManualRefresh")
-        fanGeoPlusEntitlementDisplayActive = FanGeoUserEntitlements.adFreeEnabled
+        if settingsFanGeoPlusUsesBusinessDisplay {
+            await viewModel.refreshCurrentBusinessFanGeoPlusEntitlementFromServer(reason: "settingsManualRefresh")
+        } else {
+            await viewModel.refreshCurrentUserAdFreeEntitlementFromServer(reason: "settingsManualRefresh")
+        }
+        syncFanGeoPlusDisplayFromEntitlements()
+        logBusinessFanGeoPlusSettingsRender()
     }
 
     private var fanGeoPlusEntitlementIsActive: Bool {
-        fanGeoPlusEntitlementDisplayActive
+        if settingsFanGeoPlusUsesBusinessDisplay {
+            return FanGeoBusinessEntitlements.effectiveBusinessFanGeoPlus
+        }
+        return fanGeoPlusEntitlementDisplayActive
     }
 
     private func settingsFanGeoPlusStatusBadge(isActive: Bool) -> some View {
@@ -2274,6 +2380,23 @@ struct SettingsScreen: View {
                 settingsRowDivider()
 
                 Button {
+                    openFanGeoWebsite()
+                } label: {
+                    settingsRow(
+                        title: "Visit FanGeo Website",
+                        subtitle: "www.fangeosports.com",
+                        systemImage: "globe",
+                        showsChevron: true
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Visit FanGeo Website")
+                .accessibilityValue("www.fangeosports.com")
+                .accessibilityHint("Opens the FanGeo Sports website in Safari.")
+
+                settingsRowDivider()
+
+                Button {
                     profileSettingsPath.append(ProfileSettingsRoute.communityGuidelines)
                 } label: {
                     settingsRow(
@@ -2320,6 +2443,13 @@ struct SettingsScreen: View {
         UIApplication.shared.open(url)
     }
 
+    private func openFanGeoWebsite() {
+        guard let url = URL(string: "https://www.fangeosports.com/") else {
+            return
+        }
+        UIApplication.shared.open(url)
+    }
+
     private func profileSettingsLegalSection() -> some View {
         Section {
             settingsSectionCard {
@@ -2353,6 +2483,38 @@ struct SettingsScreen: View {
             .listRowBackground(Color.clear)
         } header: {
             settingsSectionHeader("Legal")
+        }
+    }
+
+    private func profileSettingsAboutSection() -> some View {
+        Section {
+            settingsSectionCard {
+                VStack(spacing: 8) {
+                    Text("FanGeo")
+                        .font(.system(size: 17, weight: .bold, design: .rounded))
+                        .foregroundStyle(SettingsPremiumChrome.primaryText(colorScheme))
+
+                    Text("Version \(SettingsAboutFanGeoMetadata.version) (Build \(SettingsAboutFanGeoMetadata.build))")
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
+
+                    Text("© 2026 FanGeo Sports")
+                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                        .foregroundStyle(SettingsPremiumChrome.mutedText(colorScheme))
+
+                    Text(SettingsAboutFanGeoMetadata.supportEmail)
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
+                }
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, FGSpacing.md)
+                .padding(.vertical, 18)
+            }
+            .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 12, trailing: 16))
+            .listRowBackground(Color.clear)
+        } header: {
+            settingsSectionHeader("About FanGeo")
         }
     }
 
@@ -3337,6 +3499,8 @@ struct SettingsScreen: View {
         if preloadStatus == nil {
             await refreshSettingsBusinessProStatus(trigger: trigger, requestId: requestId)
         }
+        await viewModel.refreshCurrentBusinessFanGeoPlusEntitlementFromServer(reason: "settingsBusinessProfile:\(trigger)")
+        syncFanGeoPlusDisplayFromEntitlements()
     }
 
     private var settingsBusinessProfilePassiveRefreshTTL: TimeInterval { 30 }

@@ -499,6 +499,8 @@ struct MainTabView: View {
         tabSwitchStartAt = Date()
         tabSwitchCachedData = tabHasCachedData(tab)
         let cacheHit = tabSwitchCachedData ?? false
+        TabPerf.selectedTab(tab.rawValue)
+        TabPerf.tabSwitchStarted(from: tabSwitchFromTab?.rawValue, to: tab.rawValue)
         AppPerfDebug.tabSwitchStart(
             tab: tab.rawValue,
             from: tabSwitchFromTab?.rawValue,
@@ -523,6 +525,7 @@ struct MainTabView: View {
     private func logTabFirstContentVisible(tab: AppTab, startedAt: Date, usedCachedData: Bool) {
         let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
         let from = tabSwitchFromTab?.rawValue ?? "unknown"
+        TabPerf.tabSwitchRendered(tab: tab.rawValue, durationMs: ms)
         AppPerfDebug.tabSwitchEnd(tab: tab.rawValue, durationMs: ms, cacheHit: usedCachedData, source: "firstPaint")
         UIPerformanceDiagnostics.log("tabSwitch from=\(from) to=\(tab.rawValue) ms=\(ms) cached=\(usedCachedData)")
         print("[TabSwitchPerf] firstContentVisible from=\(from) to=\(tab.rawValue) durationMs=\(ms) cached=\(usedCachedData)")
@@ -558,6 +561,7 @@ struct MainTabView: View {
         if let last = lastTabPreloadAt[tab],
            Date().timeIntervalSince(last) < Self.tabPreloadFreshnessInterval,
            warmAtStart {
+            TabPerf.refreshSkipped(name: "tabIntentPreload:\(tab.rawValue)", reason: "freshCache")
             print("[TabSwitchPerf] preloadSkipped tab=\(tab.rawValue) reason=fresh cached=true")
 #if DEBUG
             print("[TabPreloadDebug] tab=\(tab.rawValue)")
@@ -567,6 +571,7 @@ struct MainTabView: View {
             return
         }
         if tabPreloadTasks[tab] != nil {
+            TabPerf.duplicateRefreshCoalesced(name: "tabIntentPreload:\(tab.rawValue)")
             print("[TabSwitchPerf] preloadSkipped tab=\(tab.rawValue) reason=inFlight cached=\(warmAtStart)")
 #if DEBUG
             print("[TabPreloadDebug] tab=\(tab.rawValue)")
@@ -577,6 +582,7 @@ struct MainTabView: View {
         }
 
         let startedAt = Date()
+        TabPerf.refreshStarted(name: "tabIntentPreload:\(tab.rawValue)")
         print("[TabSwitchPerf] preloadStarted tab=\(tab.rawValue) cached=\(warmAtStart) reason=\(reason)")
 #if DEBUG
         print("[TabPreloadDebug] tab=\(tab.rawValue)")
@@ -588,6 +594,7 @@ struct MainTabView: View {
             let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
             lastTabPreloadAt[tab] = Date()
             tabPreloadTasks[tab] = nil
+            TabPerf.refreshFinished(name: "tabIntentPreload:\(tab.rawValue)", durationMs: ms)
             print("[TabSwitchPerf] preloadFinished tab=\(tab.rawValue) durationMs=\(ms)")
 #if DEBUG
             print("[TabPreloadDebug] tab=\(tab.rawValue)")
@@ -641,7 +648,7 @@ struct MainTabView: View {
                 await viewModel.refreshCalendarTabPickupSources(reason: "tabPreload")
             }
         case .live:
-            break
+            await viewModel.refreshLiveMatchesForLiveTab(forceRefresh: false)
         }
     }
 
@@ -1505,6 +1512,7 @@ struct MainTabView: View {
 
         if viewModel.hasAuthenticatedVenueOwnerSession {
             await viewModel.refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
+            await viewModel.refreshCurrentBusinessFanGeoPlusEntitlementFromServer(reason: "foreground")
             viewModel.checkVenueApprovalStatus()
         }
 

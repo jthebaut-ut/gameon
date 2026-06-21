@@ -211,9 +211,18 @@ enum SportsTeamPickerData {
             mode: .countries,
             region: region,
             leagueGroup: group,
-            emoji: (code ?? CountryFlagHelper.countryCode(for: name)).flatMap { CountryFlagHelper.flag(for: $0) },
+            emoji: countryPickerEmoji(name: name, code: code),
             themeHint: code
         )
+    }
+
+    private static let ukSubdivisionPickerNames: Set<String> = ["England", "Scotland", "Wales"]
+
+    private static func countryPickerEmoji(name: String, code: String?) -> String? {
+        if ukSubdivisionPickerNames.contains(name) {
+            return CountryFlagHelper.flag(for: name)
+        }
+        return (code ?? CountryFlagHelper.countryCode(for: name)).flatMap { CountryFlagHelper.flag(for: $0) }
     }
 
     private static func team(
@@ -257,6 +266,7 @@ enum SportsTeamPickerData {
         country("usa", "United States", .soccer, "North America", "CONCACAF national teams", code: "US", short: "USA"),
         country("mexico", "Mexico", .soccer, "North America", "CONCACAF national teams", code: "MX"),
         country("canada", "Canada", .soccer, "North America", "CONCACAF national teams", code: "CA"),
+        country("cuba", "Cuba", .soccer, "North America", "CONCACAF national teams", code: "CU"),
         country("costa-rica", "Costa Rica", .soccer, "North America", "CONCACAF national teams", code: "CR"),
         country("curacao", "Curaçao", .soccer, "North America", "CONCACAF national teams", code: "CW"),
         country("jamaica", "Jamaica", .soccer, "North America", "CONCACAF national teams", code: "JM"),
@@ -300,6 +310,18 @@ enum SportsTeamPickerData {
         country("hungary", "Hungary", .soccer, "Europe", "UEFA national teams", code: "HU"),
         country("romania", "Romania", .soccer, "Europe", "UEFA national teams", code: "RO"),
         country("ireland", "Ireland", .soccer, "Europe", "UEFA national teams", code: "IE"),
+        country("albania", "Albania", .soccer, "Europe", "UEFA national teams", code: "AL"),
+        country("bosnia-herzegovina", "Bosnia and Herzegovina", .soccer, "Europe", "UEFA national teams", code: "BA"),
+        country("bulgaria", "Bulgaria", .soccer, "Europe", "UEFA national teams", code: "BG"),
+        country("finland", "Finland", .soccer, "Europe", "UEFA national teams", code: "FI"),
+        country("greece", "Greece", .soccer, "Europe", "UEFA national teams", code: "GR"),
+        country("iceland", "Iceland", .soccer, "Europe", "UEFA national teams", code: "IS"),
+        country("kosovo", "Kosovo", .soccer, "Europe", "UEFA national teams", code: "XK"),
+        country("montenegro", "Montenegro", .soccer, "Europe", "UEFA national teams", code: "ME"),
+        country("north-macedonia", "North Macedonia", .soccer, "Europe", "UEFA national teams", code: "MK"),
+        country("northern-ireland", "Northern Ireland", .soccer, "Europe", "UEFA national teams", code: "GB"),
+        country("slovakia", "Slovakia", .soccer, "Europe", "UEFA national teams", code: "SK"),
+        country("slovenia", "Slovenia", .soccer, "Europe", "UEFA national teams", code: "SI"),
         country("morocco", "Morocco", .soccer, "Africa", "CAF national teams", code: "MA"),
         country("senegal", "Senegal", .soccer, "Africa", "CAF national teams", code: "SN"),
         country("nigeria", "Nigeria", .soccer, "Africa", "CAF national teams", code: "NG"),
@@ -312,6 +334,7 @@ enum SportsTeamPickerData {
         country("south-africa", "South Africa", .soccer, "Africa", "CAF national teams", code: "ZA"),
         country("mali", "Mali", .soccer, "Africa", "CAF national teams", code: "ML"),
         country("dr-congo", "DR Congo", .soccer, "Africa", "CAF national teams", code: "CD"),
+        country("congo", "Republic of the Congo", .soccer, "Africa", "CAF national teams", code: "CG"),
         country("burkina-faso", "Burkina Faso", .soccer, "Africa", "CAF national teams", code: "BF"),
         country("cape-verde", "Cape Verde", .soccer, "Africa", "CAF national teams", code: "CV"),
         country("guinea", "Guinea", .soccer, "Africa", "CAF national teams", code: "GN"),
@@ -326,7 +349,15 @@ enum SportsTeamPickerData {
         country("iraq", "Iraq", .soccer, "Asia", "Asian national teams", code: "IQ"),
         country("uzbekistan", "Uzbekistan", .soccer, "Asia", "Asian national teams", code: "UZ"),
         country("china", "China", .soccer, "Asia", "Asian national teams", code: "CN"),
+        country("chinese-taipei", "Chinese Taipei", .soccer, "Asia", "Asian national teams", code: "TW"),
+        country("hong-kong", "Hong Kong", .soccer, "Asia", "Asian national teams", code: "HK"),
+        country("india", "India", .soccer, "Asia", "Asian national teams", code: "IN"),
         country("indonesia", "Indonesia", .soccer, "Asia", "Asian national teams", code: "ID"),
+        country("jordan", "Jordan", .soccer, "Asia", "Asian national teams", code: "JO"),
+        country("north-korea", "North Korea", .soccer, "Asia", "Asian national teams", code: "KP"),
+        country("palestine", "Palestine", .soccer, "Asia", "Asian national teams", code: "PS"),
+        country("thailand", "Thailand", .soccer, "Asia", "Asian national teams", code: "TH"),
+        country("vietnam", "Vietnam", .soccer, "Asia", "Asian national teams", code: "VN"),
         country("new-zealand", "New Zealand", .soccer, "Oceania", "OFC national teams", code: "NZ"),
         country("fiji", "Fiji", .soccer, "Oceania", "OFC national teams", code: "FJ"),
         country("tahiti", "Tahiti", .soccer, "Oceania", "OFC national teams", code: "PF"),

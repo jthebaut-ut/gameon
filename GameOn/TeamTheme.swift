@@ -154,11 +154,42 @@ struct TeamTheme {
         let isRegionalIndicatorFlag = scalarValues.count == 2
             && scalarValues.allSatisfy { (0x1F1E6...0x1F1FF).contains($0) }
         if isRegionalIndicatorFlag { return trimmed }
+        if isSubdivisionTagSequenceFlag(trimmed) { return trimmed }
 
         let characterCount = trimmed.count
         guard characterCount <= 2, trimmed.utf16.count <= 8 else { return nil }
         return trimmed
     }
+
+    private static func isSubdivisionTagSequenceFlag(_ trimmed: String) -> Bool {
+        let scalars = Array(trimmed.unicodeScalars)
+        guard scalars.first?.value == 0x1F3F4 else { return false }
+        let tags = scalars.dropFirst()
+        guard !tags.isEmpty else { return false }
+        if tags.last?.value == 0xE007F {
+            return tags.dropLast().allSatisfy { (0xE0020...0xE007E).contains($0.value) }
+        }
+        return tags.allSatisfy { (0xE0020...0xE007E).contains($0.value) }
+    }
+
+    #if DEBUG
+    static func validateUKSubdivisionDisplayFlags(source: String = "TeamThemeValidation") -> [String] {
+        var missing: [String] = []
+        for team in ["England", "Scotland", "Wales"] {
+            let resolved = CountryFlagHelper.flag(for: team, source: source)
+            let displayFlag = safeFlag(resolved)
+            if displayFlag?.isEmpty != false {
+                missing.append(team)
+            }
+        }
+        if missing.isEmpty {
+            print("[TeamThemeDebug] ukSubdivisionDisplayFlagsValidation=passed count=3 source=\(source)")
+        } else {
+            print("[TeamThemeDebug] ukSubdivisionDisplayFlagsValidation=failed missingCount=\(missing.count) missing=\(missing.joined(separator: ", ")) source=\(source)")
+        }
+        return missing
+    }
+    #endif
 
     private static func safeDisplayName(_ raw: String, fallback: String) -> String {
         safeOptionalDisplayName(raw) ?? safeOptionalDisplayName(fallback) ?? "FanGeo"

@@ -1461,9 +1461,9 @@ nonisolated enum LiveCardEventType: String, Equatable, Codable {
     var notificationTitleLabel: String {
         switch self {
         case .yellow:
-            return "Yellow Card"
+            return "Yellow card"
         case .red, .secondYellow:
-            return "Red Card"
+            return "Red card"
         }
     }
 

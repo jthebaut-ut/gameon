@@ -204,6 +204,10 @@ final class LaunchWarmPreloadCoordinator {
                 }
             }
         }
+
+        await runWarmTask(tier: 2, name: "liveMatchesWarmCache", delayMs: 120) {
+            await viewModel.refreshLiveMatchesForLiveTab(forceRefresh: false)
+        }
     }
 
     private func runWarmTask(

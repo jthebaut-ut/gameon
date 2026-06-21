@@ -9,12 +9,14 @@ struct BusinessProSubscriptionView: View {
     }
 
     private static let billingComingSoonMessage = "Business Pro billing is coming soon."
+    private static let fanGeoPlusFootnote =
+        "FanGeo+ provides an ad-free experience. During the launch promotion, Business Pro accounts may still see ads unless FanGeo+ is enabled separately."
 
     private let proFeatureListItems = [
         "Unlimited venues",
         "Unlimited hosted games",
         "Analytics access",
-        "Ad-free business tools (coming soon)"
+        "FanGeo+ included with Paid Pro (coming soon)"
     ]
 
     private var regularFeatureListItems: [String] {
@@ -97,6 +99,14 @@ struct BusinessProSubscriptionView: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             planFeatureList(entitlementFeatures, tint: entitlementFeatureTint)
+
+            if !isCurrentBusinessRegular {
+                Text(Self.fanGeoPlusFootnote)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 2)
+            }
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)

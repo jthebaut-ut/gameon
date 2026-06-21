@@ -77,4 +77,39 @@ enum FanGeoHandleRules {
         // Fallback only — not saved as username.
         return temporaryFallbackHandle(email: email)
     }
+
+    /// Year from `user_profiles.created_at` for inline profile trust copy.
+    static func fanSinceYear(from profileCreatedAt: String?) -> Int? {
+        guard let profileCreatedAt,
+              let date = SupabaseTimestampParsing.parseTimestamptz(profileCreatedAt) else {
+            return nil
+        }
+        return Calendar.current.component(.year, from: date)
+    }
+
+    /// Compact month-year label for profile identity strip (e.g. "Jun 2026").
+    static func fanSinceMonthYear(from profileCreatedAt: String?) -> String? {
+        guard let profileCreatedAt,
+              let date = SupabaseTimestampParsing.parseTimestamptz(profileCreatedAt) else {
+            return nil
+        }
+        return fanSinceMonthYearFormatter.string(from: date)
+    }
+
+    private static let fanSinceMonthYearFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "MMM yyyy"
+        return formatter
+    }()
+
+    /// `@handle • Fan since 2026` when year resolves; otherwise returns `base` unchanged.
+    static func handleDisplayLine(base: String, profileCreatedAt: String?, showFanSince: Bool) -> String {
+        guard showFanSince,
+              !base.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              let year = fanSinceYear(from: profileCreatedAt) else {
+            return base
+        }
+        return "\(base) • Fan since \(year)"
+    }
 }
