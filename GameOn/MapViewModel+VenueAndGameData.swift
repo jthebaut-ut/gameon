@@ -2315,6 +2315,12 @@ extension MapViewModel {
     /// Venue rows in the current map bounds (shared by map reload and schedule hydration).
     /// Single venue by id (for Following → Discover when the venue is outside the current map bounds query).
     func fetchBarVenueByIdFromSupabase(id: UUID) async -> BarVenue? {
+        guard let row = await fetchVenueRowByIdForDiscover(id: id) else { return nil }
+        let (mapped, _) = DiscoverVenueLoadAssembler.buildMappedBars(venueRows: [row], fetchedVenueEventRows: [])
+        return mapped.first
+    }
+
+    func fetchVenueRowByIdForDiscover(id: UUID) async -> VenueRow? {
         do {
             let rows: [VenueRow] = try await supabase
                 .from("venues")
@@ -2324,13 +2330,10 @@ extension MapViewModel {
                 .limit(1)
                 .execute()
                 .value
-
-            guard let row = rows.first else { return nil }
-            let (mapped, _) = DiscoverVenueLoadAssembler.buildMappedBars(venueRows: [row], fetchedVenueEventRows: [])
-            return mapped.first
+            return rows.first
         } catch {
 #if DEBUG
-            print("[FollowingNav] fetchBarVenueByIdFromSupabase failed id=\(id):", error)
+            print("[FollowingNav] fetchVenueRowByIdForDiscover failed id=\(id):", error)
 #endif
             return nil
         }

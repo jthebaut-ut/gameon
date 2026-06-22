@@ -46,6 +46,7 @@ struct ContentView: View {
         }
         .onAppear {
             FanGeoAnalyticsService.recordAppOpen()
+            ProGameNotificationDeepLinkBridge.shared.bind(viewModel: viewModel)
             #if DEBUG
             print("[LaunchPathDebug] ContentViewMounted=true")
             print("[LaunchPathDebug] isBootstrapping=\(bootstrapCoordinator.isBootstrapping)")

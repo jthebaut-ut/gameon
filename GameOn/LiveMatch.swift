@@ -1078,6 +1078,45 @@ nonisolated enum LiveScoringTimelineBuilder {
         return timelineEvents.filter { isScoringEvent($0, sportType: effectiveSportType) }.count
     }
 
+    static func goalNotificationContext(
+        sportType: LiveSportVisualType,
+        timelineEvents: [LiveTimelineEvent],
+        scoringTeam: String,
+        homeTeam: String,
+        awayTeam: String
+    ) -> (scorerName: String?, minuteText: String?) {
+        let effectiveSportType = resolvedSportType(for: sportType, timelineEvents: timelineEvents)
+        guard effectiveSportType == .soccer || effectiveSportType == .hockey else {
+            return (nil, nil)
+        }
+
+        let normalizedScoringTeam = normalizedTeamText(scoringTeam)
+        var best: (index: Int, minute: Int, scorerName: String?, minuteText: String?)?
+
+        for (index, event) in timelineEvents.enumerated() {
+            guard isScoringEvent(event, sportType: effectiveSportType) else { continue }
+            guard let eventTeam = scoringTeamName(for: event, homeTeam: homeTeam, awayTeam: awayTeam) else {
+                continue
+            }
+            guard normalizedTeamText(eventTeam) == normalizedScoringTeam else { continue }
+
+            let minute = event.minuteValue ?? Int.min
+            let minuteText = scoringClock(for: event, sportType: effectiveSportType)
+            let scorerName = clean(event.playerDisplayName)
+
+            if let currentBest = best {
+                if minute > currentBest.minute || (minute == currentBest.minute && index > currentBest.index) {
+                    best = (index, minute, scorerName, minuteText)
+                }
+            } else {
+                best = (index, minute, scorerName, minuteText)
+            }
+        }
+
+        guard let best else { return (nil, nil) }
+        return (best.scorerName, best.minuteText)
+    }
+
     static func summaryFromLatestScoringEvent(
         _ latestScoringEvent: LiveLatestScoringEvent,
         sportType: LiveSportVisualType,

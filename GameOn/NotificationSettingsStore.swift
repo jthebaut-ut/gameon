@@ -315,6 +315,8 @@ final class NotificationSettingsStore: ObservableObject {
         case .denied:
             notifyBeforeGame = false
             proGameKickoffAlertEnabled = false
+            favoriteTeamProGameAlertsEnabled = false
+            proGameFinalScoreNotifications = false
             await gameReminderService.cancelAllGameReminders()
             await gameReminderService.cancelAllProGameKickoffAlerts()
             await gameReminderService.cancelAllProGamePreKickoffReminders()
@@ -372,6 +374,27 @@ final class NotificationSettingsStore: ObservableObject {
         proGameKickoffAlertEnabled = false
         notificationPermissionMessage = ""
         await gameReminderService.cancelAllProGameKickoffAlerts()
+        return true
+    }
+
+    func setProGameFinalScoreNotificationsEnabled(_ enabled: Bool) async -> Bool {
+        print("[NotificationSettingsDebug] save proGameFinalScoreNotifications requested=\(enabled)")
+        if enabled {
+            let granted = await gameReminderService.requestAuthorizationIfNeeded()
+            guard granted else {
+                proGameFinalScoreNotifications = false
+                notificationPermissionMessage = "Notifications are off for FanGeo. Turn them on in iOS Settings to receive game reminders."
+                print("[NotificationSettingsDebug] save proGameFinalScoreNotifications deniedBySystem")
+                return false
+            }
+
+            proGameFinalScoreNotifications = true
+            notificationPermissionMessage = ""
+            return true
+        }
+
+        proGameFinalScoreNotifications = false
+        notificationPermissionMessage = ""
         return true
     }
 

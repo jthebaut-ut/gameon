@@ -2,37 +2,41 @@ import Foundation
 import Supabase
 
 enum SupportRequestCategory: String, CaseIterable, Identifiable {
-    case technicalIssue = "technical_issue"
-    case accountHelp = "account_help"
-    case reportProblem = "report_problem"
-    case venueSupport = "venue_support"
-    case billingOther = "billing_other"
+    case bugReport = "bug_report"
+    case question = "question"
+    case featureRequest = "feature_request"
+    case accountIssue = "account_issue"
+    case businessSupport = "business_support"
+    case other = "other"
 
     var id: String { rawValue }
 
     var displayTitle: String {
         switch self {
-        case .technicalIssue: return "Technical Issue"
-        case .accountHelp: return "Account Help"
-        case .reportProblem: return "Report a Problem"
-        case .venueSupport: return "Venue Support"
-        case .billingOther: return "Billing/Other"
+        case .bugReport: return "Bug Report"
+        case .question: return "Question"
+        case .featureRequest: return "Feature Request"
+        case .accountIssue: return "Account Issue"
+        case .businessSupport: return "Business Support"
+        case .other: return "Other"
         }
     }
 
-    /// Contextual hint under the category picker; `nil` when nothing should be shown (e.g. no category chosen).
+    /// Contextual hint under the issue type picker.
     var exampleHelperLine: String? {
         switch self {
-        case .technicalIssue:
-            return "Example: Messages are not loading or the map is frozen."
-        case .accountHelp:
+        case .bugReport:
+            return "Example: The map is frozen or messages are not loading."
+        case .question:
+            return "Example: How do I save a game to my calendar?"
+        case .featureRequest:
+            return "Example: I'd love a way to filter live games by league."
+        case .accountIssue:
             return "Example: I cannot sign in or reset my password."
-        case .reportProblem:
-            return "Example: A user is harassing me or posting abusive content."
-        case .venueSupport:
-            return "Example: I cannot claim or edit my venue."
-        case .billingOther:
-            return "Example: General question or feedback."
+        case .businessSupport:
+            return "Example: I need help claiming or editing my venue."
+        case .other:
+            return "Example: General feedback or anything else we can help with."
         }
     }
 }

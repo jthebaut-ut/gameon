@@ -5,8 +5,27 @@ enum LiveRenderDiagnostics {
     static let enabled = false
 }
 
+/// Memoizes expensive Live feed derivations across SwiftUI body re-evaluations.
+private final class LiveFeedMemoCache<Value, Key: Equatable> {
+    private var key: Key?
+    private var value: Value?
+
+    func resolve(key: Key, builder: () -> Value) -> Value {
+        if self.key == key, let value {
+            return value
+        }
+        let built = builder()
+        self.key = key
+        self.value = built
+        return built
+    }
+}
+
 struct LiveScreen: View {
     private static let liveAutoRefreshIntervalNanoseconds: UInt64 = 15_000_000_000
+    private static let liveActivationDebounceNanoseconds: UInt64 = 275_000_000
+    /// Aligns with the 15s Live auto-refresh cadence for time-sensitive venue energy windows.
+    private static let liveFeedEnergyTimeSlotSeconds: TimeInterval = 15
 
     @ObservedObject var viewModel: MapViewModel
     @ObservedObject private var fanUpdatesStore: FanUpdatesRealtimeStore
@@ -21,7 +40,6 @@ struct LiveScreen: View {
     @State private var showVenueDetails = false
     @State private var showVenueRatingSheet = false
     @State private var fanFeatureGateAlertMessage: String?
-    @State private var liveIndicatorPulse = false
     @State private var liveAutoRefreshTask: Task<Void, Never>?
     @State private var liveGamesSportFilter: LiveSportVisualType?
     @State private var liveFeaturedEventFilterSlug: String?
@@ -33,6 +51,8 @@ struct LiveScreen: View {
     @State private var showLiveCountryFilterSheet = false
     @State private var liveNowFeedRowsExpanded = false
     @State private var liveUpcomingFeedRowsExpanded = false
+    @State private var liveActivationRefreshTask: Task<Void, Never>?
+    @State private var liveFeedMemoCache = LiveFeedMemoCache<LiveFeedComputedData, LiveFeedCacheKey>()
 
     private static let liveGameFeedInitialRowCap = 12
 
@@ -106,6 +126,34 @@ struct LiveScreen: View {
         let teamName: String
         let score: Int
         let badgeURL: String?
+    }
+
+    private struct LiveFeedCacheKey: Equatable {
+        let calendarDayStart: TimeInterval
+        let liveMatchesFingerprint: Int
+        let barsFingerprint: Int
+        let mapVisibleBarsFingerprint: Int
+        let eventsTodayFingerprint: Int
+        let venueEventRowsFingerprint: Int
+        let vibeCountsFingerprint: Int
+        let goingProfilesFingerprint: Int
+        let venueEventInterestFingerprint: Int
+        let pickupGamesFingerprint: Int
+        let favoriteTeamIDsRaw: String
+        let liveLeagueCountryFilterRaw: String
+        let friendUserIDsFingerprint: Int
+        let canShowPersonalLiveSections: Bool
+        let isBusinessLiveAudienceUser: Bool
+        let energyTimeSlot: Int
+    }
+
+    private struct LiveFeedComputedData {
+        let rankedItems: [LiveFeedItem]
+        let favoriteTeamItems: [FavoriteTeamLiveItem]
+        let matchRelatedItemsByMatchID: [String: [LiveFeedItem]]
+        let venuesAndPickupToday: [LiveVenuesPickupRow]
+        let friendsGoing: [LiveFeedItem]
+        let crowdBuilding: [LiveCrowdMomentum]
     }
 
     init(
@@ -379,17 +427,151 @@ struct LiveScreen: View {
             .onAppear {
                 logLiveFeedRefresh(reason: "appear")
                 logLiveAudienceDebug()
-                updateLiveAutoRefreshForCurrentState(immediatelyRefresh: true)
+                updateLiveAutoRefreshForCurrentState(scheduleActivationRefresh: isLiveTabSelected)
             }
             .onDisappear {
+                liveActivationRefreshTask?.cancel()
+                liveActivationRefreshTask = nil
                 stopLiveAutoRefresh()
             }
             .onChange(of: selectedTab) { _, _ in
-                updateLiveAutoRefreshForCurrentState(immediatelyRefresh: true)
+                updateLiveAutoRefreshForCurrentState(scheduleActivationRefresh: selectedTab == .live)
             }
             .onChange(of: scenePhase) { _, phase in
-                updateLiveAutoRefreshForCurrentState(immediatelyRefresh: phase == .active)
+                updateLiveAutoRefreshForCurrentState(scheduleActivationRefresh: phase == .active && selectedTab == .live)
             }
+    }
+
+    private func resolvedLiveFeedComputedData(calendarDay: Date, matchCandidates: [LiveMatch]) -> LiveFeedComputedData {
+        let cacheKey = makeLiveFeedCacheKey(calendarDay: calendarDay)
+        return liveFeedMemoCache.resolve(key: cacheKey) {
+            buildLiveFeedComputedData(calendarDay: calendarDay, matchCandidates: matchCandidates)
+        }
+    }
+
+    private func makeLiveFeedCacheKey(calendarDay: Date) -> LiveFeedCacheKey {
+        let cal = Calendar.current
+        let dayStart = cal.startOfDay(for: calendarDay)
+
+        var liveMatchesHasher = Hasher()
+        for match in viewModel.liveMatches {
+            liveMatchesHasher.combine(match.id)
+            liveMatchesHasher.combine(match.matchStatus)
+            liveMatchesHasher.combine(match.scoreHome)
+            liveMatchesHasher.combine(match.scoreAway)
+            liveMatchesHasher.combine(match.minute)
+        }
+
+        var barsHasher = Hasher()
+        barsHasher.combine(viewModel.bars.count)
+        for bar in viewModel.bars {
+            barsHasher.combine(bar.id)
+        }
+
+        var mapVisibleBarsHasher = Hasher()
+        mapVisibleBarsHasher.combine(viewModel.mapVisibleBars.count)
+        for bar in viewModel.mapVisibleBars {
+            mapVisibleBarsHasher.combine(bar.id)
+        }
+
+        var eventsHasher = Hasher()
+        let todayEvents = viewModel.events.filter { cal.isDate($0.date, inSameDayAs: dayStart) }
+        eventsHasher.combine(todayEvents.count)
+        for event in todayEvents {
+            eventsHasher.combine(event.id)
+            eventsHasher.combine(event.title)
+            eventsHasher.combine(event.date.timeIntervalSince1970)
+        }
+
+        var venueEventRowsHasher = Hasher()
+        venueEventRowsHasher.combine(viewModel.venueEventRows.count)
+        for row in viewModel.venueEventRows {
+            venueEventRowsHasher.combine(row.id)
+            venueEventRowsHasher.combine(row.scheduled_start_at)
+        }
+
+        var vibeHasher = Hasher()
+        for (venueEventID, counts) in fanUpdatesStore.venueEventVibeCounts {
+            vibeHasher.combine(venueEventID)
+            for (vibe, count) in counts {
+                vibeHasher.combine(vibe)
+                vibeHasher.combine(count)
+            }
+        }
+
+        var goingProfilesHasher = Hasher()
+        goingProfilesHasher.combine(viewModel.goingProfilesByVenueEventID.count)
+        for (venueEventID, profiles) in viewModel.goingProfilesByVenueEventID.sorted(by: { $0.key.uuidString < $1.key.uuidString }) {
+            goingProfilesHasher.combine(venueEventID)
+            goingProfilesHasher.combine(profiles.count)
+        }
+
+        var interestHasher = Hasher()
+        interestHasher.combine(viewModel.venueEventInterestCounts.count)
+        for (venueEventID, count) in viewModel.venueEventInterestCounts {
+            interestHasher.combine(venueEventID)
+            interestHasher.combine(count)
+        }
+
+        var pickupHasher = Hasher()
+        for row in pickupGamesForLiveToday() {
+            pickupHasher.combine(row.id)
+            pickupHasher.combine(row.approvedJoinCount)
+            pickupHasher.combine(row.game_start_at)
+        }
+
+        var friendHasher = Hasher()
+        for userID in acceptedFriendUserIDs.sorted(by: { $0.uuidString < $1.uuidString }) {
+            friendHasher.combine(userID)
+        }
+
+        let energyTimeSlot = Int(Date().timeIntervalSince1970 / Self.liveFeedEnergyTimeSlotSeconds)
+
+        return LiveFeedCacheKey(
+            calendarDayStart: dayStart.timeIntervalSince1970,
+            liveMatchesFingerprint: liveMatchesHasher.finalize(),
+            barsFingerprint: barsHasher.finalize(),
+            mapVisibleBarsFingerprint: mapVisibleBarsHasher.finalize(),
+            eventsTodayFingerprint: eventsHasher.finalize(),
+            venueEventRowsFingerprint: venueEventRowsHasher.finalize(),
+            vibeCountsFingerprint: vibeHasher.finalize(),
+            goingProfilesFingerprint: goingProfilesHasher.finalize(),
+            venueEventInterestFingerprint: interestHasher.finalize(),
+            pickupGamesFingerprint: pickupHasher.finalize(),
+            favoriteTeamIDsRaw: favoriteTeamIDsRaw,
+            liveLeagueCountryFilterRaw: liveLeagueCountryFilterRaw,
+            friendUserIDsFingerprint: friendHasher.finalize(),
+            canShowPersonalLiveSections: canShowPersonalLiveSections,
+            isBusinessLiveAudienceUser: isBusinessLiveAudienceUser,
+            energyTimeSlot: energyTimeSlot
+        )
+    }
+
+    private func buildLiveFeedComputedData(calendarDay: Date, matchCandidates: [LiveMatch]) -> LiveFeedComputedData {
+        let rankedItems = liveRankedItems(for: calendarDay)
+        let showPersonalLiveSections = canShowPersonalLiveSections
+        let favoriteTeamItems = showPersonalLiveSections ? favoriteTeamsLiveItems(rankedItems: rankedItems) : []
+        let showVenuesAndPickupToday = !isBusinessLiveAudienceUser
+        let venuesAndPickupToday = showVenuesAndPickupToday ? venuesAndPickupTodayRows(from: rankedItems) : []
+        let friendsGoing = showPersonalLiveSections
+            ? Array(rankedItems.filter { $0.energy.friendGoingCount > 0 }.prefix(6))
+            : []
+        let crowdBuilding = liveCrowdBuildingMoments(from: rankedItems)
+
+        var matchRelatedItemsByMatchID: [String: [LiveFeedItem]] = [:]
+        matchRelatedItemsByMatchID.reserveCapacity(matchCandidates.count)
+        for match in matchCandidates {
+            matchRelatedItemsByMatchID[match.id] = liveMatchRelatedItems(for: match, in: rankedItems)
+        }
+
+        return LiveFeedComputedData(
+            rankedItems: rankedItems,
+            favoriteTeamItems: favoriteTeamItems,
+            matchRelatedItemsByMatchID: matchRelatedItemsByMatchID,
+            venuesAndPickupToday: venuesAndPickupToday,
+            friendsGoing: friendsGoing,
+            crowdBuilding: crowdBuilding
+        )
     }
 
     private var liveFeedLayer: some View {
@@ -400,12 +582,12 @@ struct LiveScreen: View {
         let liveNowMatches = liveNowMatches(from: liveTabMatches)
         let todayUpcomingMatches = liveTodayUpcomingMatches(from: liveTabMatches, calendarDay: calendarDay)
         let sportFilterChipOptions = liveGamesSportFilterOptions(from: todayMatchesBase)
-        let rankedItems = liveRankedItems(for: calendarDay)
+        let feedComputed = resolvedLiveFeedComputedData(calendarDay: calendarDay, matchCandidates: todayMatchesBase)
         let showVenuesAndPickupToday = !isBusinessLiveAudienceUser
-        let venuesAndPickupToday = showVenuesAndPickupToday ? venuesAndPickupTodayRows(from: rankedItems) : []
-        let friendsGoing = showPersonalLiveSections ? Array(rankedItems.filter { $0.energy.friendGoingCount > 0 }.prefix(6)) : []
-        let crowdBuilding = liveCrowdBuildingMoments(from: rankedItems)
-        let favoriteTeamItems = showPersonalLiveSections ? favoriteTeamsLiveItems(rankedItems: rankedItems) : []
+        let venuesAndPickupToday = showVenuesAndPickupToday ? feedComputed.venuesAndPickupToday : []
+        let friendsGoing = showPersonalLiveSections ? feedComputed.friendsGoing : []
+        let crowdBuilding = feedComputed.crowdBuilding
+        let favoriteTeamItems = showPersonalLiveSections ? feedComputed.favoriteTeamItems : []
         let visibleSectionCount = visibleLiveSectionCount(
             matches: liveTabMatches,
             venuesAndPickupToday: venuesAndPickupToday,
@@ -456,7 +638,7 @@ struct LiveScreen: View {
                             matches: liveTabMatches,
                             liveNowMatches: liveNowMatches,
                             todayUpcomingMatches: todayUpcomingMatches,
-                            rankedItems: rankedItems,
+                            matchRelatedItemsByMatchID: feedComputed.matchRelatedItemsByMatchID,
                             allLiveGames: todayMatchesBase,
                             sportFilterOptions: sportFilterChipOptions
                         )
@@ -843,7 +1025,7 @@ struct LiveScreen: View {
         matches: [LiveMatch],
         liveNowMatches: [LiveMatch],
         todayUpcomingMatches: [LiveMatch],
-        rankedItems: [LiveFeedItem],
+        matchRelatedItemsByMatchID: [String: [LiveFeedItem]],
         allLiveGames: [LiveMatch],
         sportFilterOptions: [LiveSportVisualType]
     ) -> some View {
@@ -895,7 +1077,7 @@ struct LiveScreen: View {
                             liveMatchSubsectionHeader("Live Now")
                             liveGameFeedRowsList(
                                 cappedLiveGameFeedRows(liveFeedRows, showAll: liveNowFeedRowsExpanded),
-                                rankedItems: rankedItems
+                                matchRelatedItemsByMatchID: matchRelatedItemsByMatchID
                             )
                             liveGameFeedShowMoreButton(
                                 totalRowCount: liveFeedRows.count,
@@ -909,7 +1091,7 @@ struct LiveScreen: View {
                             liveMatchSubsectionHeader("Today / Upcoming")
                             liveGameFeedRowsList(
                                 cappedLiveGameFeedRows(upcomingFeedRows, showAll: liveUpcomingFeedRowsExpanded),
-                                rankedItems: rankedItems
+                                matchRelatedItemsByMatchID: matchRelatedItemsByMatchID
                             )
                             liveGameFeedShowMoreButton(
                                 totalRowCount: upcomingFeedRows.count,
@@ -954,11 +1136,17 @@ struct LiveScreen: View {
     }
 
     @ViewBuilder
-    private func liveGameFeedRowsList(_ rows: [LiveGameFeedRow], rankedItems: [LiveFeedItem]) -> some View {
+    private func liveGameFeedRowsList(
+        _ rows: [LiveGameFeedRow],
+        matchRelatedItemsByMatchID: [String: [LiveFeedItem]]
+    ) -> some View {
         ForEach(rows) { row in
             switch row {
             case .match(let match):
-                liveMatchCard(match, relatedItems: liveMatchRelatedItems(for: match, in: rankedItems))
+                liveMatchCard(
+                    match,
+                    relatedItems: matchRelatedItemsByMatchID[match.id] ?? []
+                )
             case .nativeAd(let slotIndex, _):
                 liveFeedNativeAdCard(slotIndex: slotIndex)
             }
@@ -1781,17 +1969,8 @@ struct LiveScreen: View {
             ? "Find Venues"
             : liveFindVenuesFallbackButtonTitle(for: sportType)
         let socialProfiles = liveMergedSocialProfiles(from: relatedItems)
-        let title = "\(match.awayTeam) at \(match.homeTeam)"
-        let renderVenue = match.venueName?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let renderCity = match.venueCity?.trimmingCharacters(in: .whitespacesAndNewlines)
         let isSaved = viewModel.isProGameSaved(match)
         let featuredEvent = selectedFeaturedEvent(for: match)
-#if DEBUG
-        print("[LiveVenueDebug] provider=LiveMatch")
-        print("[LiveVenueDebug] title=\(title)")
-        print("[LiveVenueDebug] renderVenue=\((renderVenue?.isEmpty == false) ? renderVenue! : "nil")")
-        print("[LiveVenueDebug] renderCity=\((renderCity?.isEmpty == false) ? renderCity! : "nil")")
-#endif
         return VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 10) {
                 ProGameSportBadgeView(
@@ -2061,15 +2240,7 @@ struct LiveScreen: View {
             Circle()
                 .fill(match.matchStatus.isHappeningNow ? FGColor.dangerRed : statusTint.opacity(0.75))
                 .frame(width: 5, height: 5)
-                .scaleEffect(match.matchStatus.isHappeningNow && liveIndicatorPulse ? 1.45 : 0.9)
-                .opacity(match.matchStatus.isHappeningNow && liveIndicatorPulse ? 0.55 : 1.0)
                 .shadow(color: statusTint.opacity(0.55), radius: match.matchStatus.isHappeningNow ? 4 : 0)
-                .animation(
-                    match.matchStatus.isHappeningNow && isLiveTabSelected && liveIndicatorPulse
-                        ? .easeInOut(duration: 0.95).repeatForever(autoreverses: true)
-                        : .default,
-                    value: liveIndicatorPulse
-                )
 
             Text(liveStatusText(match))
                 .font(.caption2.weight(.bold))
@@ -2085,7 +2256,6 @@ struct LiveScreen: View {
         .accessibilityLabel(liveStatusText(match))
         .onAppear {
             guard match.matchStatus.isHappeningNow, isLiveTabSelected else { return }
-            liveIndicatorPulse = true
             logLiveBadgeDebug()
         }
     }
@@ -2106,34 +2276,37 @@ struct LiveScreen: View {
         return "LIVE"
     }
 
-    private func updateLiveAutoRefreshForCurrentState(immediatelyRefresh: Bool) {
+    private func updateLiveAutoRefreshForCurrentState(scheduleActivationRefresh: Bool) {
         if shouldAutoRefreshLiveMatches {
-            startLiveAutoRefresh(immediatelyRefresh: immediatelyRefresh)
+            startLiveAutoRefresh()
+            if scheduleActivationRefresh {
+                scheduleDebouncedLiveActivationRefresh()
+            }
         } else {
+            liveActivationRefreshTask?.cancel()
+            liveActivationRefreshTask = nil
             stopLiveAutoRefresh()
-            liveIndicatorPulse = false
         }
     }
 
-    private func startLiveAutoRefresh(immediatelyRefresh: Bool) {
-        if liveAutoRefreshTask != nil {
-            if immediatelyRefresh {
-                TabPerf.refreshStarted(name: "liveMatches")
-                refreshLiveMatches(forceRefresh: false)
-#if DEBUG
-                print("[PerfPhase1] liveAutoRefresh forceRefresh=false reason=immediateWhileTimerRunning")
-#endif
+    private func scheduleDebouncedLiveActivationRefresh() {
+        guard shouldAutoRefreshLiveMatches else { return }
+        liveActivationRefreshTask?.cancel()
+        liveActivationRefreshTask = Task { @MainActor in
+            do {
+                try await Task.sleep(nanoseconds: Self.liveActivationDebounceNanoseconds)
+            } catch {
+                return
             }
-            return
-        }
-
-        if immediatelyRefresh {
+            guard !Task.isCancelled, shouldAutoRefreshLiveMatches else { return }
             TabPerf.refreshStarted(name: "liveMatches")
-            refreshLiveMatches(forceRefresh: false)
-#if DEBUG
-            print("[PerfPhase1] liveAutoRefresh forceRefresh=false reason=initialActivation")
-#endif
+            await viewModel.refreshLiveMatchesForLiveTabActivation(forceRefresh: false)
+            liveActivationRefreshTask = nil
         }
+    }
+
+    private func startLiveAutoRefresh() {
+        guard liveAutoRefreshTask == nil else { return }
 
         liveAutoRefreshTask = Task { @MainActor in
             while !Task.isCancelled {
@@ -2539,7 +2712,7 @@ struct LiveScreen: View {
                     if momentum.homeCrowdFanCount > 0 {
                         crowdBuildingMetricChip(
                             icon: "shield.lefthalf.filled",
-                            label: momentum.homeCrowdFanCount == 1 ? "Home Crowd" : "Home Crowd · \(momentum.homeCrowdFanCount)",
+                            label: momentum.homeCrowdFanCount == 1 ? "Home Venue" : "Home Venue · \(momentum.homeCrowdFanCount)",
                             accent: Color(red: 0.58, green: 0.36, blue: 0.94)
                         )
                     }
@@ -2896,14 +3069,6 @@ struct LiveScreen: View {
             Circle()
                 .fill(FGColor.dangerRed)
                 .frame(width: 6, height: 6)
-                .scaleEffect(liveIndicatorPulse ? 1.25 : 0.92)
-                .opacity(liveIndicatorPulse ? 0.7 : 1.0)
-                .animation(
-                    isLiveTabSelected && liveIndicatorPulse
-                        ? .easeInOut(duration: 0.95).repeatForever(autoreverses: true)
-                        : .default,
-                    value: liveIndicatorPulse
-                )
             Text("LIVE")
                 .font(.system(size: 10, weight: .bold, design: .rounded))
         }
@@ -2914,10 +3079,6 @@ struct LiveScreen: View {
         .overlay {
             Capsule(style: .continuous)
                 .strokeBorder(FGColor.dangerRed.opacity(0.24), lineWidth: 1)
-        }
-        .onAppear {
-            guard isLiveTabSelected else { return }
-            liveIndicatorPulse = true
         }
     }
 
@@ -3226,6 +3387,8 @@ struct LiveScreen: View {
                 onFavorite: {
                     if viewModel.canFavoriteVenues {
                         viewModel.toggleFavorite(selectedBar)
+                    } else if viewModel.isGuestDiscoverMode {
+                        viewModel.discoverPresentFanUserAuthSheet(openRegisterMode: false)
                     } else if viewModel.isAuthenticatedForSocialFeatures {
                         viewModel.logBusinessUserGateBlocked(action: "favoriteVenue")
                         fanFeatureGateAlertMessage = BusinessFanGateCopy.actionTapBlocked
@@ -3591,7 +3754,7 @@ private struct FavoriteTeamsLiveSection: View {
     }
 }
 
-private struct LiveMatchDetailSheet: View {
+struct LiveMatchDetailSheet: View {
     let match: LiveMatch
 
     @Environment(\.colorScheme) private var colorScheme

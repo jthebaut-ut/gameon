@@ -5,6 +5,11 @@ private enum LiveMatchesRefreshState {
     static var generation: UInt = 0
 }
 
+private enum LiveTabActivationRefreshDedup {
+    static var lastRequestAt: Date?
+    static let interval: TimeInterval = 0.3
+}
+
 extension MapViewModel {
     @discardableResult
     func openLiveGameVenueOnDiscover(_ match: LiveMatch) -> Bool {
@@ -26,6 +31,22 @@ extension MapViewModel {
 
     func refreshLiveMatchesForLiveTab(forceRefresh: Bool = false) async {
         await refreshLiveMatchesForCalendar(forceRefresh: forceRefresh)
+    }
+
+    /// Coalesces duplicate non-force refresh requests from Live tab activation (preload, onAppear, onChange).
+    @MainActor
+    func refreshLiveMatchesForLiveTabActivation(forceRefresh: Bool = false) async {
+        guard !forceRefresh else {
+            await refreshLiveMatchesForLiveTab(forceRefresh: true)
+            return
+        }
+        if let last = LiveTabActivationRefreshDedup.lastRequestAt,
+           Date().timeIntervalSince(last) < LiveTabActivationRefreshDedup.interval {
+            TabPerf.refreshSkipped(name: "liveMatches", reason: "activationDedup")
+            return
+        }
+        LiveTabActivationRefreshDedup.lastRequestAt = Date()
+        await refreshLiveMatchesForLiveTab(forceRefresh: false)
     }
 
     @MainActor

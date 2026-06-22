@@ -70,7 +70,7 @@ enum FanReputationEngine {
         "Fan Leader",
         "Venue Regular",
         "Verified Organizer",
-        "Home Crowd"
+        "Home Venue"
     ]
 
     static func evaluate(_ signals: FanReputationSignals, shouldLog: Bool = true) -> FanReputationProfile {
@@ -165,8 +165,8 @@ enum FanReputationEngine {
             privileges: FanReputationPrivileges(
                 isVerifiedOrganizer: title == "Verified Organizer",
                 canCreateLargerPickupGames: verifiedOrganizer,
-                hasHighlightedVenueIdentity: title == "Venue Regular" || title == "Home Crowd",
-                hasSubtleHighlightedComments: title == "Superfan" || title == "Fan Leader" || title == "Home Crowd"
+                hasHighlightedVenueIdentity: title == "Venue Regular" || title == "Home Venue",
+                hasSubtleHighlightedComments: title == "Superfan" || title == "Fan Leader" || title == "Home Venue"
             )
         )
 
@@ -251,7 +251,7 @@ enum FanReputationEngine {
             return venuePlanCount > 0 ? "Shows up for local games" : "Building a game-day rhythm"
         case "Local Fan":
             return identityContext ?? "Building local sports presence"
-        case "Home Crowd":
+        case "Home Venue":
             return "A steady presence in the local scene"
         default:
             if let team = favoriteTeams.first { return "\(team.name) fan profile" }

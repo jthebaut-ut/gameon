@@ -628,7 +628,7 @@ struct PublicProfileEditorialHero: View {
 
     private var displayBio: String {
         if trimmedBio.isEmpty {
-            return "I am FanGeo's biggest fan."
+            return "No bio yet."
         }
         return trimmedBio
     }
@@ -673,9 +673,11 @@ struct PublicProfileEditorialHero: View {
             }
 
             Text(displayBio)
-                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .font(.system(size: 14, weight: isDefaultBio ? .regular : .medium, design: .rounded))
                 .foregroundStyle(
-                    FGColor.mutedText(colorScheme).opacity(isDefaultBio ? 0.88 : 0.94)
+                    isDefaultBio
+                        ? FGColor.secondaryText(colorScheme)
+                        : FGColor.mutedText(colorScheme).opacity(0.94)
                 )
                 .multilineTextAlignment(.leading)
                 .lineSpacing(4)
@@ -755,7 +757,7 @@ struct PublicProfileEditorialHero: View {
             return L10n.t("rookie_fan", languageCode: appLanguageRaw)
         case "Venue Regular":
             return L10n.t("venue_regular", languageCode: appLanguageRaw)
-        case "Home Crowd":
+        case "Home Venue":
             return L10n.t("home_crowd", languageCode: appLanguageRaw)
         default:
             return title

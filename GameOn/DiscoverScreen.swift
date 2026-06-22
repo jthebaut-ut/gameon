@@ -65,10 +65,47 @@ private struct DiscoverPredictionSheetContext: Identifiable {
     }
 }
 
+private enum FanGeoStartupGuidePreferences {
+    static let hideAtStartupKey = "hideStartupGuide"
+    private static let legacyHideAtStartupKey = "fanGeoHideStartupGuide"
+
+    static var shouldHideAtStartup: Bool {
+        let defaults = UserDefaults.standard
+        if defaults.object(forKey: hideAtStartupKey) != nil {
+            return defaults.bool(forKey: hideAtStartupKey)
+        }
+        let legacyValue = defaults.bool(forKey: legacyHideAtStartupKey)
+        if legacyValue {
+            defaults.set(true, forKey: hideAtStartupKey)
+        }
+        return legacyValue
+    }
+
+    static func setHideAtStartup(_ hide: Bool) {
+        UserDefaults.standard.set(hide, forKey: hideAtStartupKey)
+    }
+}
+
 private enum DiscoverSearchSuggestionSource: String, Codable, Sendable {
     case city
     case place
     case recent
+}
+
+private enum DiscoverRecentSearchKind: String, Codable, Sendable {
+    case city
+    case venue
+    case pickupPlace
+    case team
+
+    var iconSystemName: String {
+        switch self {
+        case .city: return "mappin.circle.fill"
+        case .venue: return "building.2.fill"
+        case .pickupPlace: return "figure.soccer"
+        case .team: return "shield.fill"
+        }
+    }
 }
 
 private struct DiscoverSearchSuggestion: Identifiable, Hashable, Codable, Sendable {
@@ -77,6 +114,7 @@ private struct DiscoverSearchSuggestion: Identifiable, Hashable, Codable, Sendab
     let latitude: Double?
     let longitude: Double?
     let source: DiscoverSearchSuggestionSource
+    let kind: DiscoverRecentSearchKind?
 
     var id: String {
         [
@@ -99,11 +137,33 @@ private struct DiscoverSearchSuggestion: Identifiable, Hashable, Codable, Sendab
         return "\(cleanTitle), \(cleanSubtitle)"
     }
 
+    var displayKind: DiscoverRecentSearchKind {
+        kind ?? Self.inferredKind(for: self)
+    }
+
     static func normalizedText(_ raw: String) -> String {
         raw.trimmingCharacters(in: .whitespacesAndNewlines)
             .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
             .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
             .lowercased()
+    }
+
+    static func inferredKind(forSearchText text: String) -> DiscoverRecentSearchKind {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return .city }
+        if !FavoriteTeamCatalog.searchTeams(trimmed).isEmpty {
+            return .team
+        }
+        return .city
+    }
+
+    static func inferredKind(for suggestion: DiscoverSearchSuggestion) -> DiscoverRecentSearchKind {
+        switch suggestion.source {
+        case .city, .place:
+            return .city
+        case .recent:
+            return inferredKind(forSearchText: suggestion.displayQuery)
+        }
     }
 }
 
@@ -122,7 +182,8 @@ private enum DiscoverRecentSearchStore {
                 subtitle: $0.subtitle,
                 latitude: $0.latitude,
                 longitude: $0.longitude,
-                source: .recent
+                source: .recent,
+                kind: $0.kind
             )
         }
     }
@@ -137,7 +198,8 @@ private enum DiscoverRecentSearchStore {
             subtitle: suggestion.subtitle.trimmingCharacters(in: .whitespacesAndNewlines),
             latitude: suggestion.latitude,
             longitude: suggestion.longitude,
-            source: .recent
+            source: .recent,
+            kind: suggestion.kind ?? DiscoverSearchSuggestion.inferredKind(for: suggestion)
         )
         let key = DiscoverSearchSuggestion.normalizedText(recent.displayQuery)
         let deduped = existing.filter {
@@ -246,7 +308,8 @@ private final class DiscoverSearchSuggestionController: NSObject, ObservableObje
                 subtitle: "",
                 latitude: nil,
                 longitude: nil,
-                source: .recent
+                source: .recent,
+                kind: DiscoverSearchSuggestion.inferredKind(forSearchText: trimmed)
             )
         )
     }
@@ -265,12 +328,14 @@ private final class DiscoverSearchSuggestionController: NSObject, ObservableObje
                 let normalized = DiscoverSearchSuggestion.normalizedText("\(title), \(subtitle)")
                 guard seen.insert(normalized).inserted else { return nil }
 
+                let mappedSource = Self.suggestionSource(title: title, subtitle: subtitle)
                 return DiscoverSearchSuggestion(
                     title: title,
                     subtitle: subtitle,
                     latitude: nil,
                     longitude: nil,
-                    source: Self.suggestionSource(title: title, subtitle: subtitle)
+                    source: mappedSource,
+                    kind: mappedSource == .city ? .city : .city
                 )
             }
             .prefix(Self.suggestionLimit)
@@ -809,6 +874,8 @@ struct DiscoverScreen: View {
     @State private var discoverBottomAdNoFillRetryCount = 0
     @State private var discoverBottomAdBackoffUntil: Date?
     @State private var showDiscoverSportMoreSheet = false
+    @State private var showDiscoverHelpSheet = false
+    @State private var didPresentStartupGuideThisSession = false
     @State private var pickupGameDetailNav: PickupDetailNavigationToken?
     @State private var pickupHostPrefillPlace: PickupPlaceRow?
     @State private var pickupPostCreateInviteGame: PickupGameRow?
@@ -1912,6 +1979,9 @@ struct DiscoverScreen: View {
                     }
                 }
             }
+            .sheet(isPresented: $showDiscoverHelpSheet) {
+                DiscoverHelpSheet()
+            }
             .sheet(item: $pickupHostPrefillPlace) { place in
                 NavigationStack {
                     SettingsPickupGameFormView(
@@ -2036,6 +2106,10 @@ struct DiscoverScreen: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 discoverMapLocationAuthVersion += 1
+                let locationStatus = CLLocationManager().authorizationStatus
+                if locationStatus == .authorizedAlways || locationStatus == .authorizedWhenInUse {
+                    discoverLocationHint = nil
+                }
                 scheduleDiscoverWeatherRefresh(force: false)
                 if viewModel.discoverMapContentMode == .pickupGames, viewModel.discoverPickupSubMode == .games {
                     Task {
@@ -2114,13 +2188,27 @@ struct DiscoverScreen: View {
             }
         }
         .onChange(of: discoverAnnotationInvalidationToken) { _, _ in
+            guard isDiscoverTabSelected else {
+#if DEBUG
+                print("[DiscoverPerf] inactive skipped heavy map work reason=annotationInvalidation")
+#endif
+                return
+            }
             rebuildDiscoverAnnotationCache(reason: "annotationInvalidation")
         }
         .onChange(of: isDiscoverTabSelected) { _, visible in
             guard visible else { return }
             TabPerf.selectedTab("discover")
             AppPerfDebug.screenLoadStart(tab: "discover", source: "tabVisible")
+            presentStartupGuideIfNeeded()
             Task { @MainActor in
+                await viewModel.refreshDiscoverBannerAnnouncementForDiscoverTabVisible()
+#if DEBUG
+                print("[DiscoverPerf] announcement refresh source=DiscoverScreen reason=tabVisible")
+#endif
+                if await viewModel.consumePendingDiscoverFocusVenue(source: "discoverTabVisible") {
+                    showVenueDetails = true
+                }
                 await Task.yield()
                 TabPerf.tabSwitchRendered(tab: "discover")
                 AppPerfDebug.deferredWork(tab: "discover", work: "datasetConsistency", source: "tabVisible")
@@ -2134,18 +2222,11 @@ struct DiscoverScreen: View {
             }
         }
         .onChange(of: viewModel.discoverFocusVenueId) { _, venueId in
-            guard let venueId else { return }
-            viewModel.discoverFocusVenueId = nil
+            guard venueId != nil else { return }
             Task { @MainActor in
-                if viewModel.bars.first(where: { $0.id == venueId }) == nil
-                    && viewModel.followingTabSavedVenues.first(where: { $0.id == venueId }) == nil {
-                    await viewModel.loadVenuesFromSupabase()
+                if await viewModel.consumePendingDiscoverFocusVenue(source: "discoverFocusVenue") {
+                    showVenueDetails = true
                 }
-                let bar = viewModel.bars.first(where: { $0.id == venueId })
-                    ?? viewModel.followingTabSavedVenues.first(where: { $0.id == venueId })
-                guard let bar else { return }
-                viewModel.selectVenueForPreview(bar, source: "discoverFocusVenue")
-                showVenueDetails = true
             }
         }
         .onChange(of: viewModel.discoverAuthGateActive) { wasActive, isActive in
@@ -2191,6 +2272,9 @@ struct DiscoverScreen: View {
         .onAppear {
             discoverLogLayoutDebug(layoutWidth: layoutWidth)
         }
+        .onChange(of: viewModel.announcementAudienceSelectionKey) { _, _ in
+            viewModel.applyDiscoverBannerSelectionFromCache()
+        }
     }
 
     private var fanFeatureGateAlertBinding: Binding<Bool> {
@@ -2216,7 +2300,14 @@ struct DiscoverScreen: View {
         viewModel.clampDiscoverMapSelectedDateToMinimumCalendarDayIfNeeded()
         discoverLogRedesignDebug()
         scheduleDiscoverWeatherRefresh(force: true)
+        presentStartupGuideIfNeeded()
         Task {
+            if isDiscoverTabSelected {
+                await viewModel.refreshDiscoverBannerAnnouncementForDiscoverTabVisible()
+#if DEBUG
+                print("[DiscoverPerf] announcement refresh source=DiscoverScreen reason=appear")
+#endif
+            }
             await viewModel.ensureBusinessOwnerSessionFlagsIfPossible(context: "discover_on_appear")
             viewModel.logBusinessOwnerSessionFlags(context: "discover_on_appear")
             await Task.yield()
@@ -2388,6 +2479,8 @@ struct DiscoverScreen: View {
                 onFavorite: {
                     if viewModel.canFavoriteVenues {
                         viewModel.toggleFavorite(selectedBar)
+                    } else if viewModel.isGuestDiscoverMode {
+                        viewModel.discoverPresentFanUserAuthSheet(openRegisterMode: false)
                     } else if viewModel.isAuthenticatedForSocialFeatures {
                         viewModel.logBusinessUserGateBlocked(action: "favoriteVenue")
                         fanFeatureGateAlertMessage = BusinessFanGateCopy.actionTapBlocked
@@ -2688,6 +2781,15 @@ struct DiscoverScreen: View {
         fastRegionJump: Bool = false,
         regionOverride: MKCoordinateRegion? = nil
     ) async {
+        guard isDiscoverTabSelected else {
+#if DEBUG
+            print("[DiscoverPerf] inactive skipped heavy map work reason=ensureDiscoverDatasetConsistency trigger=\(trigger)")
+#endif
+            return
+        }
+#if DEBUG
+        print("[DiscoverPerf] active running consistency check trigger=\(trigger)")
+#endif
         if isPassiveDiscoverTabConsistencyTrigger(trigger),
            !forceCurrentModeReload,
            let last = lastDiscoverTabConsistencyAt,
@@ -3490,6 +3592,12 @@ struct DiscoverScreen: View {
     }
 
     private func rebuildDiscoverAnnotationCache(reason: String) {
+        guard isDiscoverTabSelected else {
+#if DEBUG
+            print("[DiscoverPerf] inactive skipped heavy map work reason=rebuildDiscoverAnnotationCache trigger=\(reason)")
+#endif
+            return
+        }
         let key = discoverAnnotationCacheKey()
         if discoverAnnotationCache.key == key {
             Perf.cacheHit(name: "discoverAnnotationCache", detail: reason)
@@ -3704,7 +3812,22 @@ struct DiscoverScreen: View {
         }
     }
 
+    @ViewBuilder
     private var mapLayer: some View {
+        if isDiscoverTabSelected {
+            discoverActiveMapLayer
+        } else {
+            discoverInactiveMapPlaceholder
+        }
+    }
+
+    private var discoverInactiveMapPlaceholder: some View {
+        Color.clear
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .accessibilityHidden(true)
+    }
+
+    private var discoverActiveMapLayer: some View {
         let pickupClusters = discoverPickupClustersForMap
         let pickupPlaceClusters = discoverPickupPlaceClustersForMap
         let venueClusters = discoverVenueClustersForMap
@@ -3923,6 +4046,23 @@ struct DiscoverScreen: View {
             discoverFloatingSearchBar
             discoverSearchAssistPanel
             discoverSportsFilterGlassCard
+
+            if !viewModel.discoverBannerAnnouncements.isEmpty {
+                DiscoverAnnouncementBannerCarouselView(
+                    announcements: viewModel.discoverBannerAnnouncements,
+                    isDiscoverTabVisible: isDiscoverTabSelected,
+                    chipMetadata: { announcement in
+                        viewModel.sponsoredAnnouncementChipMetadata(for: announcement)
+                    },
+                    onDismiss: { announcement in
+                        viewModel.dismissDiscoverBannerAnnouncement(announcement)
+                    },
+                    onCTA: { announcement in
+                        viewModel.handleDiscoverBannerAnnouncementCTA(announcement)
+                    }
+                )
+            }
+
             HStack(spacing: 10) {
                 discoverWeatherPill
                 Spacer(minLength: 0)
@@ -4222,34 +4362,39 @@ struct DiscoverScreen: View {
     }
 
     private var discoverFloatingSearchBar: some View {
-        ZStack(alignment: .trailing) {
-            FGSearchBar(
-                placeholder: "Search venues, teams, or locations",
-                text: $viewModel.searchText,
-                onClear: { dismissDiscoverSearchKeyboard() },
-                onSubmit: {
-                    submitDiscoverSearchFromReturn()
-                },
-                submitLabel: .search,
-                textInputAutocapitalization: .words,
-                isFocused: $isSearchFocused,
-                horizontalPadding: 16,
-                verticalPadding: 12,
-                cornerRadius: discoverLightGlassCornerRadius,
-                contentSpacing: 8,
-                textFont: .system(size: 15, weight: .regular, design: .rounded),
-                showsBackground: false,
-                trailingAccessoryInset: 50
-            )
+        HStack(spacing: 0) {
+            discoverHelpButton
+                .padding(.leading, 10)
 
-            HStack(spacing: 6) {
-                if viewModel.isDiscoverVenueSearchLoading {
-                    ProgressView()
-                        .controlSize(.small)
+            ZStack(alignment: .trailing) {
+                FGSearchBar(
+                    placeholder: "Find bars, pickup games & cities",
+                    text: $viewModel.searchText,
+                    onClear: { dismissDiscoverSearchKeyboard() },
+                    onSubmit: {
+                        submitDiscoverSearchFromReturn()
+                    },
+                    submitLabel: .search,
+                    textInputAutocapitalization: .words,
+                    isFocused: $isSearchFocused,
+                    horizontalPadding: 16,
+                    verticalPadding: 12,
+                    cornerRadius: discoverLightGlassCornerRadius,
+                    contentSpacing: 8,
+                    textFont: .system(size: 15, weight: .regular, design: .rounded),
+                    showsBackground: false,
+                    trailingAccessoryInset: 50
+                )
+
+                HStack(spacing: 6) {
+                    if viewModel.isDiscoverVenueSearchLoading {
+                        ProgressView()
+                            .controlSize(.small)
+                    }
+                    discoverIntegratedLocationButton
                 }
-                discoverIntegratedLocationButton
+                .padding(.trailing, 18)
             }
-            .padding(.trailing, 18)
         }
         .frame(maxWidth: .infinity)
         .frame(height: 52)
@@ -4260,6 +4405,29 @@ struct DiscoverScreen: View {
         .onChange(of: isSearchFocused) { _, _ in
             refreshDiscoverSearchSuggestions()
         }
+    }
+
+    private var discoverHelpButton: some View {
+        Button {
+            dismissDiscoverSearchKeyboard()
+            showDiscoverHelpSheet = true
+        } label: {
+            Image(systemName: "questionmark.circle")
+                .font(.system(size: 18, weight: .medium))
+                .foregroundStyle(FGColor.mutedText(colorScheme))
+                .frame(width: 32, height: 32)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Discover help")
+    }
+
+    private func presentStartupGuideIfNeeded() {
+        guard isDiscoverTabSelected else { return }
+        guard !didPresentStartupGuideThisSession else { return }
+        guard !FanGeoStartupGuidePreferences.shouldHideAtStartup else { return }
+        didPresentStartupGuideThisSession = true
+        showDiscoverHelpSheet = true
     }
 
     private var discoverSearchAssistShowsClearRecent: Bool {
@@ -4343,7 +4511,7 @@ struct DiscoverScreen: View {
     private func discoverSearchAssistRow(_ suggestion: DiscoverSearchSuggestion) -> some View {
         HStack(spacing: FGSpacing.sm) {
             Image(systemName: discoverSearchSuggestionIcon(for: suggestion))
-                .font(.system(size: 16, weight: .semibold))
+                .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(suggestion.source == .recent ? FGColor.mutedText(colorScheme) : FGColor.accentBlue)
                 .frame(width: 30, height: 30)
                 .background {
@@ -4384,7 +4552,7 @@ struct DiscoverScreen: View {
     private func discoverSearchSuggestionIcon(for suggestion: DiscoverSearchSuggestion) -> String {
         switch suggestion.source {
         case .recent:
-            return "clock"
+            return suggestion.displayKind.iconSystemName
         case .city:
             return "mappin.and.ellipse"
         case .place:
@@ -4411,6 +4579,9 @@ struct DiscoverScreen: View {
         .accessibilityLabel("Center map on your location")
     }
 
+    private static let discoverLocationDisabledHint =
+        "Location is turned off. You can enable it in Settings ▸ Privacy & Security ▸ Location Services ▸ FanGeo. The map still shows a default area you can pan and search."
+
     private func discoverCenterMapOnUserLocation() {
         Task { @MainActor in
 #if DEBUG
@@ -4422,13 +4593,15 @@ struct DiscoverScreen: View {
             print("[CurrentLocationButton] permission=\(discoverLocationAuthStatusLabel(status))")
 #endif
             if status == .denied || status == .restricted {
-                discoverLocationHint = "Location is turned off. You can enable it in Settings ▸ Privacy & Security ▸ Location Services ▸ FanGeo. The map still shows a default area you can pan and search."
+                discoverLocationHint = Self.discoverLocationDisabledHint
                 return
             }
             discoverLocationHint = nil
             let centered = await viewModel.centerDiscoverMapOnUserPhysicalLocationIfPossible()
             if centered {
                 scheduleDiscoverWeatherRefresh(force: false)
+            } else {
+                discoverLocationHint = Self.discoverLocationDisabledHint
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
                 discoverMapLocationAuthVersion += 1
@@ -6408,7 +6581,7 @@ struct DiscoverScreen: View {
         }
         .buttonStyle(FGPremiumPressButtonStyle(hapticOnPress: false))
         .disabled(isDiscoverHomeCrowdToggleInFlight)
-        .accessibilityLabel(isActive ? "Remove this Home Crowd" : "Make this my Home Crowd")
+        .accessibilityLabel(isActive ? "Remove this Home Venue" : "Make this my Home Venue")
     }
 
     private func venuePreviewRatingButton(_ bar: BarVenue) -> some View {
@@ -6477,18 +6650,8 @@ struct DiscoverScreen: View {
                         venuePreviewFanZoneBlock(fanZoneData)
                             .zIndex(5)
 
-                        if !gamesToday.isEmpty {
-                            gamesListSection(bar: resolved, gamesToday: gamesToday)
-                                .zIndex(0)
-                        } else {
-                            Text("No games today")
-                                .font(FGTypography.cardTitle.weight(.bold))
-                                .foregroundStyle(FGColor.secondaryText(colorScheme))
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(FGSpacing.md)
-                                .background(discoverPreviewInnerSurface)
-                                .clipShape(RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous))
-                        }
+                        gamesListSection(bar: resolved, gamesToday: gamesToday)
+                            .zIndex(0)
                     }
                 }
                 .padding(.bottom, 24)
@@ -11065,6 +11228,1416 @@ private struct DiscoverFloatingMapCircleButtonModifier: ViewModifier {
                     .strokeBorder(Color.black.opacity(colorScheme == .dark ? 0.12 : 0.06), lineWidth: 1)
             }
             .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.22 : 0.12), radius: 10, y: 4)
+    }
+}
+
+private enum DiscoverHelpPageStyle {
+    case welcome
+    case feature
+}
+
+private struct DiscoverHelpHeroCallout: Identifiable, Equatable {
+    let id: String
+    let emoji: String
+    let label: String
+}
+
+private struct DiscoverHelpFeatureHighlight: Identifiable, Equatable {
+    let id: String
+    let title: String
+    let detail: String
+    let systemImage: String
+    let accentColor: Color
+}
+
+private struct DiscoverHelpCarouselPage: Identifiable {
+    let id: Int
+    let style: DiscoverHelpPageStyle
+    let welcomeLine: String
+    let tagline: String
+    let title: String
+    let primaryText: String
+    let secondaryText: String
+    let bulletPoints: [String]
+    let featureHighlights: [DiscoverHelpFeatureHighlight]
+    let heroCallouts: [DiscoverHelpHeroCallout]
+    let proTipTitle: String
+    let proTipBody: String
+    let footerText: String
+    let systemImage: String
+    let accentColor: Color
+    let gradientColors: [Color]
+
+    static let pages: [DiscoverHelpCarouselPage] = [
+        DiscoverHelpCarouselPage(
+            id: 0,
+            style: .welcome,
+            welcomeLine: "Welcome to FanGeo",
+            tagline: "Find Games. Find People. Be There.",
+            title: "",
+            primaryText: "",
+            secondaryText: "FanGeo is the all-in-one sports community where fans discover sports bars, watch parties, pickup games, live scores, and local sports communities.",
+            bulletPoints: [
+                "Find sports bars showing live games",
+                "Discover watch parties near you",
+                "Join pickup games and local sports groups",
+                "Follow your favorite teams",
+                "Chat and connect with sports fans",
+                "Make predictions and track live games"
+            ],
+            featureHighlights: [],
+            heroCallouts: [],
+            proTipTitle: "",
+            proTipBody: "",
+            footerText: "",
+            systemImage: "sportscourt.fill",
+            accentColor: FGColor.accentGreen,
+            gradientColors: [FGColor.accentGreen, FGColor.accentBlue]
+        ),
+        DiscoverHelpCarouselPage(
+            id: 1,
+            style: .feature,
+            welcomeLine: "",
+            tagline: "",
+            title: "Discover",
+            primaryText: "Find What's Happening Around You",
+            secondaryText: "FanGeo's Discover map helps you find sports bars, watch parties, venue games, pickup games, and pickup places near you.",
+            bulletPoints: [
+                "Find sports bars showing live games",
+                "Discover watch parties and venue events",
+                "Join pickup games near you",
+                "Explore courts, fields, and pickup places",
+                "Filter by sport and date",
+                "See what's happening today or any future day"
+            ],
+            featureHighlights: [],
+            heroCallouts: [],
+            proTipTitle: "",
+            proTipBody: "",
+            footerText: "",
+            systemImage: "map.fill",
+            accentColor: FGColor.accentGreen,
+            gradientColors: [FGColor.accentGreen, FGColor.accentBlue]
+        ),
+        DiscoverHelpCarouselPage(
+            id: 2,
+            style: .feature,
+            welcomeLine: "",
+            tagline: "",
+            title: "Live",
+            primaryText: "See What's Happening Right Now",
+            secondaryText: "See live professional games, watch scores update in real time, discover where fans are gathering, and follow the action as it happens.",
+            bulletPoints: [
+                "Live games & scores",
+                "Fan predictions",
+                "Friends going",
+                "Crowd activity",
+                "Watch parties",
+                "Venue game coverage"
+            ],
+            featureHighlights: [],
+            heroCallouts: [],
+            proTipTitle: "",
+            proTipBody: "",
+            footerText: "",
+            systemImage: "dot.radiowaves.left.and.right",
+            accentColor: FGColor.dangerRed,
+            gradientColors: [Color(red: 0.98, green: 0.42, blue: 0.32), FGColor.dangerRed]
+        ),
+        DiscoverHelpCarouselPage(
+            id: 3,
+            style: .feature,
+            welcomeLine: "",
+            tagline: "",
+            title: "Calendar",
+            primaryText: "Never Miss A Game",
+            secondaryText: "Save games, watch parties, and pickup events to your FanGeo calendar.",
+            bulletPoints: [
+                "Save events",
+                "Follow favorite teams",
+                "Plan ahead",
+                "Get reminders"
+            ],
+            featureHighlights: [],
+            heroCallouts: [],
+            proTipTitle: "",
+            proTipBody: "",
+            footerText: "",
+            systemImage: "calendar.badge.clock",
+            accentColor: Color(red: 0.58, green: 0.42, blue: 0.94),
+            gradientColors: [Color(red: 0.58, green: 0.42, blue: 0.94), Color(red: 0.72, green: 0.48, blue: 0.98)]
+        ),
+        DiscoverHelpCarouselPage(
+            id: 4,
+            style: .feature,
+            welcomeLine: "",
+            tagline: "",
+            title: "Going",
+            primaryText: "Keep Track Of What You're Attending",
+            secondaryText: "See all the professional games, watch parties, and pickup games you're planning to attend.",
+            bulletPoints: [
+                "Saved pro games",
+                "Saved watch parties",
+                "Saved pickup games",
+                "Your personal sports agenda"
+            ],
+            featureHighlights: [],
+            heroCallouts: [],
+            proTipTitle: "",
+            proTipBody: "",
+            footerText: "",
+            systemImage: "heart.fill",
+            accentColor: FGColor.accentGreen,
+            gradientColors: [FGColor.accentGreen, Color(red: 0.16, green: 0.62, blue: 0.48)]
+        ),
+        DiscoverHelpCarouselPage(
+            id: 5,
+            style: .feature,
+            welcomeLine: "",
+            tagline: "",
+            title: "Chat",
+            primaryText: "Connect With Other Fans",
+            secondaryText: "Chat with fans, coordinate watch parties, and stay connected before and after events.",
+            bulletPoints: [
+                "Fan conversations",
+                "Group coordination",
+                "Watch party planning",
+                "Community discussions"
+            ],
+            featureHighlights: [],
+            heroCallouts: [],
+            proTipTitle: "",
+            proTipBody: "",
+            footerText: "",
+            systemImage: "bubble.left.and.bubble.right.fill",
+            accentColor: FGColor.accentBlue,
+            gradientColors: [FGColor.accentBlue, Color(red: 0.28, green: 0.52, blue: 0.92)]
+        ),
+        DiscoverHelpCarouselPage(
+            id: 6,
+            style: .feature,
+            welcomeLine: "",
+            tagline: "",
+            title: "PROFILE",
+            primaryText: "Build Your Fan Identity",
+            secondaryText: "Customize your profile, choose your favorite teams, connect with local fans, and show who you support.",
+            bulletPoints: [
+                "Add your favorite teams",
+                "Personalize your fan profile",
+                "Discover fans with shared interests",
+                "Build your reputation",
+                "Join conversations around your teams"
+            ],
+            featureHighlights: [],
+            heroCallouts: [
+                DiscoverHelpHeroCallout(id: "teams", emoji: "🏆", label: "Favorite Teams"),
+                DiscoverHelpHeroCallout(id: "fans", emoji: "👥", label: "Suggested Fans"),
+                DiscoverHelpHeroCallout(id: "reputation", emoji: "⭐", label: "Reputation & Fan Identity")
+            ],
+            proTipTitle: "",
+            proTipBody: "",
+            footerText: "",
+            systemImage: "person.crop.circle.fill",
+            accentColor: FGColor.accentGreen,
+            gradientColors: [FGColor.accentGreen, Color(red: 0.16, green: 0.62, blue: 0.48)]
+        )
+    ]
+}
+
+struct DiscoverHelpSheet: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) private var dismiss
+    @AppStorage(FanGeoStartupGuidePreferences.hideAtStartupKey) private var hideStartupGuideAtStartup = false
+    @State private var selectedPage = 0
+    @State private var sheetDetent: PresentationDetent = .fraction(0.90)
+
+    private var pages: [DiscoverHelpCarouselPage] { DiscoverHelpCarouselPage.pages }
+
+    private var isLastPage: Bool { selectedPage >= pages.count - 1 }
+
+    private var primaryButtonTitle: String {
+        isLastPage ? "Start Exploring" : "Next"
+    }
+
+    var body: some View {
+        GeometryReader { geo in
+            let footerHeight: CGFloat = 136
+            let carouselHeight = max(geo.size.height - footerHeight, 420)
+
+            VStack(spacing: 0) {
+                TabView(selection: $selectedPage) {
+                    ForEach(pages) { page in
+                        DiscoverHelpCarouselCard(page: page, contentHeight: carouselHeight)
+                            .tag(page.id)
+                    }
+                }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .frame(height: carouselHeight)
+                .accessibilityLabel("FanGeo onboarding")
+                .accessibilityValue(
+                    "Page \(selectedPage + 1) of \(pages.count), " +
+                    (pages[selectedPage].title.isEmpty
+                        ? pages[selectedPage].welcomeLine
+                        : pages[selectedPage].title)
+                )
+
+                DiscoverHelpPageIndicator(pageCount: pages.count, selectedPage: selectedPage)
+                    .padding(.top, 2)
+                    .padding(.bottom, 6)
+                    .accessibilityHidden(true)
+
+                Button {
+                    hideStartupGuideAtStartup.toggle()
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: hideStartupGuideAtStartup ? "checkmark.square.fill" : "square")
+                            .font(.title3)
+                            .foregroundStyle(
+                                hideStartupGuideAtStartup
+                                    ? FGColor.accentGreen
+                                    : FGColor.mutedText(colorScheme)
+                            )
+                        Text("Don't show this guide at startup")
+                            .font(FGTypography.body)
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                            .multilineTextAlignment(.leading)
+                        Spacer(minLength: 0)
+                    }
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, FGSpacing.lg)
+                .padding(.bottom, 8)
+                .accessibilityAddTraits(hideStartupGuideAtStartup ? .isSelected : [])
+                .accessibilityHint("When selected, the guide will not open automatically on app launch")
+
+                FGPrimaryButton(title: primaryButtonTitle) {
+                    if isLastPage {
+                        dismiss()
+                    } else {
+                        withAnimation(.easeInOut(duration: 0.22)) {
+                            selectedPage += 1
+                        }
+                    }
+                }
+                .padding(.horizontal, FGSpacing.lg)
+                .padding(.bottom, 12)
+                .accessibilityHint(isLastPage ? "Closes the onboarding guide" : "Shows the next onboarding page")
+            }
+            .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
+        }
+        .background(FGAdaptiveSurface.sheetRoot)
+        .presentationDetents([.fraction(0.90), .large], selection: $sheetDetent)
+        .presentationDragIndicator(.visible)
+        .presentationBackground(FGAdaptiveSurface.sheetRoot)
+        .onAppear {
+            hideStartupGuideAtStartup = FanGeoStartupGuidePreferences.shouldHideAtStartup
+        }
+    }
+}
+
+private struct DiscoverHelpPageIndicator: View {
+    let pageCount: Int
+    let selectedPage: Int
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(0..<pageCount, id: \.self) { index in
+                Circle()
+                    .fill(
+                        index == selectedPage
+                            ? FGColor.accentGreen
+                            : FGColor.mutedText(colorScheme).opacity(colorScheme == .dark ? 0.35 : 0.28)
+                    )
+                    .frame(width: index == selectedPage ? 8 : 7, height: index == selectedPage ? 8 : 7)
+                    .animation(.easeInOut(duration: 0.2), value: selectedPage)
+            }
+        }
+    }
+}
+
+private enum DiscoverHelpCarouselLayout {
+    static let heroHeightFraction: CGFloat = 0.425
+    static let heroWidthFraction: CGFloat = 0.875
+    static let discoverHeroWidthFraction: CGFloat = 0.97
+    static let welcomeHeroWidthFraction: CGFloat = 0.98
+    static let discoverWelcomeHeroHeightFraction: CGFloat = 0.35
+    static let discoverHeroHeightFraction: CGFloat = 0.48
+    static let welcomeHeroHeightFraction: CGFloat = 0.48
+    static let welcomeHeroMaxDisplayedHeight: CGFloat = 270
+    static let discoverHeroMaxDisplayedHeight: CGFloat = 270
+    static let welcomeHeroHorizontalInset: CGFloat = 4
+    static let discoverHeroHorizontalInset: CGFloat = 4
+    static let discoverWelcomeHeroVerticalInset: CGFloat = 10
+    static let welcomeHeroTopInset: CGFloat = 4
+    static let discoverHeroTopInset: CGFloat = 4
+    static let welcomeHeroToCopySpacing: CGFloat = 10
+    static let discoverHeroToCopySpacing: CGFloat = 10
+    static let discoverWelcomeHeroCornerRadius: CGFloat = 14
+    static let welcomeHeroZoomTransitionID = "welcome-onboarding-hero"
+    static let discoverHeroZoomTransitionID = "discover-onboarding-hero"
+    static let discoverHeroTargetHeight: CGFloat = 260
+    static let discoverHeroCopyReserve: CGFloat = 272
+    static let welcomeCopySpacing: CGFloat = 8
+    static let sectionSpacing: CGFloat = 6
+    static let copySpacing: CGFloat = 4
+}
+
+private struct DiscoverHelpCarouselCard: View {
+    let page: DiscoverHelpCarouselPage
+    let contentHeight: CGFloat
+    @Environment(\.colorScheme) private var colorScheme
+    @Namespace private var premiumHeroZoomNamespace
+    @State private var showPremiumHeroFullscreen = false
+
+    private var isDiscoverWelcomePage: Bool { page.id == 0 }
+    private var isDiscoverOnboardingPage: Bool { page.id == 1 }
+    private var usesPremiumHeroLayout: Bool { page.id == 0 || page.id == 1 }
+    private var usesTappablePremiumHero: Bool { page.id == 0 || page.id == 1 }
+
+    var body: some View {
+        GeometryReader { geo in
+            let heroWidth = geo.size.width * heroWidthFraction(for: page)
+            let standardHeroHeight = contentHeight * DiscoverHelpCarouselLayout.heroHeightFraction
+            let premiumHeroHeight = contentHeight * premiumHeroHeightFraction(for: page)
+            let heroHeight = usesPremiumHeroLayout ? premiumHeroHeight : standardHeroHeight
+            let premiumHeroImageHeight = premiumHeroImageHeight(
+                heroHeight: heroHeight,
+                page: page
+            )
+
+            VStack(spacing: usesTappablePremiumHero ? 0 : DiscoverHelpCarouselLayout.sectionSpacing) {
+                Group {
+                    if usesTappablePremiumHero {
+                        Button {
+                            showPremiumHeroFullscreen = true
+                        } label: {
+                            DiscoverHelpHeroIllustration(
+                                page: page,
+                                preferredWidth: heroWidth,
+                                preferredHeight: premiumHeroImageHeight
+                            )
+                            .matchedTransitionSource(
+                                id: premiumHeroZoomTransitionID(for: page),
+                                in: premiumHeroZoomNamespace
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(premiumHeroAccessibilityLabel(for: page))
+                        .accessibilityHint("Opens a fullscreen zoomable view of the onboarding illustration")
+                    } else {
+                        DiscoverHelpHeroIllustration(
+                            page: page,
+                            preferredWidth: heroWidth,
+                            preferredHeight: heroHeight
+                        )
+                        .accessibilityHidden(true)
+                    }
+                }
+                .padding(.top, usesPremiumHeroLayout ? premiumHeroTopInset(for: page) : 0)
+                .frame(maxWidth: .infinity)
+
+                if !page.heroCallouts.isEmpty {
+                    DiscoverHelpHeroCalloutsRow(callouts: page.heroCallouts)
+                        .padding(.top, 2)
+                }
+
+                if !usesPremiumHeroLayout {
+                    DiscoverHelpFeatureBadge(
+                        systemImage: page.systemImage,
+                        accentColor: page.accentColor,
+                        gradientColors: page.gradientColors
+                    )
+                }
+
+                if isDiscoverWelcomePage {
+                    discoverWelcomeCopySection
+                } else if isDiscoverOnboardingPage {
+                    discoverOnboardingCopySection
+                } else {
+                    featurePageCopySection
+                }
+            }
+            .frame(width: geo.size.width, height: contentHeight, alignment: .top)
+        }
+        .padding(.horizontal, premiumHeroHorizontalInset(for: page))
+        .fullScreenCover(isPresented: $showPremiumHeroFullscreen) {
+            FanGeoZoomableImageFullscreenViewer(
+                source: .asset(name: premiumHeroAssetName(for: page)),
+                onDismiss: { showPremiumHeroFullscreen = false }
+            )
+            .navigationTransition(
+                .zoom(
+                    sourceID: premiumHeroZoomTransitionID(for: page),
+                    in: premiumHeroZoomNamespace
+                )
+            )
+        }
+        .accessibilityElement(children: usesTappablePremiumHero ? .contain : .combine)
+        .accessibilityLabel(discoverHelpCarouselAccessibilityLabel(for: page))
+    }
+
+    @ViewBuilder
+    private var discoverWelcomeCopySection: some View {
+        VStack(spacing: DiscoverHelpCarouselLayout.welcomeCopySpacing) {
+            if !page.welcomeLine.isEmpty {
+                Text(page.welcomeLine)
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .multilineTextAlignment(.center)
+            }
+
+            if !page.tagline.isEmpty {
+                Text(page.tagline.uppercased())
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundStyle(FGColor.accentGreen)
+                    .tracking(1.1)
+                    .multilineTextAlignment(.center)
+            }
+
+            Capsule()
+                .fill(
+                    LinearGradient(
+                        colors: [FGColor.accentGreen, FGColor.accentBlue.opacity(0.85)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .frame(width: 56, height: 3)
+                .padding(.vertical, 2)
+
+            if !page.secondaryText.isEmpty {
+                Text(page.secondaryText)
+                    .font(.system(size: 17, weight: .regular, design: .rounded))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(4)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: 330)
+            }
+
+            discoverWelcomeHighlightList
+        }
+        .padding(.horizontal, 8)
+        .padding(.top, isDiscoverWelcomePage ? DiscoverHelpCarouselLayout.welcomeHeroToCopySpacing : 2)
+    }
+
+    private func heroWidthFraction(for page: DiscoverHelpCarouselPage) -> CGFloat {
+        switch page.id {
+        case 0:
+            return DiscoverHelpCarouselLayout.welcomeHeroWidthFraction
+        case 1:
+            return DiscoverHelpCarouselLayout.discoverHeroWidthFraction
+        default:
+            return DiscoverHelpCarouselLayout.heroWidthFraction
+        }
+    }
+
+    private func premiumHeroHeightFraction(for page: DiscoverHelpCarouselPage) -> CGFloat {
+        switch page.id {
+        case 0:
+            return DiscoverHelpCarouselLayout.welcomeHeroHeightFraction
+        case 1:
+            return DiscoverHelpCarouselLayout.discoverHeroHeightFraction
+        default:
+            return DiscoverHelpCarouselLayout.discoverWelcomeHeroHeightFraction
+        }
+    }
+
+    private func premiumHeroTopInset(for page: DiscoverHelpCarouselPage) -> CGFloat {
+        switch page.id {
+        case 0:
+            return DiscoverHelpCarouselLayout.welcomeHeroTopInset
+        case 1:
+            return DiscoverHelpCarouselLayout.discoverHeroTopInset
+        default:
+            return DiscoverHelpCarouselLayout.discoverWelcomeHeroVerticalInset
+        }
+    }
+
+    private func premiumHeroHorizontalInset(for page: DiscoverHelpCarouselPage) -> CGFloat {
+        switch page.id {
+        case 0:
+            return DiscoverHelpCarouselLayout.welcomeHeroHorizontalInset
+        case 1:
+            return DiscoverHelpCarouselLayout.discoverHeroHorizontalInset
+        default:
+            return FGSpacing.lg
+        }
+    }
+
+    private func premiumHeroImageHeight(
+        heroHeight: CGFloat,
+        page: DiscoverHelpCarouselPage
+    ) -> CGFloat {
+        let availableHeight = max(heroHeight - premiumHeroTopInset(for: page), 150)
+        let maxHeight: CGFloat? = switch page.id {
+        case 0:
+            DiscoverHelpCarouselLayout.welcomeHeroMaxDisplayedHeight
+        case 1:
+            DiscoverHelpCarouselLayout.discoverHeroMaxDisplayedHeight
+        default:
+            nil
+        }
+        guard let maxHeight else { return availableHeight }
+        return min(availableHeight, maxHeight)
+    }
+
+    private func premiumHeroZoomTransitionID(for page: DiscoverHelpCarouselPage) -> String {
+        switch page.id {
+        case 0:
+            return DiscoverHelpCarouselLayout.welcomeHeroZoomTransitionID
+        case 1:
+            return DiscoverHelpCarouselLayout.discoverHeroZoomTransitionID
+        default:
+            return "onboarding-hero-\(page.id)"
+        }
+    }
+
+    private func premiumHeroAssetName(for page: DiscoverHelpCarouselPage) -> String {
+        switch page.id {
+        case 0:
+            return UIImage(named: "WelcomeOnboardingIllustration") != nil
+                ? "WelcomeOnboardingIllustration"
+                : "DiscoverOnboardingIllustration"
+        case 1:
+            return "DiscoverOnboardingIllustration"
+        default:
+            return ""
+        }
+    }
+
+    private func premiumHeroAccessibilityLabel(for page: DiscoverHelpCarouselPage) -> String {
+        switch page.id {
+        case 0:
+            return "Welcome to FanGeo sports community banner"
+        case 1:
+            return "Discover map illustration showing sports bars, venue games, pickup places, and pickup games"
+        default:
+            return page.title
+        }
+    }
+
+    @ViewBuilder
+    private var discoverWelcomeHighlightList: some View {
+        if !page.bulletPoints.isEmpty {
+            VStack(alignment: .leading, spacing: 5) {
+                ForEach(page.bulletPoints, id: \.self) { point in
+                    HStack(alignment: .top, spacing: 6) {
+                        Circle()
+                            .fill(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.72 : 0.88))
+                            .frame(width: 5, height: 5)
+                            .padding(.top, 6)
+                        Text(point)
+                            .font(.system(size: 13.5, weight: .medium, design: .rounded))
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+            .frame(maxWidth: 330, alignment: .leading)
+            .padding(.horizontal, 4)
+            .padding(.top, 2)
+        }
+    }
+
+    @ViewBuilder
+    private var discoverOnboardingCopySection: some View {
+        VStack(spacing: DiscoverHelpCarouselLayout.welcomeCopySpacing) {
+            Text(page.title)
+                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+                .multilineTextAlignment(.center)
+
+            if !page.primaryText.isEmpty {
+                Text(page.primaryText)
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundStyle(FGColor.accentGreen)
+                    .tracking(0.4)
+                    .multilineTextAlignment(.center)
+            }
+
+            Capsule()
+                .fill(
+                    LinearGradient(
+                        colors: [FGColor.accentGreen, FGColor.accentBlue.opacity(0.85)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .frame(width: 56, height: 3)
+                .padding(.vertical, 2)
+
+            if !page.secondaryText.isEmpty {
+                Text(page.secondaryText)
+                    .font(.system(size: 17, weight: .regular, design: .rounded))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(4)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: 330)
+            }
+
+            discoverWelcomeHighlightList
+        }
+        .padding(.horizontal, 8)
+        .padding(.top, DiscoverHelpCarouselLayout.discoverHeroToCopySpacing)
+    }
+
+    @ViewBuilder
+    private var featurePageCopySection: some View {
+        Text(page.title)
+            .font(FGTypography.sectionTitle)
+            .foregroundStyle(FGColor.primaryText(colorScheme))
+
+        VStack(spacing: DiscoverHelpCarouselLayout.copySpacing) {
+            Text(page.primaryText)
+                .font(FGTypography.body.weight(.semibold))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if !page.secondaryText.isEmpty {
+                Text(page.secondaryText)
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            discoverHelpHighlightList
+
+            if !page.footerText.isEmpty {
+                Text(page.footerText)
+                    .font(FGTypography.caption.weight(.semibold))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.horizontal, 8)
+    }
+
+    @ViewBuilder
+    private var discoverHelpHighlightList: some View {
+        if !page.bulletPoints.isEmpty {
+            VStack(alignment: .leading, spacing: 3) {
+                ForEach(page.bulletPoints, id: \.self) { point in
+                    Text("• \(point)")
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 12)
+        }
+    }
+
+    private func discoverHelpCarouselAccessibilityLabel(for page: DiscoverHelpCarouselPage) -> String {
+        var parts: [String] = []
+        if !page.welcomeLine.isEmpty {
+            parts.append(page.welcomeLine)
+        }
+        if !page.tagline.isEmpty {
+            parts.append(page.tagline)
+        }
+        if !page.secondaryText.isEmpty {
+            parts.append(page.secondaryText)
+        }
+        if !page.title.isEmpty {
+            parts.append(page.title)
+        }
+        if !page.primaryText.isEmpty {
+            parts.append(page.primaryText)
+        }
+        if !page.bulletPoints.isEmpty {
+            parts.append(page.bulletPoints.joined(separator: ". "))
+        }
+        if !page.featureHighlights.isEmpty {
+            parts.append(
+                page.featureHighlights.map { "\($0.title). \($0.detail)" }.joined(separator: ". ")
+            )
+        }
+        if !page.heroCallouts.isEmpty {
+            parts.append(page.heroCallouts.map(\.label).joined(separator: ". "))
+        }
+        if !page.footerText.isEmpty {
+            parts.append(page.footerText)
+        }
+        if !page.proTipBody.isEmpty {
+            parts.append("\(page.proTipTitle). \(page.proTipBody)")
+        }
+        return parts.filter { !$0.isEmpty }.joined(separator: ". ")
+    }
+}
+
+private struct DiscoverHelpFeatureBadge: View {
+    let systemImage: String
+    let accentColor: Color
+    let gradientColors: [Color]
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: gradientColors,
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 44, height: 44)
+                .shadow(color: accentColor.opacity(colorScheme == .dark ? 0.32 : 0.24), radius: 8, y: 3)
+
+            Image(systemName: systemImage)
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(.white)
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+private struct DiscoverHelpHeroSoftEdgeMask: View {
+    var body: some View {
+        GeometryReader { _ in
+            LinearGradient(
+                stops: [
+                    .init(color: .clear, location: 0),
+                    .init(color: .black, location: 0.11),
+                    .init(color: .black, location: 0.89),
+                    .init(color: .clear, location: 1)
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            .mask {
+                LinearGradient(
+                    stops: [
+                        .init(color: .black, location: 0),
+                        .init(color: .black, location: 0.76),
+                        .init(color: .clear, location: 1)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+        }
+    }
+}
+
+private struct DiscoverHelpHeroSoftEdgePresentationModifier: ViewModifier {
+    let width: CGFloat
+    let height: CGFloat
+
+    func body(content: Content) -> some View {
+        content
+            .frame(maxWidth: width, maxHeight: height)
+            .compositingGroup()
+            .mask {
+                DiscoverHelpHeroSoftEdgeMask()
+            }
+            .frame(width: width, height: height, alignment: .center)
+    }
+}
+
+private extension View {
+    func discoverHelpHeroSoftEdgePresentation(width: CGFloat, height: CGFloat) -> some View {
+        modifier(DiscoverHelpHeroSoftEdgePresentationModifier(width: width, height: height))
+    }
+}
+
+private struct DiscoverHelpHeroIllustration: View {
+    let page: DiscoverHelpCarouselPage
+    var preferredWidth: CGFloat = 280
+    var preferredHeight: CGFloat = 190
+    @Environment(\.colorScheme) private var colorScheme
+
+    @ViewBuilder
+    var body: some View {
+        if page.id == 0 || page.id == 1 {
+            Group {
+                switch page.id {
+                case 0: welcomeHero
+                case 1: discoverOnboardingHero
+                default: EmptyView()
+                }
+            }
+            .frame(width: preferredWidth, height: preferredHeight, alignment: .center)
+            .frame(maxWidth: .infinity)
+        } else {
+            Group {
+                switch page.id {
+                case 2: liveHero
+                case 3: calendarHero
+                case 4: goingHero
+                case 5: chatHero
+                case 6: profileHero
+                default: profileHero
+                }
+            }
+            .discoverHelpHeroSoftEdgePresentation(width: preferredWidth, height: preferredHeight)
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    private func bundledHeroImage(named name: String, accessibilityLabel label: String) -> some View {
+        Image(name)
+            .resizable()
+            .scaledToFit()
+            .frame(maxWidth: preferredWidth, maxHeight: preferredHeight)
+            .accessibilityLabel(label)
+    }
+
+    private var welcomeHero: some View {
+        Group {
+            if UIImage(named: "WelcomeOnboardingIllustration") != nil {
+                Image("WelcomeOnboardingIllustration")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: preferredWidth, maxHeight: preferredHeight)
+            } else {
+                Image("DiscoverOnboardingIllustration")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: preferredWidth, maxHeight: preferredHeight)
+            }
+        }
+        .frame(maxWidth: preferredWidth, maxHeight: preferredHeight, alignment: .center)
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: DiscoverHelpCarouselLayout.discoverWelcomeHeroCornerRadius,
+                style: .continuous
+            )
+        )
+        .accessibilityLabel("Welcome to FanGeo sports community banner")
+    }
+
+    private var discoverOnboardingHero: some View {
+        Group {
+            if UIImage(named: "DiscoverOnboardingIllustration") != nil {
+                Image("DiscoverOnboardingIllustration")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: preferredWidth, maxHeight: preferredHeight)
+            } else {
+                Image(systemName: "map.fill")
+                    .font(.system(size: 72, weight: .semibold))
+                    .foregroundStyle(FGColor.accentGreen.opacity(0.85))
+                    .frame(maxWidth: preferredWidth, maxHeight: preferredHeight)
+            }
+        }
+        .frame(maxWidth: preferredWidth, maxHeight: preferredHeight, alignment: .center)
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: DiscoverHelpCarouselLayout.discoverWelcomeHeroCornerRadius,
+                style: .continuous
+            )
+        )
+        .accessibilityLabel("Discover map illustration showing sports bars, venue games, pickup places, and pickup games")
+    }
+
+    private var liveHero: some View {
+        bundledHeroImage(
+            named: "LiveOnboardingIllustration",
+            accessibilityLabel: "Live stadium illustration showing a live game scoreboard"
+        )
+    }
+
+    @ViewBuilder
+    private var goingHero: some View {
+        if UIImage(named: "GoingOnboardingIllustration") != nil {
+            bundledHeroImage(
+                named: "GoingOnboardingIllustration",
+                accessibilityLabel: "Going list illustration showing saved watch parties, pickup games, and sporting events"
+            )
+        } else {
+            goingProgrammaticHero
+        }
+    }
+
+    private var goingProgrammaticHero: some View {
+        let designWidth: CGFloat = 260
+        let designHeight: CGFloat = 200
+        let scale = min(preferredWidth / designWidth, preferredHeight / designHeight)
+
+        return ZStack {
+            Ellipse()
+                .fill(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.14 : 0.10))
+                .frame(width: 240, height: 120)
+                .blur(radius: 18)
+
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color.white)
+                .frame(width: 210, height: 156)
+                .overlay(alignment: .topLeading) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        goingEventRow(
+                            symbol: "building.2.fill",
+                            title: "Watch Party",
+                            detail: "Sports Bar • Tonight"
+                        )
+                        goingEventRow(
+                            symbol: "figure.run",
+                            title: "Pickup Soccer",
+                            detail: "Sat, 10:00 AM"
+                        )
+                        goingEventRow(
+                            symbol: "sportscourt.fill",
+                            title: "Lakers vs Jazz",
+                            detail: "Pro Game • 7:00 PM"
+                        )
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 16)
+                }
+                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.24 : 0.12), radius: 14, y: 7)
+
+            Image(systemName: "heart.circle.fill")
+                .font(.system(size: 28, weight: .semibold))
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(.white, page.accentColor)
+                .offset(x: 84, y: 62)
+        }
+        .frame(width: designWidth, height: designHeight)
+        .scaleEffect(scale)
+    }
+
+    private func goingEventRow(symbol: String, title: String, detail: String) -> some View {
+        HStack(spacing: 10) {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(page.accentColor.opacity(0.14))
+                .frame(width: 34, height: 34)
+                .overlay {
+                    Image(systemName: symbol)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(page.accentColor)
+                }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                Text(detail)
+                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    private var calendarHero: some View {
+        let designWidth: CGFloat = 260
+        let designHeight: CGFloat = 200
+        let scale = min(preferredWidth / designWidth, preferredHeight / designHeight)
+
+        return ZStack {
+            Ellipse()
+                .fill(Color(red: 0.58, green: 0.42, blue: 0.94).opacity(colorScheme == .dark ? 0.14 : 0.10))
+                .frame(width: 240, height: 120)
+                .blur(radius: 18)
+
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color.white)
+                .frame(width: 190, height: 148)
+                .overlay(alignment: .top) {
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: page.gradientColors,
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(height: 34)
+                        .overlay {
+                            HStack(spacing: 6) {
+                                ForEach(0..<3, id: \.self) { _ in
+                                    Circle()
+                                        .fill(Color.white.opacity(0.85))
+                                        .frame(width: 5, height: 5)
+                                }
+                            }
+                        }
+                }
+                .overlay(alignment: .topLeading) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        calendarEventRow(title: "Lakers vs Jazz", detail: "7:00 PM")
+                        calendarEventRow(title: "Pickup Soccer", detail: "Sat, 10:00 AM")
+                        calendarEventRow(title: "Watch Party", detail: "Sun, 6:00 PM")
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 44)
+                }
+                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.24 : 0.12), radius: 14, y: 7)
+
+            Image(systemName: "star.circle.fill")
+                .font(.system(size: 28, weight: .semibold))
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(.white, page.accentColor)
+                .offset(x: 78, y: 58)
+        }
+        .frame(width: designWidth, height: designHeight)
+        .scaleEffect(scale)
+    }
+
+    private func calendarEventRow(title: String, detail: String) -> some View {
+        HStack(spacing: 8) {
+            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                .fill(page.accentColor.opacity(0.85))
+                .frame(width: 3, height: 24)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                Text(detail)
+                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    private var chatHero: some View {
+        bundledHeroImage(
+            named: "ChatOnboardingIllustration",
+            accessibilityLabel: "Chat conversation illustration showing fans coordinating a watch party"
+        )
+    }
+
+    private var profileHero: some View {
+        Group {
+            if UIImage(named: "ProfileOnboardingScreenshot") != nil {
+                bundledHeroImage(
+                    named: "ProfileOnboardingScreenshot",
+                    accessibilityLabel: "FanGeo profile screen showing favorite teams, suggested fans, and fan identity"
+                )
+            } else {
+                DiscoverHelpProfileOnboardingScreenshotHero(
+                    preferredWidth: preferredWidth,
+                    preferredHeight: preferredHeight
+                )
+            }
+        }
+        .accessibilityLabel("FanGeo profile screen showing favorite teams, suggested fans, and fan identity")
+    }
+}
+
+private struct DiscoverHelpFeatureHighlightRow: View {
+    let highlight: DiscoverHelpFeatureHighlight
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(highlight.accentColor.opacity(colorScheme == .dark ? 0.22 : 0.14))
+                    .frame(width: 30, height: 30)
+                Image(systemName: highlight.systemImage)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(highlight.accentColor)
+            }
+            .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(highlight.title)
+                    .font(.system(size: 12.5, weight: .semibold, design: .rounded))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                Text(highlight.detail)
+                    .font(.system(size: 11.5, weight: .medium, design: .rounded))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct DiscoverHelpProTipCard: View {
+    let title: String
+    let bodyText: String
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Text("💡")
+                .font(.system(size: 16))
+                .padding(.top, 1)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 12.5, weight: .bold, design: .rounded))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                Text(bodyText)
+                    .font(.system(size: 11.5, weight: .medium, design: .rounded))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .frame(maxWidth: 330, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.14 : 0.08))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.28 : 0.18), lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct DiscoverHelpHeroCalloutsRow: View {
+    let callouts: [DiscoverHelpHeroCallout]
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        VStack(spacing: 4) {
+            ForEach(callouts) { callout in
+                HStack(spacing: 6) {
+                    Text(callout.emoji)
+                        .font(.system(size: 12))
+                    Text(callout.label)
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct DiscoverHelpProfileOnboardingScreenshotHero: View {
+    var preferredWidth: CGFloat
+    var preferredHeight: CGFloat
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    private let designWidth: CGFloat = 268
+    private let designHeight: CGFloat = 300
+
+    var body: some View {
+        let scale = min(preferredWidth / designWidth, preferredHeight / designHeight)
+
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 12) {
+                ZStack(alignment: .bottomTrailing) {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    FGColor.accentGreen.opacity(0.28),
+                                    FGColor.accentBlue.opacity(0.22)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 54, height: 54)
+                        .overlay {
+                            Image(systemName: "person.fill")
+                                .font(.system(size: 24, weight: .semibold))
+                                .foregroundStyle(FGColor.primaryText(colorScheme).opacity(0.82))
+                        }
+
+                    Text("Rookie")
+                        .font(.system(size: 7.5, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(FGColor.accentGreen))
+                        .offset(x: 4, y: 4)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Alex Morgan")
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                    Text("@alexmorgan")
+                        .font(.system(size: 9.5, weight: .semibold, design: .rounded))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    Text("Lakers fan in Salt Lake City")
+                        .font(.system(size: 9, weight: .medium, design: .rounded))
+                        .foregroundStyle(FGColor.mutedText(colorScheme))
+                        .lineLimit(2)
+                }
+            }
+
+            HStack(spacing: 0) {
+                profileIdentityMetric(icon: "star.circle.fill", title: "Rookie Fan", subtitle: "128 XP", tint: FGColor.accentGreen)
+                profileIdentityDivider
+                profileIdentityMetric(icon: "sportscourt.fill", title: "3 Teams", subtitle: "Primary: Lakers", tint: FGColor.accentBlue)
+                profileIdentityDivider
+                profileIdentityMetric(icon: "shield.lefthalf.filled", title: "Reputation", subtitle: "Trusted fan", tint: FGColor.accentBlue)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(identityPanelFill)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(identityPanelBorder, lineWidth: 0.8)
+            )
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("FAVORITE TEAMS")
+                    .font(.system(size: 8, weight: .heavy, design: .rounded))
+                    .foregroundStyle(FGColor.accentBlue)
+                    .tracking(0.6)
+
+                HStack(spacing: 8) {
+                    profileTeamCard(title: "Lakers", colors: [Color(red: 0.36, green: 0.12, blue: 0.55), Color(red: 0.98, green: 0.76, blue: 0.18)])
+                    profileTeamCard(title: "Jazz", colors: [Color(red: 0.02, green: 0.12, blue: 0.36), Color(red: 0.98, green: 0.36, blue: 0.16)])
+                    profileTeamCard(title: "Real Madrid", colors: [Color.white, Color(red: 0.84, green: 0.72, blue: 0.42)], darkText: true)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("SUGGESTED FANS")
+                    .font(.system(size: 8, weight: .heavy, design: .rounded))
+                    .foregroundStyle(FGColor.accentBlue)
+                    .tracking(0.6)
+
+                HStack(spacing: 8) {
+                    profileSuggestedFanCard(name: "Jordan", detail: "Lakers fan")
+                    profileSuggestedFanCard(name: "Mia", detail: "Jazz fan")
+                }
+            }
+        }
+        .padding(12)
+        .frame(width: designWidth, alignment: .leading)
+        .background(cardShell)
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(cardBorder, lineWidth: 0.8)
+        )
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.22 : 0.10), radius: 12, y: 6)
+        .scaleEffect(scale)
+        .frame(width: designWidth * scale, height: designHeight * scale, alignment: .top)
+    }
+
+    private var identityPanelFill: Color {
+        colorScheme == .dark
+            ? Color(red: 0.10, green: 0.14, blue: 0.20).opacity(0.92)
+            : Color(red: 0.93, green: 0.95, blue: 0.99)
+    }
+
+    private var identityPanelBorder: Color {
+        colorScheme == .dark
+            ? FGColor.divider(colorScheme).opacity(0.65)
+            : Color(red: 0.84, green: 0.88, blue: 0.95)
+    }
+
+    private var cardShell: some ShapeStyle {
+        colorScheme == .dark
+            ? AnyShapeStyle(Color(red: 0.08, green: 0.10, blue: 0.14))
+            : AnyShapeStyle(Color.white)
+    }
+
+    private var cardBorder: Color {
+        FGColor.divider(colorScheme).opacity(colorScheme == .dark ? 0.55 : 0.85)
+    }
+
+    private var profileIdentityDivider: some View {
+        Rectangle()
+            .fill(FGColor.divider(colorScheme).opacity(0.75))
+            .frame(width: 1)
+            .padding(.vertical, 4)
+    }
+
+    private func profileIdentityMetric(icon: String, title: String, subtitle: String, tint: Color) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(tint)
+            Text(title)
+                .font(.system(size: 8.5, weight: .bold, design: .rounded))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+            Text(subtitle)
+                .font(.system(size: 7.5, weight: .medium, design: .rounded))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func profileTeamCard(title: String, colors: [Color], darkText: Bool = false) -> some View {
+        Text(title)
+            .font(.system(size: 8.5, weight: .bold, design: .rounded))
+            .foregroundStyle(darkText ? FGColor.primaryText(colorScheme) : .white)
+            .lineLimit(2)
+            .minimumScaleFactor(0.75)
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, minHeight: 42, alignment: .bottomLeading)
+            .padding(8)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: colors,
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            )
+            .frame(maxWidth: .infinity)
+    }
+
+    private func profileSuggestedFanCard(name: String, detail: String) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(FGColor.accentBlue.opacity(0.16))
+                    .frame(width: 22, height: 22)
+                    .overlay {
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(FGColor.accentBlue)
+                    }
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(name)
+                        .font(.system(size: 8.5, weight: .bold, design: .rounded))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                    Text(detail)
+                        .font(.system(size: 7.5, weight: .medium, design: .rounded))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                }
+            }
+
+            Text("Add Friend")
+                .font(.system(size: 7.5, weight: .bold, design: .rounded))
+                .foregroundStyle(FGColor.accentGreen)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 4)
+                .background(
+                    Capsule()
+                        .fill(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.16 : 0.11))
+                )
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(SettingsPremiumChrome.cardFill(colorScheme))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(SettingsPremiumChrome.cardStroke(colorScheme), lineWidth: 0.6)
+        )
     }
 }
 

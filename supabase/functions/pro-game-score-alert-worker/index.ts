@@ -945,17 +945,153 @@ function cardNotificationTitle(
   }
 }
 
-function cardNotificationContent(
+function cardEventDisplayTitle(
+  notificationType: CardTimelineEntry["notificationType"],
+): string {
+  switch (notificationType) {
+    case "yellow_card":
+      return "🟨 Yellow Card"
+    case "red_card":
+    case "second_yellow_card":
+      return "🟥 Red Card"
+  }
+}
+
+function resolvedNotificationTeamName(teamName: string | null | undefined): string | null {
+  const cleaned = cleanTeamName(teamName)
+  return cleaned || null
+}
+
+function playerMatchEventTitle(emojiAndEventLabel: string, playerTeamName: string | null | undefined): string {
+  const label = emojiAndEventLabel.trim()
+  const teamName = resolvedNotificationTeamName(playerTeamName)
+  if (!teamName) return label
+  const team = formattedTeamName(teamName)
+  return team ? `${label} • ${team}` : label
+}
+
+function matchupNotificationBody(game: TrackedGame): string {
+  const away = formattedTeamName(game.awayTeam)
+  const home = formattedTeamName(game.homeTeam)
+  if (!away && !home) return ""
+  if (!away) return home
+  if (!home) return away
+  return `${away} vs ${home}`
+}
+
+function normalizedGoalMinute(minuteText: string | null | undefined): string | null {
+  const trimmed = (minuteText ?? "").trim()
+  if (!trimmed) return null
+  if (trimmed.endsWith("'") || trimmed.endsWith("’")) {
+    return trimmed.replace(/’/g, "'")
+  }
+  if (trimmed.includes(":") || /\d(?:st|nd|rd|th)\b/i.test(trimmed)) {
+    return trimmed
+  }
+  return `${trimmed}'`
+}
+
+function validGoalScorerName(
+  raw: string | null | undefined,
+  scoringTeam: string,
+  otherTeams: Array<string | null | undefined> = [],
+): string | null {
+  const player = raw?.trim()
+  if (!player) return null
+
+  const playerTokens = new Set(
+    [player, cleanTeamName(player)]
+      .map((value) => normalizedTeamText(value))
+      .filter(Boolean),
+  )
+  if (playerTokens.size === 0) return null
+
+  const rejectTokens = new Set(
+    [scoringTeam, ...otherTeams]
+      .flatMap((team) => [team, cleanTeamName(team)])
+      .map((value) => normalizedTeamText(value))
+      .filter(Boolean),
+  )
+  for (const token of playerTokens) {
+    if (rejectTokens.has(token)) return null
+  }
+  return player
+}
+
+function goalNotificationFirstLine(
+  gameClock: string | null | undefined,
+  scorerName: string | null,
+): string {
+  const minute = normalizedGoalMinute(gameClock)
+  const scorer = scorerName?.trim()
+  if (scorer) {
+    return minute ? `${minute} ${scorer}` : scorer
+  }
+  if (minute) return `${minute} Goal`
+  return "Goal"
+}
+
+function homeFirstScoreNotificationBody(game: TrackedGame, live: LiveMatchRow): string {
+  const home = notificationTeamLabel(live.home_team, game.homeTeam)
+  const away = notificationTeamLabel(live.away_team, game.awayTeam)
+  return `${home} ${live.score_home} - ${live.score_away} ${away}`
+}
+
+function goalNotificationBody(
+  game: TrackedGame,
+  live: LiveMatchRow,
+  options: {
+    player?: string | null
+    gameClock?: string | null
+    scoringTeamPlain: string
+  },
+): string {
+  const scorer = validGoalScorerName(
+    options.player,
+    options.scoringTeamPlain,
+    [game.homeTeam, game.awayTeam, live.home_team, live.away_team],
+  )
+  const firstLine = goalNotificationFirstLine(options.gameClock, scorer)
+  const secondLine = homeFirstScoreNotificationBody(game, live)
+  return `${firstLine}\n${secondLine}`
+}
+
+function legacyCardNotificationContent(
   game: TrackedGame,
   card: CardTimelineEntry,
 ): PushAlertContent {
-  const matchup = `${formattedTeamName(game.awayTeam)} vs ${formattedTeamName(game.homeTeam)}`
+  const matchup = matchupNotificationBody(game)
   const subject = cardNotificationSubject(card, game)
   const isYellow = card.notificationType === "yellow_card"
   return {
     title: cardNotificationTitle(card.notificationType),
     body: `${subject} received a ${isYellow ? "yellow" : "red"} card in ${matchup}.`,
   }
+}
+
+function cardNotificationContent(
+  game: TrackedGame,
+  card: CardTimelineEntry,
+): PushAlertContent {
+  const resolvedTeam = resolvedNotificationTeamName(card.teamName)
+  if (!resolvedTeam) {
+    return legacyCardNotificationContent(game, card)
+  }
+
+  const title = playerMatchEventTitle(cardEventDisplayTitle(card.notificationType), resolvedTeam)
+  const player = card.playerName?.trim() ?? ""
+  const matchup = matchupNotificationBody(game)
+
+  if (player) {
+    const body = matchup ? `${player}\n${matchup}` : player
+    return { title, body }
+  }
+
+  if (matchup) {
+    return { title, body: matchup }
+  }
+
+  return legacyCardNotificationContent(game, card)
 }
 
 function cardNotificationSubject(card: CardTimelineEntry, game: TrackedGame): string {
@@ -1433,16 +1569,10 @@ function scoringNotificationContent(game: TrackedGame, live: LiveMatchRow, previ
       subtitleStrategy: partialSubtitle?.strategy ?? "none",
       selectedScoringEvent: partialSubtitle?.selectedScoringEvent ?? "none",
       fallbackReason: scoringEventResult.fallbackReason,
+    }, {
+      player: partialSubtitle?.scorer && partialSubtitle.scorer !== "unknown" ? partialSubtitle.scorer : null,
+      gameClock: partialSubtitle?.gameClock && partialSubtitle.gameClock !== "unknown" ? partialSubtitle.gameClock : null,
     })
-    if (partialSubtitle?.subtitle) {
-      fallback.subtitle = partialSubtitle.subtitle
-    } else if (scoringTeamPlain) {
-      fallback.subtitle = formattedTeamName(scoringTeamPlain)
-      fallback.goalDebug = {
-        ...fallback.goalDebug,
-        subtitleStrategy: "teamOnly",
-      }
-    }
     logScoringEventFallback(
       scoringEventResult.fallbackReason,
       null,
@@ -1466,12 +1596,15 @@ function scoringNotificationContent(game: TrackedGame, live: LiveMatchRow, previ
   goalNotificationLog(`selectedScoringEvent=${timelineEventDebugSummary(scoringEvent.raw)}`)
   goalNotificationLog(`scorer=${scoringEvent.player ?? "unknown"}`)
   goalNotificationLog(`gameClock=${scoringEvent.gameClock ?? "unknown"}`)
-  const { subtitle, strategy } = buildScoringEventSubtitle(scoringEvent, sportKind)
+  const { strategy } = buildScoringEventSubtitle(scoringEvent, sportKind)
   goalNotificationLog(`subtitleStrategy=${strategy}`)
   const alert: PushAlertContent = {
     title: scoringEventNotificationTitle(game, live, scoringEvent, sportKind),
-    subtitle,
-    body: scoreNotificationBody(game, live),
+    body: goalNotificationBody(game, live, {
+      player: scoringEvent.player,
+      gameClock: scoringEvent.gameClock,
+      scoringTeamPlain: scoringEvent.scoringTeamPlain,
+    }),
     goalDebug: {
       notificationType: "goal",
       gameId: game.liveMatchId,
@@ -1519,6 +1652,10 @@ function fallbackScoreNotificationContent(
   live: LiveMatchRow,
   previousScoreline: string,
   debug?: Partial<GoalNotificationDebugContext>,
+  goalBody?: {
+    player?: string | null
+    gameClock?: string | null
+  },
 ): PushAlertContent {
   const previous = parseScoreline(previousScoreline)
   const scoringSide = previous ? scoringSideForScoreChange(previous, live) : null
@@ -1530,9 +1667,16 @@ function fallbackScoreNotificationContent(
     : "Score update"
   const scoreAfter = scoreline(live.score_away, live.score_home)
   const timelineEvents = normalizeTimelineEventsForWorker(live.timeline_events)
+  const body = scoringTeamPlain
+    ? goalNotificationBody(game, live, {
+      player: goalBody?.player ?? null,
+      gameClock: goalBody?.gameClock ?? null,
+      scoringTeamPlain,
+    })
+    : scoreNotificationBody(game, live)
   return {
     title,
-    body: scoreNotificationBody(game, live),
+    body,
     goalDebug: {
       notificationType: "goal",
       gameId: game.liveMatchId,
@@ -1554,9 +1698,13 @@ function goalNotificationTitle(
   sportKind: ProScoreSportKind,
   sportIcon: string | null,
 ): string {
+  if (sportKind === "soccer") {
+    return playerMatchEventTitle(`${sportIcon ?? "⚽"} GOAL!`, scoringTeamPlain)
+  }
+  if (sportKind === "hockey") {
+    return playerMatchEventTitle(`${sportIcon ?? "🏒"} GOAL!`, scoringTeamPlain)
+  }
   const teamWithFlag = formattedTeamName(scoringTeamPlain)
-  if (sportKind === "soccer") return `${sportIcon ?? "⚽"} GOAL! ${teamWithFlag}`.trim()
-  if (sportKind === "hockey") return `${sportIcon ?? "🏒"} GOAL! ${teamWithFlag}`.trim()
   return `${sportIcon ?? ""} ${teamWithFlag} scored`.trim()
 }
 
@@ -2229,11 +2377,15 @@ function buildScoringEventMatch(
   scoringSide: ScoringSide,
   sportKind: ProScoreSportKind,
 ): ScoringEventMatch | null {
-  const player = cleanTimelineText(match.strPlayer)
+  const scoringTeamPlain = teamNameForSide(live, scoringSide)
+  const player = validGoalScorerName(
+    cleanTimelineText(match.strPlayer),
+    scoringTeamPlain,
+    [game.homeTeam, game.awayTeam, live.home_team, live.away_team],
+  )
   const gameClock = scoringEventGameClock(match, sportKind)
   const detail = soccerScoringEventDetail(match)
   const summary = scoringPlaySummary(match)
-  const scoringTeamPlain = teamNameForSide(live, scoringSide)
   const scoringTeam = formattedTeamName(scoringTeamPlain)
 
   if (sportKind === "soccer" || sportKind === "hockey") {
@@ -2243,7 +2395,7 @@ function buildScoringEventMatch(
   }
 
   return {
-    player: cleanTimelineText(match.strPlayer),
+    player,
     gameClock,
     detail,
     summary: scoringEventSummaryForSport(game, match, sportKind) ?? summary,
@@ -2631,25 +2783,29 @@ function partialSubtitleFromTimeline(
   const latest = sorted[0]?.event
   if (!latest) return null
 
-  const player = cleanTimelineText(latest.strPlayer)
-  const gameClock = scoringEventGameClock(latest, sportKind)
   const scoringTeamPlain = teamNameForSide(live, scoringSide)
+  const player = validGoalScorerName(
+    cleanTimelineText(latest.strPlayer),
+    scoringTeamPlain,
+    [game.homeTeam, game.awayTeam, live.home_team, live.away_team],
+  )
+  const gameClock = scoringEventGameClock(latest, sportKind)
 
   const partialMatch: ScoringEventMatch = {
     player,
     gameClock,
     detail: soccerScoringEventDetail(latest),
     summary: scoringPlaySummary(latest),
-    scoringTeam: formattedTeamName(teamNameForSide(live, scoringSide)),
-    scoringTeamPlain: teamNameForSide(live, scoringSide),
+    scoringTeam: formattedTeamName(scoringTeamPlain),
+    scoringTeamPlain,
     scoringSide,
     raw: latest,
   }
-  const { subtitle, strategy } = buildScoringEventSubtitle(partialMatch, sportKind)
-  if (!subtitle) return null
+  const { strategy } = buildScoringEventSubtitle(partialMatch, sportKind)
+  if (!player && !gameClock) return null
 
   return {
-    subtitle,
+    subtitle: goalNotificationFirstLine(gameClock, player),
     strategy,
     scorer: player ?? "unknown",
     gameClock: gameClock ?? "unknown",

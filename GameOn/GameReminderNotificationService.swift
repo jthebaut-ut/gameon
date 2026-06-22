@@ -46,6 +46,15 @@ struct ProGameScoreUpdateNotificationEvent {
     let homeTeam: String
 }
 
+struct ProGameScoreCorrectionNotificationEvent {
+    let identifier: String
+    let correctionToken: String
+    let title: String
+    let body: String
+    let awayTeam: String
+    let homeTeam: String
+}
+
 struct ProGameCardNotificationEvent {
     let identifier: String
     let eventKey: String
@@ -67,6 +76,7 @@ final class GameReminderNotificationService {
     private let proGameHalftimeIdentifierPrefix = "fangeo.proGameHalftime."
     private let proGamePredictionResultIdentifierPrefix = "fangeo.proGamePredictionResult."
     private let proGameScoreUpdateIdentifierPrefix = "fangeo.proGameScoreUpdate."
+    private let proGameScoreCorrectionIdentifierPrefix = "fangeo.proGameScoreCorrection."
     private let proGameCardNotificationIdentifierPrefix = "fangeo.proGameCard."
 
     private init(center: UNUserNotificationCenter = .current()) {
@@ -215,6 +225,7 @@ final class GameReminderNotificationService {
         content.subtitle = matchupTitle
         content.body = ProGameNotificationFormatting.kickoffStartingBody
         content.sound = .default
+        ProGameNotificationDeepLinkPayload.apply(to: content, matchID: event.identifier)
 
         let components = Calendar.current.dateComponents(
             [.year, .month, .day, .hour, .minute, .second],
@@ -296,6 +307,7 @@ final class GameReminderNotificationService {
             content.subtitle = matchupTitle
             content.body = "\(ProGameNotificationFormatting.kickoffLeadBodyPrefix) \(Self.leadDescription(minutes: minutesUntilStart))."
             content.sound = .default
+            ProGameNotificationDeepLinkPayload.apply(to: content, matchID: event.identifier)
 
             let components = Calendar.current.dateComponents(
                 [.year, .month, .day, .hour, .minute, .second],
@@ -391,6 +403,15 @@ final class GameReminderNotificationService {
 
     func cancelProGameScoreUpdateNotifications(identifier: String) async {
         let baseIdentifier = proGameScoreUpdateIdentifierPrefix + identifier
+        let identifiers = await center.pendingNotificationRequests()
+            .map(\.identifier)
+            .filter { $0.hasPrefix(baseIdentifier) }
+        center.removePendingNotificationRequests(withIdentifiers: identifiers)
+        await cancelProGameScoreCorrectionNotifications(identifier: identifier)
+    }
+
+    func cancelProGameScoreCorrectionNotifications(identifier: String) async {
+        let baseIdentifier = proGameScoreCorrectionIdentifierPrefix + identifier
         let identifiers = await center.pendingNotificationRequests()
             .map(\.identifier)
             .filter { $0.hasPrefix(baseIdentifier) }
@@ -525,6 +546,38 @@ final class GameReminderNotificationService {
         }
     }
 
+    func scheduleProGameScoreCorrectionNotification(for event: ProGameScoreCorrectionNotificationEvent) async {
+        print("[ProGameNotificationDebug] schedulingScoreCorrection id=\(event.identifier) score=\(event.correctionToken)")
+        ProGameNotificationFormatting.logPushFlagDebug(
+            notificationType: "scoreCorrection",
+            awayTeam: event.awayTeam,
+            homeTeam: event.homeTeam
+        )
+
+        guard await requestAuthorizationIfNeeded() else {
+            print("[ProGameNotificationDebug] scoreCorrectionPermissionDenied=true")
+            return
+        }
+
+        let content = UNMutableNotificationContent()
+        content.title = event.title
+        content.body = event.body
+        content.sound = .default
+        ProGameNotificationDeepLinkPayload.apply(to: content, matchID: event.identifier)
+
+        let request = UNNotificationRequest(
+            identifier: proGameScoreCorrectionIdentifier(for: event.identifier, correctionToken: event.correctionToken),
+            content: content,
+            trigger: UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        )
+
+        do {
+            try await center.add(request)
+        } catch {
+            print("[ProGameNotificationDebug] scoreCorrectionSchedulingFailed id=\(event.identifier) error=\(error.localizedDescription)")
+        }
+    }
+
     func scheduleProGameCardNotification(for event: ProGameCardNotificationEvent) async {
         print("[ProGameCardNotificationDebug] gameId=\(event.identifier) cardType=\(event.cardType.stableToken) eventKey=\(event.eventKey) notificationSent=pending dedupeHit=false")
         ProGameNotificationFormatting.logPushFlagDebug(
@@ -590,6 +643,10 @@ final class GameReminderNotificationService {
 
     private func proGameScoreUpdateIdentifier(for identifier: String, scoreToken: String) -> String {
         "\(proGameScoreUpdateIdentifierPrefix)\(identifier).\(scoreToken)"
+    }
+
+    private func proGameScoreCorrectionIdentifier(for identifier: String, correctionToken: String) -> String {
+        "\(proGameScoreCorrectionIdentifierPrefix)\(identifier).\(correctionToken)"
     }
 
     private func proGameCardNotificationIdentifier(for identifier: String, eventKey: String) -> String {

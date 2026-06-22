@@ -216,7 +216,7 @@ struct CalendarScreen: View {
     }
 
     private var calendarSheetRoot: some View {
-        fanCalendarContent
+        calendarRootContent
             .sheet(isPresented: $showDatePicker) {
                 calendarDatePickerSheet
             }
@@ -228,6 +228,22 @@ struct CalendarScreen: View {
                     calendarDatePickerDetent = .large
                 }
             }
+    }
+
+    @ViewBuilder
+    private var calendarRootContent: some View {
+        if isCalendarTabSelected {
+            fanCalendarContent
+        } else {
+            calendarOffTabPlaceholder
+        }
+    }
+
+    /// Preserved-tab shell: skip calendar lists, filters, and search UI while off-screen.
+    private var calendarOffTabPlaceholder: some View {
+        Color.clear
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .accessibilityHidden(true)
     }
 
     private var calendarFilterRoot: some View {
@@ -1242,13 +1258,97 @@ struct CalendarScreen: View {
 
     private var calendarEventsEmptyStateMessage: String {
         switch effectiveCalendarGameFilter {
-        case .venueGames:
-            return "🏟 No watch parties scheduled.\nExplore nearby venues or host one."
         case .pickupGames:
-            return "⚽ No pickup games scheduled.\nCreate the first game."
+            return ""
         case .proGames:
             return calendarProGamesEmptyStateMessage
+        case .venueGames:
+            return ""
         }
+    }
+
+    @ViewBuilder
+    private var calendarEventsEmptyState: some View {
+        switch effectiveCalendarGameFilter {
+        case .venueGames:
+            calendarWatchPartiesEmptyState
+        case .pickupGames:
+            calendarPickupGamesEmptyState
+        case .proGames:
+            calendarEmptyState(calendarEventsEmptyStateMessage)
+        }
+    }
+
+    private var calendarPickupGamesEmptyStateTitle: String {
+        "⚽ No pickup games scheduled for \(compactCalendarDateTitle)"
+    }
+
+    private var calendarWatchPartiesEmptyStateTitle: String {
+        "🍻 No watch parties scheduled for \(compactCalendarDateTitle)"
+    }
+
+    private var calendarPickupGamesEmptyState: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(calendarPickupGamesEmptyStateTitle)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(FGColor.primaryText(calendarColorScheme))
+
+                Text("No pickup games found in the current map area. Move the map, zoom out, or search another city to discover more.")
+                    .font(.subheadline)
+                    .foregroundStyle(FGColor.secondaryText(calendarColorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Button {
+                openDiscoverForPickupGames()
+            } label: {
+                Text("Open Discover")
+                    .font(.subheadline.weight(.bold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 11)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.white)
+            .background(FGColor.accentGreen, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .frame(maxWidth: .infinity, minHeight: Self.eventsListMinHeight, alignment: .center)
+    }
+
+    private var calendarWatchPartiesEmptyState: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(calendarWatchPartiesEmptyStateTitle)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(FGColor.primaryText(calendarColorScheme))
+
+                Text("No watch parties found in the current map area. Move the map, zoom out, or search another city to discover more.")
+                    .font(.subheadline)
+                    .foregroundStyle(FGColor.secondaryText(calendarColorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Button {
+                openDiscoverForVenueGames()
+            } label: {
+                Text("Open Discover")
+                    .font(.subheadline.weight(.bold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 11)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.white)
+            .background(FGColor.accentGreen, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .frame(maxWidth: .infinity, minHeight: Self.eventsListMinHeight, alignment: .center)
     }
 
     private func updateSelectedCalendarLeagueCountries(_ countries: Set<String>) {
@@ -1363,7 +1463,9 @@ struct CalendarScreen: View {
                     Group {
                         if isProGamesSelected {
                             let proMatches = displayedProMatches
-                            if proMatches.isEmpty {
+                            if viewModel.isLoadingLiveMatches && proMatches.isEmpty {
+                                calendarLoadingState("Loading games…")
+                            } else if proMatches.isEmpty {
                                 calendarEmptyState(calendarProGamesEmptyStateMessage)
                             } else {
                                 VStack(spacing: 12) {
@@ -1373,8 +1475,10 @@ struct CalendarScreen: View {
                                 }
                                 .frame(maxWidth: .infinity, minHeight: Self.eventsListMinHeight, alignment: .top)
                             }
+                        } else if viewModel.isLoadingEvents && displayedEvents.isEmpty {
+                            calendarLoadingState("Loading events…")
                         } else if displayedEvents.isEmpty {
-                            calendarEmptyState(calendarEventsEmptyStateMessage)
+                            calendarEventsEmptyState
                         } else {
                             VStack(spacing: 12) {
                                 ForEach(displayedEvents) { event in
@@ -1452,6 +1556,22 @@ struct CalendarScreen: View {
             .background(Color(.secondarySystemGroupedBackground))
             .clipShape(RoundedRectangle(cornerRadius: 18))
             .frame(maxWidth: .infinity, minHeight: Self.eventsListMinHeight, alignment: .center)
+    }
+
+    private func calendarLoadingState(_ text: String) -> some View {
+        HStack(spacing: 10) {
+            ProgressView()
+                .controlSize(.small)
+            Text(text)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(FGColor.secondaryText(calendarColorScheme))
+            Spacer(minLength: 0)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .frame(maxWidth: .infinity, minHeight: Self.eventsListMinHeight, alignment: .center)
     }
 
     @ViewBuilder
@@ -1573,6 +1693,25 @@ struct CalendarScreen: View {
             return
         }
         openSelectionInDiscover(event)
+    }
+
+    private func openDiscoverForVenueGames() {
+        if viewModel.discoverMapContentMode != .venues {
+            viewModel.clearDiscoverMapContentSelectionsWhenSwitching(to: .venues)
+            viewModel.discoverMapContentMode = .venues
+        }
+        selectedTab = .discover
+    }
+
+    private func openDiscoverForPickupGames() {
+        if viewModel.discoverMapContentMode != .pickupGames {
+            viewModel.clearDiscoverMapContentSelectionsWhenSwitching(to: .pickupGames)
+            viewModel.discoverMapContentMode = .pickupGames
+        }
+        if viewModel.discoverPickupSubMode != .games {
+            viewModel.discoverPickupSubMode = .games
+        }
+        selectedTab = .discover
     }
 
     private func openSelectionInDiscover(_ event: SportsEvent) {

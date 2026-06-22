@@ -138,6 +138,8 @@ extension MapViewModel {
         await loadPendingPickupGameJoinRequestCountForCreator()
         await ensurePickupInviteRealtimeIfNeeded()
 
+        await refreshDiscoverBannerAnnouncement()
+
         await MainActor.run {
             lastLightweightStartupPrefetchAt = Date()
         }

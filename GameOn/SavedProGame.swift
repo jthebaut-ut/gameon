@@ -371,6 +371,7 @@ extension MapViewModel {
     private static let deliveredSavedProGameHalftimeNotificationsKey = "gameon.savedProGameHalftimeNotifications.v1"
     private static let deliveredSavedProGamePredictionResultNotificationsKey = "gameon.savedProGamePredictionResultNotifications.v1"
     private static let deliveredSavedProGameScoreNotificationsKey = "gameon.savedProGameScoreNotifications.v1"
+    private static let deliveredSavedProGameScoreCorrectionNotificationsKey = "gameon.savedProGameScoreCorrectionNotifications.v1"
     private static let deliveredSavedProGameCardNotificationsKey = "gameon.savedProGameCardNotifications.v1"
     private static let savedProGameScoreUpdatePreferencesKey = "gameon.savedProGameScoreUpdatePreferences.v1"
     private static let legacySportDefaultsMigrationKeyPrefix = "gameon.savedProGameScoreUpdatePreferences.legacySportDefaultsMigrated.v1"
@@ -1064,7 +1065,19 @@ extension MapViewModel {
             }
 
             if savedProGameScoreDidChange(from: previousDisplaySnapshot, to: updatedSnapshot) {
-                deliverSavedProGameScoreUpdateNotificationIfNeeded(updatedSnapshot, previous: previousDisplaySnapshot, reason: reason)
+                if savedProGameScoreIncreased(from: previousDisplaySnapshot, to: updatedSnapshot) {
+                    deliverSavedProGameScoreUpdateNotificationIfNeeded(
+                        updatedSnapshot,
+                        previous: previousDisplaySnapshot,
+                        reason: reason
+                    )
+                } else if savedProGameScoreDecreased(from: previousDisplaySnapshot, to: updatedSnapshot) {
+                    deliverSavedProGameScoreCorrectionNotificationIfNeeded(
+                        updatedSnapshot,
+                        previous: previousDisplaySnapshot,
+                        reason: reason
+                    )
+                }
             }
 
             deliverSavedProGameCardNotificationsIfNeeded(
@@ -1459,6 +1472,8 @@ extension MapViewModel {
         // Backend design: run a scheduled Supabase Edge Function every 1-2 minutes, compare
         // current provider scores against the last delivered scoreline for users who saved the
         // game with Score Updates enabled, send APNs pushes, then persist delivered score tokens.
+        guard savedProGameScoreIncreased(from: previous, to: game) else { return }
+
         let oldScore = savedProGameScoreToken(for: previous)
         let newScore = savedProGameScoreToken(for: game)
         guard game.matchStatus.isHappeningNow else {
@@ -1500,7 +1515,7 @@ extension MapViewModel {
         UserDefaults.standard.set(Array(delivered).sorted(), forKey: Self.deliveredSavedProGameScoreNotificationsKey)
 
         let title = savedProGameScoreUpdateTitle(for: game, previous: previous)
-        let body = game.finalScoreSummary
+        let body = savedProGameScoreUpdateBody(for: game, previous: previous)
         showSocialActionToast("\(title)\n\(body)", isError: false)
 #if DEBUG
         logProScoreNotificationDebug(
@@ -1526,8 +1541,134 @@ extension MapViewModel {
         }
     }
 
+    private func deliverSavedProGameScoreCorrectionNotificationIfNeeded(
+        _ game: SavedProGame,
+        previous: SavedProGame,
+        reason: String
+    ) {
+        guard savedProGameScoreDecreased(from: previous, to: game) else { return }
+        guard let correctedTeam = savedProGameScoreCorrectionTeam(from: previous, to: game) else { return }
+
+        guard game.matchStatus.isHappeningNow else {
+#if DEBUG
+            logProScoreNotificationDebug(
+                game: game,
+                previous: previous,
+                enabled: savedProGameScoreUpdatesEnabled(for: game),
+                sent: false,
+                skipReason: game.isFinal ? "gameFinal" : "notLive",
+                reason: reason
+            )
+#endif
+            return
+        }
+
+        let scoreUpdatesEnabled = savedProGameScoreUpdatesEnabled(for: game)
+        guard scoreUpdatesEnabled else {
+#if DEBUG
+            logProScoreNotificationDebug(
+                game: game,
+                previous: previous,
+                enabled: false,
+                sent: false,
+                skipReason: "scoreUpdatesOff",
+                reason: reason
+            )
+#endif
+            return
+        }
+
+        let previousGoalToken = savedProGameScoreNotificationToken(for: previous)
+        let deliveredGoals = Set(UserDefaults.standard.stringArray(forKey: Self.deliveredSavedProGameScoreNotificationsKey) ?? [])
+        guard deliveredGoals.contains(previousGoalToken) else {
+#if DEBUG
+            logProScoreNotificationDebug(
+                game: game,
+                previous: previous,
+                enabled: true,
+                sent: false,
+                skipReason: "noPriorGoalNotification",
+                reason: reason
+            )
+#endif
+            return
+        }
+
+        let token = savedProGameScoreCorrectionNotificationToken(for: game)
+        var delivered = Set(UserDefaults.standard.stringArray(forKey: Self.deliveredSavedProGameScoreCorrectionNotificationsKey) ?? [])
+        guard delivered.insert(token).inserted else {
+#if DEBUG
+            logProScoreNotificationDebug(
+                game: game,
+                previous: previous,
+                enabled: true,
+                sent: false,
+                skipReason: "duplicateCorrectionScoreline",
+                reason: reason
+            )
+#endif
+            return
+        }
+        UserDefaults.standard.set(Array(delivered).sorted(), forKey: Self.deliveredSavedProGameScoreCorrectionNotificationsKey)
+
+        let rulingReason = ProGameNotificationFormatting.goalRuledOutReason(
+            previousTimeline: previous.timelineEvents,
+            updatedTimeline: game.timelineEvents
+        )
+        let title = ProGameNotificationFormatting.scoreCorrectionTitle(rulingReason: rulingReason)
+        let body = ProGameNotificationFormatting.scoreCorrectionBody(
+            correctedTeam: correctedTeam,
+            homeTeam: game.homeTeam,
+            homeScore: game.scoreHome,
+            awayTeam: game.awayTeam,
+            awayScore: game.scoreAway
+        )
+        showSocialActionToast("\(title)\n\(body)", isError: false)
+#if DEBUG
+        logProScoreNotificationDebug(
+            game: game,
+            previous: previous,
+            enabled: true,
+            sent: true,
+            skipReason: nil,
+            reason: reason
+        )
+#endif
+        Task {
+            await GameReminderNotificationService.shared.scheduleProGameScoreCorrectionNotification(
+                for: ProGameScoreCorrectionNotificationEvent(
+                    identifier: game.stableKey,
+                    correctionToken: savedProGameScoreToken(for: game),
+                    title: title,
+                    body: body,
+                    awayTeam: game.awayTeam,
+                    homeTeam: game.homeTeam
+                )
+            )
+        }
+    }
+
     private func savedProGameScoreDidChange(from previous: SavedProGame, to updated: SavedProGame) -> Bool {
         previous.scoreHome != updated.scoreHome || previous.scoreAway != updated.scoreAway
+    }
+
+    private func savedProGameScoreIncreased(from previous: SavedProGame, to updated: SavedProGame) -> Bool {
+        updated.scoreHome > previous.scoreHome || updated.scoreAway > previous.scoreAway
+    }
+
+    private func savedProGameScoreDecreased(from previous: SavedProGame, to updated: SavedProGame) -> Bool {
+        updated.scoreHome < previous.scoreHome || updated.scoreAway < previous.scoreAway
+    }
+
+    private func savedProGameScoreCorrectionTeam(from previous: SavedProGame, to updated: SavedProGame) -> String? {
+        let homeDelta = updated.scoreHome - previous.scoreHome
+        let awayDelta = updated.scoreAway - previous.scoreAway
+        if homeDelta < 0, awayDelta < 0 {
+            return abs(homeDelta) >= abs(awayDelta) ? updated.homeTeam : updated.awayTeam
+        }
+        if homeDelta < 0, awayDelta <= 0 { return updated.homeTeam }
+        if awayDelta < 0, homeDelta <= 0 { return updated.awayTeam }
+        return nil
     }
 
     private func savedProGameScoreUpdateTitle(for game: SavedProGame, previous: SavedProGame) -> String {
@@ -1542,6 +1683,40 @@ extension MapViewModel {
         return "Score update"
     }
 
+    private func savedProGameScoringTeam(for game: SavedProGame, previous: SavedProGame) -> String? {
+        let awayDelta = game.scoreAway - previous.scoreAway
+        let homeDelta = game.scoreHome - previous.scoreHome
+        if awayDelta > 0, homeDelta <= 0 { return game.awayTeam }
+        if homeDelta > 0, awayDelta <= 0 { return game.homeTeam }
+        return nil
+    }
+
+    private func savedProGameScoreUpdateBody(for game: SavedProGame, previous: SavedProGame) -> String {
+        guard let scoringTeam = savedProGameScoringTeam(for: game, previous: previous) else {
+            return game.finalScoreSummary
+        }
+
+        let context = LiveScoringTimelineBuilder.goalNotificationContext(
+            sportType: game.liveSportVisualType,
+            timelineEvents: game.timelineEvents ?? [],
+            scoringTeam: scoringTeam,
+            homeTeam: game.homeTeam,
+            awayTeam: game.awayTeam
+        )
+        let scorerName = ProGameNotificationFormatting.validGoalScorerName(
+            context.scorerName,
+            scoringTeam: scoringTeam
+        )
+        return ProGameNotificationFormatting.goalNotificationBody(
+            minuteText: context.minuteText,
+            scorerName: scorerName,
+            homeTeam: game.homeTeam,
+            homeScore: game.scoreHome,
+            awayTeam: game.awayTeam,
+            awayScore: game.scoreAway
+        )
+    }
+
     private func savedProGameFinalNotificationToken(for game: SavedProGame) -> String {
         let userScope = currentUserAuthId?.uuidString.lowercased() ?? "guest"
         return "\(userScope)|\(game.stableKey)|\(MatchStatus.fullTime.rawValue)"
@@ -1550,6 +1725,11 @@ extension MapViewModel {
     private func savedProGameScoreNotificationToken(for game: SavedProGame) -> String {
         let userScope = currentUserAuthId?.uuidString.lowercased() ?? "guest"
         return "\(userScope)|\(game.stableKey)|score|\(savedProGameScoreToken(for: game))"
+    }
+
+    private func savedProGameScoreCorrectionNotificationToken(for game: SavedProGame) -> String {
+        let userScope = currentUserAuthId?.uuidString.lowercased() ?? "guest"
+        return "\(userScope)|\(game.stableKey)|correction|\(savedProGameScoreToken(for: game))"
     }
 
     private func savedProGameScoreToken(for game: SavedProGame) -> String {
@@ -1607,12 +1787,17 @@ extension MapViewModel {
         }
         UserDefaults.standard.set(Array(delivered).sorted(), forKey: Self.deliveredSavedProGameCardNotificationsKey)
 
-        let title = ProGameNotificationFormatting.cardNotificationTitle(cardType: card.cardType)
+        let title = ProGameNotificationFormatting.cardNotificationTitle(
+            cardType: card.cardType,
+            teamName: card.teamName
+        )
         let body = ProGameNotificationFormatting.cardNotificationBody(
             cardType: card.cardType,
             minuteText: card.minuteText,
             playerName: card.playerName,
-            teamName: card.teamName
+            teamName: card.teamName,
+            awayTeam: game.awayTeam,
+            homeTeam: game.homeTeam
         )
         if card.teamName == nil {
             print("[ProGameCardNotificationDebug] gameId=\(game.stableKey) cardType=\(card.cardType.stableToken) eventKey=\(card.stableEventKey) notificationSent=pending teamFallback=true reason=\(reason)")
@@ -1654,9 +1839,16 @@ extension MapViewModel {
 
     func setSavedProGameScoreUpdatesEnabled(_ enabled: Bool, for game: SavedProGame) {
         if enabled {
-            Task {
-                _ = await GameReminderNotificationService.shared.requestAuthorizationIfNeeded()
+            Task { @MainActor in
+                let granted = await GameReminderNotificationService.shared.requestAuthorizationIfNeeded()
+                guard granted else {
+                    notificationSettingsStore.notificationPermissionMessage = "Notifications are off for FanGeo. Turn them on in iOS Settings to receive game reminders."
+                    objectWillChange.send()
+                    return
+                }
+                setSavedProGameScoreUpdatesEnabled(true, for: game, sendsChange: true)
             }
+            return
         }
         setSavedProGameScoreUpdatesEnabled(enabled, for: game, sendsChange: true)
     }
@@ -1688,11 +1880,19 @@ extension MapViewModel {
 #endif
                     continue
                 }
-                deliverSavedProGameScoreUpdateNotificationIfNeeded(
-                    updatedGame,
-                    previous: previousGame,
-                    reason: reason
-                )
+                if savedProGameScoreIncreased(from: previousGame, to: updatedGame) {
+                    deliverSavedProGameScoreUpdateNotificationIfNeeded(
+                        updatedGame,
+                        previous: previousGame,
+                        reason: reason
+                    )
+                } else if savedProGameScoreDecreased(from: previousGame, to: updatedGame) {
+                    deliverSavedProGameScoreCorrectionNotificationIfNeeded(
+                        updatedGame,
+                        previous: previousGame,
+                        reason: reason
+                    )
+                }
             }
 
             deliverSavedProGameCardNotificationsIfNeeded(

@@ -6,9 +6,11 @@ struct ContactGameOnSupportSheet: View {
     var onRequestSignIn: () -> Void
     var embedsInNavigationStack = true
     var showsCloseButton = true
+    var initialCategory: SupportRequestCategory = .question
+    var screenTitle: String = "Contact Support"
     @Environment(\.dismiss) private var dismiss
 
-    @State private var category: SupportRequestCategory = .technicalIssue
+    @State private var category: SupportRequestCategory = .question
     @State private var subject: String = ""
     @State private var message: String = ""
     @State private var isSending = false
@@ -74,9 +76,9 @@ struct ContactGameOnSupportSheet: View {
                     TextField("Subject", text: $subject)
                         .textInputAutocapitalization(.sentences)
 
-                    Picker("Category", selection: $category) {
-                        ForEach(SupportRequestCategory.allCases) { cat in
-                            Text(cat.displayTitle).tag(cat)
+                    Picker("Issue Type", selection: $category) {
+                        ForEach(SupportRequestCategory.allCases) { issueType in
+                            Text(issueType.displayTitle).tag(issueType)
                         }
                     }
 
@@ -123,7 +125,7 @@ struct ContactGameOnSupportSheet: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             Color.clear.frame(height: SettingsScrollBottomLayout.sheetScrollComfortInset)
         }
-        .navigationTitle("Contact Support")
+        .navigationTitle(screenTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if showsCloseButton {
@@ -147,6 +149,9 @@ struct ContactGameOnSupportSheet: View {
                         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
                 }
             }
+        }
+        .onAppear {
+            category = initialCategory
         }
         .alert("Sent", isPresented: $showSuccessAlert) {
             Button("OK") { dismiss() }

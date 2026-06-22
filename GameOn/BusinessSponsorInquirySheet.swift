@@ -201,7 +201,7 @@ struct BusinessSponsorInquirySheet: View {
 
         do {
             try await SupportRequestService().submitSupportRequest(
-                category: .billingOther,
+                category: .businessSupport,
                 subject: subject,
                 message: body,
                 client: supabase

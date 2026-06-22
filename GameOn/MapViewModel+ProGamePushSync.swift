@@ -158,10 +158,19 @@ extension MapViewModel {
     func setFavoriteTeamProGameAlertsEnabled(_ enabled: Bool, games: [FavoriteTeamProGame], reason: String) async {
         guard let userID = currentUserAuthId, isAuthenticatedForSocialFeatures else { return }
         if enabled {
-            _ = await GameReminderNotificationService.shared.requestAuthorizationIfNeeded()
+            let granted = await GameReminderNotificationService.shared.requestAuthorizationIfNeeded()
+            guard granted else {
+                notificationSettingsStore.favoriteTeamProGameAlertsEnabled = false
+                notificationSettingsStore.notificationPermissionMessage = "Notifications are off for FanGeo. Turn them on in iOS Settings to receive game reminders."
+                objectWillChange.send()
+                return
+            }
             await PushNotificationRegistrationService.shared.registerForRemoteNotificationsIfAuthorized(reason: "teamAlertsEnabled")
         }
         notificationSettingsStore.favoriteTeamProGameAlertsEnabled = enabled
+        if enabled {
+            notificationSettingsStore.notificationPermissionMessage = ""
+        }
         objectWillChange.send()
         await syncProGameFinalScorePreferenceToBackend(reason: "teamAlertsToggle")
 #if DEBUG
@@ -194,12 +203,15 @@ extension MapViewModel {
         _ enabled: Bool,
         for item: FavoriteTeamProGame,
         reason: String
-    ) {
+    ) async {
         if enabled {
-            Task {
-                _ = await GameReminderNotificationService.shared.requestAuthorizationIfNeeded()
-                await PushNotificationRegistrationService.shared.registerForRemoteNotificationsIfAuthorized(reason: "favoriteTeamGameAlertEnabled")
+            let granted = await GameReminderNotificationService.shared.requestAuthorizationIfNeeded()
+            guard granted else {
+                notificationSettingsStore.notificationPermissionMessage = "Notifications are off for FanGeo. Turn them on in iOS Settings to receive game reminders."
+                objectWillChange.send()
+                return
             }
+            await PushNotificationRegistrationService.shared.registerForRemoteNotificationsIfAuthorized(reason: "favoriteTeamGameAlertEnabled")
         }
         setFavoriteTeamProGameAlertOverride(
             enabled ? .on : .off,

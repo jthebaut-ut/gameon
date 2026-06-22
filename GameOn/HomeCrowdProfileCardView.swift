@@ -158,7 +158,7 @@ struct HomeCrowdProfileCardView: View {
         .buttonStyle(.plain)
         .disabled(onExploreVenue == nil)
         .accessibilityLabel("Open \(summary.name) venue")
-        .accessibilityHint("Opens this fan's Home Crowd venue in Discover")
+        .accessibilityHint("Opens this fan's Home Venue in Discover")
         .homeCrowdCardChrome(colorScheme: colorScheme, accent: homeCrowdAccent)
     }
 
@@ -194,7 +194,7 @@ struct HomeCrowdProfileCardView: View {
         if isSelfProfile {
             return "Your match-day crowd"
         }
-        return "This fan's home crowd"
+        return "This fan's home venue"
     }
 
     private func populatedVenueImageColumn(_ summary: HomeCrowdVenueSummary) -> some View {
@@ -259,7 +259,7 @@ struct HomeCrowdProfileCardView: View {
                         .fixedSize(horizontal: false, vertical: true)
 
                     if isSelfProfile {
-                        Text("Pick your go-to watch spot or local sports crowd.")
+                        Text("Your go-to place to watch games and connect with fans.")
                             .font(.system(size: 10.5, weight: .medium, design: .rounded))
                             .foregroundStyle(FGColor.secondaryText(colorScheme))
                             .lineLimit(2)
@@ -288,7 +288,7 @@ struct HomeCrowdProfileCardView: View {
         if isSelfProfile {
             return "Choose your sports home"
         }
-        return "This fan hasn't picked a Home Crowd yet."
+        return "This fan hasn't picked a Home Venue yet."
     }
 
     private var emptyPlaceholderColumn: some View {
@@ -315,7 +315,7 @@ struct HomeCrowdProfileCardView: View {
     // MARK: - Shared visuals
 
     private var homeCrowdTitleLabel: some View {
-        Text("HOME CROWD")
+        Text("HOME VENUE")
             .font(.system(size: 9.5, weight: .heavy, design: .rounded))
             .foregroundStyle(homeCrowdAccent)
             .tracking(1.08)
@@ -396,7 +396,7 @@ struct HomeCrowdProfileCardView: View {
         Button(action: action) {
             HStack(spacing: 6) {
                 HomeCrowdShieldStarBadge(diameter: 18, visualState: .active)
-                Text("Choose Home Crowd")
+                Text("Choose Home Venue")
                     .font(.system(size: 11.5, weight: .heavy, design: .rounded))
             }
             .foregroundStyle(.white)
@@ -491,7 +491,7 @@ struct HomeCrowdProfileCardView: View {
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Change Home Crowd")
+        .accessibilityLabel("Change Home Venue")
     }
 
     private var homeCrowdAccent: Color {

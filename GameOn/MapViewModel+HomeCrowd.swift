@@ -35,7 +35,7 @@ extension MapViewModel {
     @discardableResult
     func setMyHomeCrowd(_ bar: BarVenue) async -> String? {
         guard canUseFanSocialFeatures, currentUserAuthId != nil else {
-            return "Sign in as a fan to set your Home Crowd."
+            return "Sign in as a fan to set your Home Venue."
         }
 
         let previousId = currentUserHomeCrowdVenueId
@@ -61,8 +61,8 @@ extension MapViewModel {
             print("[HomeCrowd] rollback venueId=\(venueId.uuidString.lowercased()) reason=\(reason)")
             currentUserHomeCrowdVenueId = previousId
             currentUserHomeCrowdVenue = previousSummary
-            showSocialActionToast("Couldn't update Home Crowd.")
-            return "Couldn't update Home Crowd."
+            showSocialActionToast("Couldn't update Home Venue.")
+            return "Couldn't update Home Venue."
         }
     }
 
@@ -88,8 +88,8 @@ extension MapViewModel {
             print("[HomeCrowd] rollback venueId=\(clearedId) reason=\(reason)")
             currentUserHomeCrowdVenueId = previousId
             currentUserHomeCrowdVenue = previousSummary
-            showSocialActionToast("Couldn't update Home Crowd.")
-            return "Couldn't update Home Crowd."
+            showSocialActionToast("Couldn't update Home Venue.")
+            return "Couldn't update Home Venue."
         }
     }
 
@@ -97,7 +97,7 @@ extension MapViewModel {
     @MainActor
     func toggleHomeCrowd(for bar: BarVenue) async {
         guard canUseFanSocialFeatures else {
-            showSocialActionToast("Sign in as a fan to set your Home Crowd.")
+            showSocialActionToast("Sign in as a fan to set your Home Venue.")
             return
         }
 
@@ -129,6 +129,23 @@ extension MapViewModel {
     @MainActor
     func focusDiscoverOnVenue(_ venueId: UUID) {
         discoverFocusVenueId = venueId
+    }
+
+    @MainActor
+    @discardableResult
+    func consumePendingDiscoverFocusVenue(source: String) async -> Bool {
+        guard let venueId = discoverFocusVenueId else { return false }
+        discoverFocusVenueId = nil
+
+        if bars.first(where: { $0.id == venueId }) == nil
+            && followingTabSavedVenues.first(where: { $0.id == venueId }) == nil {
+            await loadVenuesFromSupabase()
+        }
+        let bar = bars.first(where: { $0.id == venueId })
+            ?? followingTabSavedVenues.first(where: { $0.id == venueId })
+        guard let bar else { return false }
+        selectVenueForPreview(bar, source: source)
+        return true
     }
 
     @MainActor

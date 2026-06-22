@@ -109,15 +109,107 @@ nonisolated enum ProGameNotificationFormatting {
         let sportType = LiveSportVisualType.normalize(sport)
         switch sportType {
         case .soccer:
-            return "⚽ GOAL! \(team)"
+            return playerMatchEventTitle(emojiAndEventLabel: "⚽ GOAL!", playerTeamName: scoringTeam)
         case .hockey:
-            return "🏒 GOAL! \(team)"
+            return playerMatchEventTitle(emojiAndEventLabel: "🏒 GOAL!", playerTeamName: scoringTeam)
         default:
             if let icon = sportIcon(for: sportType), !icon.isEmpty {
                 return "\(icon) \(team) scored"
             }
             return "\(team) scored"
         }
+    }
+
+    /// Shared title for player-based match notifications: `🟨 Yellow Card • 🇦🇹 Austria`
+    static func playerMatchEventTitle(emojiAndEventLabel: String, playerTeamName: String?) -> String {
+        let label = emojiAndEventLabel.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let teamName = resolvedNotificationTeamName(playerTeamName) else {
+            return label
+        }
+        let team = formattedTeam(teamName)
+        guard !team.isEmpty else { return label }
+        return "\(label) • \(team)"
+    }
+
+    /// Shared body for player-based match notifications.
+    /// Line 1: player (optionally prefixed by minute). Line 2: matchup or custom score summary.
+    static func playerMatchEventBody(
+        playerName: String?,
+        minuteText: String?,
+        awayTeam: String,
+        homeTeam: String,
+        scoreSummaryLine: String? = nil
+    ) -> String {
+        let player = playerName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let secondLine = scoreSummaryLine?.trimmingCharacters(in: .whitespacesAndNewlines)
+            ?? matchupTitle(awayTeam: awayTeam, homeTeam: homeTeam)
+
+        if !player.isEmpty {
+            let firstLine: String
+            if let minute = normalizedGoalMinute(minuteText) {
+                firstLine = "\(minute) \(player)"
+            } else {
+                firstLine = player
+            }
+            if !secondLine.isEmpty {
+                return "\(firstLine)\n\(secondLine)"
+            }
+            return firstLine
+        }
+
+        if !secondLine.isEmpty {
+            return secondLine
+        }
+        return ""
+    }
+
+    static func homeFirstScoreline(
+        homeTeam: String,
+        homeScore: Int,
+        awayTeam: String,
+        awayScore: Int,
+        source: String = "ProGameNotification"
+    ) -> String {
+        "\(formattedTeam(homeTeam, source: source)) \(homeScore) - \(awayScore) \(formattedTeam(awayTeam, source: source))"
+    }
+
+    static func validGoalScorerName(_ raw: String?, scoringTeam: String) -> String? {
+        guard let raw = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else { return nil }
+        guard normalizedTeamToken(raw) != normalizedTeamToken(scoringTeam) else { return nil }
+        return raw
+    }
+
+    static func goalNotificationFirstLine(minuteText: String?, scorerName: String?) -> String {
+        let minute = normalizedGoalMinute(minuteText)
+        let scorer = scorerName?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let scorer, !scorer.isEmpty {
+            if let minute {
+                return "\(minute) \(scorer)"
+            }
+            return scorer
+        }
+        if let minute {
+            return "\(minute) Goal"
+        }
+        return "Goal"
+    }
+
+    static func goalNotificationBody(
+        minuteText: String?,
+        scorerName: String?,
+        homeTeam: String,
+        homeScore: Int,
+        awayTeam: String,
+        awayScore: Int
+    ) -> String {
+        let firstLine = goalNotificationFirstLine(minuteText: minuteText, scorerName: scorerName)
+        let secondLine = homeFirstScoreline(
+            homeTeam: homeTeam,
+            homeScore: homeScore,
+            awayTeam: awayTeam,
+            awayScore: awayScore
+        )
+        return "\(firstLine)\n\(secondLine)"
     }
 
     static func halftimeBody(awayTeam: String, awayScore: Int, homeTeam: String, homeScore: Int) -> String {
@@ -145,11 +237,119 @@ nonisolated enum ProGameNotificationFormatting {
         }
     }
 
-    static func cardNotificationTitle(cardType: LiveCardEventType) -> String {
-        "\(cardType.emoji) \(cardType.notificationTitleLabel)"
+    static func scoreCorrectionTitle(rulingReason: String?) -> String {
+        let reason = rulingReason?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !reason.isEmpty else { return "Goal ruled out" }
+        return "Goal ruled out for \(reason)"
+    }
+
+    static func scoreCorrectionBody(
+        correctedTeam: String,
+        homeTeam: String,
+        homeScore: Int,
+        awayTeam: String,
+        awayScore: Int
+    ) -> String {
+        let team = formattedTeam(correctedTeam)
+        let home = formattedTeam(homeTeam)
+        let away = formattedTeam(awayTeam)
+        return "\(team) goal was ruled out. Score remains \(home) \(homeScore)–\(awayScore) \(away)."
+    }
+
+    static func goalRuledOutReason(
+        previousTimeline: [LiveTimelineEvent]?,
+        updatedTimeline: [LiveTimelineEvent]?
+    ) -> String? {
+        let haystack = timelineNotificationHaystack(previousTimeline, updatedTimeline)
+        guard !haystack.isEmpty else { return nil }
+        if haystack.contains("offside") { return "offside" }
+        if haystack.contains("handball") { return "handball" }
+        if haystack.contains("foul") { return "foul" }
+        if haystack.contains("var") || haystack.contains("video assistant") { return "VAR" }
+        if haystack.contains("disallowed")
+            || haystack.contains("ruled out")
+            || haystack.contains("no goal")
+            || haystack.contains("cancelled goal")
+            || haystack.contains("canceled goal") {
+            return "VAR"
+        }
+        return nil
+    }
+
+    private static func timelineNotificationHaystack(
+        _ previousTimeline: [LiveTimelineEvent]?,
+        _ updatedTimeline: [LiveTimelineEvent]?
+    ) -> String {
+        let events = (updatedTimeline ?? []) + (previousTimeline ?? [])
+        return events
+            .map {
+                [
+                    $0.strTimeline,
+                    $0.strTimelineDetail,
+                    $0.strComment,
+                    $0.strTeam,
+                    $0.strPlayer
+                ]
+                .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+                .joined(separator: " ")
+            }
+            .joined(separator: " ")
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
+    }
+
+    static func cardNotificationTitle(cardType: LiveCardEventType, teamName: String? = nil) -> String {
+        guard resolvedNotificationTeamName(teamName) != nil else {
+            return "\(cardType.emoji) \(cardType.notificationTitleLabel)"
+        }
+        return playerMatchEventTitle(
+            emojiAndEventLabel: "\(cardType.emoji) \(cardEventDisplayTitle(cardType))",
+            playerTeamName: teamName
+        )
     }
 
     static func cardNotificationBody(
+        cardType: LiveCardEventType,
+        minuteText: String?,
+        playerName: String?,
+        teamName: String?,
+        awayTeam: String,
+        homeTeam: String
+    ) -> String {
+        guard resolvedNotificationTeamName(teamName) != nil else {
+            return legacyCardNotificationBody(
+                cardType: cardType,
+                minuteText: minuteText,
+                playerName: playerName,
+                teamName: teamName
+            )
+        }
+
+        let player = playerName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !player.isEmpty {
+            return playerMatchEventBody(
+                playerName: player,
+                minuteText: nil,
+                awayTeam: awayTeam,
+                homeTeam: homeTeam
+            )
+        }
+
+        let matchup = matchupTitle(awayTeam: awayTeam, homeTeam: homeTeam)
+        if !matchup.isEmpty {
+            return matchup
+        }
+
+        return legacyCardNotificationBody(
+            cardType: cardType,
+            minuteText: minuteText,
+            playerName: playerName,
+            teamName: teamName
+        )
+    }
+
+    private static func legacyCardNotificationBody(
         cardType: LiveCardEventType,
         minuteText: String?,
         playerName: String?,
@@ -185,12 +385,39 @@ nonisolated enum ProGameNotificationFormatting {
         }
     }
 
+    private static func cardEventDisplayTitle(_ cardType: LiveCardEventType) -> String {
+        switch cardType {
+        case .yellow:
+            return "Yellow Card"
+        case .red, .secondYellow:
+            return "Red Card"
+        }
+    }
+
+    private static func resolvedNotificationTeamName(_ raw: String?) -> String? {
+        let cleaned = ProGameTeamScoreIdentity.cleanTeamName(raw ?? "")
+        return cleaned.isEmpty ? nil : cleaned
+    }
+
     private static func normalizedCardNotificationClock(_ minuteText: String?) -> String {
+        normalizedGoalMinute(minuteText) ?? "?"
+    }
+
+    private static func normalizedGoalMinute(_ minuteText: String?) -> String? {
         let trimmed = minuteText?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        guard !trimmed.isEmpty else { return "?" }
+        guard !trimmed.isEmpty else { return nil }
         if trimmed.hasSuffix("'") || trimmed.hasSuffix("’") {
             return trimmed.replacingOccurrences(of: "’", with: "'")
         }
+        if trimmed.contains(":") || trimmed.range(of: #"\d(?:st|nd|rd|th)\b"#, options: .regularExpression) != nil {
+            return trimmed
+        }
         return "\(trimmed)'"
+    }
+
+    private static func normalizedTeamToken(_ value: String) -> String {
+        ProGameTeamScoreIdentity.cleanTeamName(value)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
     }
 }

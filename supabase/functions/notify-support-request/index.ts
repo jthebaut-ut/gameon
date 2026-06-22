@@ -19,11 +19,12 @@ interface Payload {
 }
 
 const ALLOWED_CATEGORIES = new Set([
-  "technical_issue",
-  "account_help",
-  "report_problem",
-  "venue_support",
-  "billing_other",
+  "bug_report",
+  "question",
+  "feature_request",
+  "account_issue",
+  "business_support",
+  "other",
 ])
 
 const MAX_SUBJECT = 200

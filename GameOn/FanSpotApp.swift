@@ -89,6 +89,15 @@ private final class FanGeoAppDelegate: NSObject, UIApplicationDelegate, UNUserNo
     ) async -> UNNotificationPresentationOptions {
         [.banner, .list, .sound, .badge]
     }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse
+    ) async {
+        await MainActor.run {
+            ProGameNotificationDeepLinkBridge.shared.handleNotificationResponse(response)
+        }
+    }
 }
 #endif
 

@@ -24,7 +24,7 @@ enum SettingsScrollBottomLayout {
     static let sheetScrollComfortInset: CGFloat = 32
 }
 
-private enum SettingsPremiumChrome {
+enum SettingsPremiumChrome {
     static let cardRadius: CGFloat = 20
     static let rowIconSize: CGFloat = 34
     static let rowMinHeight: CGFloat = 58
@@ -144,6 +144,7 @@ private enum ProfileSettingsRoute: Hashable {
     case timeZone
     case language
     case appearance
+    case helpAndTutorial
     case support
     case communityGuidelines
     case trustSafety
@@ -333,7 +334,23 @@ struct SettingsScreen: View {
         print("[SettingsVisibility] hiding business venue section for fan account")
     }
 
-    var body: some View {
+    @ViewBuilder
+    private var accountTabRootContent: some View {
+        if isAccountTabSelected {
+            accountTabNavigationStack
+        } else {
+            accountOffTabPlaceholder
+        }
+    }
+
+    /// Preserved-tab shell: skip profile lists, dashboard rows, and hero cards while off-screen.
+    private var accountOffTabPlaceholder: some View {
+        Color.clear
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .accessibilityHidden(true)
+    }
+
+    private var accountTabNavigationStack: some View {
         NavigationStack {
             List {
                 Section {
@@ -733,6 +750,10 @@ struct SettingsScreen: View {
                 }
             }
         }
+    }
+
+    var body: some View {
+        accountTabRootContent
         .onChange(of: isAccountTabSelected) { _, isSelected in
             print("[SponsoredPlacementDebug] accountTabSelectionChanged isSelected=\(isSelected) isLoggedIn=\(viewModel.isLoggedIn) authId=\(viewModel.currentUserAuthId?.uuidString.lowercased() ?? "nil") businessContext=\(isBusinessAccountProfileContext)")
             if isSelected {
@@ -1116,6 +1137,13 @@ struct SettingsScreen: View {
             FanGeoAppearanceSelectionView(selectionRaw: $appearancePreferenceRaw)
                 .navigationTitle(L10n.t("appearance", languageCode: appLanguageRaw))
                 .navigationBarTitleDisplayMode(.inline)
+
+        case .helpAndTutorial:
+            HelpAndTutorialView(
+                onContactSupport: {
+                    profileSettingsPath.append(ProfileSettingsRoute.support)
+                }
+            )
 
         case .support:
             ContactGameOnSupportSheet(
@@ -1960,16 +1988,43 @@ struct SettingsScreen: View {
         }
     }
 
+    private func presentGuestFanAuthFromProfileSettings() {
+        showProfileSettingsSheet = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            viewModel.discoverPresentFanUserAuthSheet(openRegisterMode: false)
+        }
+    }
+
     private func profileSettingsNotificationsSection() -> some View {
         Section {
             settingsSectionCard {
-                Button {
-                    profileSettingsPath.append(ProfileSettingsRoute.notifications)
-                } label: {
-                    settingsRow(title: L10n.t("notifications", languageCode: appLanguageRaw), subtitle: notificationSettingsStore.notifyBeforeGame ? "On" : "Off", systemImage: "bell.badge", showsChevron: true)
+                if viewModel.isAuthenticatedForSocialFeatures {
+                    Button {
+                        profileSettingsPath.append(ProfileSettingsRoute.notifications)
+                    } label: {
+                        settingsRow(
+                            title: L10n.t("notifications", languageCode: appLanguageRaw),
+                            subtitle: notificationSettingsStore.notifyBeforeGame ? "On" : "Off",
+                            systemImage: "bell.badge",
+                            showsChevron: true
+                        )
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Button {
+                        presentGuestFanAuthFromProfileSettings()
+                    } label: {
+                        settingsRow(
+                            title: L10n.t("notifications", languageCode: appLanguageRaw),
+                            subtitle: "Sign in to manage notifications.",
+                            systemImage: "bell.badge",
+                            showsChevron: true
+                        )
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
+            .opacity(viewModel.isAuthenticatedForSocialFeatures ? 1 : 0.48)
             .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 12, trailing: 16))
             .listRowBackground(Color.clear)
         } header: {
@@ -2267,28 +2322,56 @@ struct SettingsScreen: View {
 
     private func profileSettingsProGamesSection() -> some View {
         Section {
-            settingsSectionCard {
-                settingsRow(
-                    title: "Automatically follow Favorite Teams",
-                    subtitle: "Show upcoming Pro Games involving your favorite teams in Going.",
-                    systemImage: "star.circle.fill",
-                    tint: FGColor.accentBlue,
-                    showsChevron: false
-                ) {
-                    Toggle("Automatically follow games from my Favorite Teams", isOn: $proGamesAutoFollowFavoriteTeams)
-                        .labelsHidden()
+            Group {
+                if viewModel.isAuthenticatedForSocialFeatures {
+                    profileSettingsProGamesPreferencesCard
+                } else {
+                    Button {
+                        presentGuestFanAuthFromProfileSettings()
+                    } label: {
+                        profileSettingsProGamesPreferencesCard
+                    }
+                    .buttonStyle(.plain)
                 }
-
-                settingsRowDivider()
-
-                proGamesFavoriteTeamWindowRow
-                    .opacity(proGamesAutoFollowFavoriteTeams ? 1 : 0.48)
-                    .disabled(!proGamesAutoFollowFavoriteTeams)
             }
+            .opacity(viewModel.isAuthenticatedForSocialFeatures ? 1 : 0.48)
             .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 12, trailing: 16))
             .listRowBackground(Color.clear)
         } header: {
             settingsSectionHeader("Pro Games Preferences")
+        }
+    }
+
+    private var profileSettingsProGamesPreferencesCard: some View {
+        settingsSectionCard {
+            settingsRow(
+                title: "Automatically follow Favorite Teams",
+                subtitle: "Show upcoming Pro Games involving your favorite teams in Going.",
+                systemImage: "star.circle.fill",
+                tint: FGColor.accentBlue,
+                showsChevron: false
+            ) {
+                Toggle("Automatically follow games from my Favorite Teams", isOn: $proGamesAutoFollowFavoriteTeams)
+                    .labelsHidden()
+                    .disabled(!viewModel.isAuthenticatedForSocialFeatures)
+            }
+
+            settingsRowDivider()
+
+            proGamesFavoriteTeamWindowRow
+                .opacity(
+                    viewModel.isAuthenticatedForSocialFeatures && proGamesAutoFollowFavoriteTeams ? 1 : 0.48
+                )
+                .disabled(!viewModel.isAuthenticatedForSocialFeatures || !proGamesAutoFollowFavoriteTeams)
+
+            if !viewModel.isAuthenticatedForSocialFeatures {
+                Text("Sign in to follow teams and receive game alerts.")
+                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                    .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, FGSpacing.md)
+                    .padding(.bottom, 10)
+            }
         }
     }
 
@@ -2331,6 +2414,20 @@ struct SettingsScreen: View {
     private func profileSettingsHelpSafetySection() -> some View {
         Section {
             settingsSectionCard {
+                Button {
+                    profileSettingsPath.append(ProfileSettingsRoute.helpAndTutorial)
+                } label: {
+                    settingsRow(
+                        title: "Help & Tutorial",
+                        subtitle: "Quick tour, guides, and support.",
+                        systemImage: "questionmark.circle.fill",
+                        showsChevron: true
+                    )
+                }
+                .buttonStyle(.plain)
+
+                settingsRowDivider()
+
                 Button {
                     profileSettingsPath.append(ProfileSettingsRoute.support)
                 } label: {
@@ -7271,11 +7368,21 @@ private struct SettingsGameNotificationsCard: View {
     @State private var showAppleCalendarSyncDisableConfirmation = false
     @State private var appleCalendarSyncDisableInFlight = false
 
+    private static let fanOnlyNotificationsBusinessToast =
+        "Venue and pickup notifications are available for Fan accounts."
+
+    private static let fanOnlyCalendarSyncBusinessToast =
+        "Venue and pickup calendar sync is available for Fan accounts."
+
+    private var isFanOnlyNotificationsLockedForBusiness: Bool {
+        viewModel.isAuthenticatedForSocialFeatures && !viewModel.canUseFanSocialFeatures
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: FGSpacing.lg) {
             notificationIntro
 
-            notificationSection(
+            fanGatedNotificationSection(
                 title: "Venue Games",
                 subtitle: "Watch parties, sports bars, and venue events.",
                 systemImage: "sportscourt.fill",
@@ -7286,6 +7393,7 @@ private struct SettingsGameNotificationsCard: View {
                     subtitle: "Kickoff reminders for venue games you mark Going.",
                     isOn: gameNotificationsEnabledBinding
                 )
+                .disabled(isFanOnlyNotificationsLockedForBusiness)
 
                 notificationToggle(
                     title: "Favorite team nearby",
@@ -7293,14 +7401,22 @@ private struct SettingsGameNotificationsCard: View {
                     isOn: loggingBinding(
                         key: "venueFavoriteTeamNearbyNotifications",
                         title: "Favorite team nearby",
-                        value: $venueFavoriteTeamNearbyNotifications
+                        value: $venueFavoriteTeamNearbyNotifications,
+                        fanGated: true
                     )
                 )
+                .disabled(isFanOnlyNotificationsLockedForBusiness)
 
-                permissionMessage
+                if !isFanOnlyNotificationsLockedForBusiness {
+                    permissionMessage
+                }
+
+                if isFanOnlyNotificationsLockedForBusiness {
+                    fanOnlyNotificationSectionHelperText
+                }
             }
 
-            notificationSection(
+            fanGatedNotificationSection(
                 title: "Pickup Games",
                 subtitle: "Pickup games you host, join, or request to join.",
                 systemImage: "figure.basketball",
@@ -7312,15 +7428,22 @@ private struct SettingsGameNotificationsCard: View {
                     isOn: loggingBinding(
                         key: "pickupGameReminderNotifications",
                         title: "Pickup game reminders",
-                        value: $pickupGameReminderNotifications
+                        value: $pickupGameReminderNotifications,
+                        fanGated: true
                     )
                 )
+                .disabled(isFanOnlyNotificationsLockedForBusiness)
 
                 notificationToggle(
                     title: "Pickup game updates",
                     subtitle: "Join requests, player activity, and game changes.",
                     isOn: pickupGameUpdatesBinding
                 )
+                .disabled(isFanOnlyNotificationsLockedForBusiness)
+
+                if isFanOnlyNotificationsLockedForBusiness {
+                    fanOnlyNotificationSectionHelperText
+                }
             }
 
             notificationSection(
@@ -7411,35 +7534,45 @@ private struct SettingsGameNotificationsCard: View {
                 .disabled(!notificationSettingsStore.syncGoingGamesToAppleCalendar)
                 .opacity(notificationSettingsStore.syncGoingGamesToAppleCalendar ? 1 : 0.45)
 
-                notificationToggle(
-                    title: "Venue Games",
-                    subtitle: "Watch parties and venue events you mark Going.",
-                    isOn: loggingBinding(
-                        key: "syncVenueGamesToAppleCalendar",
+                fanCalendarGatedInteractable {
+                    notificationToggle(
                         title: "Venue Games",
-                        value: Binding(
-                            get: { notificationSettingsStore.syncVenueGamesToAppleCalendar },
-                            set: { notificationSettingsStore.syncVenueGamesToAppleCalendar = $0 }
+                        subtitle: "Watch parties and venue events you mark Going.",
+                        isOn: loggingBinding(
+                            key: "syncVenueGamesToAppleCalendar",
+                            title: "Venue Games",
+                            value: Binding(
+                                get: { notificationSettingsStore.syncVenueGamesToAppleCalendar },
+                                set: { notificationSettingsStore.syncVenueGamesToAppleCalendar = $0 }
+                            ),
+                            fanGated: true
                         )
                     )
-                )
-                .disabled(!notificationSettingsStore.syncGoingGamesToAppleCalendar)
-                .opacity(notificationSettingsStore.syncGoingGamesToAppleCalendar ? 1 : 0.45)
+                    .disabled(fanCalendarRowDisabled(syncEnabled: notificationSettingsStore.syncGoingGamesToAppleCalendar))
+                    .opacity(fanCalendarRowOpacity(syncEnabled: notificationSettingsStore.syncGoingGamesToAppleCalendar))
+                }
 
-                notificationToggle(
-                    title: "Pickup Games",
-                    subtitle: "Pickup games you host or join.",
-                    isOn: loggingBinding(
-                        key: "syncPickupGamesToAppleCalendar",
+                fanCalendarGatedInteractable {
+                    notificationToggle(
                         title: "Pickup Games",
-                        value: Binding(
-                            get: { notificationSettingsStore.syncPickupGamesToAppleCalendar },
-                            set: { notificationSettingsStore.syncPickupGamesToAppleCalendar = $0 }
+                        subtitle: "Pickup games you host or join.",
+                        isOn: loggingBinding(
+                            key: "syncPickupGamesToAppleCalendar",
+                            title: "Pickup Games",
+                            value: Binding(
+                                get: { notificationSettingsStore.syncPickupGamesToAppleCalendar },
+                                set: { notificationSettingsStore.syncPickupGamesToAppleCalendar = $0 }
+                            ),
+                            fanGated: true
                         )
                     )
-                )
-                .disabled(!notificationSettingsStore.syncGoingGamesToAppleCalendar)
-                .opacity(notificationSettingsStore.syncGoingGamesToAppleCalendar ? 1 : 0.45)
+                    .disabled(fanCalendarRowDisabled(syncEnabled: notificationSettingsStore.syncGoingGamesToAppleCalendar))
+                    .opacity(fanCalendarRowOpacity(syncEnabled: notificationSettingsStore.syncGoingGamesToAppleCalendar))
+                }
+
+                if isFanOnlyNotificationsLockedForBusiness {
+                    fanOnlyNotificationSectionHelperText
+                }
 
                 Divider()
                     .padding(.leading, FGSpacing.md)
@@ -7466,20 +7599,26 @@ private struct SettingsGameNotificationsCard: View {
                 Divider()
                     .padding(.leading, FGSpacing.md)
 
-                calendarAlertPreferenceRow(
-                    title: "Venue Games",
-                    selection: venueCalendarAlertTimingBinding,
-                    isEnabled: appleCalendarDependentControlsEnabled
-                )
+                fanCalendarGatedInteractable {
+                    calendarAlertPreferenceRow(
+                        title: "Venue Games",
+                        selection: venueCalendarAlertTimingBinding,
+                        isEnabled: appleCalendarDependentControlsEnabled,
+                        fanGated: true
+                    )
+                }
 
                 Divider()
                     .padding(.leading, FGSpacing.md)
 
-                calendarAlertPreferenceRow(
-                    title: "Pickup Games",
-                    selection: pickupCalendarAlertTimingBinding,
-                    isEnabled: appleCalendarDependentControlsEnabled
-                )
+                fanCalendarGatedInteractable {
+                    calendarAlertPreferenceRow(
+                        title: "Pickup Games",
+                        selection: pickupCalendarAlertTimingBinding,
+                        isEnabled: appleCalendarDependentControlsEnabled,
+                        fanGated: true
+                    )
+                }
 
                 Divider()
                     .padding(.leading, FGSpacing.md)
@@ -7725,10 +7864,49 @@ private struct SettingsGameNotificationsCard: View {
         Binding(
             get: { notificationSettingsStore.notifyBeforeGame },
             set: { enabled in
+                guard !isFanOnlyNotificationsLockedForBusiness else { return }
                 print("[NotificationSettingsDebug] save key=notifyBeforeGame value=\(enabled)")
                 Task { await viewModel.setGameNotificationsEnabled(enabled) }
             }
         )
+    }
+
+    private var fanOnlyNotificationSectionHelperText: some View {
+        Text("Available for Fan accounts.")
+            .font(FGTypography.caption.weight(.semibold))
+            .foregroundStyle(FGColor.secondaryText(colorScheme))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, FGSpacing.md)
+            .padding(.bottom, 10)
+    }
+
+    @ViewBuilder
+    private func fanGatedNotificationSection<Content: View>(
+        title: String,
+        subtitle: String,
+        systemImage: String,
+        tint: Color,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        let section = notificationSection(
+            title: title,
+            subtitle: subtitle,
+            systemImage: systemImage,
+            tint: tint,
+            content: content
+        )
+
+        if isFanOnlyNotificationsLockedForBusiness {
+            Button {
+                viewModel.showSocialActionToast(Self.fanOnlyNotificationsBusinessToast, isError: false)
+            } label: {
+                section
+            }
+            .buttonStyle(.plain)
+            .opacity(0.48)
+        } else {
+            section
+        }
     }
 
     private var proGameReminderSettingsSection: some View {
@@ -7838,13 +8016,7 @@ private struct SettingsGameNotificationsCard: View {
             title: "Final score alerts",
             get: { notificationSettingsStore.proGameFinalScoreNotifications },
             set: { enabled in
-                notificationSettingsStore.proGameFinalScoreNotifications = enabled
-                if enabled {
-                    Task {
-                        _ = await GameReminderNotificationService.shared.requestAuthorizationIfNeeded()
-                    }
-                }
-                Task { await viewModel.syncProGameFinalScorePreferenceToBackend(reason: "settingsToggle") }
+                Task { await viewModel.setProGameFinalScoreNotificationsEnabled(enabled) }
             }
         )
     }
@@ -7868,7 +8040,8 @@ private struct SettingsGameNotificationsCard: View {
         calendarAlertTimingBinding(
             key: "venue_calendar_alert_timing",
             get: { notificationSettingsStore.venueCalendarAlertTiming },
-            set: { notificationSettingsStore.venueCalendarAlertTiming = $0 }
+            set: { notificationSettingsStore.venueCalendarAlertTiming = $0 },
+            fanGated: true
         )
     }
 
@@ -7876,7 +8049,8 @@ private struct SettingsGameNotificationsCard: View {
         calendarAlertTimingBinding(
             key: "pickup_calendar_alert_timing",
             get: { notificationSettingsStore.pickupCalendarAlertTiming },
-            set: { notificationSettingsStore.pickupCalendarAlertTiming = $0 }
+            set: { notificationSettingsStore.pickupCalendarAlertTiming = $0 },
+            fanGated: true
         )
     }
 
@@ -7891,11 +8065,13 @@ private struct SettingsGameNotificationsCard: View {
     private func calendarAlertTimingBinding(
         key: String,
         get: @escaping () -> FanGeoCalendarAlertTiming,
-        set: @escaping (FanGeoCalendarAlertTiming) -> Void
+        set: @escaping (FanGeoCalendarAlertTiming) -> Void,
+        fanGated: Bool = false
     ) -> Binding<FanGeoCalendarAlertTiming> {
         Binding(
             get: get,
             set: { timing in
+                guard !fanGated || !isFanOnlyNotificationsLockedForBusiness else { return }
                 print("[NotificationSettingsDebug] save key=\(key) value=\(timing.rawValue)")
                 set(timing)
                 if notificationSettingsStore.syncGoingGamesToAppleCalendar {
@@ -7913,6 +8089,7 @@ private struct SettingsGameNotificationsCard: View {
                     || pickupGameChangeNotifications
             },
             set: { enabled in
+                guard !isFanOnlyNotificationsLockedForBusiness else { return }
                 print("[NotificationSettingsDebug] save key=pickupGameUpdates value=\(enabled)")
                 pickupJoinRequestUpdateNotifications = enabled
                 pickupPlayerJoinedNotifications = enabled
@@ -7933,14 +8110,45 @@ private struct SettingsGameNotificationsCard: View {
         }
     }
 
-    private func loggingBinding(key: String, title: String, value: Binding<Bool>) -> Binding<Bool> {
+    private func loggingBinding(
+        key: String,
+        title: String,
+        value: Binding<Bool>,
+        fanGated: Bool = false
+    ) -> Binding<Bool> {
         Binding(
             get: { value.wrappedValue },
             set: { enabled in
+                guard !fanGated || !isFanOnlyNotificationsLockedForBusiness else { return }
                 print("[NotificationSettingsDebug] save key=\(key) title=\"\(title)\" value=\(enabled)")
                 value.wrappedValue = enabled
             }
         )
+    }
+
+    private func fanCalendarRowOpacity(syncEnabled: Bool) -> Double {
+        if isFanOnlyNotificationsLockedForBusiness { return 0.48 }
+        return syncEnabled ? 1 : 0.45
+    }
+
+    private func fanCalendarRowDisabled(syncEnabled: Bool) -> Bool {
+        isFanOnlyNotificationsLockedForBusiness || !syncEnabled
+    }
+
+    @ViewBuilder
+    private func fanCalendarGatedInteractable<Content: View>(
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        if isFanOnlyNotificationsLockedForBusiness {
+            Button {
+                viewModel.showSocialActionToast(Self.fanOnlyCalendarSyncBusinessToast, isError: false)
+            } label: {
+                content()
+            }
+            .buttonStyle(.plain)
+        } else {
+            content()
+        }
     }
 
     private func notificationSection<Content: View>(
@@ -8003,13 +8211,17 @@ private struct SettingsGameNotificationsCard: View {
     private func calendarAlertPreferenceRow(
         title: String,
         selection: Binding<FanGeoCalendarAlertTiming>,
-        isEnabled: Bool
+        isEnabled: Bool,
+        fanGated: Bool = false
     ) -> some View {
-        let timingColor = isEnabled ? FGColor.accentGreen : FGColor.mutedText(colorScheme)
-        let chevronColor = isEnabled ? FGColor.mutedText(colorScheme) : FGColor.mutedText(colorScheme).opacity(0.45)
+        let businessLocked = fanGated && isFanOnlyNotificationsLockedForBusiness
+        let rowEnabled = isEnabled && !businessLocked
+        let timingColor = rowEnabled ? FGColor.accentGreen : FGColor.mutedText(colorScheme)
+        let chevronColor = rowEnabled ? FGColor.mutedText(colorScheme) : FGColor.mutedText(colorScheme).opacity(0.45)
+        let rowOpacity: Double = businessLocked ? 0.48 : (isEnabled ? 1 : 0.45)
 
         Group {
-            if isEnabled {
+            if rowEnabled {
                 Menu {
                     ForEach(FanGeoCalendarAlertTiming.allCases) { timing in
                         Button {
@@ -8042,8 +8254,8 @@ private struct SettingsGameNotificationsCard: View {
                 )
             }
         }
-        .disabled(!isEnabled)
-        .opacity(isEnabled ? 1 : 0.45)
+        .disabled(!rowEnabled)
+        .opacity(rowOpacity)
         .accessibilityLabel("\(title) Apple Calendar reminder \(selection.wrappedValue.displayName)")
     }
 

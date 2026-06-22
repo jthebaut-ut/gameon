@@ -243,9 +243,9 @@ enum HomeCrowdSinceFormatter {
         let monthSymbols = calendar.monthSymbols
         let monthName = (1...12).contains(month) ? monthSymbols[month - 1] : ""
         if monthName.isEmpty {
-            return "Your home crowd since \(year)"
+            return "Your home venue since \(year)"
         }
-        return "Your home crowd since \(monthName) \(year)"
+        return "Your home venue since \(monthName) \(year)"
     }
 
     static func homeCrowdSinceLine(from raw: String?) -> String? {
@@ -256,9 +256,9 @@ enum HomeCrowdSinceFormatter {
         let monthSymbols = calendar.monthSymbols
         let monthName = (1...12).contains(month) ? monthSymbols[month - 1] : ""
         if monthName.isEmpty {
-            return "Home crowd since \(year)"
+            return "Home venue since \(year)"
         }
-        return "Home crowd since \(monthName) \(year)"
+        return "Home venue since \(monthName) \(year)"
     }
 }
 

@@ -84,6 +84,12 @@ struct MainTabView: View {
                 FanXPRewardOverlayHost(manager: viewModel.fanXPRewardOverlay)
                     .id(ObjectIdentifier(viewModel.fanXPRewardOverlay))
             }
+            .background {
+                FanGeoAnnouncementMainTabRouter(viewModel: viewModel) { tabRaw in
+                    guard let tab = AppTab(rawValue: tabRaw) else { return }
+                    selectTab(tab, reason: "announcementCTA")
+                }
+            }
             .fullScreenCover(isPresented: $showBlockingFanIdentitySetup) {
                 FanGeoIdentitySetupView(viewModel: viewModel, mode: .complete) {
                     showBlockingFanIdentitySetup = false
@@ -147,6 +153,7 @@ struct MainTabView: View {
             lazyPreservedRoot(tab: .following) {
                 FollowingScreen(
                     viewModel: viewModel,
+                    selectedTab: selectedTabBinding,
                     suppressInitialAutoRefresh: true,
                     isFollowingTabSelected: selectedTab == .following
                 )
@@ -380,6 +387,9 @@ struct MainTabView: View {
             )
             viewModel.isCalendarTabSelected = tab == .calendar
             switch tab {
+            case .discover:
+                privateChatUnlockedForCurrentSelection = false
+                updateDirectChatReadStateVisibility()
             case .account:
                 privateChatUnlockedForCurrentSelection = false
                 updateDirectChatReadStateVisibility()
@@ -648,7 +658,7 @@ struct MainTabView: View {
                 await viewModel.refreshCalendarTabPickupSources(reason: "tabPreload")
             }
         case .live:
-            await viewModel.refreshLiveMatchesForLiveTab(forceRefresh: false)
+            await viewModel.refreshLiveMatchesForLiveTabActivation(forceRefresh: false)
         }
     }
 
@@ -736,6 +746,7 @@ struct MainTabView: View {
 
     private func handleScenePhaseChange(_ phase: ScenePhase) {
         guard phase == .active else {
+            viewModel.noteAnnouncementsAppBackgrounded()
             PresenceService.shared.stop(reason: "scenePhase.\(String(describing: phase))")
             if requireDeviceAuthForPrivateChat {
                 privateChatUnlockedForCurrentSelection = false
@@ -1475,6 +1486,8 @@ struct MainTabView: View {
             let currentTab = AppTab(rawValue: selectedTabStorage)?.rawValue ?? "unknown"
             UIPerformanceDiagnostics.log("visibleTabForegroundRefresh ms=\(UIPerformanceDiagnostics.formattedMs(ms)) tab=\(currentTab)")
         }
+
+        await viewModel.refreshDiscoverBannerAnnouncementOnAppForeground()
 
         let hasSession = await viewModel.hasValidSession()
         if !hasSession {

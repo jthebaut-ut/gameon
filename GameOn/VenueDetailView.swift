@@ -582,7 +582,7 @@ struct VenueDetailView: View {
         .buttonStyle(.plain)
         .opacity(showsFanOnlyActionButtons ? 1 : 0.5)
         .disabled(isHomeCrowdActionInFlight)
-        .accessibilityLabel(isHomeCrowdVenue ? "Remove this Home Crowd" : "Make this my Home Crowd")
+        .accessibilityLabel(isHomeCrowdVenue ? "Remove this Home Venue" : "Make this my Home Venue")
     }
 
     @MainActor

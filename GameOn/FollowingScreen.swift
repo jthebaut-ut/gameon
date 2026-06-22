@@ -13,6 +13,7 @@ enum SavedProGameStatusDiagnostics {
 
 struct FollowingScreen: View {
     @ObservedObject var viewModel: MapViewModel
+    @Binding var selectedTab: MainTabView.AppTab
     @EnvironmentObject private var chatViewModel: ChatViewModel
     var suppressInitialAutoRefresh = false
     var isFollowingTabSelected: Bool = true
@@ -39,6 +40,8 @@ struct FollowingScreen: View {
     @State private var followingMyPickupOrganizerRequestsGame: PickupGameRow?
     @State private var followingMyPickupDetailGame: PickupGameRow?
     @State private var proGamePredictionSheet: ProGamePredictionSheetContext?
+    @State private var proGameMatchDetailSelection: LiveMatch?
+    @State private var pendingProGameNotificationMatchID: String?
     @State private var followingPickupInviteGame: PickupGameRow?
     @State private var followingPickupInviteDetail: PickupGameInviteDisplay?
     @State private var followingPendingPostCreateInviteGame: PickupGameRow?
@@ -52,6 +55,8 @@ struct FollowingScreen: View {
     @State private var cachedGoingVenueGameItems: [FollowingGoingDisplayItem] = []
     @State private var cachedPlayingGameCards: [PickupGameJoinRequestCardDisplay] = []
     @State private var goingTabPerf = GoingTabPerfState()
+    @State private var followingHostingPickupLoadInFlight = false
+    @State private var showFavoriteTeamsPicker = false
 
     private struct GoingTabPerfState {
         var cachedManualSavedProGamesForDisplay: [SavedProGame] = []
@@ -125,6 +130,26 @@ struct FollowingScreen: View {
     }
 
     private var followingScreenShell: some View {
+        followingRootContent
+    }
+
+    @ViewBuilder
+    private var followingRootContent: some View {
+        if isFollowingTabSelected {
+            followingActiveContent
+        } else {
+            followingOffTabPlaceholder
+        }
+    }
+
+    /// Preserved-tab shell: skip Going lists, cards, and avatar work while off-screen.
+    private var followingOffTabPlaceholder: some View {
+        Color.clear
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .accessibilityHidden(true)
+    }
+
+    private var followingActiveContent: some View {
         ZStack {
             Color.clear
                 .fanGeoScreenBackground()
@@ -177,6 +202,14 @@ struct FollowingScreen: View {
         .onChange(of: viewModel.incomingPickupGameInvites.count) { _, _ in
             guard isFollowingTabSelected else { return }
             prefetchVisibleGoingAvatars(reason: "incomingPickupInvitesChanged")
+        }
+        .onChange(of: viewModel.pendingProGameNotificationDeepLink) { _, request in
+            guard let request else { return }
+            pendingProGameNotificationMatchID = request.matchID
+            selectedGoingMode = .proGames
+            sanitizeBusinessGoingModeIfNeeded()
+            viewModel.clearPendingProGameNotificationDeepLink()
+            Task { await fulfillProGameNotificationDeepLinkIfReady() }
         }
     }
 
@@ -291,6 +324,7 @@ struct FollowingScreen: View {
                 GoingPerfDebug.deferredWork("goingAvatarPrefetch", source: "tabVisible")
                 prefetchVisibleGoingAvatars(reason: "followingTabVisibleDeferred")
                 await performGoingTabBackgroundRefresh(reason: "tabVisible")
+                await fulfillProGameNotificationDeepLinkIfReady()
             }
         } else {
             goingTabPerf.firstPaintRecorded = false
@@ -300,6 +334,25 @@ struct FollowingScreen: View {
     private func goingTabRecentlyPrepared(within interval: TimeInterval) -> Bool {
         guard let last = goingTabPerf.lastVisibleSurfacePrepareAt else { return false }
         return Date().timeIntervalSince(last) < interval
+    }
+
+    @MainActor
+    private func fulfillProGameNotificationDeepLinkIfReady() async {
+        guard isFollowingTabSelected else { return }
+        guard let matchID = pendingProGameNotificationMatchID else { return }
+
+        selectedGoingMode = .proGames
+        sanitizeBusinessGoingModeIfNeeded()
+
+        await prepareGoingTabVisibleSurface(reason: "proGameNotificationDeepLink")
+        await performGoingTabBackgroundRefresh(reason: "proGameNotificationDeepLink")
+        await viewModel.refreshLiveMatchesForLiveTab(forceRefresh: false)
+
+        if let match = viewModel.resolveLiveMatchForProGameNotificationDeepLink(matchID: matchID) {
+            proGameMatchDetailSelection = match
+        }
+
+        pendingProGameNotificationMatchID = nil
     }
 
     @ViewBuilder
@@ -408,6 +461,23 @@ struct FollowingScreen: View {
         }
         .sheet(item: $proGamePredictionSheet) { context in
             ProGamePredictionSheet(viewModel: viewModel, game: context.game)
+        }
+        .sheet(item: $proGameMatchDetailSelection) { match in
+            LiveMatchDetailSheet(match: match)
+        }
+        .sheet(isPresented: $showFavoriteTeamsPicker) {
+            FavoriteTeamsPickerSheet(
+                selectedIDs: Binding(
+                    get: { Set(FavoriteTeamsStore.decodeIDs(from: favoriteTeamIDsRaw)) },
+                    set: { newSet in
+                        let sorted = Array(newSet).sorted()
+                        favoriteTeamIDsRaw = FavoriteTeamsStore.encodeIDs(sorted)
+                        Task {
+                            await viewModel.syncFavoriteTeamsToSupabase(teamIDs: sorted)
+                        }
+                    }
+                )
+            )
         }
         .alert(followingMyPickupDeleteAlertTitle, isPresented: Binding(
             get: { followingMyPickupDeleteTarget != nil },
@@ -905,10 +975,11 @@ struct FollowingScreen: View {
             VStack(alignment: .leading, spacing: 10) {
                 sectionEyebrow("Saved Games")
                 if manualSavedProGamesForDisplay.isEmpty {
-                    emptyCard(
-                        icon: "heart",
-                        title: "No saved pro games yet.",
-                        subtitle: "Save a live or scheduled pro game to watch later."
+                    goingRichEmptyCard(
+                        title: "📺 No saved pro games",
+                        description: "Save live or upcoming games to follow them here.",
+                        buttonTitle: "Browse Pro Games",
+                        buttonAction: openCalendarProGamesFromGoing
                     )
                 } else {
                     VStack(spacing: 12) {
@@ -929,10 +1000,11 @@ struct FollowingScreen: View {
                 favoriteTeamAlertsToggleRow
                 if proGamesAutoFollowFavoriteTeams {
                     if favoriteTeamProGamesForDisplay.isEmpty {
-                        emptyCard(
-                            icon: "star",
-                            title: "Follow teams to see their upcoming games here.",
-                            subtitle: "Favorite-team Pro Games will appear here when they are in range."
+                        goingRichEmptyCard(
+                            title: "⭐ No favorite teams selected",
+                            description: "Follow your favorite teams to receive kickoff, goal, and final-score alerts.",
+                            buttonTitle: "Add Favorite Teams",
+                            buttonAction: { showFavoriteTeamsPicker = true }
                         )
                     } else {
                         VStack(spacing: 12) {
@@ -956,10 +1028,11 @@ struct FollowingScreen: View {
                         }
                     }
                 } else {
-                    emptyCard(
-                        icon: "star",
-                        title: "Follow teams to see their upcoming games here.",
-                        subtitle: "Turn on Favorite Team auto-follow in Settings to show Pro Games from your teams."
+                    goingRichEmptyCard(
+                        title: "⭐ No favorite teams selected",
+                        description: "Follow your favorite teams to receive kickoff, goal, and final-score alerts.",
+                        buttonTitle: "Add Favorite Teams",
+                        buttonAction: { showFavoriteTeamsPicker = true }
                     )
                 }
             }
@@ -1351,14 +1424,13 @@ struct FollowingScreen: View {
         Binding(
             get: { favoriteTeamProGameAlertsEnabled },
             set: { enabled in
-                favoriteTeamProGameAlertsEnabled = enabled
-                viewModel.notificationSettingsStore.favoriteTeamProGameAlertsEnabled = enabled
                 Task {
                     await viewModel.setFavoriteTeamProGameAlertsEnabled(
                         enabled,
                         games: viewModel.favoriteTeamProGames,
                         reason: "goingProTeamAlertsToggle"
                     )
+                    favoriteTeamProGameAlertsEnabled = viewModel.notificationSettingsStore.favoriteTeamProGameAlertsEnabled
                 }
             }
         )
@@ -1420,16 +1492,17 @@ struct FollowingScreen: View {
                     title: "Games unavailable",
                     subtitle: "Switch to a fan account to join and play games."
                 )
+            } else if shouldShowPlayingPickupLoadingState {
+                pickupSubtabLoadingCard(message: "Loading games…")
+            } else if playingGameCards.isEmpty {
+                goingRichEmptyCard(
+                    title: "⚽ No pickup games joined yet",
+                    description: "Join local pickup games and track them here.",
+                    buttonTitle: "Find Pickup Games",
+                    buttonAction: openDiscoverForPickupGamesFromGoing
+                )
             } else {
-                if playingGameCards.isEmpty {
-                    emptyCard(
-                        icon: "figure.run",
-                        title: "No games you’re playing yet.",
-                        subtitle: "Join a game to see it here."
-                    )
-                } else {
-                    joinedGamesListContent
-                }
+                joinedGamesListContent
             }
         }
         .padding(.top, 6)
@@ -1450,11 +1523,12 @@ struct FollowingScreen: View {
             } else {
                 hostPickupInlineCTA
 
-                if viewModel.myPickupGamesForSettings.isEmpty, viewModel.myRemovedPickupGamesForSettings.isEmpty {
-                    emptyCard(
-                        icon: "sportscourt.fill",
-                        title: "No games you’re hosting yet.",
-                        subtitle: "Create a game when you’re ready to play."
+                if shouldShowHostingPickupLoadingState {
+                    pickupSubtabLoadingCard(message: "Loading games…")
+                } else if viewModel.myPickupGamesForSettings.isEmpty, viewModel.myRemovedPickupGamesForSettings.isEmpty {
+                    goingRichEmptyCard(
+                        title: "🏆 You're not hosting any games yet",
+                        description: "Create a pickup game and invite local players."
                     )
                 } else {
                     hostedGamesListContent
@@ -1465,7 +1539,15 @@ struct FollowingScreen: View {
         .onAppear {
             guard viewModel.canFanUsePickupGamesUI else { return }
             followingMyPickupClockTick = Date()
+            let awaitingInitialHostLoad =
+                viewModel.lastMyPickupGamesLightweightLoadAt == nil
+                && viewModel.myPickupGamesForSettings.isEmpty
+                && viewModel.myRemovedPickupGamesForSettings.isEmpty
+            if awaitingInitialHostLoad {
+                followingHostingPickupLoadInFlight = true
+            }
             Task {
+                defer { followingHostingPickupLoadInFlight = false }
                 await viewModel.loadMyPickupGamesForSettings()
                 if let uid = viewModel.currentUserAuthId {
                     await viewModel.refreshPickupCreatorPublicRatingStats(creatorUserIds: [uid])
@@ -1485,10 +1567,9 @@ struct FollowingScreen: View {
                     subtitle: "Switch to a fan account to receive pickup game invites."
                 )
             } else if viewModel.incomingPickupGameInvites.isEmpty {
-                emptyCard(
-                    icon: "envelope.open",
-                    title: "No pending invites",
-                    subtitle: "Friend invites to pickup, practice, and scrimmage games will appear here."
+                goingRichEmptyCard(
+                    title: "📨 No pickup invitations",
+                    description: "Invitations from friends and organizers will appear here."
                 )
             } else {
                 incomingPickupGameInvitesContent
@@ -1816,10 +1897,11 @@ struct FollowingScreen: View {
     private var venueGamesTabContent: some View {
         VStack(alignment: .leading, spacing: 14) {
             if goingVenueGameItems.isEmpty {
-                emptyCard(
-                    icon: "checkmark.circle.fill",
-                    title: "No games yet",
-                    subtitle: "Venue games you join will appear here."
+                goingRichEmptyCard(
+                    title: "🏟️ No venue games yet",
+                    description: "Discover sports bars, watch parties, and venue events near you.",
+                    buttonTitle: "Explore Discover",
+                    buttonAction: openDiscoverFromGoing
                 )
             } else {
                 VStack(spacing: 12) {
@@ -1835,10 +1917,11 @@ struct FollowingScreen: View {
     private var savedVenuesTabContent: some View {
         VStack(alignment: .leading, spacing: 14) {
             if viewModel.followingTabSavedVenues.isEmpty {
-                emptyCard(
-                    icon: "heart",
-                    title: "No favorite venues yet.",
-                    subtitle: "Save bars and watch spots from Discover."
+                goingRichEmptyCard(
+                    title: "❤️ No saved venues yet",
+                    description: "Save sports bars and watch spots to quickly find them later.",
+                    buttonTitle: "Find Watch Spots",
+                    buttonAction: openDiscoverFromGoing
                 )
             } else {
                 VStack(spacing: 12) {
@@ -2097,11 +2180,13 @@ struct FollowingScreen: View {
         let controlAccent = isEnabled ? FGColor.accentGreen : FGColor.mutedText(followingColorScheme)
 
         return Button {
-            viewModel.setFavoriteTeamProGameScoreUpdatesEnabled(
-                !isEnabled,
-                for: item,
-                reason: "goingProFavoriteTeamAlertToggle"
-            )
+            Task {
+                await viewModel.setFavoriteTeamProGameScoreUpdatesEnabled(
+                    !isEnabled,
+                    for: item,
+                    reason: "goingProFavoriteTeamAlertToggle"
+                )
+            }
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: isEnabled ? "bell.fill" : "bell.slash")
@@ -3741,6 +3826,106 @@ struct FollowingScreen: View {
                 Color.red.opacity(0.45)
             )
         }
+    }
+
+    private var hasCompletedPlayingPickupFetch: Bool {
+        guard let uid = viewModel.currentUserAuthId else { return true }
+        return viewModel.lastSuccessfulFollowingJoinRequestsRefreshUserId == uid
+            && viewModel.lastSuccessfulFollowingJoinRequestsRefreshAt != nil
+    }
+
+    private var shouldShowPlayingPickupLoadingState: Bool {
+        guard viewModel.canFanUsePickupGamesUI, playingGameCards.isEmpty else { return false }
+        if viewModel.isPickupFollowingJoinListRefreshing { return true }
+        if hasCompletedPlayingPickupFetch { return false }
+        return goingTabPerf.backgroundRefreshInFlight || viewModel.isTabIntentPreloadInFlight("following")
+    }
+
+    private var shouldShowHostingPickupLoadingState: Bool {
+        guard viewModel.canFanUsePickupGamesUI else { return false }
+        guard viewModel.myPickupGamesForSettings.isEmpty,
+              viewModel.myRemovedPickupGamesForSettings.isEmpty else { return false }
+        return followingHostingPickupLoadInFlight || viewModel.myPickupGamesLightweightLoadTask != nil
+    }
+
+    private func openDiscoverFromGoing() {
+        selectedTab = .discover
+    }
+
+    private func openDiscoverForPickupGamesFromGoing() {
+        if viewModel.discoverMapContentMode != .pickupGames {
+            viewModel.clearDiscoverMapContentSelectionsWhenSwitching(to: .pickupGames)
+            viewModel.discoverMapContentMode = .pickupGames
+        }
+        if viewModel.discoverPickupSubMode != .games {
+            viewModel.discoverPickupSubMode = .games
+        }
+        selectedTab = .discover
+    }
+
+    private func openCalendarProGamesFromGoing() {
+        viewModel.calendarTabGameFilter = .proGames
+        selectedTab = .calendar
+    }
+
+    @ViewBuilder
+    private func goingRichEmptyCard(
+        title: String,
+        description: String,
+        buttonTitle: String? = nil,
+        buttonAction: (() -> Void)? = nil
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title)
+                    .font(FGTypography.cardTitle.weight(.bold))
+                    .foregroundStyle(FGColor.primaryText(followingColorScheme))
+
+                Text(description)
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(followingColorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if let buttonTitle, let buttonAction {
+                Button(action: buttonAction) {
+                    Text(buttonTitle)
+                        .font(.subheadline.weight(.bold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.white)
+                .background(FGColor.accentGreen, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(18)
+        .background {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(.ultraThinMaterial)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .modifier(FollowingCardChromeModifier(colorScheme: followingColorScheme, cornerRadius: 22))
+    }
+
+    private func pickupSubtabLoadingCard(message: String) -> some View {
+        HStack(spacing: 10) {
+            ProgressView()
+                .controlSize(.small)
+            Text(message)
+                .font(FGTypography.caption.weight(.medium))
+                .foregroundStyle(FGColor.secondaryText(followingColorScheme))
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(18)
+        .background {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(.ultraThinMaterial)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .modifier(FollowingCardChromeModifier(colorScheme: followingColorScheme, cornerRadius: 22))
     }
 
     private func emptyCard(icon: String, title: String, subtitle: String) -> some View {

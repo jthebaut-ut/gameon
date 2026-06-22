@@ -24,6 +24,11 @@ extension MapViewModel {
         await syncProGameFinalScorePreferenceToBackend(reason: "proGameKickoffAlertToggle")
     }
 
+    func setProGameFinalScoreNotificationsEnabled(_ enabled: Bool) async {
+        guard await notificationSettingsStore.setProGameFinalScoreNotificationsEnabled(enabled) else { return }
+        await syncProGameFinalScorePreferenceToBackend(reason: "settingsToggle")
+    }
+
     func setProGameGameReminderTiming(_ timing: ProGameReminderTiming) async {
         guard proGameReminderTiming != timing else { return }
 

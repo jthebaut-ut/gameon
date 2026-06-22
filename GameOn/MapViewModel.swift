@@ -715,6 +715,16 @@ final class MapViewModel: ObservableObject {
     @Published var discoverFocusVenueId: UUID?
     /// Profile empty Home Crowd CTA → switch to Discover tab (cleared by MainTabView).
     @Published var requestDiscoverTabForHomeCrowd = false
+    /// Announcement CTA → switch main tab (cleared by MainTabView).
+    @Published var requestedMainTabRaw: String?
+    /// Pro game reminder notification tap → Going tab / Pro Games / match detail.
+    @Published var pendingProGameNotificationDeepLink: ProGameNotificationDeepLinkRequest?
+    /// Eligible Discover banner announcements for carousel presentation (sorted).
+    @Published var discoverBannerAnnouncements: [FanGeoAnnouncement] = []
+    /// Resolved promoted venues for sponsored announcement cards (outside current map bounds).
+    @Published var sponsoredPromotedVenueBarsByID: [UUID: BarVenue] = [:]
+    @Published var sponsoredPromotedVenueLocationByID: [UUID: DiscoverSponsoredVenueLocationFields] = [:]
+    var sponsoredPromotedVenuePrefetchTask: Task<Void, Never>?
     /// When set, ``SettingsScreen`` presents ``SettingsUserAuthSheet`` (same fan sheet as Account tab). Cleared when handled.
     @Published var presentFanUserAuthSheetFromDiscover: Bool = false
     /// Initial mode for ``SettingsUserAuthSheet`` when opened from Discover guest prompts.
@@ -884,6 +894,13 @@ final class MapViewModel: ObservableObject {
     var calendarTabPickupSourcesRefreshTask: Task<Void, Never>?
     var lastCalendarTabPickupSourcesRefreshAt: Date?
     var lastCalendarTabPickupSourcesRefreshKey: String?
+    var discoverAnnouncementFetchTask: Task<Void, Never>?
+    var lastDiscoverAnnouncementFetchAt: Date?
+    /// Debounces Discover-tab-visible network refreshes (Push Again / dismiss_version checks).
+    var lastDiscoverTabVisibleAnnouncementRefreshAt: Date?
+    var cachedDiscoverBannerCandidates: [FanGeoAnnouncement] = []
+    /// Set when the app leaves the foreground; cleared after a forced announcement refresh.
+    var announcementsAppWasBackgrounded = false
 
     /// MainTabView tab-intent preload coordination (not published — avoids tab body churn).
     private(set) var tabIntentPreloadInFlight: Set<String> = []
